@@ -1,42 +1,45 @@
-# xcelerate 🚀
+# xcelerate
 
-A high-performance, lightweight Chrome DevTools Protocol (CDP) client for Rust.
+[![Crates.io](https://img.shields.io/crates/v/xcelerate.svg)](https://crates.io/crates/xcelerate)
+[![Documentation](https://docs.rs/xcelerate/badge.svg)](https://docs.rs/xcelerate)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Built for speed and developer experience, `xcelerate` provides a clean, chained API for browser automation that feels like `chromiumoxide` but with a minimalist core.
+A high-performance, lightweight **Chrome DevTools Protocol (CDP)** client for Rust. Built for speed and developer experience, `xcelerate` provides a clean, chained API for browser automation that feels like `chromiumoxide` but with a minimalist, "Zero-Config" core.
 
-## Features
+## 🚀 Features
 
-- **Zero-Config**: Automatic browser detection and launching.
-- **Fluent API**: Chained methods for intuitive automation scripts.
-- **Async First**: Built on `tokio` and `futures`.
-- **Type-Safe**: Full support for `browser-protocol` and `js-protocol`.
-- **Lightweight**: Minimal dependencies, fast compilation.
+- **Zero-Config**: Automatic discovery and launching of Chrome/Edge on Windows.
+- **Fluent API**: Chained methods for intuitive automation scripts (Type, Click, Hover).
+- **Handshake Recovery**: Reliable debugger connection via HTTP handshake.
+- **Event Broadcasting**: Built-in system to subscribe to browser-wide events.
+- **Async Ready**: Fully optimized for `tokio` and `futures`.
 
-## Quick Start
+## 📦 Installation
 
-Add to your `Cargo.toml`:
+Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
 xcelerate = "0.1.0"
+tokio = { version = "1.0", features = ["full"] }
 ```
 
-### Basic Example
+## 🛠 Usage Example
 
 ```rust
 use xcelerate::{Browser, BrowserConfig, XcelerateResult};
 
 #[tokio::main]
 async fn main() -> XcelerateResult<()> {
-    // Launch browser automatically
+    // 1. Launch browser automatically
     let (browser, handler) = Browser::launch(
         BrowserConfig::builder().headless(false).build()?
     ).await?;
     
-    // Run the event handler in the background
+    // 2. Run the event handler in the background
     tokio::spawn(handler.run());
 
-    // Clean, chained automation
+    // 3. Clean, chained automation
     let page = browser.new_page("https://www.google.com").await?;
     
     page.find_element("input[name='q']")
@@ -50,14 +53,11 @@ async fn main() -> XcelerateResult<()> {
 }
 ```
 
-## Running Examples
+## 🏗 Why xcelerate?
+Unlike other CDP wrappers that can be heavy or complex to set up, `xcelerate` focuses on the "First 5 Minutes" experience. It handles the messy process launching, port polling, and PID management so you can focus on your automation logic.
 
-Check out the `examples/` directory:
+## ⚖ License
+Distributed under the MIT License. See `LICENSE` for more information.
 
-```bash
-cargo run --example google_search
-```
-
-## License
-
-MIT License - Copyright (c) 2026 Nguyễn Quý Ngọc
+---
+*Developed by Nguyễn Quý Ngọc*
