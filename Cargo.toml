@@ -1,0 +1,24 @@
+[package]
+name = "xcelerate"
+version = "0.1.0"
+edition = "2024"
+authors = ["Nguyễn Quý Ngọc"]
+description = "A high-performance, lightweight Chrome DevTools Protocol (CDP) client for Rust."
+license = "MIT"
+repository = "https://github.com/nguyenquyngoc/xcelerate"
+keywords = ["automation", "cdp", "chrome", "headless", "browser"]
+categories = ["web-programming", "development-tools"]
+readme = "README.md"
+
+[dependencies]
+browser-protocol = "0.1.2"
+js-protocol = "0.1.2"
+futures = "0.3.32"
+reqwest = { version = "0.12", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.52.1", features = ["full"] }
+tokio-tungstenite = "0.26.2"
+thiserror = "2.0"
+tempfile = "3.10"
+base64 = "0.22"
