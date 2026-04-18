@@ -1,3 +1,8 @@
+//! # xcelerate
+//! 
+//! `xcelerate` is a high-performance, lightweight Chrome DevTools Protocol (CDP) client.
+//! It provides a fluent, chained API for browser automation, designed for speed and reliability.
+
 pub mod error;
 pub mod connection;
 pub mod browser;
@@ -10,7 +15,7 @@ pub use page::Page;
 pub use element::Element;
 pub use connection::{CdpClient, CdpHandler};
 
-// Macro or trait helper for commands
+/// The core trait for defining CDP commands.
 pub use connection::client::CdpCommand;
 
 // Boilerplate trait implementations (usually generated)

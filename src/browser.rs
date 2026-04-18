@@ -9,17 +9,22 @@ use tokio::process::Command;
 use std::path::PathBuf;
 use std::time::Duration;
 
+/// Configuration for the Browser instance.
 pub struct BrowserConfig {
+    /// Whether to run the browser in headless mode.
     pub headless: bool,
+    /// Optional path to the browser executable.
     pub executable_path: Option<PathBuf>,
 }
 
 impl BrowserConfig {
+    /// Creates a new builder for BrowserConfig.
     pub fn builder() -> BrowserConfigBuilder {
         BrowserConfigBuilder::default()
     }
 }
 
+/// A builder for BrowserConfig.
 pub struct BrowserConfigBuilder {
     headless: bool,
     executable_path: Option<PathBuf>,
@@ -35,14 +40,17 @@ impl Default for BrowserConfigBuilder {
 }
 
 impl BrowserConfigBuilder {
+    /// Sets the headless mode.
     pub fn headless(mut self, headless: bool) -> Self {
         self.headless = headless;
         self
     }
+    /// Sets the path to the browser executable.
     pub fn executable_path(mut self, path: impl Into<PathBuf>) -> Self {
         self.executable_path = Some(path.into());
         self
     }
+    /// Builds the BrowserConfig.
     pub fn build(self) -> XcelerateResult<BrowserConfig> {
         Ok(BrowserConfig {
             headless: self.headless,
@@ -51,10 +59,11 @@ impl BrowserConfigBuilder {
     }
 }
 
+/// Represents a browser instance (e.g., Chrome or Edge).
 pub struct Browser {
     pub(crate) client: Arc<CdpClient>,
     _process: Option<tokio::process::Child>, 
-    _user_data_dir: Option<tempfile::TempDir>, // Keep this to prevent deletion
+    _user_data_dir: Option<tempfile::TempDir>, 
 }
 
 impl Browser {

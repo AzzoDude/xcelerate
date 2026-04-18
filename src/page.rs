@@ -10,6 +10,7 @@ pub struct Page {
 }
 
 impl Page {
+    /// Finds an element matching the CSS selector.
     pub async fn find_element(&self, selector: &str) -> XcelerateResult<Element> {
         let js = format!("document.querySelector('{}')", selector);
         
@@ -23,6 +24,11 @@ impl Page {
         } else {
             Err(crate::error::XcelerateError::NotFound(selector.to_string()))
         }
+    }
+
+    /// Subscribes to browser-wide events.
+    pub fn subscribe(&self) -> tokio::sync::broadcast::Receiver<serde_json::Value> {
+        self.client.subscribe()
     }
 
     /// Waits for an element matching the selector to appear in the DOM.

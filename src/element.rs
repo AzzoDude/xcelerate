@@ -1,12 +1,14 @@
 use crate::page::Page;
 use crate::error::XcelerateResult;
 
+/// Represents an HTML element in the DOM.
 pub struct Element {
     pub(crate) page: Page,
     pub(crate) object_id: String,
 }
 
 impl Element {
+    /// Clicks the element.
     pub async fn click(&self) -> XcelerateResult<&Self> {
         self.page.client.execute_with_session(
             Some(&self.page.session_id),
