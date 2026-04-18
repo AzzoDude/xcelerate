@@ -47,7 +47,7 @@ impl Page {
 
         while start.elapsed() < timeout {
             let res = self.evaluate("document.readyState").await?;
-            if res.result.value.and_then(|v| v.as_str()) == Some("complete") {
+            if res.result.value.map_or(false, |v| v.as_str() == Some("complete")) {
                 return Ok(());
             }
             tokio::time::sleep(std::time::Duration::from_millis(250)).await;
