@@ -2,13 +2,21 @@
 name = "xcelerate"
 version = "0.1.1"
 edition = "2024"
-authors = ["Nguyễn Quý Ngọc"]
+authors = ["AzzoDude"]
 description = "A high-performance, lightweight Chrome DevTools Protocol (CDP) client for Rust."
 license = "MIT"
-repository = "https://github.com/nguyenquyngoc/xcelerate"
-keywords = ["automation", "cdp", "chrome", "headless", "browser"]
+copyright = "Copyright © 2026 AzzoDude"
+repository = "https://github.com/AzzoDude/xcelerate"
+documentation = "https://docs.rs/xcelerate"
+keywords = ["automation", "cdp", "chrome", "headless", "browser", "ffi", "automation-library"]
 categories = ["web-programming", "development-tools"]
 readme = "README.md"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[build-dependencies]
+csbindgen = "1.9.7"
 
 [dependencies]
 browser-protocol = "0.1.2"
@@ -22,3 +30,4 @@ tokio-tungstenite = "0.26.2"
 thiserror = "2.0"
 tempfile = "3.10"
 base64 = "0.22"
+once_cell = "1.19"

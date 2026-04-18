@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>Xcelerate</AssemblyName>
+    <PackageId>Xcelerate</PackageId>
+    <Version>0.1.1</Version>
+    <Authors>AzzoDude</Authors>
+    <Copyright>Copyright © 2026 AzzoDude</Copyright>
+    <Description>C# wrapper for the xcelerate Rust CDP library.</Description>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Xcelerate.TestApp\**</DefaultItemExcludes>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/AzzoDude/xcelerate</RepositoryUrl>
+    <PackageTags>cdp;browser;automation;chrome;headless;rust;ffi;aot;nativeaot;dotnet;csharp;managed;selenium-alternative;playwright-alternative</PackageTags>
+    <IsPackable>true</IsPackable>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <PackageReadmeFile>README_NUGET.md</PackageReadmeFile>
+    
+    <!-- NativeAOT & Performance Optimizations -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <OptimizationPreference>Speed</OptimizationPreference>
+    <StackTraceSupport>false</StackTraceSupport>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Include the native library in the NuGet package -->
+    <None Include="xcelerate.dll" Pack="true" PackagePath="runtimes/win-x64/native/">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="README_NUGET.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,56 @@
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+
+namespace Xcelerate
+{
+    public class Browser : IDisposable
+    {
+        internal unsafe void* Handle;
+        private bool _disposed;
+
+        internal unsafe Browser(void* handle)
+        {
+            Handle = handle;
+        }
+
+        public static Browser Launch(bool headless = true)
+        {
+            unsafe
+            {
+                void* handle = NativeMethods.xcel_browser_launch(headless);
+                if (handle == null) throw new Exception("Failed to launch browser");
+                return new Browser(handle);
+            }
+        }
+
+        public Page NewPage(string url)
+        {
+            unsafe
+            {
+                byte[] urlBytes = Encoding.UTF8.GetBytes(url + "\0");
+                fixed (byte* p = urlBytes)
+                {
+                    void* pageHandle = NativeMethods.xcel_browser_new_page(Handle, p);
+                    if (pageHandle == null) throw new Exception("Failed to create new page");
+                    return new Page(pageHandle);
+                }
+            }
+        }
+
+        public void Close() => Dispose();
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            unsafe
+            {
+                if (Handle != null) NativeMethods.xcel_free_browser(Handle);
+            }
+            _disposed = true;
+            GC.SuppressFinalize(this);
+        }
+
+        ~Browser() => Dispose();
+    }
+}

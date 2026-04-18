@@ -8,6 +8,7 @@ pub mod connection;
 pub mod browser;
 pub mod page;
 pub mod element;
+pub mod bindings;
 
 pub use error::{XcelerateError, XcelerateResult};
 pub use browser::{Browser, BrowserConfig};

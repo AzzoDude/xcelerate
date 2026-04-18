@@ -1,21 +1,24 @@
 # xcelerate
 
+[![NuGet](https://img.shields.io/nuget/v/Xcelerate.svg)](https://www.nuget.org/packages/Xcelerate)
 [![Crates.io](https://img.shields.io/crates/v/xcelerate.svg)](https://crates.io/crates/xcelerate)
-[![Documentation](https://docs.rs/xcelerate/badge.svg)](https://docs.rs/xcelerate)
+[![Documentation](https://img.shields.io/badge/docs.rs-xcelerate-blue)](https://docs.rs/xcelerate)
+[![GitHub](https://img.shields.io/github/stars/AzzoDude/xcelerate.svg?style=social)](https://github.com/AzzoDude/xcelerate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A high-performance, lightweight **Chrome DevTools Protocol (CDP)** client for Rust. Built for speed and developer experience, `xcelerate` provides a clean, chained API for browser automation that feels like `chromiumoxide` but with a minimalist, "Zero-Config" core.
+A high-performance, lightweight **Chrome DevTools Protocol (CDP)** client for Rust and .NET. Built for speed and developer experience, `xcelerate` provides a clean, chained API for browser automation that feels like `chromiumoxide` but with a minimalist, "Zero-Config" core.
 
 ## 🚀 Features
 
 - **Zero-Config**: Automatic discovery and launching of Chrome/Edge on Windows.
 - **Fluent API**: Chained methods for intuitive automation scripts (Type, Click, Hover).
 - **Handshake Recovery**: Reliable debugger connection via HTTP handshake.
-- **Event Broadcasting**: Built-in system to subscribe to browser-wide events.
 - **Async Ready**: Fully optimized for `tokio` and `futures`.
+- **Safe .NET Wrapper**: Modern, managed C# API with no `unsafe` blocks required.
 
 ## 📦 Installation
 
+### 🦀 Rust
 Add this to your `Cargo.toml`:
 
 ```toml
@@ -24,33 +27,60 @@ xcelerate = "0.1.0"
 tokio = { version = "1.0", features = ["full"] }
 ```
 
-## 🛠 Usage Example
+### 🔷 C# / .NET
+The C# wrapper is **NativeAOT compatible** and 100% managed (safe).
 
+```powershell
+dotnet add package Xcelerate
+```
+
+## 🛠 Usage Examples
+
+### Rust (Native)
 ```rust
 use xcelerate::{Browser, BrowserConfig, XcelerateResult};
 
 #[tokio::main]
 async fn main() -> XcelerateResult<()> {
-    // 1. Launch browser automatically
     let (browser, handler) = Browser::launch(
         BrowserConfig::builder().headless(false).build()?
     ).await?;
-    
-    // 2. Run the event handler in the background
     tokio::spawn(handler.run());
 
-    // 3. Clean, chained automation
     let page = browser.new_page("https://www.google.com").await?;
-    
     page.find_element("input[name='q']")
         .await?
-        .type_text("Xcelerate Rust Automation")
+        .type_text("Xcelerate Rust")
         .await?
         .click()
         .await?;
 
     Ok(())
 }
+```
+
+### C# (Managed & Safe)
+```csharp
+using Xcelerate;
+
+// 1. Launch & Automatic Cleanup
+using var browser = Browser.Launch(headless: false);
+
+// 2. High-level Managed API
+using var page = browser.NewPage("https://www.google.com");
+Console.WriteLine($"Title: {page.GetTitle()}");
+
+// 3. Navigation & Interaction
+page.Navigate("https://github.com");
+using var search = page.WaitForSelector("input[name='q']");
+search.TypeText("Xcelerate");
+```
+
+## 🛠️ Build & Development
+To regenerate the C# bindings after modifying the Rust source, use the provided automation script:
+
+```powershell
+python scripts/generate_cs_wrapper.py
 ```
 
 ## 🏗 Why xcelerate?
@@ -60,4 +90,4 @@ Unlike other CDP wrappers that can be heavy or complex to set up, `xcelerate` fo
 Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
-*Developed by Nguyễn Quý Ngọc*
+*Developed by AzzoDude*
