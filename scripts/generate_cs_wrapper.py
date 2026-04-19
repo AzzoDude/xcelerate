@@ -49,6 +49,19 @@ def main():
     )
     run_command(["powershell", "-Command", ps_command])
 
+    # POST-PROCESS: Make BrowserConfig arguments optional in C#
+    with open(generated_cs, "r") as f:
+        content = f.read()
+    
+    import re
+    # We match the specific Record definition and add defaults
+    pattern = r"public record BrowserConfig \(\n    bool @headless, \n    bool @stealth, \n    bool @detached, \n    string\? @executablePath\n\)"
+    replacement = r"public record BrowserConfig (\n    bool @headless = true, \n    bool @stealth = true, \n    bool @detached = true, \n    string? @executablePath = null\n)"
+    content = re.sub(pattern, replacement, content)
+    
+    with open(generated_cs, "w") as f:
+        f.write(content)
+
     print("\n--- 4. Distributing Native Library ---")
     target_dll = os.path.join(csharp_dir, dll_name)
     shutil.copy2(built_dll, target_dll)
