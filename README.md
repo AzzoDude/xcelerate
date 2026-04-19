@@ -1,25 +1,24 @@
-# xcelerate
+# Xcelerate
 
 [![NuGet](https://img.shields.io/nuget/v/Xcelerate.svg)](https://www.nuget.org/packages/Xcelerate)
 [![Crates.io](https://img.shields.io/crates/v/xcelerate.svg)](https://crates.io/crates/xcelerate)
 [![Documentation](https://img.shields.io/badge/docs.rs-xcelerate-blue)](https://docs.rs/xcelerate)
-[![GitHub](https://img.shields.io/github/stars/AzzoDude/xcelerate.svg?style=social)](https://github.com/AzzoDude/xcelerate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A high-performance, lightweight **Chrome DevTools Protocol (CDP)** client for Rust and .NET. Built for speed and developer experience, `xcelerate` provides a clean, chained API for browser automation that feels like `chromiumoxide` but with a minimalist, "Zero-Config" core.
+Xcelerate is a high-performance, lightweight Chrome DevTools Protocol (CDP) client designed for Rust and .NET. It provides a modular architecture that combines a fast Rust core with an idiomatic C# managed wrapper.
 
-## 🚀 Features
+## Key Features
 
-- **Zero-Config**: Automatic discovery and launching of Chrome/Edge on Windows.
-- **Fluent API**: Chained methods for intuitive automation scripts (Type, Click, Hover).
-- **Handshake Recovery**: Reliable debugger connection via HTTP handshake.
-- **Async Ready**: Fully optimized for `tokio` and `futures`.
-- **Safe .NET Wrapper**: Modern, managed C# API with no `unsafe` blocks required.
+- **Automated Process Management**: Seamlessly discovers and initializes Chrome or Edge binaries on Windows.
+- **Advanced Stealth Integration**: Built-in binary patching and runtime JavaScript payloads to neutralize automation detection.
+- **Async Implementation**: Fully optimized for `tokio` in Rust and `Task`-based async/await in C#.
+- **Fluent API**: Designed for readability with chained method patterns for common interactions like clicking, typing, and hovering.
+- **Headless=New Support**: Utilizes the modern Chrome headless engine for superior compatibility with state-of-the-art web applications.
 
-## 📦 Installation
+## Installation
 
-### 🦀 Rust
-Add this to your `Cargo.toml`:
+### Rust
+Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
@@ -27,90 +26,67 @@ xcelerate = "0.1.2"
 tokio = { version = "1.0", features = ["full"] }
 ```
 
-### 🔷 C# / .NET
-The C# wrapper is **NativeAOT compatible** and 100% managed (safe).
+### .NET / C#
+Xcelerate provides a 100% managed wrapper that handles all native interop automatically.
 
 ```powershell
 dotnet add package Xcelerate
 ```
 
-## 🛠 Usage Examples
+## Usage Examples
 
-### Rust (Native)
+### Rust Implementation
 ```rust
 use xcelerate::{Browser, BrowserConfig, XcelerateResult};
 
 #[tokio::main]
 async fn main() -> XcelerateResult<()> {
     let (browser, handler) = Browser::launch(
-        BrowserConfig::builder().headless(false).build()?
+        BrowserConfig::builder().headless(true).stealth(true).build()?
     ).await?;
     tokio::spawn(handler.run());
 
-    let page = browser.new_page("https://www.google.com").await?;
-    page.find_element("input[name='q']")
-        .await?
-        .type_text("Xcelerate Rust")
-        .await?
-        .click()
-        .await?;
+    let page = browser.new_page("https://www.example.com").await?;
+    let title = page.title().await?;
+    println!("Title: {}", title);
 
     Ok(())
 }
 ```
 
-### C# (.NET)
-`xcelerate` provides a clean, modern .NET API with support for both **Synchronous** and **Asynchronous** programming models.
+### C# Implementation
+Xcelerate offers idiomatic .NET support with standard `IDisposable` patterns for resource management.
 
-#### ⚡ Synchronous (Simple Scripts)
 ```csharp
 using Xcelerate;
 
-// 1. Launch & Automatic Cleanup (Disposes on exit)
-using var browser = Browser.Launch(headless: false);
+// Launch browser with modern headless mode and stealth patches
+using var browser = await Browser.LaunchAsync(headless: true, stealth: true);
 
-// 2. High-level Managed API
-using var page = browser.NewPage("https://www.google.com");
-Console.WriteLine($"Title: {page.GetTitle()}");
+// Create a new page and perform navigation
+using var page = await browser.NewPageAsync("https://pixelscan.net/");
 
-// 3. Navigation & Interaction
-page.Navigate("https://github.com");
-using var search = page.WaitForSelector("input[name='q']");
-search.TypeText("Xcelerate");
+// Wait for a selector and extract results
+using var element = await page.WaitForSelectorAsync("body");
+string title = await page.GetTitleAsync();
+Console.WriteLine($"Page Title: {title}");
+
+// Capture full-page documentation of results
+byte[] screenshot = await page.ScreenshotFullAsync();
+File.WriteAllBytes("result.png", screenshot);
 ```
 
-#### 🌐 Asynchronous (Modern Applications)
-```csharp
-using Xcelerate;
+## Advanced Capabilities
 
-// 1. Launch Async
-using var browser = await Browser.LaunchAsync(headless: true);
+### Stealth and Anti-Detection
+Xcelerate implements a defense-in-depth strategy to bypass bot detection services:
+- **Binary Patching**: Actively replaces `cdc_` signatures in the browser binary.
+- **Runtime Masking**: Injects a hardened JavaScript payload to hide `navigator.webdriver`, mock `window.chrome`, and protect the Permissions API.
+- **Detached Logic**: Supports spawning browser instances that persist independently of the parent application.
 
-// 2. Multi-step Async Logic
-using var page = await browser.NewPageAsync("https://www.google.com");
-await page.NavigateAsync("https://github.com");
+## Development and Contributions
 
-var title = await page.GetTitleAsync();
-Console.WriteLine($"Title: {title}");
+Xcelerate is actively maintained. To contribute or modify the cross-language bindings, refer to the automation scripts located in the `scripts/` directory.
 
-// 3. Selector Handling
-using var element = await page.WaitForSelectorAsync("input[name='q']");
-await element.TypeTextAsync("Xcelerate SDK");
-await element.ClickAsync();
-```
-
-## 🛠️ Build & Development
-To regenerate the C# bindings after modifying the Rust source, use the provided automation script:
-
-```powershell
-python scripts/generate_cs_wrapper.py
-```
-
-## 🏗 Why xcelerate?
-Unlike other CDP wrappers that can be heavy or complex to set up, `xcelerate` focuses on the "First 5 Minutes" experience. It handles the messy process launching, port polling, and PID management so you can focus on your automation logic.
-
-## ⚖ License
-Distributed under the MIT License. See `LICENSE` for more information.
-
----
-*Developed by AzzoDude*
+## License
+Distributed under the MIT License.

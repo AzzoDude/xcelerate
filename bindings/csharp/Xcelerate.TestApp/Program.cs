@@ -1,38 +1,38 @@
-using Xcelerate;
+using uniffi.xcelerate_core;
 
-Console.WriteLine("--- Xcelerate C# Idiomatic Test App ---");
+Console.WriteLine("--- Xcelerate C# UniFFI Test App (Async + Stealth) ---");
 
 try
 {
-    Console.WriteLine("Launching Browser...");
-    using var browser = Browser.Launch(headless: false);
+    Console.WriteLine("Launching Browser (Headless=New + Stealth)...");
+    var config = new BrowserConfig(headless: true, stealth: true, detached: false, executablePath: null);
+    using var browser = await Browser.Launch(config);
     
-    Console.WriteLine("Creating New Page...");
-    using var page = browser.NewPage("https://www.google.com");
+    Console.WriteLine("Creating New Page (Testing Pixelscan Stealth)...");
+    // UniFFI generated NewPage returns Task<Page>
+    using var page = await browser.NewPage("https://pixelscan.net/bot-check/");
     
-    Console.WriteLine($"Page Title: {page.GetTitle()}");
+    Console.WriteLine("Waiting for Pixelscan analysis (approx 10s)...");
+    await Task.Delay(10000); 
     
-    Console.WriteLine("Navigating to GitHub...");
-    page.Navigate("https://github.com");
-    Console.WriteLine($"New Page Title: {page.GetTitle()}");
+    Console.WriteLine($"Current Page Title: {await page.Title()}");
     
-    Console.WriteLine("Finding Search Input...");
-    using var element = page.WaitForSelector("input[name='q']");
-    
-    Console.WriteLine("Typing into search...");
-    element.TypeText("Xcelerate Rust");
-    
-    Console.WriteLine("Taking Screenshot...");
-    byte[] screenshot = page.Screenshot();
-    File.WriteAllBytes("github_test.png", screenshot);
+    Console.WriteLine("Taking Full-Page Screenshot of Pixescan results...");
+    byte[] screenshot = await page.ScreenshotFull();
+    await File.WriteAllBytesAsync("pixelscan_full_page.png", screenshot);
     Console.WriteLine($"Screenshot saved! Size: {screenshot.Length} bytes");
     
-    Console.WriteLine("Test Successful! Waiting 3 seconds...");
-    Thread.Sleep(3000);
+    Console.WriteLine("\n[SUCCESS] Test completed.");
+    Console.WriteLine("The browser should have closed automatically.");
 }
 catch (Exception ex)
 {
     Console.WriteLine($"[ERROR] {ex.Message}");
+    if (ex.InnerException != null)
+    {
+        Console.WriteLine($"[INNER ERROR] {ex.InnerException.Message}");
+    }
+    Console.WriteLine(ex.StackTrace);
 }
 
 Console.WriteLine("--- Test Finished ---");

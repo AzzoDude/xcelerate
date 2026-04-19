@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xcelerate"
+version = "0.1.2"
+description = "A high-performance, lightweight Chrome DevTools Protocol (CDP) client with built-in stealth."
+readme = "README.md"
+authors = [{ name = "AzzoDude" }]
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Rust",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Intended Audience :: Developers",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/AzzoDude/xcelerate"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["xcelerate*"]
+
+[tool.setuptools.package-data]
+xcelerate = ["*.dll", "*.so", "*.dylib"]

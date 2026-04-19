@@ -12,12 +12,16 @@ categories = ["web-programming", "development-tools"]
 readme = "README.md"
 
 [lib]
+name = "xcelerate_core"
 crate-type = ["rlib", "cdylib"]
 
-[build-dependencies]
-csbindgen = "1.9.7"
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+required-features = ["uniffi/cli"]
 
 [dependencies]
+uniffi = { version = "0.29", features = ["tokio"] }
 browser-protocol = "0.1.2"
 js-protocol = "0.1.2"
 futures = "0.3.32"
@@ -30,3 +34,5 @@ thiserror = "2.0"
 tempfile = "3.10"
 base64 = "0.22"
 once_cell = "1.19"
+regex = "1.10"
+libc = "0.2"

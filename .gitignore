@@ -739,3 +739,11 @@ bindings/csharp/NativeMethods.g.cs
 bindings/csharp/**/bin/
 bindings/csharp/**/obj/
 github_test.png
+bindings/csharp/Xcelerate.TestApp/xcelerate.dll
+bindings/csharp/Xcelerate.TestApp/xcelerate_core.dll
+bindings/csharp/xcelerate_core.dll
+bindings/python/pixelscan_python.png
+bindings/python/xcelerate/xcelerate_core.dll
+
+# Legacy Bindings
+src/bindings/

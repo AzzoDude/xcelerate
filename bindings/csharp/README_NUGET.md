@@ -1,71 +1,65 @@
-# Xcelerate
+# Xcelerate SDK for .NET
 
 [![NuGet](https://img.shields.io/nuget/v/Xcelerate.svg)](https://www.nuget.org/packages/Xcelerate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A high-performance, lightweight **Chrome DevTools Protocol (CDP)** client for .NET. Built for speed and developer experience, `Xcelerate` provides a clean, managed API for browser automation with a minimalist, "Zero-Config" core.
+Xcelerate is a high-performance, lightweight Chrome DevTools Protocol (CDP) client tailored for the .NET ecosystem. Built on a performance-optimized Rust core, it provides an idiomatic C# wrapper that combines native speed with the safety and ease of use expected by .NET developers.
 
-## 🚀 Features
+## Features
 
-- **Safe & Managed**: 100% safe C# API (no pointers or `unsafe` blocks required).
-- **NativeAOT Compatible**: Optimized for startup speed and low memory footprint.
-- **Zero-Config**: Automatic discovery and launching of Chrome/Edge on Windows.
-- **Fluent API**: Intuitive methods for automation (Navigate, Type, Click, Screenshots).
-- **Zero Dependencies**: Bundles everything you need in a single package.
+- **Managed Lifecycle**: Fully supports `IDisposable` patterns to ensure clean browser and process termination.
+- **Async/Await First**: Standard `Task`-based asynchronous API for modern C# applications.
+- **Advanced Stealth Support**: Built-in mechanisms to neutralize automation detection (masking WebDriver, mocking Chrome APIs).
+- **NativeAOT Compatible**: Designed for high performance and low memory footprints.
+- **Simplified Deployment**: Bundles the required native binaries for Windows (x64), removing the need for external C++ or Rust installations on the target machine.
 
-## 📦 Installation
+## Installation
+
+Install the package via the .NET CLI:
 
 ```powershell
 dotnet add package Xcelerate
 ```
 
-## 🛠 Usage Examples
+## Basic Usage
 
-`Xcelerate` supports both synchronous and asynchronous programming models.
+Xcelerate emphasizes a clean, readable API. The library handles port polling, browser initialization, and handshake recovery automatically.
 
-### ⚡ Synchronous (Simple Scripts)
 ```csharp
 using Xcelerate;
 
-// 1. Launch & Automatic Cleanup
-using var browser = Browser.Launch(headless: false);
+// Launch a stealth-hardened browser instance
+using var browser = await Browser.LaunchAsync(headless: true, stealth: true);
 
-// 2. High-level Managed API
-using var page = browser.NewPage("https://www.google.com");
-Console.WriteLine($"Title: {page.GetTitle()}");
+// Initialize a new page and perform navigation
+using var page = await browser.NewPageAsync("https://www.example.com");
 
-// 3. Navigation & Interaction
-page.Navigate("https://github.com");
-using var search = page.WaitForSelector("input[name='q']");
-search.TypeText("Xcelerate");
-```
+// Capture page metadata
+string title = await page.GetTitleAsync();
+Console.WriteLine($"Current title: {title}");
 
-### 🌐 Asynchronous (Modern Applications)
-```csharp
-using Xcelerate;
-
-// 1. Launch Async
-using var browser = await Browser.LaunchAsync(headless: true);
-
-// 2. Multi-step Async Logic
-using var page = await browser.NewPageAsync("https://www.google.com");
-await page.NavigateAsync("https://github.com");
-
-var title = await page.GetTitleAsync();
-Console.WriteLine($"Title: {title}");
-
-// 3. Element Interactions
-using var element = await page.WaitForSelectorAsync("input[name='q']");
-await element.TypeTextAsync("Xcelerate SDK");
+// Perform interactions
+using var element = await page.WaitForSelectorAsync("button.primary");
 await element.ClickAsync();
+
+// Generate high-resolution full-page screenshots
+byte[] screenshot = await page.ScreenshotFullAsync();
+File.WriteAllBytes("capture.png", screenshot);
 ```
 
-## 🏗 Why Xcelerate?
+## Advanced Configuration
 
-Unlike other CDP wrappers that can be heavy or complex to set up, `Xcelerate` focuses on the "First 5 Minutes" experience. It handles the messy process of launching, port polling, and PID management so you can focus on your automation logic.
+The SDK supports specialized launch options for complex automation scenarios:
 
-## ⚖ License
-Distributed under the MIT License. See `LICENSE` for more information.
+- **Stealth Mode**: Applies binary patches and runtime JavaScript masking to bypass bot detection.
+- **Detached Mode**: Allows the browser process to persist independently of the parent .NET application.
+- **Headless=New**: Utilizes the modern Chromium headless engine for improved rendering and compatibility.
 
----
-*Developed by AzzoDude*
+## Compatibility
+
+- **Frameworks**: .NET 6.0, .NET 7.0, .NET 8.0+
+- **Platform**: Windows x64 (Automatic binary deployment via NuGet)
+
+## License
+
+This project is distributed under the MIT License.

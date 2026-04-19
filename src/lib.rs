@@ -8,13 +8,15 @@ pub mod connection;
 pub mod browser;
 pub mod page;
 pub mod element;
-pub mod bindings;
+pub mod stealth;
 
 pub use error::{XcelerateError, XcelerateResult};
 pub use browser::{Browser, BrowserConfig};
 pub use page::Page;
 pub use element::Element;
 pub use connection::{CdpClient, CdpHandler};
+
+uniffi::setup_scaffolding!("xcelerate_core");
 
 /// The core trait for defining CDP commands.
 pub use connection::client::CdpCommand;
@@ -25,7 +27,7 @@ impl CdpCommand for browser_protocol::page::NavigateParams {
     const METHOD: &'static str = "Page.navigate";
 }
 impl CdpCommand for browser_protocol::page::EnableParams {
-    type Response = ();
+    type Response = serde_json::Value;
     const METHOD: &'static str = "Page.enable";
 }
 impl CdpCommand for browser_protocol::target::CreateTargetParams {
@@ -49,11 +51,11 @@ impl CdpCommand for browser_protocol::browser::GetVersionParams {
     const METHOD: &'static str = "Browser.getVersion";
 }
 impl CdpCommand for browser_protocol::browser::CloseParams {
-    type Response = ();
+    type Response = serde_json::Value;
     const METHOD: &'static str = "Browser.close";
 }
 impl CdpCommand for browser_protocol::page::ReloadParams {
-    type Response = ();
+    type Response = serde_json::Value;
     const METHOD: &'static str = "Page.reload";
 }
 impl CdpCommand for browser_protocol::page::CaptureScreenshotParams {
@@ -69,11 +71,11 @@ impl CdpCommand for browser_protocol::page::GetNavigationHistoryParams {
     const METHOD: &'static str = "Page.getNavigationHistory";
 }
 impl CdpCommand for browser_protocol::page::NavigateToHistoryEntryParams {
-    type Response = ();
+    type Response = serde_json::Value;
     const METHOD: &'static str = "Page.navigateToHistoryEntry";
 }
 impl CdpCommand for browser_protocol::network::EnableParams {
-    type Response = ();
+    type Response = serde_json::Value;
     const METHOD: &'static str = "Network.enable";
 }
 impl CdpCommand for browser_protocol::target::GetTargetsParams {
@@ -83,4 +85,16 @@ impl CdpCommand for browser_protocol::target::GetTargetsParams {
 impl CdpCommand for browser_protocol::page::AddScriptToEvaluateOnNewDocumentParams {
     type Response = browser_protocol::page::AddScriptToEvaluateOnNewDocumentReturns;
     const METHOD: &'static str = "Page.addScriptToEvaluateOnNewDocument";
+}
+impl CdpCommand for browser_protocol::page::GetLayoutMetricsParams {
+    type Response = browser_protocol::page::GetLayoutMetricsReturns;
+    const METHOD: &'static str = "Page.getLayoutMetrics";
+}
+impl CdpCommand for browser_protocol::emulation::SetDeviceMetricsOverrideParams {
+    type Response = serde_json::Value;
+    const METHOD: &'static str = "Emulation.setDeviceMetricsOverride";
+}
+impl CdpCommand for browser_protocol::emulation::ClearDeviceMetricsOverrideParams {
+    type Response = serde_json::Value;
+    const METHOD: &'static str = "Emulation.clearDeviceMetricsOverride";
 }

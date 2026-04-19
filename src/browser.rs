@@ -5,72 +5,53 @@ use std::sync::Arc;
 use tokio_tungstenite::connect_async;
 use tokio::sync::mpsc;
 use std::process::Stdio;
-use tokio::process::Command;
 use std::path::PathBuf;
 use std::time::Duration;
 
 const CDC_PAYLOAD: &str = include_str!("cdc_payload.js");
 
 /// Configuration for the Browser instance.
+#[derive(uniffi::Record)]
 pub struct BrowserConfig {
     /// Whether to run the browser in headless mode.
     pub headless: bool,
+    /// Whether to apply stealth patches to the binary.
+    pub stealth: bool,
+    /// Whether to run the browser as a detached process.
+    pub detached: bool,
     /// Optional path to the browser executable.
-    pub executable_path: Option<PathBuf>,
+    pub executable_path: Option<String>,
 }
 
-impl BrowserConfig {
-    /// Creates a new builder for BrowserConfig.
-    pub fn builder() -> BrowserConfigBuilder {
-        BrowserConfigBuilder::default()
-    }
-}
-
-/// A builder for BrowserConfig.
-pub struct BrowserConfigBuilder {
-    headless: bool,
-    executable_path: Option<PathBuf>,
-}
-
-impl Default for BrowserConfigBuilder {
+impl Default for BrowserConfig {
     fn default() -> Self {
         Self {
             headless: true,
+            stealth: true,
+            detached: false,
             executable_path: None,
         }
     }
 }
 
-impl BrowserConfigBuilder {
-    /// Sets the headless mode.
-    pub fn headless(mut self, headless: bool) -> Self {
-        self.headless = headless;
-        self
-    }
-    /// Sets the path to the browser executable.
-    pub fn executable_path(mut self, path: impl Into<PathBuf>) -> Self {
-        self.executable_path = Some(path.into());
-        self
-    }
-    /// Builds the BrowserConfig.
-    pub fn build(self) -> XcelerateResult<BrowserConfig> {
-        Ok(BrowserConfig {
-            headless: self.headless,
-            executable_path: self.executable_path,
-        })
-    }
-}
-
 /// Represents a browser instance (e.g., Chrome or Edge).
+#[derive(uniffi::Object)]
 pub struct Browser {
     pub(crate) client: Arc<CdpClient>,
-    _process: Option<tokio::process::Child>, 
+    _process: tokio::sync::Mutex<Option<tokio::process::Child>>, 
+    _process_guard: Option<crate::stealth::process::ProcessGuard>,
     _user_data_dir: Option<tempfile::TempDir>, 
+    _stealth: bool,
 }
 
+#[uniffi::export(async_runtime = "tokio")]
 impl Browser {
-    pub async fn launch(config: BrowserConfig) -> XcelerateResult<(Self, crate::connection::CdpHandler)> {
-        let exe = config.executable_path.or_else(find_chrome_executable).ok_or_else(|| {
+    #[uniffi::constructor]
+    pub async fn launch(config: BrowserConfig) -> XcelerateResult<Arc<Self>> {
+        let exe = match config.executable_path {
+            Some(p) => Some(PathBuf::from(p)),
+            None => find_chrome_executable(),
+        }.ok_or_else(|| {
             XcelerateError::NotFound("Chrome executable not found. Please specify executable_path.".into())
         })?;
 
@@ -78,11 +59,17 @@ impl Browser {
         let user_data_dir = tempfile::tempdir().map_err(|_| XcelerateError::InternalError)?;
         let port = 9222;
 
+        if config.stealth {
+            eprintln!("[LAUNCHER] Applying stealth patches to binary...");
+            crate::stealth::patcher::BinaryPatcher::patch_binary(&exe)?;
+        }
+
         eprintln!("[LAUNCHER] Found executable: {:?}", exe);
 
-        let mut cmd = Command::new(exe);
+        // Convert path to OsString for Command
+        let mut cmd = std::process::Command::new(&exe);
         cmd.arg(format!("--remote-debugging-port={}", port))
-           .arg("--remote-debugging-address=127.0.0.1") // Force 127.0.0.1
+           .arg("--remote-debugging-address=127.0.0.1")
            .arg(format!("--user-data-dir={}", user_data_dir.path().display()))
            .arg("--no-first-run")
            .arg("--no-default-browser-check")
@@ -91,11 +78,25 @@ impl Browser {
            .stderr(Stdio::null());
 
         if config.headless {
-            cmd.arg("--headless");
+            cmd.arg("--headless=new");
+            // Also set a standard user agent to avoid "Headless" in the string if it persists
+            cmd.arg("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
         }
 
-        eprintln!("[LAUNCHER] Spawning process...");
-        let child = cmd.spawn().map_err(|e| XcelerateError::NotFound(format!("Failed to start Chrome: {}", e)))?;
+        let (child, guard) = if config.detached {
+            eprintln!("[LAUNCHER] Spawning detached process...");
+            let pid = crate::stealth::process::spawn_detached(cmd)?;
+            let guard = crate::stealth::process::ProcessGuard { pid, auto_kill: false };
+            (None, Some(guard))
+        } else {
+            eprintln!("[LAUNCHER] Spawning managed process...");
+            // We still use tokio::process::Command for non-detached to get the Child
+            let mut t_cmd = tokio::process::Command::from(cmd);
+            let child = t_cmd.spawn().map_err(|e| XcelerateError::NotFound(format!("Failed to start Chrome: {}", e)))?;
+            let pid = child.id().ok_or(XcelerateError::InternalError)?;
+            let guard = crate::stealth::process::ProcessGuard { pid, auto_kill: true };
+            (Some(child), Some(guard))
+        };
 
         // 1. Wait for the HTTP server to respond and give us the URL
         let version_url = format!("http://127.0.0.1:{}/json/version", port);
@@ -132,57 +133,70 @@ impl Browser {
         let (handler, _event_rx) = crate::connection::CdpHandler::new(ws, rx);
         let client = Arc::new(CdpClient::new(tx, handler.event_tx.clone()));
         
-        Ok((Self { 
+        // Spawn the handler task internally in Rust
+        tokio::spawn(handler.run());
+
+        Ok(Arc::new(Self { 
             client, 
-            _process: Some(child),
+            _process: tokio::sync::Mutex::new(child),
+            _process_guard: guard,
             _user_data_dir: Some(user_data_dir),
-        }, handler))
+            _stealth: config.stealth,
+        }))
     }
 
-    pub async fn new_page(&self, url: impl Into<String>) -> XcelerateResult<Page> {
+    pub async fn new_page(self: Arc<Self>, url: String) -> XcelerateResult<Arc<Page>> {
+        // 1. Create target with about:blank so we can inject scripts before loading the real URL
         let target = self.client.execute(browser_protocol::target::CreateTargetParams {
-            url: url.into(),
+            url: "about:blank".into(),
             ..Default::default()
         }).await?;
 
+        // 2. Attach to target
         let session = self.client.execute(browser_protocol::target::AttachToTargetParams {
             targetId: target.targetId,
             flatten: Some(true),
             ..Default::default()
         }).await?;
 
-        let page = Page {
+        let page = Arc::new(Page {
             client: Arc::clone(&self.client),
             session_id: session.sessionId,
-        };
+        });
 
-        // Automatically inject stealth payload to hide automation traces
-        let _ = page.add_script_to_evaluate_on_new_document(CDC_PAYLOAD).await?;
+        // 3. Inject stealth payload if enabled
+        if self._stealth {
+            page.add_script_to_evaluate_on_new_document(CDC_PAYLOAD.to_string()).await?;
+            // We also need to enable the Page domain for some events to fire correctly
+            self.client.execute_with_session(
+                Some(&page.session_id),
+                browser_protocol::page::EnableParams { ..Default::default() }
+            ).await?;
+        }
+
+        // 4. Finally navigate to the actual URL
+        page.navigate(url).await?;
 
         Ok(page)
     }
 
     /// Returns the browser version information.
-    pub async fn version(&self) -> XcelerateResult<browser_protocol::browser::GetVersionReturns> {
-        self.client.execute(browser_protocol::browser::GetVersionParams { ..Default::default() }).await
+    pub async fn version(&self) -> XcelerateResult<String> {
+        let res = self.client.execute(browser_protocol::browser::GetVersionParams { ..Default::default() }).await?;
+        Ok(format!("{} (Protocol {})", res.product, res.protocolVersion))
     }
 
     /// Closes the browser and kills the process.
-    pub async fn close(&mut self) -> XcelerateResult<()> {
+    pub async fn close(&self) -> XcelerateResult<()> {
         // Try to close gracefully via CDP first
         let _ = self.client.execute(browser_protocol::browser::CloseParams { ..Default::default() }).await;
         
         // Kill the process if it's still running
-        if let Some(mut child) = self._process.take() {
+        let mut lock = self._process.lock().await;
+        if let Some(mut child) = lock.take() {
             let _ = child.kill().await;
         }
         Ok(())
-    }
-
-    /// Returns all available targets (tabs, workers, etc).
-    pub async fn targets(&self) -> XcelerateResult<Vec<browser_protocol::target::TargetInfo>> {
-        let res = self.client.execute(browser_protocol::target::GetTargetsParams { ..Default::default() }).await?;
-        Ok(res.targetInfos)
     }
 }
 
