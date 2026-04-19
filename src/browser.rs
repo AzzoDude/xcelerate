@@ -9,6 +9,8 @@ use tokio::process::Command;
 use std::path::PathBuf;
 use std::time::Duration;
 
+const CDC_PAYLOAD: &str = include_str!("cdc_payload.js");
+
 /// Configuration for the Browser instance.
 pub struct BrowserConfig {
     /// Whether to run the browser in headless mode.
@@ -149,10 +151,15 @@ impl Browser {
             ..Default::default()
         }).await?;
 
-        Ok(Page {
+        let page = Page {
             client: Arc::clone(&self.client),
             session_id: session.sessionId,
-        })
+        };
+
+        // Automatically inject stealth payload to hide automation traces
+        let _ = page.add_script_to_evaluate_on_new_document(CDC_PAYLOAD).await?;
+
+        Ok(page)
     }
 
     /// Returns the browser version information.
