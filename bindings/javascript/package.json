@@ -1,0 +1,45 @@
+{
+  "name": "xcelerate",
+  "version": "0.1.3",
+  "description": "High-performance, lightweight Chrome DevTools Protocol (CDP) client for Node.js",
+  "type": "module",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "engines": {
+    "node": ">=16"
+  },
+  "keywords": [
+    "automation",
+    "cdp",
+    "chrome",
+    "headless",
+    "stealth",
+    "browser"
+  ],
+  "author": "AzzoDude",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AzzoDude/xcelerate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AzzoDude/xcelerate/issues"
+  },
+  "homepage": "https://github.com/AzzoDude/xcelerate#readme",
+  "dependencies": {
+    "koffi": "^2.15.6"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "xcelerate_core.js",
+    "xcelerate_core.d.ts",
+    "xcelerate_core-ffi.js",
+    "xcelerate_core-ffi.d.ts",
+    "xcelerate_core.dll",
+    "runtime/"
+  ],
+  "exports": {
+    ".": "./index.js"
+  }
+}

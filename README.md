@@ -5,7 +5,7 @@
 [![Documentation](https://img.shields.io/badge/docs.rs-xcelerate-blue)](https://docs.rs/xcelerate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Xcelerate is a high-performance, lightweight Chrome DevTools Protocol (CDP) client designed for Rust, .NET, and Python. It provides a modular architecture that combines a fast Rust core with idiomatic wrappers for every major language.
+Xcelerate is a high-performance, lightweight Chrome DevTools Protocol (CDP) client designed for Rust, .NET, Python, and JavaScript (Node.js). It provides a modular architecture that combines a fast Rust core with idiomatic wrappers for every major language.
 
 ## Key Features
 
@@ -34,6 +34,11 @@ dotnet add package Xcelerate
 ### Python
 ```bash
 pip install xcelerate
+```
+
+### JavaScript (Node.js)
+```bash
+npm install xcelerate
 ```
 
 ## Usage Examples
@@ -75,6 +80,22 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+```
+
+### JavaScript Implementation (Node.js)
+Xcelerate for Node.js provides a modern `async/await` API that feels natural for web developers.
+
+```javascript
+const { Browser, BrowserConfig } = require('xcelerate');
+
+async function main() {
+    const browser = await Browser.launch(new BrowserConfig());
+    const page = await browser.newPage("https://pixelscan.net/");
+    console.log("Title:", await page.title());
+    await browser.close();
+}
+
+main();
 ```
 
 ### C# Implementation

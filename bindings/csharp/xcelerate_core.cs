@@ -24,7 +24,7 @@ namespace uniffi.xcelerate_core;
 // pointer to the underlying data.
 
 [StructLayout(LayoutKind.Sequential)]
-public struct RustBuffer {
+internal struct RustBuffer {
     public ulong capacity;
     public ulong len;
     public IntPtr data;
@@ -86,7 +86,7 @@ public struct RustBuffer {
 // completeness.
 
 [StructLayout(LayoutKind.Sequential)]
-public struct ForeignBytes {
+internal struct ForeignBytes {
     public int length;
     public IntPtr data;
 }
@@ -96,7 +96,7 @@ public struct ForeignBytes {
 //
 // All implementing objects should be public to support external types.  When a
 // type is external we need to import it's FfiConverter.
-public abstract class FfiConverter<CsType, FfiType> {
+internal abstract class FfiConverter<CsType, FfiType> {
     // Convert an FFI type to a C# type
     public abstract CsType Lift(FfiType value);
 
@@ -157,7 +157,7 @@ public abstract class FfiConverter<CsType, FfiType> {
 }
 
 // FfiConverter that uses `RustBuffer` as the FfiType
-public abstract class FfiConverterRustBuffer<CsType>: FfiConverter<CsType, RustBuffer> {
+internal abstract class FfiConverterRustBuffer<CsType>: FfiConverter<CsType, RustBuffer> {
     public override CsType Lift(RustBuffer value) {
         return LiftFromRustBuffer(value);
     }
@@ -171,7 +171,7 @@ public abstract class FfiConverterRustBuffer<CsType>: FfiConverter<CsType, RustB
 // This would be a good candidate for isolating in its own ffi-support lib.
 // Error runtime.
 [StructLayout(LayoutKind.Sequential)]
-public struct UniffiRustCallStatus {
+struct UniffiRustCallStatus {
     public sbyte code;
     public RustBuffer error_buf;
 
@@ -189,49 +189,49 @@ public struct UniffiRustCallStatus {
 }
 
 // Base class for all uniffi exceptions
-public class UniffiException: System.Exception {
+internal class UniffiException: System.Exception {
     public UniffiException(): base() {}
     public UniffiException(string message): base(message) {}
 }
 
-public class UndeclaredErrorException: UniffiException {
+internal class UndeclaredErrorException: UniffiException {
     public UndeclaredErrorException(string message): base(message) {}
 }
 
-public class PanicException: UniffiException {
+internal class PanicException: UniffiException {
     public PanicException(string message): base(message) {}
 }
 
-public class AllocationException: UniffiException {
+internal class AllocationException: UniffiException {
     public AllocationException(string message): base(message) {}
 }
 
-public class InternalException: UniffiException {
+internal class InternalException: UniffiException {
     public InternalException(string message): base(message) {}
 }
 
-public class InvalidEnumException: InternalException {
+internal class InvalidEnumException: InternalException {
     public InvalidEnumException(string message): base(message) {
     }
 }
 
-public class UniffiContractVersionException: UniffiException {
+internal class UniffiContractVersionException: UniffiException {
     public UniffiContractVersionException(string message): base(message) {
     }
 }
 
-public class UniffiContractChecksumException: UniffiException {
+internal class UniffiContractChecksumException: UniffiException {
     public UniffiContractChecksumException(string message): base(message) {
     }
 }
 
 // Each top-level error class has a companion object that can lift the error from the call status's rust buffer
-public interface CallStatusErrorHandler<E> where E: System.Exception {
+interface CallStatusErrorHandler<E> where E: System.Exception {
     E Lift(RustBuffer error_buf);
 }
 
 // CallStatusErrorHandler implementation for times when we don't expect a CALL_ERROR
-public class NullCallStatusErrorHandler: CallStatusErrorHandler<UniffiException> {
+class NullCallStatusErrorHandler: CallStatusErrorHandler<UniffiException> {
     public static NullCallStatusErrorHandler INSTANCE = new NullCallStatusErrorHandler();
 
     public UniffiException Lift(RustBuffer error_buf) {
@@ -243,7 +243,7 @@ public class NullCallStatusErrorHandler: CallStatusErrorHandler<UniffiException>
 // Helpers for calling Rust
 // In practice we usually need to be synchronized to call this safely, so it doesn't
 // synchronize itself
-public class _UniffiHelpers {
+class _UniffiHelpers {
     public delegate void RustCallAction(ref UniffiRustCallStatus status);
     public delegate U RustCallFunc<out U>(ref UniffiRustCallStatus status);
 
@@ -355,7 +355,7 @@ static class FFIObjectUtil {
 // Big endian streams are not yet available in dotnet :'(
 // https://github.com/dotnet/runtime/issues/26904
 
-public class StreamUnderflowException: System.Exception {
+class StreamUnderflowException: System.Exception {
     public StreamUnderflowException() {
     }
 }
@@ -465,7 +465,7 @@ static class BigEndianStreamExtensions
     }
 }
 
-public class BigEndianStream {
+class BigEndianStream {
     Stream stream;
     public BigEndianStream(Stream stream) {
         this.stream = stream;
@@ -804,119 +804,119 @@ static class _UniFFILib {
         }
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_clone_browser(IntPtr @ptr,ref UniffiRustCallStatus _uniffi_out_err
+    public static extern IntPtr uniffi_xcelerate_core__browser_fn_clone_browser(IntPtr @ptr,ref UniffiRustCallStatus _uniffi_out_err
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern void uniffi_xcelerate_core_fn_free_browser(IntPtr @ptr,ref UniffiRustCallStatus _uniffi_out_err
+    public static extern void uniffi_xcelerate_core__browser_fn_free_browser(IntPtr @ptr,ref UniffiRustCallStatus _uniffi_out_err
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_constructor_browser_launch(RustBuffer @config
+    public static extern IntPtr uniffi_xcelerate_core__browser_fn_constructor_browser_launch(RustBuffer @config
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_browser_close(IntPtr @ptr
+    public static extern IntPtr uniffi_xcelerate_core__browser_fn_method_browser_close(IntPtr @ptr
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_browser_new_page(IntPtr @ptr,RustBuffer @url
+    public static extern IntPtr uniffi_xcelerate_core__browser_fn_method_browser_new_page(IntPtr @ptr,RustBuffer @url
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_browser_version(IntPtr @ptr
+    public static extern IntPtr uniffi_xcelerate_core__browser_fn_method_browser_version(IntPtr @ptr
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_clone_element(IntPtr @ptr,ref UniffiRustCallStatus _uniffi_out_err
+    public static extern IntPtr uniffi_xcelerate_core__element_fn_clone_element(IntPtr @ptr,ref UniffiRustCallStatus _uniffi_out_err
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern void uniffi_xcelerate_core_fn_free_element(IntPtr @ptr,ref UniffiRustCallStatus _uniffi_out_err
+    public static extern void uniffi_xcelerate_core__element_fn_free_element(IntPtr @ptr,ref UniffiRustCallStatus _uniffi_out_err
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_element_attribute(IntPtr @ptr,RustBuffer @name
+    public static extern IntPtr uniffi_xcelerate_core__element_fn_method_element_attribute(IntPtr @ptr,RustBuffer @name
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_element_click(IntPtr @ptr
+    public static extern IntPtr uniffi_xcelerate_core__element_fn_method_element_click(IntPtr @ptr
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_element_focus(IntPtr @ptr
+    public static extern IntPtr uniffi_xcelerate_core__element_fn_method_element_focus(IntPtr @ptr
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_element_hover(IntPtr @ptr
+    public static extern IntPtr uniffi_xcelerate_core__element_fn_method_element_hover(IntPtr @ptr
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_element_inner_html(IntPtr @ptr
+    public static extern IntPtr uniffi_xcelerate_core__element_fn_method_element_inner_html(IntPtr @ptr
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_element_text(IntPtr @ptr
+    public static extern IntPtr uniffi_xcelerate_core__element_fn_method_element_text(IntPtr @ptr
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_element_type_text(IntPtr @ptr,RustBuffer @text
+    public static extern IntPtr uniffi_xcelerate_core__element_fn_method_element_type_text(IntPtr @ptr,RustBuffer @text
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_clone_page(IntPtr @ptr,ref UniffiRustCallStatus _uniffi_out_err
+    public static extern IntPtr uniffi_xcelerate_core__page_fn_clone_page(IntPtr @ptr,ref UniffiRustCallStatus _uniffi_out_err
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern void uniffi_xcelerate_core_fn_free_page(IntPtr @ptr,ref UniffiRustCallStatus _uniffi_out_err
+    public static extern void uniffi_xcelerate_core__page_fn_free_page(IntPtr @ptr,ref UniffiRustCallStatus _uniffi_out_err
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_page_add_script_to_evaluate_on_new_document(IntPtr @ptr,RustBuffer @source
+    public static extern IntPtr uniffi_xcelerate_core__page_fn_method_page_add_script_to_evaluate_on_new_document(IntPtr @ptr,RustBuffer @source
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_page_content(IntPtr @ptr
+    public static extern IntPtr uniffi_xcelerate_core__page_fn_method_page_content(IntPtr @ptr
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_page_find_element(IntPtr @ptr,RustBuffer @selector
+    public static extern IntPtr uniffi_xcelerate_core__page_fn_method_page_find_element(IntPtr @ptr,RustBuffer @selector
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_page_go_back(IntPtr @ptr
+    public static extern IntPtr uniffi_xcelerate_core__page_fn_method_page_go_back(IntPtr @ptr
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_page_navigate(IntPtr @ptr,RustBuffer @url
+    public static extern IntPtr uniffi_xcelerate_core__page_fn_method_page_navigate(IntPtr @ptr,RustBuffer @url
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_page_pdf(IntPtr @ptr
+    public static extern IntPtr uniffi_xcelerate_core__page_fn_method_page_pdf(IntPtr @ptr
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_page_reload(IntPtr @ptr
+    public static extern IntPtr uniffi_xcelerate_core__page_fn_method_page_reload(IntPtr @ptr
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_page_screenshot(IntPtr @ptr
+    public static extern IntPtr uniffi_xcelerate_core__page_fn_method_page_screenshot(IntPtr @ptr
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_page_screenshot_full(IntPtr @ptr
+    public static extern IntPtr uniffi_xcelerate_core__page_fn_method_page_screenshot_full(IntPtr @ptr
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_page_title(IntPtr @ptr
+    public static extern IntPtr uniffi_xcelerate_core__page_fn_method_page_title(IntPtr @ptr
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_page_wait_for_navigation(IntPtr @ptr
+    public static extern IntPtr uniffi_xcelerate_core__page_fn_method_page_wait_for_navigation(IntPtr @ptr
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern IntPtr uniffi_xcelerate_core_fn_method_page_wait_for_selector(IntPtr @ptr,RustBuffer @selector
+    public static extern IntPtr uniffi_xcelerate_core__page_fn_method_page_wait_for_selector(IntPtr @ptr,RustBuffer @selector
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
@@ -1144,95 +1144,95 @@ static class _UniFFILib {
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_browser_close(
+    public static extern ushort uniffi_xcelerate_core__browser_checksum_method_browser_close(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_browser_new_page(
+    public static extern ushort uniffi_xcelerate_core__browser_checksum_method_browser_new_page(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_browser_version(
+    public static extern ushort uniffi_xcelerate_core__browser_checksum_method_browser_version(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_element_attribute(
+    public static extern ushort uniffi_xcelerate_core__element_checksum_method_element_attribute(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_element_click(
+    public static extern ushort uniffi_xcelerate_core__element_checksum_method_element_click(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_element_focus(
+    public static extern ushort uniffi_xcelerate_core__element_checksum_method_element_focus(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_element_hover(
+    public static extern ushort uniffi_xcelerate_core__element_checksum_method_element_hover(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_element_inner_html(
+    public static extern ushort uniffi_xcelerate_core__element_checksum_method_element_inner_html(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_element_text(
+    public static extern ushort uniffi_xcelerate_core__element_checksum_method_element_text(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_element_type_text(
+    public static extern ushort uniffi_xcelerate_core__element_checksum_method_element_type_text(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_page_add_script_to_evaluate_on_new_document(
+    public static extern ushort uniffi_xcelerate_core__page_checksum_method_page_add_script_to_evaluate_on_new_document(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_page_content(
+    public static extern ushort uniffi_xcelerate_core__page_checksum_method_page_content(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_page_find_element(
+    public static extern ushort uniffi_xcelerate_core__page_checksum_method_page_find_element(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_page_go_back(
+    public static extern ushort uniffi_xcelerate_core__page_checksum_method_page_go_back(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_page_navigate(
+    public static extern ushort uniffi_xcelerate_core__page_checksum_method_page_navigate(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_page_pdf(
+    public static extern ushort uniffi_xcelerate_core__page_checksum_method_page_pdf(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_page_reload(
+    public static extern ushort uniffi_xcelerate_core__page_checksum_method_page_reload(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_page_screenshot(
+    public static extern ushort uniffi_xcelerate_core__page_checksum_method_page_screenshot(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_page_screenshot_full(
+    public static extern ushort uniffi_xcelerate_core__page_checksum_method_page_screenshot_full(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_page_title(
+    public static extern ushort uniffi_xcelerate_core__page_checksum_method_page_title(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_page_wait_for_navigation(
+    public static extern ushort uniffi_xcelerate_core__page_checksum_method_page_wait_for_navigation(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_method_page_wait_for_selector(
+    public static extern ushort uniffi_xcelerate_core__page_checksum_method_page_wait_for_selector(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
-    public static extern ushort uniffi_xcelerate_core_checksum_constructor_browser_launch(
+    public static extern ushort uniffi_xcelerate_core__browser_checksum_constructor_browser_launch(
     );
 
     [DllImport("xcelerate_core", CallingConvention = CallingConvention.Cdecl)]
@@ -1250,141 +1250,141 @@ static class _UniFFILib {
 
     static void uniffiCheckApiChecksums() {
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_browser_close();
-            if (checksum != 58870) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_browser_close` checksum `58870`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__browser_checksum_method_browser_close();
+            if (checksum != 16019) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__browser_checksum_method_browser_close` checksum `16019`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_browser_new_page();
-            if (checksum != 6589) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_browser_new_page` checksum `6589`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__browser_checksum_method_browser_new_page();
+            if (checksum != 19279) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__browser_checksum_method_browser_new_page` checksum `19279`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_browser_version();
-            if (checksum != 25979) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_browser_version` checksum `25979`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__browser_checksum_method_browser_version();
+            if (checksum != 17230) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__browser_checksum_method_browser_version` checksum `17230`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_element_attribute();
-            if (checksum != 1460) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_element_attribute` checksum `1460`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__element_checksum_method_element_attribute();
+            if (checksum != 9708) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__element_checksum_method_element_attribute` checksum `9708`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_element_click();
-            if (checksum != 54597) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_element_click` checksum `54597`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__element_checksum_method_element_click();
+            if (checksum != 6241) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__element_checksum_method_element_click` checksum `6241`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_element_focus();
-            if (checksum != 12783) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_element_focus` checksum `12783`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__element_checksum_method_element_focus();
+            if (checksum != 9893) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__element_checksum_method_element_focus` checksum `9893`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_element_hover();
-            if (checksum != 38740) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_element_hover` checksum `38740`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__element_checksum_method_element_hover();
+            if (checksum != 16363) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__element_checksum_method_element_hover` checksum `16363`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_element_inner_html();
-            if (checksum != 18173) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_element_inner_html` checksum `18173`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__element_checksum_method_element_inner_html();
+            if (checksum != 24695) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__element_checksum_method_element_inner_html` checksum `24695`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_element_text();
-            if (checksum != 47866) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_element_text` checksum `47866`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__element_checksum_method_element_text();
+            if (checksum != 31459) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__element_checksum_method_element_text` checksum `31459`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_element_type_text();
-            if (checksum != 14210) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_element_type_text` checksum `14210`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__element_checksum_method_element_type_text();
+            if (checksum != 8586) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__element_checksum_method_element_type_text` checksum `8586`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_page_add_script_to_evaluate_on_new_document();
-            if (checksum != 31741) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_page_add_script_to_evaluate_on_new_document` checksum `31741`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__page_checksum_method_page_add_script_to_evaluate_on_new_document();
+            if (checksum != 4984) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__page_checksum_method_page_add_script_to_evaluate_on_new_document` checksum `4984`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_page_content();
-            if (checksum != 28639) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_page_content` checksum `28639`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__page_checksum_method_page_content();
+            if (checksum != 49602) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__page_checksum_method_page_content` checksum `49602`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_page_find_element();
-            if (checksum != 19912) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_page_find_element` checksum `19912`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__page_checksum_method_page_find_element();
+            if (checksum != 16421) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__page_checksum_method_page_find_element` checksum `16421`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_page_go_back();
-            if (checksum != 60303) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_page_go_back` checksum `60303`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__page_checksum_method_page_go_back();
+            if (checksum != 62017) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__page_checksum_method_page_go_back` checksum `62017`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_page_navigate();
-            if (checksum != 37964) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_page_navigate` checksum `37964`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__page_checksum_method_page_navigate();
+            if (checksum != 12821) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__page_checksum_method_page_navigate` checksum `12821`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_page_pdf();
-            if (checksum != 37168) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_page_pdf` checksum `37168`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__page_checksum_method_page_pdf();
+            if (checksum != 53529) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__page_checksum_method_page_pdf` checksum `53529`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_page_reload();
-            if (checksum != 10875) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_page_reload` checksum `10875`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__page_checksum_method_page_reload();
+            if (checksum != 61610) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__page_checksum_method_page_reload` checksum `61610`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_page_screenshot();
-            if (checksum != 3953) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_page_screenshot` checksum `3953`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__page_checksum_method_page_screenshot();
+            if (checksum != 26126) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__page_checksum_method_page_screenshot` checksum `26126`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_page_screenshot_full();
-            if (checksum != 25762) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_page_screenshot_full` checksum `25762`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__page_checksum_method_page_screenshot_full();
+            if (checksum != 22357) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__page_checksum_method_page_screenshot_full` checksum `22357`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_page_title();
-            if (checksum != 35947) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_page_title` checksum `35947`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__page_checksum_method_page_title();
+            if (checksum != 3520) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__page_checksum_method_page_title` checksum `3520`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_page_wait_for_navigation();
-            if (checksum != 49988) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_page_wait_for_navigation` checksum `49988`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__page_checksum_method_page_wait_for_navigation();
+            if (checksum != 46856) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__page_checksum_method_page_wait_for_navigation` checksum `46856`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_method_page_wait_for_selector();
-            if (checksum != 51060) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_method_page_wait_for_selector` checksum `51060`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__page_checksum_method_page_wait_for_selector();
+            if (checksum != 32739) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__page_checksum_method_page_wait_for_selector` checksum `32739`, library returned `{checksum}`");
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_core_checksum_constructor_browser_launch();
-            if (checksum != 23267) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core_checksum_constructor_browser_launch` checksum `23267`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_core__browser_checksum_constructor_browser_launch();
+            if (checksum != 10488) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate_core: uniffi bindings expected function `uniffi_xcelerate_core__browser_checksum_constructor_browser_launch` checksum `10488`, library returned `{checksum}`");
             }
         }
     }
@@ -1397,7 +1397,7 @@ static class _UniFFILib {
 
 
 
-public class FfiConverterBoolean: FfiConverter<bool, sbyte> {
+class FfiConverterBoolean: FfiConverter<bool, sbyte> {
     public static FfiConverterBoolean INSTANCE = new FfiConverterBoolean();
 
     public override bool Lift(sbyte value) {
@@ -1423,7 +1423,7 @@ public class FfiConverterBoolean: FfiConverter<bool, sbyte> {
 
 
 
-public class FfiConverterString: FfiConverter<string, RustBuffer> {
+class FfiConverterString: FfiConverter<string, RustBuffer> {
     public static FfiConverterString INSTANCE = new FfiConverterString();
 
     // Note: we don't inherit from FfiConverterRustBuffer, because we use a
@@ -1471,7 +1471,7 @@ public class FfiConverterString: FfiConverter<string, RustBuffer> {
 
 
 
-public class FfiConverterByteArray: FfiConverterRustBuffer<byte[]> {
+class FfiConverterByteArray: FfiConverterRustBuffer<byte[]> {
     public static FfiConverterByteArray INSTANCE = new FfiConverterByteArray();
 
     public override byte[] Read(BigEndianStream stream) {
@@ -1491,1180 +1491,8 @@ public class FfiConverterByteArray: FfiConverterRustBuffer<byte[]> {
 
 
 
-/// <summary>
-/// Represents a browser instance (e.g., Chrome or Edge).
-/// </summary>
-public interface IBrowser {
-    /// <summary>
-    /// Closes the browser and kills the process.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task Close();
-    /// <exception cref="XcelerateException"></exception>
-    Task<Page> NewPage(string @url);
-    /// <summary>
-    /// Returns the browser version information.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task<string> Version();
-}
-/// <summary>
-/// Represents a browser instance (e.g., Chrome or Edge).
-/// </summary>
-public class Browser : IBrowser, IDisposable {
-    protected IntPtr pointer;
-    private int _wasDestroyed = 0;
-    private long _callCounter = 1;
 
-    public Browser(IntPtr pointer) {
-        this.pointer = pointer;
-    }
-
-    ~Browser() {
-        Destroy();
-    }
-
-    protected void FreeRustArcPtr() {
-        _UniffiHelpers.RustCall((ref UniffiRustCallStatus status) => {
-            _UniFFILib.uniffi_xcelerate_core_fn_free_browser(this.pointer, ref status);
-        });
-    }
-
-    protected IntPtr CloneRustArcPtr() {
-        return _UniffiHelpers.RustCall((ref UniffiRustCallStatus status) => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_clone_browser(this.pointer, ref status);
-        });
-    }
-
-    public void Destroy()
-    {
-        // Only allow a single call to this method.
-        if (Interlocked.CompareExchange(ref _wasDestroyed, 1, 0) == 0)
-        {
-            // This decrement always matches the initial count of 1 given at creation time.
-            if (Interlocked.Decrement(ref _callCounter) == 0)
-            {
-                FreeRustArcPtr();
-            }
-        }
-    }
-
-    public void Dispose()
-    {
-        Destroy();
-        GC.SuppressFinalize(this); // Suppress finalization to avoid unnecessary GC overhead.
-    }
-
-    private void IncrementCallCounter() 
-    {
-        // Check and increment the call counter, to keep the object alive.
-        // This needs a compare-and-set retry loop in case of concurrent updates.
-        long count;
-        do
-        {
-            count = Interlocked.Read(ref _callCounter);
-            if (count == 0L) throw new System.ObjectDisposedException(String.Format("'{0}' object has already been destroyed", this.GetType().Name));
-            if (count == long.MaxValue) throw new System.OverflowException(String.Format("'{0}' call counter would overflow", this.GetType().Name));
-
-        } while (Interlocked.CompareExchange(ref _callCounter, count + 1, count) != count);
-    }
-
-    private void DecrementCallCounter() 
-    {
-        // This decrement always matches the increment we performed above.
-        if (Interlocked.Decrement(ref _callCounter) == 0) {
-            FreeRustArcPtr();
-        }
-    }
-
-    internal void CallWithPointer(Action<IntPtr> action)
-    {
-        IncrementCallCounter();
-        try {
-            action(CloneRustArcPtr());
-        }
-        finally {
-            DecrementCallCounter();
-        }
-    }
-
-    internal T CallWithPointer<T>(Func<IntPtr, T> func)
-    {   
-        IncrementCallCounter();
-        try {
-            return func(CloneRustArcPtr());
-        }
-        finally {
-            DecrementCallCounter();
-        }
-    }
-
-    
-    /// <summary>
-    /// Closes the browser and kills the process.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task Close() {await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_browser_close(thisPtr);
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_void(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {_UniFFILib.ffi_xcelerate_core_rust_future_complete_void(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_void(future),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <exception cref="XcelerateException"></exception>
-    public async Task<Page> NewPage(string @url) {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_browser_new_page(thisPtr, FfiConverterString.INSTANCE.Lower(@url));
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_pointer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_pointer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_pointer(future),
-        // Lift
-        (result) => FfiConverterTypePage.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <summary>
-    /// Returns the browser version information.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task<string> Version() {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_browser_version(thisPtr);
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_rust_buffer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_rust_buffer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_rust_buffer(future),
-        // Lift
-        (result) => FfiConverterString.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-
-    
-    /// <exception cref="XcelerateException"></exception>
-    public static async Task<Browser> Launch (BrowserConfig @config) {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        _UniFFILib.uniffi_xcelerate_core_fn_constructor_browser_launch(FfiConverterTypeBrowserConfig.INSTANCE.Lower(@config)),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_pointer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_pointer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_pointer(future),
-        // Lift
-        (result) => FfiConverterTypeBrowser.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    
-}
-public class FfiConverterTypeBrowser: FfiConverter<Browser, IntPtr> {
-    public static FfiConverterTypeBrowser INSTANCE = new FfiConverterTypeBrowser();
-
-
-    public override IntPtr Lower(Browser value) {
-        return value.CallWithPointer(thisPtr => thisPtr);
-    }
-
-    public override Browser Lift(IntPtr value) {
-        return new Browser(value);
-    }
-
-    public override Browser Read(BigEndianStream stream) {
-        return Lift(new IntPtr(stream.ReadLong()));
-    }
-
-    public override int AllocationSize(Browser value) {
-        return 8;
-    }
-
-    public override void Write(Browser value, BigEndianStream stream) {
-        stream.WriteLong(Lower(value).ToInt64());
-    }
-}
-
-
-
-/// <summary>
-/// Represents an HTML element in the DOM.
-/// </summary>
-public interface IElement {
-    /// <summary>
-    /// Returns the value of a specific attribute.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task<string?> Attribute(string @name);
-    /// <summary>
-    /// Clicks the element.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task<Element> Click();
-    /// <summary>
-    /// Focuses the element.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task<Element> Focus();
-    /// <summary>
-    /// Hovers over the element.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task<Element> Hover();
-    /// <summary>
-    /// Returns the inner HTML of the element.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task<string> InnerHtml();
-    /// <summary>
-    /// Returns the visible text of the element.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task<string> Text();
-    /// <exception cref="XcelerateException"></exception>
-    Task<Element> TypeText(string @text);
-}
-/// <summary>
-/// Represents an HTML element in the DOM.
-/// </summary>
-public class Element : IElement, IDisposable {
-    protected IntPtr pointer;
-    private int _wasDestroyed = 0;
-    private long _callCounter = 1;
-
-    public Element(IntPtr pointer) {
-        this.pointer = pointer;
-    }
-
-    ~Element() {
-        Destroy();
-    }
-
-    protected void FreeRustArcPtr() {
-        _UniffiHelpers.RustCall((ref UniffiRustCallStatus status) => {
-            _UniFFILib.uniffi_xcelerate_core_fn_free_element(this.pointer, ref status);
-        });
-    }
-
-    protected IntPtr CloneRustArcPtr() {
-        return _UniffiHelpers.RustCall((ref UniffiRustCallStatus status) => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_clone_element(this.pointer, ref status);
-        });
-    }
-
-    public void Destroy()
-    {
-        // Only allow a single call to this method.
-        if (Interlocked.CompareExchange(ref _wasDestroyed, 1, 0) == 0)
-        {
-            // This decrement always matches the initial count of 1 given at creation time.
-            if (Interlocked.Decrement(ref _callCounter) == 0)
-            {
-                FreeRustArcPtr();
-            }
-        }
-    }
-
-    public void Dispose()
-    {
-        Destroy();
-        GC.SuppressFinalize(this); // Suppress finalization to avoid unnecessary GC overhead.
-    }
-
-    private void IncrementCallCounter() 
-    {
-        // Check and increment the call counter, to keep the object alive.
-        // This needs a compare-and-set retry loop in case of concurrent updates.
-        long count;
-        do
-        {
-            count = Interlocked.Read(ref _callCounter);
-            if (count == 0L) throw new System.ObjectDisposedException(String.Format("'{0}' object has already been destroyed", this.GetType().Name));
-            if (count == long.MaxValue) throw new System.OverflowException(String.Format("'{0}' call counter would overflow", this.GetType().Name));
-
-        } while (Interlocked.CompareExchange(ref _callCounter, count + 1, count) != count);
-    }
-
-    private void DecrementCallCounter() 
-    {
-        // This decrement always matches the increment we performed above.
-        if (Interlocked.Decrement(ref _callCounter) == 0) {
-            FreeRustArcPtr();
-        }
-    }
-
-    internal void CallWithPointer(Action<IntPtr> action)
-    {
-        IncrementCallCounter();
-        try {
-            action(CloneRustArcPtr());
-        }
-        finally {
-            DecrementCallCounter();
-        }
-    }
-
-    internal T CallWithPointer<T>(Func<IntPtr, T> func)
-    {   
-        IncrementCallCounter();
-        try {
-            return func(CloneRustArcPtr());
-        }
-        finally {
-            DecrementCallCounter();
-        }
-    }
-
-    
-    /// <summary>
-    /// Returns the value of a specific attribute.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task<string?> Attribute(string @name) {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_element_attribute(thisPtr, FfiConverterString.INSTANCE.Lower(@name));
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_rust_buffer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_rust_buffer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_rust_buffer(future),
-        // Lift
-        (result) => FfiConverterOptionalString.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <summary>
-    /// Clicks the element.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task<Element> Click() {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_element_click(thisPtr);
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_pointer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_pointer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_pointer(future),
-        // Lift
-        (result) => FfiConverterTypeElement.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <summary>
-    /// Focuses the element.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task<Element> Focus() {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_element_focus(thisPtr);
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_pointer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_pointer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_pointer(future),
-        // Lift
-        (result) => FfiConverterTypeElement.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <summary>
-    /// Hovers over the element.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task<Element> Hover() {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_element_hover(thisPtr);
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_pointer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_pointer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_pointer(future),
-        // Lift
-        (result) => FfiConverterTypeElement.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <summary>
-    /// Returns the inner HTML of the element.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task<string> InnerHtml() {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_element_inner_html(thisPtr);
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_rust_buffer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_rust_buffer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_rust_buffer(future),
-        // Lift
-        (result) => FfiConverterString.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <summary>
-    /// Returns the visible text of the element.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task<string> Text() {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_element_text(thisPtr);
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_rust_buffer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_rust_buffer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_rust_buffer(future),
-        // Lift
-        (result) => FfiConverterString.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <exception cref="XcelerateException"></exception>
-    public async Task<Element> TypeText(string @text) {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_element_type_text(thisPtr, FfiConverterString.INSTANCE.Lower(@text));
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_pointer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_pointer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_pointer(future),
-        // Lift
-        (result) => FfiConverterTypeElement.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-
-    
-}
-public class FfiConverterTypeElement: FfiConverter<Element, IntPtr> {
-    public static FfiConverterTypeElement INSTANCE = new FfiConverterTypeElement();
-
-
-    public override IntPtr Lower(Element value) {
-        return value.CallWithPointer(thisPtr => thisPtr);
-    }
-
-    public override Element Lift(IntPtr value) {
-        return new Element(value);
-    }
-
-    public override Element Read(BigEndianStream stream) {
-        return Lift(new IntPtr(stream.ReadLong()));
-    }
-
-    public override int AllocationSize(Element value) {
-        return 8;
-    }
-
-    public override void Write(Element value, BigEndianStream stream) {
-        stream.WriteLong(Lower(value).ToInt64());
-    }
-}
-
-
-
-public interface IPage {
-    /// <summary>
-    /// Evaluates a script on every new document.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task<string> AddScriptToEvaluateOnNewDocument(string @source);
-    /// <summary>
-    /// Returns the full HTML content of the page.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task<string> Content();
-    /// <summary>
-    /// Finds an element matching the CSS selector.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task<Element> FindElement(string @selector);
-    /// <summary>
-    /// Navigates back in history.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task GoBack();
-    /// <summary>
-    /// Navigates to a URL.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task Navigate(string @url);
-    /// <summary>
-    /// Captures a PDF of the page.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task<byte[]> Pdf();
-    /// <summary>
-    /// Reloads the page.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task Reload();
-    /// <summary>
-    /// Captures a screenshot of the page as a PNG.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task<byte[]> Screenshot();
-    /// <summary>
-    /// Captures a full-page screenshot by overriding device metrics.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task<byte[]> ScreenshotFull();
-    /// <summary>
-    /// Returns the page title.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task<string> Title();
-    /// <summary>
-    /// Waits for the page to finish loading.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task WaitForNavigation();
-    /// <summary>
-    /// Waits for an element matching the selector to appear in the DOM.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    Task<Element> WaitForSelector(string @selector);
-}
-public class Page : IPage, IDisposable {
-    protected IntPtr pointer;
-    private int _wasDestroyed = 0;
-    private long _callCounter = 1;
-
-    public Page(IntPtr pointer) {
-        this.pointer = pointer;
-    }
-
-    ~Page() {
-        Destroy();
-    }
-
-    protected void FreeRustArcPtr() {
-        _UniffiHelpers.RustCall((ref UniffiRustCallStatus status) => {
-            _UniFFILib.uniffi_xcelerate_core_fn_free_page(this.pointer, ref status);
-        });
-    }
-
-    protected IntPtr CloneRustArcPtr() {
-        return _UniffiHelpers.RustCall((ref UniffiRustCallStatus status) => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_clone_page(this.pointer, ref status);
-        });
-    }
-
-    public void Destroy()
-    {
-        // Only allow a single call to this method.
-        if (Interlocked.CompareExchange(ref _wasDestroyed, 1, 0) == 0)
-        {
-            // This decrement always matches the initial count of 1 given at creation time.
-            if (Interlocked.Decrement(ref _callCounter) == 0)
-            {
-                FreeRustArcPtr();
-            }
-        }
-    }
-
-    public void Dispose()
-    {
-        Destroy();
-        GC.SuppressFinalize(this); // Suppress finalization to avoid unnecessary GC overhead.
-    }
-
-    private void IncrementCallCounter() 
-    {
-        // Check and increment the call counter, to keep the object alive.
-        // This needs a compare-and-set retry loop in case of concurrent updates.
-        long count;
-        do
-        {
-            count = Interlocked.Read(ref _callCounter);
-            if (count == 0L) throw new System.ObjectDisposedException(String.Format("'{0}' object has already been destroyed", this.GetType().Name));
-            if (count == long.MaxValue) throw new System.OverflowException(String.Format("'{0}' call counter would overflow", this.GetType().Name));
-
-        } while (Interlocked.CompareExchange(ref _callCounter, count + 1, count) != count);
-    }
-
-    private void DecrementCallCounter() 
-    {
-        // This decrement always matches the increment we performed above.
-        if (Interlocked.Decrement(ref _callCounter) == 0) {
-            FreeRustArcPtr();
-        }
-    }
-
-    internal void CallWithPointer(Action<IntPtr> action)
-    {
-        IncrementCallCounter();
-        try {
-            action(CloneRustArcPtr());
-        }
-        finally {
-            DecrementCallCounter();
-        }
-    }
-
-    internal T CallWithPointer<T>(Func<IntPtr, T> func)
-    {   
-        IncrementCallCounter();
-        try {
-            return func(CloneRustArcPtr());
-        }
-        finally {
-            DecrementCallCounter();
-        }
-    }
-
-    
-    /// <summary>
-    /// Evaluates a script on every new document.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task<string> AddScriptToEvaluateOnNewDocument(string @source) {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_page_add_script_to_evaluate_on_new_document(thisPtr, FfiConverterString.INSTANCE.Lower(@source));
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_rust_buffer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_rust_buffer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_rust_buffer(future),
-        // Lift
-        (result) => FfiConverterString.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <summary>
-    /// Returns the full HTML content of the page.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task<string> Content() {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_page_content(thisPtr);
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_rust_buffer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_rust_buffer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_rust_buffer(future),
-        // Lift
-        (result) => FfiConverterString.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <summary>
-    /// Finds an element matching the CSS selector.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task<Element> FindElement(string @selector) {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_page_find_element(thisPtr, FfiConverterString.INSTANCE.Lower(@selector));
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_pointer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_pointer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_pointer(future),
-        // Lift
-        (result) => FfiConverterTypeElement.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <summary>
-    /// Navigates back in history.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task GoBack() {await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_page_go_back(thisPtr);
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_void(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {_UniFFILib.ffi_xcelerate_core_rust_future_complete_void(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_void(future),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <summary>
-    /// Navigates to a URL.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task Navigate(string @url) {await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_page_navigate(thisPtr, FfiConverterString.INSTANCE.Lower(@url));
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_void(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {_UniFFILib.ffi_xcelerate_core_rust_future_complete_void(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_void(future),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <summary>
-    /// Captures a PDF of the page.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task<byte[]> Pdf() {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_page_pdf(thisPtr);
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_rust_buffer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_rust_buffer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_rust_buffer(future),
-        // Lift
-        (result) => FfiConverterByteArray.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <summary>
-    /// Reloads the page.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task Reload() {await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_page_reload(thisPtr);
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_void(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {_UniFFILib.ffi_xcelerate_core_rust_future_complete_void(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_void(future),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <summary>
-    /// Captures a screenshot of the page as a PNG.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task<byte[]> Screenshot() {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_page_screenshot(thisPtr);
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_rust_buffer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_rust_buffer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_rust_buffer(future),
-        // Lift
-        (result) => FfiConverterByteArray.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <summary>
-    /// Captures a full-page screenshot by overriding device metrics.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task<byte[]> ScreenshotFull() {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_page_screenshot_full(thisPtr);
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_rust_buffer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_rust_buffer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_rust_buffer(future),
-        // Lift
-        (result) => FfiConverterByteArray.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <summary>
-    /// Returns the page title.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task<string> Title() {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_page_title(thisPtr);
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_rust_buffer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_rust_buffer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_rust_buffer(future),
-        // Lift
-        (result) => FfiConverterString.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <summary>
-    /// Waits for the page to finish loading.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task WaitForNavigation() {await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_page_wait_for_navigation(thisPtr);
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_void(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {_UniFFILib.ffi_xcelerate_core_rust_future_complete_void(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_void(future),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-    /// <summary>
-    /// Waits for an element matching the selector to appear in the DOM.
-    /// </summary>
-    /// <exception cref="XcelerateException"></exception>
-    public async Task<Element> WaitForSelector(string @selector) {
-    return await _UniFFIAsync.UniffiRustCallAsync(
-        // Get rust future
-        CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_core_fn_method_page_wait_for_selector(thisPtr, FfiConverterString.INSTANCE.Lower(@selector));
-        }),
-        // Poll
-        (IntPtr future, IntPtr continuation, IntPtr data) => _UniFFILib.ffi_xcelerate_core_rust_future_poll_pointer(future, continuation, data),
-        // Complete
-        (IntPtr future, ref UniffiRustCallStatus status) => {
-            return _UniFFILib.ffi_xcelerate_core_rust_future_complete_pointer(future, ref status);
-        },
-        // Free
-        (IntPtr future) => _UniFFILib.ffi_xcelerate_core_rust_future_free_pointer(future),
-        // Lift
-        (result) => FfiConverterTypeElement.INSTANCE.Lift(result),
-        // Error
-        FfiConverterTypeXcelerateError.INSTANCE
-    );
-    }
-    
-
-    
-}
-public class FfiConverterTypePage: FfiConverter<Page, IntPtr> {
-    public static FfiConverterTypePage INSTANCE = new FfiConverterTypePage();
-
-
-    public override IntPtr Lower(Page value) {
-        return value.CallWithPointer(thisPtr => thisPtr);
-    }
-
-    public override Page Lift(IntPtr value) {
-        return new Page(value);
-    }
-
-    public override Page Read(BigEndianStream stream) {
-        return Lift(new IntPtr(stream.ReadLong()));
-    }
-
-    public override int AllocationSize(Page value) {
-        return 8;
-    }
-
-    public override void Write(Page value, BigEndianStream stream) {
-        stream.WriteLong(Lower(value).ToInt64());
-    }
-}
-
-
-
-/// <summary>
-/// Configuration for the Browser instance.
-/// </summary>
-/// <param name="headless">
-/// Whether to run the browser in headless mode.
-/// </param>
-/// <param name="stealth">
-/// Whether to apply stealth patches to the binary.
-/// </param>
-/// <param name="detached">
-/// Whether to run the browser as a detached process.
-/// </param>
-/// <param name="executable_path">
-/// Optional path to the browser executable.
-/// </param>
-public record BrowserConfig (
-    /// <summary>
-    /// Whether to run the browser in headless mode.
-    /// </summary>
-    bool @headless, 
-    /// <summary>
-    /// Whether to apply stealth patches to the binary.
-    /// </summary>
-    bool @stealth, 
-    /// <summary>
-    /// Whether to run the browser as a detached process.
-    /// </summary>
-    bool @detached, 
-    /// <summary>
-    /// Optional path to the browser executable.
-    /// </summary>
-    string? @executablePath
-) {
-}
-
-public class FfiConverterTypeBrowserConfig: FfiConverterRustBuffer<BrowserConfig> {
-    public static FfiConverterTypeBrowserConfig INSTANCE = new FfiConverterTypeBrowserConfig();
-
-    public override BrowserConfig Read(BigEndianStream stream) {
-        return new BrowserConfig(
-            @headless: FfiConverterBoolean.INSTANCE.Read(stream),
-            @stealth: FfiConverterBoolean.INSTANCE.Read(stream),
-            @detached: FfiConverterBoolean.INSTANCE.Read(stream),
-            @executablePath: FfiConverterOptionalString.INSTANCE.Read(stream)
-        );
-    }
-
-    public override int AllocationSize(BrowserConfig value) {
-        return 0
-            + FfiConverterBoolean.INSTANCE.AllocationSize(value.@headless)
-            + FfiConverterBoolean.INSTANCE.AllocationSize(value.@stealth)
-            + FfiConverterBoolean.INSTANCE.AllocationSize(value.@detached)
-            + FfiConverterOptionalString.INSTANCE.AllocationSize(value.@executablePath);
-    }
-
-    public override void Write(BrowserConfig value, BigEndianStream stream) {
-            FfiConverterBoolean.INSTANCE.Write(value.@headless, stream);
-            FfiConverterBoolean.INSTANCE.Write(value.@stealth, stream);
-            FfiConverterBoolean.INSTANCE.Write(value.@detached, stream);
-            FfiConverterOptionalString.INSTANCE.Write(value.@executablePath, stream);
-    }
-}
-
-
-
-
-
-public class XcelerateException: UniffiException {
-    XcelerateException(string message): base(message) {}
-
-    // Each variant is a nested class
-    // Flat enums carries a string error message, so no special implementation is necessary.
-    
-    public class WsException: XcelerateException {
-        public WsException(string message): base(message) {}
-    }
-    
-    public class SerdeException: XcelerateException {
-        public SerdeException(string message): base(message) {}
-    }
-    
-    public class CdpResponseException: XcelerateException {
-        public CdpResponseException(string message): base(message) {}
-    }
-    
-    public class HttpException: XcelerateException {
-        public HttpException(string message): base(message) {}
-    }
-    
-    public class NotFound: XcelerateException {
-        public NotFound(string message): base(message) {}
-    }
-    
-    public class InternalException: XcelerateException {
-        public InternalException(string message): base(message) {}
-    }
-    
-}
-
-public class FfiConverterTypeXcelerateError : FfiConverterRustBuffer<XcelerateException>, CallStatusErrorHandler<XcelerateException> {
-    public static FfiConverterTypeXcelerateError INSTANCE = new FfiConverterTypeXcelerateError();
-
-    public override XcelerateException Read(BigEndianStream stream) {
-        var value = stream.ReadInt();
-        switch (value) {
-            case 1: return new XcelerateException.WsException(FfiConverterString.INSTANCE.Read(stream));
-            case 2: return new XcelerateException.SerdeException(FfiConverterString.INSTANCE.Read(stream));
-            case 3: return new XcelerateException.CdpResponseException(FfiConverterString.INSTANCE.Read(stream));
-            case 4: return new XcelerateException.HttpException(FfiConverterString.INSTANCE.Read(stream));
-            case 5: return new XcelerateException.NotFound(FfiConverterString.INSTANCE.Read(stream));
-            case 6: return new XcelerateException.InternalException(FfiConverterString.INSTANCE.Read(stream));
-            default:
-                throw new InternalException(String.Format("invalid error value '{0}' in FfiConverterTypeXcelerateError.Read()", value));
-        }
-    }
-
-    public override int AllocationSize(XcelerateException value) {
-        return 4 + FfiConverterString.INSTANCE.AllocationSize(value.Message);
-    }
-
-    public override void Write(XcelerateException value, BigEndianStream stream) {
-        switch (value) {
-            case XcelerateException.WsException:
-                stream.WriteInt(1);
-                break;
-            case XcelerateException.SerdeException:
-                stream.WriteInt(2);
-                break;
-            case XcelerateException.CdpResponseException:
-                stream.WriteInt(3);
-                break;
-            case XcelerateException.HttpException:
-                stream.WriteInt(4);
-                break;
-            case XcelerateException.NotFound:
-                stream.WriteInt(5);
-                break;
-            case XcelerateException.InternalException:
-                stream.WriteInt(6);
-                break;
-            default:
-                throw new InternalException(String.Format("invalid error value '{0}' in FfiConverterTypeXcelerateError.Write()", value));
-        }
-    }
-}
-
-
-
-
-public class FfiConverterOptionalString: FfiConverterRustBuffer<string?> {
+class FfiConverterOptionalString: FfiConverterRustBuffer<string?> {
     public static FfiConverterOptionalString INSTANCE = new FfiConverterOptionalString();
 
     public override string? Read(BigEndianStream stream) {
@@ -2694,7 +1522,7 @@ public class FfiConverterOptionalString: FfiConverterRustBuffer<string?> {
 
 
 
-public class ConcurrentHandleMap<T> where T: notnull {
+class ConcurrentHandleMap<T> where T: notnull {
     Dictionary<ulong, T> map = new Dictionary<ulong, T>();
 
     Object lock_ = new Object();
@@ -2754,7 +1582,7 @@ internal static class _UniFFIAsync {
     public static ConcurrentHandleMap<CancellationTokenSource> _foreign_futures_map = new ConcurrentHandleMap<CancellationTokenSource>();
 
     // FFI type for Rust future continuations
-    public class UniffiRustFutureContinuationCallback
+    internal class UniffiRustFutureContinuationCallback
     {
         public static UniFfiFutureCallback callback = Callback;
 

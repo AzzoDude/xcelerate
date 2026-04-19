@@ -747,3 +747,11 @@ bindings/python/xcelerate/xcelerate_core.dll
 
 # Legacy Bindings
 src/bindings/
+
+# Ignore all DLLs by default
+*.dll
+
+# Allow the specific native libraries required for the bindings
+!bindings/csharp/xcelerate_core.dll
+!bindings/python/xcelerate/xcelerate_core.dll
+!bindings/javascript/xcelerate_core.dll
