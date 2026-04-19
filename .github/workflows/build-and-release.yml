@@ -93,13 +93,11 @@ jobs:
           # Pre-build internal bindgen
           cargo build --features=uniffi/cli --bin uniffi-bindgen
           
-          # Set PATH using PowerShell-friendly syntax
-          $CargoBin = Join-Path $HOME ".cargo" "bin"
-          $DotnetTools = Join-Path $HOME ".dotnet" "tools"
-          Add-Content $env:GITHUB_PATH "$CargoBin"
-          Add-Content $env:GITHUB_PATH "$DotnetTools"
+          # Set PATH using the most reliable method for Windows runner
+          "$HOME\.cargo\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "$HOME\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           
-          # Verify tools are installed
+          # Verify tools are present
           dotnet tool list -g
 
       - name: Organize Binaries

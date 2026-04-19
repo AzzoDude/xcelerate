@@ -26,9 +26,18 @@ def main():
     dll_name = "xcelerate_core.dll"
     built_dll = os.path.join(rust_dir, "target", "release", dll_name)
     
-    # Run uniffi-bindgen-cs
+    # Find uniffi-bindgen-cs (with fallback to default install paths)
+    tool_cmd = "uniffi-bindgen-cs"
+    if shutil.which(tool_cmd) is None:
+        home = os.path.expanduser("~")
+        fallback = os.path.join(home, ".dotnet", "tools", "uniffi-bindgen-cs.exe")
+        if os.path.exists(fallback):
+            tool_cmd = fallback
+            print(f"[INFO] Using fallback tool path: {tool_cmd}")
+
+    # Run bindgen
     run_command([
-        "uniffi-bindgen-cs", 
+        tool_cmd, 
         "--library", 
         "--out-dir", csharp_dir, 
         built_dll
