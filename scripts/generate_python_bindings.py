@@ -22,7 +22,7 @@ def main():
     print("--- Phase: Generating Python Bindings ---")
     os.makedirs(python_dir, exist_ok=True)
     
-    # Generate using the built-in UniFFI CLI
+    # 1. Generate Python code using UniFFI
     success = run_command([
         "cargo", "run", "--features=uniffi/cli", "--bin", "uniffi-bindgen",
         "generate", "--library", built_dll,
@@ -31,17 +31,24 @@ def main():
     ], cwd=rust_dir)
     
     if success:
-        # Move the DLL to the python package folder
+        # Move the native libraries to the python package folder
         package_dir = os.path.join(python_dir, "xcelerate")
         os.makedirs(package_dir, exist_ok=True)
-        shutil.copy2(built_dll, os.path.join(package_dir, dll_name))
         
-        # Ensure __init__.py exists
+        # Look for all platform binaries in target/release
+        native_libs = ["xcelerate_core.dll", "libxcelerate_core.so", "libxcelerate_core.dylib"]
+        for lib in native_libs:
+            src = os.path.join(rust_dir, "target", "release", lib)
+            if os.path.exists(src):
+                shutil.copy2(src, os.path.join(package_dir, lib))
+                print(f"[COPY] {lib} -> {package_dir}")
+        
+        # Ensure __init__.py exists with version
         init_file = os.path.join(package_dir, "__init__.py")
-        if not os.path.exists(init_file):
-            with open(init_file, "w") as f:
-                f.write("from .xcelerate_core import Browser, BrowserConfig, Page, Element, XcelerateError\n")
-                f.write("__all__ = [\"Browser\", \"BrowserConfig\", \"Page\", \"Element\", \"XcelerateError\"]\n")
+        with open(init_file, "w") as f:
+            f.write("__version__ = \"0.1.4\"\n")
+            f.write("from .xcelerate_core import Browser, BrowserConfig, Page, Element, XcelerateError\n")
+            f.write("__all__ = [\"Browser\", \"BrowserConfig\", \"Page\", \"Element\", \"XcelerateError\"]\n")
 
         # Move the generated py file to the package folder
         generated_py = os.path.join(python_dir, "xcelerate_core.py")

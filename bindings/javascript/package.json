@@ -1,12 +1,12 @@
 {
   "name": "xcelerate",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "High-performance, lightweight Chrome DevTools Protocol (CDP) client for Node.js",
   "type": "module",
   "main": "./index.js",
   "types": "./index.d.ts",
   "engines": {
-    "node": ">=16"
+    "node": ">=12"
   },
   "keywords": [
     "automation",
