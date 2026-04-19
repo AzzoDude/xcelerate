@@ -22,13 +22,16 @@ def main():
         sys.exit(1)
 
     # 2. C#
-    run_command(["python", os.path.join(scripts_dir, "generate_csharp_bindings.py")])
+    if not run_command(["python", os.path.join(scripts_dir, "generate_csharp_bindings.py")]):
+        sys.exit(1)
 
     # 3. Python
-    run_command(["python", os.path.join(scripts_dir, "generate_python_bindings.py")])
+    if not run_command(["python", os.path.join(scripts_dir, "generate_python_bindings.py")]):
+        sys.exit(1)
 
     # 4. JavaScript
-    run_command(["python", os.path.join(scripts_dir, "generate_javascript_bindings.py")])
+    if not run_command(["python", os.path.join(scripts_dir, "generate_javascript_bindings.py")]):
+        sys.exit(1)
 
     print("\n=== Universal Pipeline Finished Successfully ===")
 

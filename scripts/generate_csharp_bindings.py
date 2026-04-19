@@ -28,12 +28,20 @@ def main():
     
     # Find uniffi-bindgen-cs (with fallback to default install paths)
     tool_cmd = "uniffi-bindgen-cs"
+    
+    print(f"[DEBUG] Current PATH: {os.environ.get('PATH')}")
+    
     if shutil.which(tool_cmd) is None:
-        home = os.path.expanduser("~")
-        fallback = os.path.join(home, ".dotnet", "tools", "uniffi-bindgen-cs.exe")
-        if os.path.exists(fallback):
-            tool_cmd = fallback
-            print(f"[INFO] Using fallback tool path: {tool_cmd}")
+        possible_paths = [
+            os.path.join(os.path.expanduser("~"), ".dotnet", "tools", "uniffi-bindgen-cs.exe"),
+            os.path.join(os.environ.get("USERPROFILE", ""), ".dotnet", "tools", "uniffi-bindgen-cs.exe"),
+            "C:\\Users\\runneradmin\\.dotnet\\tools\\uniffi-bindgen-cs.exe"
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                tool_cmd = path
+                print(f"[INFO] Found tool at fallback path: {tool_cmd}")
+                break
 
     # Run bindgen
     run_command([
