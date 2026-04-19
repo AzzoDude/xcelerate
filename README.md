@@ -23,7 +23,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-xcelerate = "0.1.0"
+xcelerate = "0.1.2"
 tokio = { version = "1.0", features = ["full"] }
 ```
 

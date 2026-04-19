@@ -5,7 +5,6 @@ edition = "2024"
 authors = ["AzzoDude"]
 description = "A high-performance, lightweight Chrome DevTools Protocol (CDP) client for Rust."
 license = "MIT"
-copyright = "Copyright © 2026 AzzoDude"
 repository = "https://github.com/AzzoDude/xcelerate"
 documentation = "https://docs.rs/xcelerate"
 keywords = ["automation", "cdp", "chrome", "headless", "browser", "ffi", "automation-library"]

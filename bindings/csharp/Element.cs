@@ -55,6 +55,58 @@ namespace Xcelerate
 
         public Task<string> GetTextAsync() => Task.Run(() => GetText());
 
+        public bool Hover()
+        {
+            unsafe
+            {
+                return NativeMethods.xcel_element_hover(Handle);
+            }
+        }
+
+        public Task<bool> HoverAsync() => Task.Run(() => Hover());
+
+        public bool Focus()
+        {
+            unsafe
+            {
+                return NativeMethods.xcel_element_focus(Handle);
+            }
+        }
+
+        public Task<bool> FocusAsync() => Task.Run(() => Focus());
+
+        public string GetInnerHtml()
+        {
+            unsafe
+            {
+                IntPtr ptr = (IntPtr)NativeMethods.xcel_element_inner_html(Handle);
+                if (ptr == IntPtr.Zero) return string.Empty;
+                string html = Marshal.PtrToStringAnsi(ptr) ?? string.Empty;
+                NativeMethods.xcel_free_string((byte*)ptr);
+                return html;
+            }
+        }
+
+        public Task<string> GetInnerHtmlAsync() => Task.Run(() => GetInnerHtml());
+
+        public string? GetAttribute(string name)
+        {
+            unsafe
+            {
+                byte[] nameBytes = Encoding.UTF8.GetBytes(name + "\0");
+                fixed (byte* p = nameBytes)
+                {
+                    IntPtr ptr = (IntPtr)NativeMethods.xcel_element_attribute(Handle, p);
+                    if (ptr == IntPtr.Zero) return null;
+                    string attr = Marshal.PtrToStringAnsi(ptr) ?? string.Empty;
+                    NativeMethods.xcel_free_string((byte*)ptr);
+                    return attr;
+                }
+            }
+        }
+
+        public Task<string?> GetAttributeAsync(string name) => Task.Run(() => GetAttribute(name));
+
         public void Dispose()
         {
             if (_disposed) return;

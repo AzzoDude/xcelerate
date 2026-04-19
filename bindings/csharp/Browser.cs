@@ -43,6 +43,34 @@ namespace Xcelerate
 
         public Task<Page> NewPageAsync(string url) => Task.Run(() => NewPage(url));
 
+        public string GetVersion()
+        {
+            unsafe
+            {
+                IntPtr ptr = (IntPtr)NativeMethods.xcel_browser_version(Handle);
+                if (ptr == IntPtr.Zero) return string.Empty;
+                string json = Marshal.PtrToStringAnsi(ptr) ?? string.Empty;
+                NativeMethods.xcel_free_string((byte*)ptr);
+                return json;
+            }
+        }
+
+        public Task<string> GetVersionAsync() => Task.Run(() => GetVersion());
+
+        public string GetTargets()
+        {
+            unsafe
+            {
+                IntPtr ptr = (IntPtr)NativeMethods.xcel_browser_targets(Handle);
+                if (ptr == IntPtr.Zero) return string.Empty;
+                string json = Marshal.PtrToStringAnsi(ptr) ?? string.Empty;
+                NativeMethods.xcel_free_string((byte*)ptr);
+                return json;
+            }
+        }
+
+        public Task<string> GetTargetsAsync() => Task.Run(() => GetTargets());
+
         public void Close() => Dispose();
 
         public void Dispose()
