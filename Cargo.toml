@@ -7,7 +7,7 @@ description = "A high-performance, lightweight Chrome DevTools Protocol (CDP) cl
 license = "MIT"
 repository = "https://github.com/AzzoDude/xcelerate"
 documentation = "https://docs.rs/xcelerate"
-keywords = ["automation", "cdp", "chrome", "headless", "browser", "ffi", "automation-library"]
+keywords = ["automation", "cdp", "chrome", "headless", "stealth"]
 categories = ["web-programming", "development-tools"]
 readme = "README.md"
 
