@@ -72,9 +72,15 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          python -m pip install --upgrade pip build
+          python -m pip install --upgrade pip build twine
+          
+          # Install UniFFI Binders
           dotnet tool install --global UniFFI.Bindgen.CS --version 0.1.1 || true
-          # Note: Ensure cargo-run is used if tools are missing
+          npm install -g uniffi-bindgen-node-js
+          
+          # Add tools to PATH (for the rest of this job)
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+          echo "$(npm config get prefix)/bin" >> $GITHUB_PATH
 
       - name: Organize Native Libraries
         run: |

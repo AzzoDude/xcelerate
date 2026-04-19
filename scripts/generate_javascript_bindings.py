@@ -33,13 +33,25 @@ def main():
                     pass
     os.makedirs(js_dir, exist_ok=True)
     
-    # Use uniffi-bindgen-node-js
+    # Try global command first, then fall back to npx
+    uniffi_js_cmd = "uniffi-bindgen-node-js"
+    
     success = run_command([
-        "uniffi-bindgen-node-js",
+        uniffi_js_cmd,
         "generate",
         "--out-dir", js_dir,
         built_dll,
-    ], cwd=rust_dir)
+    ], cwd=root_dir)
+
+    if not success:
+        print("[INFO] Global uniffi-bindgen-node-js failed, trying npx...")
+        success = run_command([
+            "npx",
+            "uniffi-bindgen-node-js",
+            "generate",
+            "--out-dir", js_dir,
+            built_dll,
+        ], cwd=root_dir)
     
     if success:
         # Copy the DLL to the JS folder

@@ -755,3 +755,4 @@ src/bindings/
 !bindings/csharp/xcelerate_core.dll
 !bindings/python/xcelerate/xcelerate_core.dll
 !bindings/javascript/xcelerate_core.dll
+!src/bin/
