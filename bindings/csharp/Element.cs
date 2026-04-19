@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -23,6 +24,8 @@ namespace Xcelerate
             }
         }
 
+        public Task ClickAsync() => Task.Run(() => Click());
+
         public void TypeText(string text)
         {
             unsafe
@@ -36,6 +39,8 @@ namespace Xcelerate
             }
         }
 
+        public Task TypeTextAsync(string text) => Task.Run(() => TypeText(text));
+
         public string GetText()
         {
             unsafe
@@ -47,6 +52,8 @@ namespace Xcelerate
                 return text;
             }
         }
+
+        public Task<string> GetTextAsync() => Task.Run(() => GetText());
 
         public void Dispose()
         {

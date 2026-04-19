@@ -59,11 +59,14 @@ async fn main() -> XcelerateResult<()> {
 }
 ```
 
-### C# (Managed & Safe)
+### C# (.NET)
+`xcelerate` provides a clean, modern .NET API with support for both **Synchronous** and **Asynchronous** programming models.
+
+#### ⚡ Synchronous (Simple Scripts)
 ```csharp
 using Xcelerate;
 
-// 1. Launch & Automatic Cleanup
+// 1. Launch & Automatic Cleanup (Disposes on exit)
 using var browser = Browser.Launch(headless: false);
 
 // 2. High-level Managed API
@@ -74,6 +77,26 @@ Console.WriteLine($"Title: {page.GetTitle()}");
 page.Navigate("https://github.com");
 using var search = page.WaitForSelector("input[name='q']");
 search.TypeText("Xcelerate");
+```
+
+#### 🌐 Asynchronous (Modern Applications)
+```csharp
+using Xcelerate;
+
+// 1. Launch Async
+using var browser = await Browser.LaunchAsync(headless: true);
+
+// 2. Multi-step Async Logic
+using var page = await browser.NewPageAsync("https://www.google.com");
+await page.NavigateAsync("https://github.com");
+
+var title = await page.GetTitleAsync();
+Console.WriteLine($"Title: {title}");
+
+// 3. Selector Handling
+using var element = await page.WaitForSelectorAsync("input[name='q']");
+await element.TypeTextAsync("Xcelerate SDK");
+await element.ClickAsync();
 ```
 
 ## 🛠️ Build & Development

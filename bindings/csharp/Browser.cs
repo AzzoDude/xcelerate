@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -24,6 +25,8 @@ namespace Xcelerate
             }
         }
 
+        public static Task<Browser> LaunchAsync(bool headless = true) => Task.Run(() => Launch(headless));
+
         public Page NewPage(string url)
         {
             unsafe
@@ -37,6 +40,8 @@ namespace Xcelerate
                 }
             }
         }
+
+        public Task<Page> NewPageAsync(string url) => Task.Run(() => NewPage(url));
 
         public void Close() => Dispose();
 

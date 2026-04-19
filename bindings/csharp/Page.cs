@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -27,6 +28,8 @@ namespace Xcelerate
             }
         }
 
+        public Task NavigateAsync(string url) => Task.Run(() => Navigate(url));
+
         public string GetTitle()
         {
             unsafe
@@ -38,6 +41,8 @@ namespace Xcelerate
                 return title;
             }
         }
+
+        public Task<string> GetTitleAsync() => Task.Run(() => GetTitle());
 
         public byte[] Screenshot()
         {
@@ -53,6 +58,8 @@ namespace Xcelerate
             }
         }
 
+        public Task<byte[]> ScreenshotAsync() => Task.Run(() => Screenshot());
+
         public Element WaitForSelector(string selector)
         {
             unsafe
@@ -66,6 +73,8 @@ namespace Xcelerate
                 }
             }
         }
+
+        public Task<Element> WaitForSelectorAsync(string selector) => Task.Run(() => WaitForSelector(selector));
 
         public void Dispose()
         {

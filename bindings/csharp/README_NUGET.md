@@ -19,26 +19,45 @@ A high-performance, lightweight **Chrome DevTools Protocol (CDP)** client for .N
 dotnet add package Xcelerate
 ```
 
-## 🛠 Usage Example
+## 🛠 Usage Examples
 
+`Xcelerate` supports both synchronous and asynchronous programming models.
+
+### ⚡ Synchronous (Simple Scripts)
 ```csharp
 using Xcelerate;
 
 // 1. Launch & Automatic Cleanup
 using var browser = Browser.Launch(headless: false);
 
-// 2. Create High-level Managed Page
+// 2. High-level Managed API
 using var page = browser.NewPage("https://www.google.com");
 Console.WriteLine($"Title: {page.GetTitle()}");
 
 // 3. Navigation & Interaction
 page.Navigate("https://github.com");
 using var search = page.WaitForSelector("input[name='q']");
-search.TypeText("Xcelerate Rust");
+search.TypeText("Xcelerate");
+```
 
-// 4. Capture Binary Data
-byte[] screenshot = page.Screenshot();
-File.WriteAllBytes("screenshot.png", screenshot);
+### 🌐 Asynchronous (Modern Applications)
+```csharp
+using Xcelerate;
+
+// 1. Launch Async
+using var browser = await Browser.LaunchAsync(headless: true);
+
+// 2. Multi-step Async Logic
+using var page = await browser.NewPageAsync("https://www.google.com");
+await page.NavigateAsync("https://github.com");
+
+var title = await page.GetTitleAsync();
+Console.WriteLine($"Title: {title}");
+
+// 3. Element Interactions
+using var element = await page.WaitForSelectorAsync("input[name='q']");
+await element.TypeTextAsync("Xcelerate SDK");
+await element.ClickAsync();
 ```
 
 ## 🏗 Why Xcelerate?
