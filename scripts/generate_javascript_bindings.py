@@ -110,6 +110,9 @@ def main():
                 f.write(content)
 
         print(f"[SUCCESS] JavaScript bindings ready in {js_dir}")
+        
+        # Create the .tgz package for artifacts
+        run_command(["npm", "pack"], cwd=js_dir)
 
 if __name__ == "__main__":
     main()
