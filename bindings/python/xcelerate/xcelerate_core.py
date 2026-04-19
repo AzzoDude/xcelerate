@@ -1194,7 +1194,7 @@ class BrowserConfig:
     Optional path to the browser executable.
     """
 
-    def __init__(self, *, headless: "bool", stealth: "bool", detached: "bool", executable_path: "typing.Optional[str]"):
+    def __init__(self, *, headless: "bool" = True, stealth: "bool" = True, detached: "bool" = True, executable_path: "typing.Optional[str]" = None):
         self.headless = headless
         self.stealth = stealth
         self.detached = detached

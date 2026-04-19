@@ -22,17 +22,24 @@ import asyncio
 from xcelerate import Browser, BrowserConfig
 
 async def main():
-    # Launch browser with stealth enabled
-    config = BrowserConfig(headless=True, stealth=True)
+    # Launch browser with intelligent defaults
+    # (Optional: headless=True, stealth=True, detached=True, executable_path=None)
+    config = BrowserConfig()
     browser = await Browser.launch(config)
     
     # Create a new page
+    print("Opening Pixelscan...")
     page = await browser.new_page("https://pixelscan.net/bot-check")
+    
+    # Wait for result to load
+    print("Waiting 10 seconds for bot check...")
+    await asyncio.sleep(10)
     
     # Interact with the page
     print(f"Title: {await page.title()}")
     
     # Take a screenshot
+    print("Capturing screenshot...")
     screenshot = await page.screenshot_full()
     with open("result.png", "wb") as f:
         f.write(screenshot)
@@ -42,6 +49,15 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
+
+## Advanced Configuration
+
+The `BrowserConfig` object allows you to fine-tune the browser behavior:
+
+- **stealth (default: True)**: Applies binary patches and JS masking to bypass bot detection.
+- **detached (default: True)**: Spawns the browser as an independent process that stays open even if your script finishes.
+- **headless (default: True)**: Runs the browser without a visible window.
+- **executable_path (default: None)**: Manually specify the location of Chrome or Edge.
 
 ## License
 

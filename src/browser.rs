@@ -28,7 +28,7 @@ impl Default for BrowserConfig {
         Self {
             headless: true,
             stealth: true,
-            detached: false,
+            detached: true,
             executable_path: None,
         }
     }

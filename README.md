@@ -5,7 +5,7 @@
 [![Documentation](https://img.shields.io/badge/docs.rs-xcelerate-blue)](https://docs.rs/xcelerate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Xcelerate is a high-performance, lightweight Chrome DevTools Protocol (CDP) client designed for Rust and .NET. It provides a modular architecture that combines a fast Rust core with an idiomatic C# managed wrapper.
+Xcelerate is a high-performance, lightweight Chrome DevTools Protocol (CDP) client designed for Rust, .NET, and Python. It provides a modular architecture that combines a fast Rust core with idiomatic wrappers for every major language.
 
 ## Key Features
 
@@ -22,15 +22,18 @@ Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-xcelerate = "0.1.2"
+xcelerate = "0.1.3"
 tokio = { version = "1.0", features = ["full"] }
 ```
 
 ### .NET / C#
-Xcelerate provides a 100% managed wrapper that handles all native interop automatically.
-
 ```powershell
 dotnet add package Xcelerate
+```
+
+### Python
+```bash
+pip install xcelerate
 ```
 
 ## Usage Examples
@@ -54,6 +57,26 @@ async fn main() -> XcelerateResult<()> {
 }
 ```
 
+### Python Implementation
+Xcelerate for Python offers full `asyncio` support with a very lightweight API.
+
+```python
+import asyncio
+from xcelerate import Browser, BrowserConfig
+
+async def main():
+    # Intelligent defaults: headless=True, stealth=True, detached=True
+    browser = await Browser.launch(BrowserConfig())
+    
+    page = await browser.new_page("https://www.example.com")
+    print(f"Title: {await page.title()}")
+    
+    await browser.close()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
 ### C# Implementation
 Xcelerate offers idiomatic .NET support with standard `IDisposable` patterns for resource management.
 
@@ -61,7 +84,8 @@ Xcelerate offers idiomatic .NET support with standard `IDisposable` patterns for
 using Xcelerate;
 
 // Launch browser with modern headless mode and stealth patches
-using var browser = await Browser.LaunchAsync(headless: true, stealth: true);
+// (Optional: headless=true, stealth=true, detached=true)
+using var browser = await Browser.Launch(new BrowserConfig());
 
 // Create a new page and perform navigation
 using var page = await browser.NewPageAsync("https://pixelscan.net/");

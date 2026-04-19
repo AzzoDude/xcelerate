@@ -10,7 +10,9 @@ async def main():
     print("Opening Pixelscan...")
     page = await browser.new_page("https://pixelscan.net/bot-check/bot-check")
     
-    await asyncio.sleep(5)
+    # Wait for result to load
+    print("Waiting 10 seconds for bot check...")
+    await asyncio.sleep(10)
     title = await page.title()
     print(f"Page Title: {title}")
     

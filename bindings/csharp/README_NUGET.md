@@ -28,22 +28,23 @@ Xcelerate emphasizes a clean, readable API. The library handles port polling, br
 ```csharp
 using Xcelerate;
 
-// Launch a stealth-hardened browser instance
-using var browser = await Browser.LaunchAsync(headless: true, stealth: true);
+// Launch a stealth-hardened browser instance with intelligent defaults
+// (Optional: headless=true, stealth=true, detached=true)
+using var browser = await Browser.Launch(new BrowserConfig());
 
 // Initialize a new page and perform navigation
-using var page = await browser.NewPageAsync("https://www.example.com");
+using var page = await browser.NewPage("https://www.example.com");
 
 // Capture page metadata
-string title = await page.GetTitleAsync();
+string title = await page.Title();
 Console.WriteLine($"Current title: {title}");
 
 // Perform interactions
-using var element = await page.WaitForSelectorAsync("button.primary");
-await element.ClickAsync();
+using var element = await page.WaitForSelector("button.primary");
+await element.Click();
 
 // Generate high-resolution full-page screenshots
-byte[] screenshot = await page.ScreenshotFullAsync();
+byte[] screenshot = await page.ScreenshotFull();
 File.WriteAllBytes("capture.png", screenshot);
 ```
 

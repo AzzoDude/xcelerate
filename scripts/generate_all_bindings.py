@@ -61,7 +61,19 @@ def main():
         # Move the generated py file to the package folder
         generated_py = os.path.join(python_dir, "xcelerate_core.py")
         if os.path.exists(generated_py):
-            shutil.move(generated_py, os.path.join(package_dir, "xcelerate_core.py"))
+            # POST-PROCESS: Make BrowserConfig arguments optional by adding defaults to __init__
+            with open(generated_py, "r") as f:
+                content = f.read()
+            
+            # Use regex to find the __init__ of BrowserConfig and add defaults
+            import re
+            pattern = r"def __init__\(self, \*, headless: \"bool\", stealth: \"bool\", detached: \"bool\", executable_path: \"typing\.Optional\[str\]\"\):"
+            replacement = r'def __init__(self, *, headless: "bool" = True, stealth: "bool" = True, detached: "bool" = True, executable_path: "typing.Optional[str]" = None):'
+            content = re.sub(pattern, replacement, content)
+            
+            with open(os.path.join(package_dir, "xcelerate_core.py"), "w") as f:
+                f.write(content)
+            os.remove(generated_py)
 
         print(f"[PACKAGING] Building Python wheel for xcelerate...")
         run_command(["python", "-m", "build"], cwd=python_dir)
