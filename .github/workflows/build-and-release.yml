@@ -48,7 +48,7 @@ jobs:
   package-and-release:
     name: Package Bindings
     needs: build-native
-    runs-on: windows-latest # We use Windows for packaging to support .NET and UniFFI CS
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -70,17 +70,36 @@ jobs:
           cache: true
           cache-dependency-path: 'bindings/csharp/Xcelerate.CSharp.csproj'
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'latest'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Cache UniFFI Tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\.cargo\bin\uniffi-bindgen-node-js.exe
+            ~\.cargo\bin\uniffi-bindgen-cs.exe
+          key: ${{ runner.os }}-uniffi-tools-v1
+
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip build twine
           
-          # Install UniFFI Binders
+          # Install UniFFI Binders (will be skipped if cached)
+          if (-not (Test-Path "$HOME\.cargo\bin\uniffi-bindgen-node-js.exe")) {
+            cargo install uniffi-bindgen-node-js
+          }
           dotnet tool install --global UniFFI.Bindgen.CS --version 0.1.1 || true
-          npm install -g uniffi-bindgen-node-js
           
-          # Add tools to PATH (for the rest of this job)
-          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-          echo "$(npm config get prefix)/bin" >> $GITHUB_PATH
+          # Pre-build the internal bindgen to avoid "bin not found" errors
+          cargo build --features=uniffi/cli --bin uniffi-bindgen
+          
+          # Add tools to PATH
+          echo "$HOME\.cargo/bin" >> $GITHUB_PATH
+          echo "$HOME\.dotnet/tools" >> $GITHUB_PATH
 
       - name: Organize Native Libraries
         run: |

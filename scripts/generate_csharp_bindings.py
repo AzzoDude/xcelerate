@@ -5,7 +5,11 @@ import sys
 
 def run_command(cmd, cwd=None):
     print(f"[EXECUTING] {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=cwd, shell=True)
+    result = subprocess.run(cmd, cwd=cwd, shell=True, capture_output=True, text=True)
+    if result.stdout:
+        print(result.stdout)
+    if result.stderr:
+        print(f"[STDERR] {result.stderr}")
     if result.returncode != 0:
         print(f"[ERROR] Command failed with code {result.returncode}")
         sys.exit(result.returncode)
