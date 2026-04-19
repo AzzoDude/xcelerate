@@ -33,15 +33,47 @@ def main():
                     pass
     os.makedirs(js_dir, exist_ok=True)
     
+    # Get version from Cargo.toml
+    version = "0.0.0"
+    cargo_toml = os.path.join(root_dir, "Cargo.toml")
+    if os.path.exists(cargo_toml):
+        with open(cargo_toml, "r") as f:
+            for line in f:
+                if line.startswith("version ="):
+                    version = line.split("=")[1].strip().strip('"')
+                    break
+
     # Use uniffi-bindgen-node-js (installed via Cargo in CI)
     success = run_command([
         "uniffi-bindgen-node-js",
         "generate",
         "--out-dir", js_dir,
+        "--package-name", "xcelerate",
         built_dll,
     ], cwd=root_dir)
     
     if success:
+        # Patch package.json with the correct version and metadata
+        package_json_path = os.path.join(js_dir, "package.json")
+        if os.path.exists(package_json_path):
+            import json
+            with open(package_json_path, "r") as f:
+                pj = json.load(f)
+            
+            pj["version"] = version
+            pj["description"] = "A high-performance, lightweight Chrome DevTools Protocol (CDP) client for Node.js"
+            pj["author"] = "AzzoDude"
+            pj["license"] = "MIT"
+            pj["engines"] = { "node": ">=12" }
+            pj["repository"] = {
+                "type": "git",
+                "url": "git+https://github.com/AzzoDude/xcelerate.git"
+            }
+            
+            with open(package_json_path, "w") as f:
+                json.dump(pj, f, indent=2)
+            print(f"[PATCH] Updated package.json to version {version}")
+
         # Copy the DLL to the JS folder
         shutil.copy2(built_dll, os.path.join(js_dir, dll_name))
         
