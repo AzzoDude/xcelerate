@@ -734,25 +734,36 @@ FodyWeavers.xsd
 
 # End of https://www.toptal.com/developers/gitignore/api/rust,python,pycharm,vim,visualstudio,visualstudiocode
 # Xcelerate Specific
-bindings/csharp/xcelerate.dll
-bindings/csharp/NativeMethods.g.cs
+# Ignore all native binaries in bindings folders
+bindings/**/xcelerate_core.dll
+bindings/**/libxcelerate_core.so
+bindings/**/libxcelerate_core.dylib
+bindings/**/xcelerate.dll
+
+# Ignore standard build artifacts
 bindings/csharp/**/bin/
 bindings/csharp/**/obj/
-github_test.png
-bindings/csharp/Xcelerate.TestApp/xcelerate.dll
-bindings/csharp/Xcelerate.TestApp/xcelerate_core.dll
-bindings/csharp/xcelerate_core.dll
-bindings/python/pixelscan_python.png
-bindings/python/xcelerate/xcelerate_core.dll
+bindings/javascript/node_modules/
+bindings/python/dist/
+bindings/python/build/
+bindings/python/*.egg-info/
 
-# Legacy Bindings
-src/bindings/
+# Ignore test screenshots or logs
+*.png
+!README_assets/*.png  # Allow assets for documentation if any
+*.log
 
-# Ignore all DLLs by default
+# Allow generated source code (important)
+!bindings/**/*.cs
+!bindings/**/*.js
+!bindings/**/*.py
+!bindings/**/*.d.ts
+
+# Global binary ignores
 *.dll
-
-# Allow the specific native libraries required for the bindings
-!bindings/csharp/xcelerate_core.dll
-!bindings/python/xcelerate/xcelerate_core.dll
-!bindings/javascript/xcelerate_core.dll
-!src/bin/
+*.so
+*.dylib
+*.pdb
+*.exe
+target/
+src/bin/uniffi-bindgen
