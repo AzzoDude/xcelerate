@@ -137,6 +137,8 @@ jobs:
           # Use the latest npm to ensure Trusted Publishing support
           npm install -g npm@latest
           npm publish *.tgz --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

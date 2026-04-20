@@ -10,7 +10,7 @@ def update_file(file_path, pattern, replacement):
     with open(file_path, "r", encoding="utf-8") as f:
         content = f.read()
     
-    new_content = re.sub(pattern, replacement, content)
+    new_content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
     
     if new_content != content:
         with open(file_path, "w", encoding="utf-8", newline="") as f:
