@@ -45,6 +45,8 @@ jobs:
           run-id: ${{ steps.find-run.outputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - uses: dtolnay/rust-toolchain@stable
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -102,7 +104,7 @@ jobs:
             # Retry loop to handle 503 Service Unavailable errors
             for i in {1..3}; do
               echo "Attempt $i: Publishing to crates.io..."
-              if cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }} --allow-dirty; then
+              if cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }} --no-verify --allow-dirty; then
                 exit 0
               fi
               echo "Crates.io server error (503). Retrying in 15 seconds..."

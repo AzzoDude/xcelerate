@@ -767,6 +767,9 @@ bindings/python/*.egg-info/
 *.exe
 target/
 src/bin/uniffi-bindgen
+dist-packages/
+native-libs/
+dist-final/
 
 ### macOS ###
 .DS_Store

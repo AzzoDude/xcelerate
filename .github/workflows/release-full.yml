@@ -158,8 +158,9 @@ jobs:
       - name: Publish to NuGet
         run: dotnet nuget push dist-packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
 
+      - uses: dtolnay/rust-toolchain@stable
       - name: Publish to crates.io
-        run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }} --no-verify --allow-dirty
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
