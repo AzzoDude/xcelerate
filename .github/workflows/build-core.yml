@@ -1,0 +1,46 @@
+name: Build Core (Native Only)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['src/**', 'Cargo.*', 'build.rs']
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-native:
+    name: Build Native (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        include:
+          - os: windows-latest
+            lib_path: target/release/xcelerate_core.dll
+          - os: ubuntu-latest
+            lib_path: target/release/libxcelerate_core.so
+          - os: macos-latest
+            lib_path: target/release/libxcelerate_core.dylib
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Cache Native Library
+        id: cache-native
+        uses: actions/cache@v4
+        with:
+          path: ${{ matrix.lib_path }}
+          key: ${{ runner.os }}-native-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'src/**', 'build.rs') }}
+
+      - name: Build Core
+        if: steps.cache-native.outputs.cache-hit != 'true'
+        run: cargo build --release
+
+      - name: Upload Native Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-lib-${{ matrix.os }}
+          path: ${{ matrix.lib_path }}
