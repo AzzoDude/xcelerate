@@ -22,6 +22,13 @@ def main():
     print("--- Phase: Generating Python Bindings ---")
     os.makedirs(python_dir, exist_ok=True)
     
+    # 0. Build Rust (if not skipping)
+    print("--- 0. Building Rust Library (cdylib) ---")
+    if os.environ.get("SKIP_RUST_BUILD") == "true" and os.path.exists(built_dll):
+        print(f"[SKIP] Rust build skipped, using existing: {built_dll}")
+    else:
+        run_command(["cargo", "build", "--release"], cwd=rust_dir)
+    
     # 1. Generate Python code using UniFFI
     # Search for the pre-built uniffi-bindgen tool
     tool_cmd = ["cargo", "run", "--features=uniffi/cli", "--bin", "uniffi-bindgen", "--"]

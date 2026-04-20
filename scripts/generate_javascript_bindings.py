@@ -21,6 +21,13 @@ def main():
     
     print("--- Phase: Generating JavaScript Bindings ---")
     
+    # 0. Build Rust (if not skipping)
+    print("--- 0. Building Rust Library (cdylib) ---")
+    if os.environ.get("SKIP_RUST_BUILD") == "true" and os.path.exists(built_dll):
+        print(f"[SKIP] Rust build skipped, using existing: {built_dll}")
+    else:
+        run_command(["cargo", "build", "--release"], cwd=rust_dir)
+    
     # Clean up stale files
     if os.path.exists(js_dir):
         for f in os.listdir(js_dir):
