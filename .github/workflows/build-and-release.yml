@@ -8,6 +8,7 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  CARGO_TERM_COLOR: always
 
 jobs:
   # STAGE 1: Build Native Libraries
@@ -19,20 +20,19 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
         include:
           - os: windows-latest
-            artifact_name: xcelerate_core.dll
             lib_path: target/release/xcelerate_core.dll
           - os: ubuntu-latest
-            artifact_name: libxcelerate_core.so
             lib_path: target/release/libxcelerate_core.so
           - os: macos-latest
-            artifact_name: libxcelerate_core.dylib
             lib_path: target/release/libxcelerate_core.dylib
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo build --release
-      - uses: actions/upload-artifact@v4
+      - name: Build Core
+        run: cargo build --release
+      - name: Upload Native Artifact
+        uses: actions/upload-artifact@v4
         with:
           name: native-lib-${{ matrix.os }}
           path: ${{ matrix.lib_path }}
@@ -47,83 +47,109 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: native-libs
+
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+          cache: 'pip'
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
-      
-      - name: Generate & Consolidate
+          dotnet-version: |
+            8.0.x
+            9.0.x
+
+      - name: Install & Verify Generation Tools
         shell: pwsh
         run: |
-          # (Your existing uniffi-bindgen and python scripts/generate_all.py logic here)
-          python scripts/generate_all.py
+          python -m pip install --upgrade pip build wheel
+          
+          # Force install specific bindgen version
+          cargo install uniffi-bindgen-cs --git https://github.com/NordSecurity/uniffi-bindgen-cs --tag v0.10.0+v0.29.4 --force
+          cargo install uniffi-bindgen-node-js --force
+          
+          # Update PATH for the current shell and future steps
+          $cargoBin = "$env:USERPROFILE\.cargo\bin"
+          echo "Adding $cargoBin to PATH"
+          $cargoBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $env:PATH = "$cargoBin;$env:PATH"
+          
+          # Debug: Verify visibility
+          uniffi-bindgen-cs --version
+          uniffi-bindgen-node-js --version
+
+      - name: Organize Binaries
+        shell: bash
+        run: |
+          mkdir -p target/release
+          cp native-libs/native-lib-windows-latest/xcelerate_core.dll target/release/
+          cp native-libs/native-lib-ubuntu-latest/libxcelerate_core.so target/release/
+          cp native-libs/native-lib-macos-latest/libxcelerate_core.dylib target/release/
+          # Setup bindings dir
+          mkdir -p bindings/csharp
+          cp target/release/*.dll target/release/*.so target/release/*.dylib bindings/csharp/
+
+      - name: Run Bindgen Scripts
+        run: python scripts/generate_all.py
+        env:
+          SKIP_RUST_BUILD: "true"
+
+      - name: Consolidate Packages
+        shell: pwsh
+        run: |
           mkdir -p dist-final
           Get-ChildItem -Path bindings -Filter *.whl -Recurse | Copy-Item -Destination dist-final/
+          Get-ChildItem -Path bindings -Filter *.tar.gz -Recurse | Copy-Item -Destination dist-final/
           Get-ChildItem -Path bindings -Filter *.tgz -Recurse | Copy-Item -Destination dist-final/
           Get-ChildItem -Path bindings -Filter *.nupkg -Recurse | Copy-Item -Destination dist-final/
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Package Artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: language-packages
           path: dist-final/
 
-  # STAGE 3: Secure Publish (OIDC)
+  # STAGE 3: Publish to Registries (OIDC / Trusted Publishing)
   publish:
     name: Publish to Registries
     needs: generate-bindings
     if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest # Switched to Linux for easier OIDC handling
-    
+    runs-on: ubuntu-latest # Linux is more reliable for OIDC/npm provenance
     permissions:
-      id-token: write   # CRITICAL: Allows OIDC token generation
-      contents: write   # Required for creating GitHub Releases
-      attestations: write # Optional: For npm provenance signatures
-
+      id-token: write
+      contents: write
+      attestations: write
     steps:
       - uses: actions/checkout@v4
-
-      - name: Download Packages
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: language-packages
           path: dist-packages
 
-      # --- NPM (Trusted Publishing) ---
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22' # Recommended for npm 11+
+          node-version: 'latest'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Publish to npm
         working-directory: dist-packages
         run: |
-          # Trusted Publishing ignores NODE_AUTH_TOKEN if OIDC is available
+          # Use the latest npm to ensure Trusted Publishing support
+          npm install -g npm@latest
           npm publish *.tgz --access public --provenance
 
-      # --- PyPI (Trusted Publishing) ---
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist-packages/
-          # No token or username needed!
 
-      # --- NuGet & Crates (Traditional Tokens) ---
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-      
       - name: Publish to NuGet
         run: dotnet nuget push dist-packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
 
       - name: Publish to crates.io
         run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-      # --- GitHub Release ---
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
