@@ -72,12 +72,18 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Prepare PyPI Artifacts
+        run: |
+          mkdir -p dist-pypi
+          # Copy only Python-specific files to the dedicated directory
+          cp dist-packages/*.whl dist-pypi/ 2>/dev/null || true
+          cp dist-packages/*.tar.gz dist-pypi/ 2>/dev/null || true
+
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: dist-packages/
-          # Explicitly target Python files to avoid including .nupkg or .tgz files
-          glob-pattern: "*.{whl,tar.gz}"
+          # Point to the isolated directory containing only Python files
+          packages-dir: dist-pypi/
           skip-existing: true
 
       - name: Publish to NuGet
@@ -90,8 +96,7 @@ jobs:
       - name: Publish to crates.io
         run: |
           CRATE_NAME="xcelerate"
-          # Extract version from the filename of the first .tgz artifact
-          CRATE_VERSION=$(ls dist-packages/*.tgz | head -n 1 | grep -oP '\d+\.\d+\.\d+')
+          CRATE_VERSION=$(ls dist-packages/*.tgz | head -n 1 | grep -oP '\d+\.\d+\.\d+' | head -n 1)
           
           if cargo search "$CRATE_NAME" --limit 1 | grep -q "$CRATE_VERSION"; then
             echo "Version $CRATE_VERSION of $CRATE_NAME already exists. Skipping."
