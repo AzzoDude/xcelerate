@@ -75,14 +75,12 @@ jobs:
       - name: Prepare PyPI Artifacts
         run: |
           mkdir -p dist-pypi
-          # Copy only Python-specific files to the dedicated directory
           cp dist-packages/*.whl dist-pypi/ 2>/dev/null || true
           cp dist-packages/*.tar.gz dist-pypi/ 2>/dev/null || true
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          # Point to the isolated directory containing only Python files
           packages-dir: dist-pypi/
           skip-existing: true
 
@@ -99,9 +97,10 @@ jobs:
           CRATE_VERSION=$(ls dist-packages/*.tgz | head -n 1 | grep -oP '\d+\.\d+\.\d+' | head -n 1)
           
           if cargo search "$CRATE_NAME" --limit 1 | grep -q "$CRATE_VERSION"; then
-            echo "Version $CRATE_VERSION of $CRATE_NAME already exists. Skipping."
+            echo "Version $CRATE_VERSION of $CRATE_NAME already exists. Skipping cargo publish."
           else
-            cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+            # Added --allow-dirty to ignore the downloaded artifacts in the workspace
+            cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }} --allow-dirty
           fi
 
       - name: Create GitHub Release
