@@ -53,13 +53,15 @@ jobs:
 
       - name: Publish to npm
         run: |
-          # Capture metadata from the root package.json before entering dist directory
-          PACKAGE_NAME=$(node -p "require('./package.json').name")
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          
           cd dist-packages
           for f in *.tgz; do
             if [ -f "$f" ]; then
+              echo "Extracting metadata from $f..."
+              # Extract package.json from the tarball to a temporary string
+              PACKAGE_JSON=$(tar -xOzf "$f" package/package.json)
+              PACKAGE_NAME=$(echo "$PACKAGE_JSON" | node -p "JSON.parse(fs.readFileSync(0)).name")
+              PACKAGE_VERSION=$(echo "$PACKAGE_JSON" | node -p "JSON.parse(fs.readFileSync(0)).version")
+              
               if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version >/dev/null 2>&1; then
                 echo "Version $PACKAGE_VERSION of $PACKAGE_NAME already exists. Skipping npm publish."
               else
@@ -86,8 +88,10 @@ jobs:
 
       - name: Publish to crates.io
         run: |
+          # Use the NuGet package name as a proxy for the crate name if Cargo.toml is missing
           CRATE_NAME="xcelerate"
-          CRATE_VERSION=$(grep '^version' Cargo.toml | sed 's/version = //;s/"//g')
+          # Attempt to get version from the filename if manifest is missing
+          CRATE_VERSION=$(ls dist-packages/*.tgz | head -n 1 | grep -oP '\d+\.\d+\.\d+')
           
           if cargo search "$CRATE_NAME" --limit 1 | grep -q "$CRATE_VERSION"; then
             echo "Version $CRATE_VERSION of $CRATE_NAME already exists. Skipping cargo publish."
