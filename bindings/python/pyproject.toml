@@ -7,7 +7,7 @@ name = "xcelerate"
 version = "0.1.4"
 description = "A high-performance, lightweight Chrome DevTools Protocol (CDP) client with built-in stealth."
 readme = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.10"
 authors = [{ name = "AzzoDude" }]
 license = { text = "MIT" }
 classifiers = [

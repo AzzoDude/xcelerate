@@ -58,7 +58,7 @@ The SDK supports specialized launch options for complex automation scenarios:
 
 ## Compatibility
 
-- **Frameworks**: .NET 6.0, .NET 7.0, .NET 8.0+
+- **Frameworks**: .NET 8.0, .NET 9.0, .NET 10.0+
 - **Platform**: Windows x64 (Automatic binary deployment via NuGet)
 
 ## License
