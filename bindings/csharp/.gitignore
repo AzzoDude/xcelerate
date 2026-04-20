@@ -1,0 +1,7 @@
+bin/
+obj/
+*.dll
+*.so
+*.dylib
+*.pdb
+.DS_Store

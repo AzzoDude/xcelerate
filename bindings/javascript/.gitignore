@@ -1,0 +1,5 @@
+node_modules/
+*.dll
+*.so
+*.dylib
+.DS_Store
