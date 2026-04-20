@@ -76,7 +76,6 @@ jobs:
           
           # Debug: Verify visibility
           uniffi-bindgen-cs --version
-          uniffi-bindgen-node-js --version
 
       - name: Organize Binaries
         shell: bash
