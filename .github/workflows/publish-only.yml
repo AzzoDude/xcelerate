@@ -93,14 +93,23 @@ jobs:
 
       - name: Publish to crates.io
         run: |
-          CRATE_NAME="xcelerate"
+          CRATE_NAME=$(grep '^name' Cargo.toml | head -n 1 | sed 's/name = //;s/"//g')
           CRATE_VERSION=$(ls dist-packages/*.tgz | head -n 1 | grep -oP '\d+\.\d+\.\d+' | head -n 1)
-          
+
           if cargo search "$CRATE_NAME" --limit 1 | grep -q "$CRATE_VERSION"; then
-            echo "Version $CRATE_VERSION of $CRATE_NAME already exists. Skipping cargo publish."
+            echo "Version $CRATE_VERSION of $CRATE_NAME already exists. Skipping."
           else
-            # Added --allow-dirty to ignore the downloaded artifacts in the workspace
-            cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }} --allow-dirty
+            # Retry loop to handle 503 Service Unavailable errors
+            for i in {1..3}; do
+              echo "Attempt $i: Publishing to crates.io..."
+              if cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }} --allow-dirty; then
+                exit 0
+              fi
+              echo "Crates.io server error (503). Retrying in 15 seconds..."
+              sleep 15
+            done
+            echo "Failed to publish to crates.io after 3 attempts."
+            exit 1
           fi
 
       - name: Create GitHub Release
