@@ -10,6 +10,24 @@ documentation = "https://docs.rs/xcelerate"
 keywords = ["automation", "cdp", "chrome", "headless", "stealth"]
 categories = ["web-programming", "development-tools"]
 readme = "README.md"
+exclude = [
+    "dist-packages/*",
+    "dist-pypi/*",
+    "native-libs/*",
+    "target/*",
+    "*.dll",
+    "*.so",
+    "*.dylib",
+    "*.nupkg",
+    ".github/*",
+    "docs/*",
+    "tests/*",
+    "*.png",
+    "node_modules/*",
+    "bindings/*",
+    "scripts/*",
+    "examples/*",
+]
 
 [lib]
 name = "xcelerate_core"
