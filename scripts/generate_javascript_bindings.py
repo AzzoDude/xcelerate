@@ -43,9 +43,24 @@ def main():
                     version = line.split("=")[1].strip().strip('"')
                     break
 
-    # Use uniffi-bindgen-node-js (installed via Cargo in CI)
+    # Find uniffi-bindgen-node-js
+    tool_cmd = "uniffi-bindgen-node-js"
+    if shutil.which(tool_cmd) is None:
+        possible_paths = [
+            os.path.join(os.path.expanduser("~"), ".cargo", "bin"),
+            os.path.join(os.environ.get("USERPROFILE", ""), ".cargo", "bin"),
+        ]
+        for dp in possible_paths:
+            if os.path.exists(dp):
+                for f in os.listdir(dp):
+                    if "uniffi-bindgen-node-js" in f.lower() and f.endswith(".exe"):
+                        tool_cmd = os.path.join(dp, f)
+                        break
+                if tool_cmd != "uniffi-bindgen-node-js": break
+
+    # Use uniffi-bindgen-node-js
     success = run_command([
-        "uniffi-bindgen-node-js",
+        tool_cmd,
         "generate",
         "--out-dir", js_dir,
         "--package-name", "xcelerate",
@@ -74,8 +89,13 @@ def main():
                 json.dump(pj, f, indent=2)
             print(f"[PATCH] Updated package.json to version {version}")
 
-        # Copy the DLL to the JS folder
-        shutil.copy2(built_dll, os.path.join(js_dir, dll_name))
+        # Copy all native libraries to the JS folder
+        native_libs = ["xcelerate_core.dll", "libxcelerate_core.so", "libxcelerate_core.dylib"]
+        for lib in native_libs:
+            src = os.path.join(rust_dir, "target", "release", lib)
+            if os.path.exists(src):
+                shutil.copy2(src, os.path.join(js_dir, lib))
+                print(f"[COPY] {lib} -> {js_dir}")
         
         # POST-PROCESS: Optional args and camelCase renames
         js_file = os.path.join(js_dir, "xcelerate_core.js")

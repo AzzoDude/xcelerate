@@ -34,16 +34,17 @@ def main():
     if shutil.which(tool_cmd) is None:
         print(f"[DEBUG] Tool '{tool_cmd}' not found in PATH.")
         possible_paths = [
+            os.path.join(os.path.expanduser("~"), ".cargo", "bin"),
+            os.path.join(os.environ.get("USERPROFILE", ""), ".cargo", "bin"),
             os.path.join(os.path.expanduser("~"), ".dotnet", "tools"),
-            os.path.join(os.environ.get("USERPROFILE", ""), ".dotnet", "tools"),
             "C:\\Users\\runneradmin\\.dotnet\\tools"
         ]
         for dp in possible_paths:
             if os.path.exists(dp):
-                print(f"[DEBUG] Directory contents of {dp}: {os.listdir(dp)}")
+                print(f"[DEBUG] Checking directory: {dp}")
                 # Check for things like uniffi-bindgen-cs.exe
                 for f in os.listdir(dp):
-                    if "uniffi" in f.lower() and f.endswith(".exe"):
+                    if "uniffi-bindgen-cs" in f.lower() and f.endswith(".exe"):
                         tool_cmd = os.path.join(dp, f)
                         print(f"[INFO] Found potential tool at fallback path: {tool_cmd}")
                         break
@@ -101,16 +102,19 @@ def main():
     with open(generated_cs, "w") as f:
         f.write(content)
 
-    print("\n--- 4. Distributing Native Library ---")
-    target_dll = os.path.join(csharp_dir, dll_name)
-    shutil.copy2(built_dll, target_dll)
-    print(f"[COPY] Copied {dll_name} to {csharp_dir}")
+    print("\n--- 4. Distributing Native Libraries ---")
+    native_libs = ["xcelerate_core.dll", "libxcelerate_core.so", "libxcelerate_core.dylib"]
+    for lib in native_libs:
+        src = os.path.join(rust_dir, "target", "release", lib)
+        if os.path.exists(src):
+            shutil.copy2(src, os.path.join(csharp_dir, lib))
+            print(f"[COPY] {lib} -> {csharp_dir}")
     
-    # Also copy to TestApp bin directory for immediate testing
+    # Also copy to TestApp bin directory for immediate testing (windows only usually)
     test_app_bin = os.path.join(csharp_dir, "Xcelerate.TestApp", "bin", "Debug", "net10.0")
     if os.path.exists(test_app_bin):
         shutil.copy2(built_dll, os.path.join(test_app_bin, dll_name))
-        print(f"[COPY] Copied {dll_name} to {test_app_bin}")
+        print(f"[COPY] {dll_name} -> {test_app_bin}")
 
     print("\n--- 5. Building C# Wrapper ---")
     run_command(["dotnet", "build", "-c", "Release"], cwd=csharp_dir)

@@ -76,7 +76,7 @@ jobs:
           path: |
             ~\.cargo\bin\uniffi-bindgen-node-js.exe
             ~\.cargo\bin\uniffi-bindgen-cs.exe
-          key: ${{ runner.os }}-uniffi-tools-v2
+          key: ${{ runner.os }}-uniffi-tools-v3
 
       - name: Install Generation Tools
         shell: pwsh
@@ -88,18 +88,20 @@ jobs:
             cargo install uniffi-bindgen-node-js
           }
           
-          # Ensure a clean install of the C# tool
-          dotnet tool install --global UniFFI.Bindgen.CS --version 0.1.1 || dotnet tool update --global UniFFI.Bindgen.CS --version 0.1.1
+          if (-not (Test-Path "$HOME\.cargo\bin\uniffi-bindgen-cs.exe")) {
+            # Use the version compatible with UniFFI 0.29
+            cargo install uniffi-bindgen-cs --git https://github.com/NordSecurity/uniffi-bindgen-cs --tag v0.10.0+v0.29.4
+          }
           
           # Pre-build internal bindgen
           cargo build --features=uniffi/cli --bin uniffi-bindgen
           
           # Set PATH using the most reliable method for Windows runner
           "$HOME\.cargo\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          "$HOME\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           
           # Verify tools are present
-          dotnet tool list -g
+          uniffi-bindgen-node-js --version
+          uniffi-bindgen-cs --version
 
       - name: Organize Binaries
         run: |
