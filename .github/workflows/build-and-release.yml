@@ -59,6 +59,9 @@ jobs:
         with:
           path: native-libs
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Setup Environment
         uses: actions/setup-python@v5
         with:
@@ -107,17 +110,21 @@ jobs:
           uniffi-bindgen-cs --version
 
       - name: Organize Binaries
+        shell: bash
         run: |
           mkdir -p target/release
           cp native-libs/native-lib-windows-latest/xcelerate_core.dll target/release/
           cp native-libs/native-lib-ubuntu-latest/libxcelerate_core.so target/release/
           cp native-libs/native-lib-macos-latest/libxcelerate_core.dylib target/release/
+          # Copy to C# directory for packaging
           cp target/release/xcelerate_core.dll bindings/csharp/
           cp target/release/libxcelerate_core.so bindings/csharp/
           cp target/release/libxcelerate_core.dylib bindings/csharp/
 
       - name: Run Bindgen Scripts
         run: python scripts/generate_all.py
+        env:
+          SKIP_RUST_BUILD: "true"
 
       - name: Upload Package Artifacts
         uses: actions/upload-artifact@v4

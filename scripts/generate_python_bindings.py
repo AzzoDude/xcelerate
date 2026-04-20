@@ -23,8 +23,23 @@ def main():
     os.makedirs(python_dir, exist_ok=True)
     
     # 1. Generate Python code using UniFFI
-    success = run_command([
-        "cargo", "run", "--features=uniffi/cli", "--bin", "uniffi-bindgen",
+    # Search for the pre-built uniffi-bindgen tool
+    tool_cmd = ["cargo", "run", "--features=uniffi/cli", "--bin", "uniffi-bindgen", "--"]
+    
+    # Check common locations to avoid 'cargo run' overhead
+    possible_bins = [
+        os.path.join(root_dir, "target", "debug", "uniffi-bindgen.exe"),
+        os.path.join(root_dir, "target", "release", "uniffi-bindgen.exe"),
+        shutil.which("uniffi-bindgen")
+    ]
+    
+    for b in possible_bins:
+        if b and os.path.exists(b):
+            tool_cmd = [b]
+            print(f"[INFO] Using pre-built bindgen: {b}")
+            break
+
+    success = run_command(tool_cmd + [
         "generate", "--library", built_dll,
         "--language", "python",
         "--out-dir", python_dir

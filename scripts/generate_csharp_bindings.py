@@ -19,12 +19,16 @@ def main():
     rust_dir = root_dir
     csharp_dir = os.path.join(root_dir, "bindings", "csharp")
     
-    print("--- 1. Building Rust Library (cdylib) ---")
-    run_command(["cargo", "build", "--release"], cwd=rust_dir)
-    
-    print("\n--- 2. Generating UniFFI C# Bindings ---")
     dll_name = "xcelerate_core.dll"
     built_dll = os.path.join(rust_dir, "target", "release", dll_name)
+
+    print("--- 1. Building Rust Library (cdylib) ---")
+    if os.environ.get("SKIP_RUST_BUILD") == "true" and os.path.exists(built_dll):
+        print(f"[SKIP] Rust build skipped, using existing: {built_dll}")
+    else:
+        run_command(["cargo", "build", "--release"], cwd=rust_dir)
+    
+    print("\n--- 2. Generating UniFFI C# Bindings ---")
     
     # Find uniffi-bindgen-cs (with fallback to default install paths)
     tool_cmd = "uniffi-bindgen-cs"

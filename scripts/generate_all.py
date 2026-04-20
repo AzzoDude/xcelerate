@@ -17,9 +17,12 @@ def main():
     print("=== Xcelerate Universal Bindgen Pipeline ===")
 
     # 1. Build Rust
-    print("\n--- Phase 1: Building Rust Core (Release) ---")
-    if not run_command(["cargo", "build", "--release"], cwd=root_dir):
-        sys.exit(1)
+    if os.environ.get("SKIP_RUST_BUILD") == "true":
+        print("\n--- Phase 1: Skipping Rust Build (using pre-built binaries) ---")
+    else:
+        print("\n--- Phase 1: Building Rust Core (Release) ---")
+        if not run_command(["cargo", "build", "--release"], cwd=root_dir):
+            sys.exit(1)
 
     # 2. C#
     if not run_command(["python", os.path.join(scripts_dir, "generate_csharp_bindings.py")]):
