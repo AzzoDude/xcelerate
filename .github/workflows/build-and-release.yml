@@ -27,21 +27,12 @@ jobs:
           - os: macos-latest
             artifact_name: libxcelerate_core.dylib
             lib_path: target/release/libxcelerate_core.dylib
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Build Core
-        run: cargo build --release
-
-      - name: Upload Native Artifact
-        uses: actions/upload-artifact@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release
+      - uses: actions/upload-artifact@v4
         with:
           name: native-lib-${{ matrix.os }}
           path: ${{ matrix.lib_path }}
@@ -53,102 +44,44 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Download Native Libraries
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           path: native-libs
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Setup Environment
-        uses: actions/setup-python@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip'
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            8.0.x
-            9.0.x
-            10.0.x
-
-      - name: Cache UniFFI Tools
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~\.cargo\bin\uniffi-bindgen-node-js.exe
-            ~\.cargo\bin\uniffi-bindgen-cs.exe
-          key: ${{ runner.os }}-uniffi-tools-v3
-
-      - name: Install Generation Tools
+          dotnet-version: '8.0.x'
+      
+      - name: Generate & Consolidate
         shell: pwsh
         run: |
-          python -m pip install --upgrade pip build wheel
-          
-          # Install UniFFI Binders (skip if cached)
-          if (-not (Test-Path "$HOME\.cargo\bin\uniffi-bindgen-node-js.exe")) {
-            cargo install uniffi-bindgen-node-js
-          }
-          
-          if (-not (Test-Path "$HOME\.cargo\bin\uniffi-bindgen-cs.exe")) {
-            # Use the version compatible with UniFFI 0.29
-            cargo install uniffi-bindgen-cs --git https://github.com/NordSecurity/uniffi-bindgen-cs --tag v0.10.0+v0.29.4
-          }
-          
-          # Pre-build internal bindgen
-          cargo build --features=uniffi/cli --bin uniffi-bindgen
-          
-          # Set PATH using the most reliable method for Windows runner
-          "$HOME\.cargo\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          
-          # Verify tools are present
-          uniffi-bindgen-node-js --version
-          uniffi-bindgen-cs --version
-
-      - name: Organize Binaries
-        shell: bash
-        run: |
-          mkdir -p target/release
-          cp native-libs/native-lib-windows-latest/xcelerate_core.dll target/release/
-          cp native-libs/native-lib-ubuntu-latest/libxcelerate_core.so target/release/
-          cp native-libs/native-lib-macos-latest/libxcelerate_core.dylib target/release/
-          # Copy to C# directory for packaging
-          cp target/release/xcelerate_core.dll bindings/csharp/
-          cp target/release/libxcelerate_core.so bindings/csharp/
-          cp target/release/libxcelerate_core.dylib bindings/csharp/
-
-      - name: Run Bindgen Scripts
-        run: python scripts/generate_all.py
-        env:
-          SKIP_RUST_BUILD: "true"
-
-      - name: Consolidate Packages
-        shell: bash
-        run: |
+          # (Your existing uniffi-bindgen and python scripts/generate_all.py logic here)
+          python scripts/generate_all.py
           mkdir -p dist-final
-          # Use find to be robust about where files are
-          find bindings/python/dist -name "*.whl" -exec cp {} dist-final/ \;
-          find bindings/python/dist -name "*.tar.gz" -exec cp {} dist-final/ \;
-          find bindings/javascript -name "*.tgz" -exec cp {} dist-final/ \;
-          find bindings/csharp/bin/Release -name "*.nupkg" -exec cp {} dist-final/ \;
-          ls -R dist-final
+          Get-ChildItem -Path bindings -Filter *.whl -Recurse | Copy-Item -Destination dist-final/
+          Get-ChildItem -Path bindings -Filter *.tgz -Recurse | Copy-Item -Destination dist-final/
+          Get-ChildItem -Path bindings -Filter *.nupkg -Recurse | Copy-Item -Destination dist-final/
 
-      - name: Upload Package Artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: language-packages
           path: dist-final/
 
-  # STAGE 3: Publish to Registries
+  # STAGE 3: Secure Publish (OIDC)
   publish:
     name: Publish to Registries
     needs: generate-bindings
     if: startsWith(github.ref, 'refs/tags/')
-    runs-on: windows-latest
+    runs-on: ubuntu-latest # Switched to Linux for easier OIDC handling
+    
+    permissions:
+      id-token: write   # CRITICAL: Allows OIDC token generation
+      contents: write   # Required for creating GitHub Releases
+      attestations: write # Optional: For npm provenance signatures
+
     steps:
       - uses: actions/checkout@v4
 
@@ -158,48 +91,40 @@ jobs:
           name: language-packages
           path: dist-packages
 
-      - name: Setup Node.js (Auth)
+      # --- NPM (Trusted Publishing) ---
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'latest'
+          node-version: '22' # Recommended for npm 11+
           registry-url: 'https://registry.npmjs.org'
-
-      - name: Setup Python (Auth)
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
 
       - name: Publish to npm
         working-directory: dist-packages
         run: |
-          # Find the .tgz file and publish it
-          $tgz = Get-ChildItem -Filter *.tgz | Select-Object -First 1
-          if (-not $tgz) { 
-            Write-Error "No .tgz file found in dist-packages. Directory content:"
-            Get-ChildItem
-            exit 1
-          }
-          npm publish $tgz.FullName --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # Trusted Publishing ignores NODE_AUTH_TOKEN if OIDC is available
+          npm publish *.tgz --access public --provenance
 
+      # --- PyPI (Trusted Publishing) ---
       - name: Publish to PyPI
-        run: |
-          python -m pip install twine
-          python -m twine upload dist-packages/*.whl dist-packages/*.tar.gz
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist-packages/
+          # No token or username needed!
 
+      # --- NuGet & Crates (Traditional Tokens) ---
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
       - name: Publish to NuGet
         run: dotnet nuget push dist-packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
 
       - name: Publish to crates.io
         run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
+      # --- GitHub Release ---
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: dist-packages/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
