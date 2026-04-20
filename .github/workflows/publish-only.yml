@@ -1,0 +1,81 @@
+name: Publish Only (From Existing Artifacts)
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Run ID of the "Build Packages" workflow to publish from (leave blank for latest successful)'
+        required: false
+        default: ''
+
+jobs:
+  publish:
+    name: Publish to Registries
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find Latest Build Run ID
+        id: find-run
+        run: |
+          if [ "${{ github.event.inputs.run_id }}" != "" ]; then
+            echo "run_id=${{ github.event.inputs.run_id }}" >> $GITHUB_OUTPUT
+          else
+            # Find the latest successful 'Build Packages' run
+            RUN_ID=$(gh run list --workflow "Build Packages (Core + Bindings)" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+            if [ -z "$RUN_ID" ]; then
+              echo "Error: No successful 'Build Packages' runs found."
+              exit 1
+            fi
+            echo "Found latest successful run: $RUN_ID"
+            echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: language-packages
+          path: dist-packages
+          run-id: ${{ steps.find-run.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'latest'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish to npm
+        working-directory: dist-packages
+        run: |
+          for f in *.tgz; do
+            if [ -f "$f" ]; then
+              echo "Publishing $f..."
+              npm publish "$f" --access public --provenance || npm publish "$f" --access public
+            fi
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist-packages/
+
+      - name: Publish to NuGet
+        run: dotnet nuget push dist-packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+
+      - name: Publish to crates.io
+        run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "manual-publish-${{ github.run_number }}"
+          files: dist-packages/*
