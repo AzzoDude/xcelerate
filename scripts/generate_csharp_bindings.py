@@ -32,16 +32,22 @@ def main():
     print(f"[DEBUG] Current PATH: {os.environ.get('PATH')}")
     
     if shutil.which(tool_cmd) is None:
+        print(f"[DEBUG] Tool '{tool_cmd}' not found in PATH.")
         possible_paths = [
-            os.path.join(os.path.expanduser("~"), ".dotnet", "tools", "uniffi-bindgen-cs.exe"),
-            os.path.join(os.environ.get("USERPROFILE", ""), ".dotnet", "tools", "uniffi-bindgen-cs.exe"),
-            "C:\\Users\\runneradmin\\.dotnet\\tools\\uniffi-bindgen-cs.exe"
+            os.path.join(os.path.expanduser("~"), ".dotnet", "tools"),
+            os.path.join(os.environ.get("USERPROFILE", ""), ".dotnet", "tools"),
+            "C:\\Users\\runneradmin\\.dotnet\\tools"
         ]
-        for path in possible_paths:
-            if os.path.exists(path):
-                tool_cmd = path
-                print(f"[INFO] Found tool at fallback path: {tool_cmd}")
-                break
+        for dp in possible_paths:
+            if os.path.exists(dp):
+                print(f"[DEBUG] Directory contents of {dp}: {os.listdir(dp)}")
+                # Check for things like uniffi-bindgen-cs.exe
+                for f in os.listdir(dp):
+                    if "uniffi" in f.lower() and f.endswith(".exe"):
+                        tool_cmd = os.path.join(dp, f)
+                        print(f"[INFO] Found potential tool at fallback path: {tool_cmd}")
+                        break
+                if tool_cmd != "uniffi-bindgen-cs": break
 
     # Run bindgen
     run_command([
