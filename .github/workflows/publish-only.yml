@@ -52,13 +52,14 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Publish to npm
-        working-directory: dist-packages
         run: |
+          # Capture metadata from the root package.json before entering dist directory
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          
+          cd dist-packages
           for f in *.tgz; do
             if [ -f "$f" ]; then
-              PACKAGE_NAME=$(node -e "const p = require('../package.json'); console.log(p.name)")
-              PACKAGE_VERSION=$(node -e "const p = require('../package.json'); console.log(p.version)")
-              
               if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version >/dev/null 2>&1; then
                 echo "Version $PACKAGE_VERSION of $PACKAGE_NAME already exists. Skipping npm publish."
               else
