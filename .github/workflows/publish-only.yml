@@ -75,12 +75,21 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Prepare PyPI Artifacts
+        id: pypi-prep
         run: |
           mkdir -p dist-pypi
           cp dist-packages/*.whl dist-pypi/ 2>/dev/null || true
           cp dist-packages/*.tar.gz dist-pypi/ 2>/dev/null || true
+          if [ -n "$(ls -A dist-pypi)" ]; then
+            echo "has_artifacts=true" >> $GITHUB_OUTPUT
+            echo "PyPI artifacts found."
+          else
+            echo "has_artifacts=false" >> $GITHUB_OUTPUT
+            echo "No PyPI artifacts found."
+          fi
 
       - name: Publish to PyPI
+        if: steps.pypi-prep.outputs.has_artifacts == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist-pypi/

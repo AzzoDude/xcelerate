@@ -105,10 +105,17 @@ jobs:
         shell: pwsh
         run: |
           mkdir -p dist-final
-          Get-ChildItem -Path bindings -Filter *.whl -Recurse | Copy-Item -Destination dist-final/
-          Get-ChildItem -Path bindings -Filter *.tar.gz -Recurse | Copy-Item -Destination dist-final/
-          Get-ChildItem -Path bindings -Filter *.tgz -Recurse | Copy-Item -Destination dist-final/
-          Get-ChildItem -Path bindings -Filter *.nupkg -Recurse | Copy-Item -Destination dist-final/
+          Write-Host "Consolidating packages..."
+          $files = Get-ChildItem -Path bindings -Include *.whl, *.tar.gz, *.tgz, *.nupkg -Recurse
+          if ($files.Count -eq 0) {
+              Write-Error "No package files found in bindings/ directory!"
+              exit 1
+          }
+          foreach ($file in $files) {
+              Write-Host "Copying $($file.FullName) to dist-final/"
+              Copy-Item -Path $file.FullName -Destination dist-final/
+          }
+          ls dist-final/
       - name: Upload Package Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -150,10 +157,26 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Prepare PyPI Artifacts
+        id: pypi-prep
+        run: |
+          mkdir -p dist-pypi
+          cp dist-packages/*.whl dist-pypi/ 2>/dev/null || true
+          cp dist-packages/*.tar.gz dist-pypi/ 2>/dev/null || true
+          if [ -n "$(ls -A dist-pypi)" ]; then
+            echo "has_artifacts=true" >> $GITHUB_OUTPUT
+            echo "PyPI artifacts found."
+          else
+            echo "has_artifacts=false" >> $GITHUB_OUTPUT
+            echo "No PyPI artifacts found."
+          fi
+
       - name: Publish to PyPI
+        if: steps.pypi-prep.outputs.has_artifacts == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: dist-packages/
+          packages-dir: dist-pypi/
+          skip-existing: true
 
       - name: Publish to NuGet
         run: dotnet nuget push dist-packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
