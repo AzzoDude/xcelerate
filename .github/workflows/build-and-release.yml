@@ -126,14 +126,22 @@ jobs:
         env:
           SKIP_RUST_BUILD: "true"
 
+      - name: Consolidate Packages
+        shell: bash
+        run: |
+          mkdir -p dist-final
+          # Use find to be robust about where files are
+          find bindings/python/dist -name "*.whl" -exec cp {} dist-final/ \;
+          find bindings/python/dist -name "*.tar.gz" -exec cp {} dist-final/ \;
+          find bindings/javascript -name "*.tgz" -exec cp {} dist-final/ \;
+          find bindings/csharp/bin/Release -name "*.nupkg" -exec cp {} dist-final/ \;
+          ls -R dist-final
+
       - name: Upload Package Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: language-packages
-          path: |
-            bindings/python/dist/*
-            bindings/javascript/*.tgz
-            bindings/csharp/bin/Release/*.nupkg
+          path: dist-final/
 
   # STAGE 3: Publish to Registries
   publish:
@@ -165,7 +173,12 @@ jobs:
         working-directory: dist-packages
         run: |
           # Find the .tgz file and publish it
-          $tgz = Get-ChildItem -Filter *.tgz
+          $tgz = Get-ChildItem -Filter *.tgz | Select-Object -First 1
+          if (-not $tgz) { 
+            Write-Error "No .tgz file found in dist-packages. Directory content:"
+            Get-ChildItem
+            exit 1
+          }
           npm publish $tgz.FullName --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
