@@ -15,32 +15,53 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
         include:
           - os: windows-latest
-            lib_path: target/release/xcelerate_core.dll
+            arch: amd64
+            target: x86_64-pc-windows-msvc
+            lib_name: xcelerate_core.dll
+          - os: windows-latest
+            arch: arm64
+            target: aarch64-pc-windows-msvc
+            lib_name: xcelerate_core.dll
           - os: ubuntu-latest
-            lib_path: target/release/libxcelerate_core.so
+            arch: amd64
+            target: x86_64-unknown-linux-gnu
+            lib_name: libxcelerate_core.so
+          - os: ubuntu-latest
+            arch: arm64
+            target: aarch64-unknown-linux-gnu
+            lib_name: libxcelerate_core.so
           - os: macos-latest
-            lib_path: target/release/libxcelerate_core.dylib
+            arch: amd64
+            target: x86_64-apple-darwin
+            lib_name: libxcelerate_core.dylib
+          - os: macos-latest
+            arch: arm64
+            target: aarch64-apple-darwin
+            lib_name: libxcelerate_core.dylib
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Cache Native Library
-        id: cache-native
-        uses: actions/cache@v4
         with:
-          path: ${{ matrix.lib_path }}
-          key: ${{ runner.os }}-native-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'src/**', 'build.rs') }}
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install Cross-Compilation Tools (Linux ARM64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
 
       - name: Build Core
-        if: steps.cache-native.outputs.cache-hit != 'true'
-        run: cargo build --release
+        run: cargo build --release --target ${{ matrix.target }}
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
 
       - name: Upload Native Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: native-lib-${{ matrix.os }}
-          path: ${{ matrix.lib_path }}
+          name: native-lib-${{ matrix.os }}-${{ matrix.arch }}
+          path: target/${{ matrix.target }}/release/${{ matrix.lib_name }}

@@ -55,42 +55,26 @@ impl Browser {
             XcelerateError::NotFound("Chrome executable not found. Please specify executable_path.".into())
         })?;
 
-        // Create a temporary user data directory and KEEP IT
+        // 1. Setup environment
         let user_data_dir = tempfile::tempdir().map_err(|_| XcelerateError::InternalError)?;
-        let port = 9222;
+        let port = get_free_port().ok_or(XcelerateError::InternalError)?;
 
-        if config.stealth {
-            eprintln!("[LAUNCHER] Applying stealth patches to binary...");
-            crate::stealth::patcher::BinaryPatcher::patch_binary(&exe)?;
-        }
+        let exe = if config.stealth {
+            crate::stealth::patcher::BinaryPatcher::patch_to_temp(&exe)?
+        } else {
+            exe
+        };
 
-        eprintln!("[LAUNCHER] Found executable: {:?}", exe);
 
-        // Convert path to OsString for Command
+        // 2. Spawn process
         let mut cmd = std::process::Command::new(&exe);
-        cmd.arg(format!("--remote-debugging-port={}", port))
-           .arg("--remote-debugging-address=127.0.0.1")
-           .arg(format!("--user-data-dir={}", user_data_dir.path().display()))
-           .arg("--no-first-run")
-           .arg("--no-default-browser-check")
-           .arg("--remote-allow-origins=*") 
-           .stdout(Stdio::null())
-           .stderr(Stdio::null());
-
-        if config.headless {
-            cmd.arg("--headless=new");
-            // Also set a standard user agent to avoid "Headless" in the string if it persists
-            cmd.arg("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
-        }
+        setup_browser_args(&mut cmd, &user_data_dir, port, config.headless);
 
         let (child, guard) = if config.detached {
-            eprintln!("[LAUNCHER] Spawning detached process...");
             let pid = crate::stealth::process::spawn_detached(cmd)?;
             let guard = crate::stealth::process::ProcessGuard { pid, auto_kill: false };
             (None, Some(guard))
         } else {
-            eprintln!("[LAUNCHER] Spawning managed process...");
-            // We still use tokio::process::Command for non-detached to get the Child
             let mut t_cmd = tokio::process::Command::from(cmd);
             let child = t_cmd.spawn().map_err(|e| XcelerateError::NotFound(format!("Failed to start Chrome: {}", e)))?;
             let pid = child.id().ok_or(XcelerateError::InternalError)?;
@@ -98,42 +82,15 @@ impl Browser {
             (Some(child), Some(guard))
         };
 
-        // 1. Wait for the HTTP server to respond and give us the URL
-        let version_url = format!("http://127.0.0.1:{}/json/version", port);
-        eprintln!("[LAUNCHER] Waiting for browser to respond at {}...", version_url);
+        // 3. Connect to debugger
+        let ws_url = wait_for_ws_url(port).await?;
         
-        let mut attempts = 0;
-        let ws_url = loop {
-            match reqwest::get(&version_url).await {
-                Ok(resp) => {
-                    let json: serde_json::Value = resp.json().await.map_err(|_| XcelerateError::InternalError)?;
-                    if let Some(ws_url) = json["webSocketDebuggerUrl"].as_str() {
-                        break ws_url.to_string();
-                    }
-                }
-                Err(_) => {
-                    attempts += 1;
-                    if attempts % 10 == 0 {
-                        eprintln!("[LAUNCHER] Attempt {}: Still waiting for browser to start...", attempts);
-                    }
-                    if attempts > 100 { 
-                        return Err(XcelerateError::NotFound("Timed out waiting for Chrome HTTP server".into())); 
-                    }
-                    tokio::time::sleep(Duration::from_millis(150)).await;
-                }
-            }
-        };
-
-        // 2. Now connect to the WebSocket URL we found
-        eprintln!("[LAUNCHER] Connecting to WebSocket: {}...", ws_url);
         let (ws, _) = connect_async(&ws_url).await?;
-        eprintln!("[LAUNCHER] Debugger connected successfully!");
         
         let (tx, rx) = mpsc::unbounded_channel();
         let (handler, _event_rx) = crate::connection::CdpHandler::new(ws, rx);
         let client = Arc::new(CdpClient::new(tx, handler.event_tx.clone()));
         
-        // Spawn the handler task internally in Rust
         tokio::spawn(handler.run());
 
         Ok(Arc::new(Self { 
@@ -201,12 +158,26 @@ impl Browser {
 }
 
 fn find_chrome_executable() -> Option<PathBuf> {
-    // Common Windows installation paths
-    let paths = [
-        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", // Fallback to Edge
-    ];
+    let paths = if cfg!(windows) {
+        vec![
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        ]
+    } else if cfg!(target_os = "macos") {
+        vec![
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+        ]
+    } else {
+        // Linux and others
+        vec![
+            "/usr/bin/google-chrome",
+            "/usr/bin/chromium-browser",
+            "/usr/bin/chromium",
+            "/usr/bin/microsoft-edge-stable",
+        ]
+    };
 
     for path in paths {
         let pb = PathBuf::from(path);
@@ -215,4 +186,52 @@ fn find_chrome_executable() -> Option<PathBuf> {
         }
     }
     None
+}
+
+fn get_free_port() -> Option<u16> {
+    use std::net::TcpListener;
+    TcpListener::bind("127.0.0.1:0")
+        .and_then(|listener| listener.local_addr())
+        .map(|addr| addr.port())
+        .ok()
+}
+
+fn setup_browser_args(cmd: &mut std::process::Command, user_data_dir: &tempfile::TempDir, port: u16, headless: bool) {
+    cmd.arg(format!("--remote-debugging-port={}", port))
+       .arg("--remote-debugging-address=127.0.0.1")
+       .arg(format!("--user-data-dir={}", user_data_dir.path().display()))
+       .arg("--no-first-run")
+       .arg("--no-default-browser-check")
+       .arg("--remote-allow-origins=*") 
+       .arg("--no-startup-window")
+       .stdout(Stdio::null())
+       .stderr(Stdio::null());
+
+    if headless {
+        cmd.arg("--headless=new");
+        cmd.arg("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
+    }
+}
+
+async fn wait_for_ws_url(port: u16) -> XcelerateResult<String> {
+    let version_url = format!("http://127.0.0.1:{}/json/version", port);
+    
+    let mut attempts = 0;
+    loop {
+        match reqwest::get(&version_url).await {
+            Ok(resp) => {
+                let json: serde_json::Value = resp.json().await.map_err(|_| XcelerateError::InternalError)?;
+                if let Some(ws_url) = json["webSocketDebuggerUrl"].as_str() {
+                    return Ok(ws_url.to_string());
+                }
+            }
+            Err(_) => {
+                attempts += 1;
+                if attempts > 100 { 
+                    return Err(XcelerateError::NotFound("Timed out waiting for Chrome HTTP server".into())); 
+                }
+                tokio::time::sleep(Duration::from_millis(150)).await;
+            }
+        }
+    }
 }

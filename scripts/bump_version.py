@@ -61,8 +61,8 @@ def main():
     # 5. scripts/generate_python_bindings.py (Hardcoded version in __init__.py generation)
     update_file(
         os.path.join(root_dir, "scripts", "generate_python_bindings.py"),
-        r'__version__ = "[^"]+"',
-        f'__version__ = "{new_ver}"'
+        r'__version__ = \\?"[^"]+\\?"',
+        f'__version__ = \\"{new_ver}\\"'
     )
 
     print("=== Done ===")

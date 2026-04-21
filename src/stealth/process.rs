@@ -40,9 +40,7 @@ pub fn spawn_detached(mut cmd: Command) -> XcelerateResult<u32> {
     let pid = child.id();
     
     // Register the PID for global cleanup
-    if let Ok(mut pids) = REGISTERED_PIDS.lock() {
-        pids.push(pid);
-    }
+    ProcessRegistry::register(pid);
 
     Ok(pid)
 }
@@ -61,9 +59,7 @@ impl Drop for ProcessGuard {
         }
         
         // Remove from global registry as it's already handled
-        if let Ok(mut pids) = REGISTERED_PIDS.lock() {
-            pids.retain(|&p| p != self.pid);
-        }
+        ProcessRegistry::unregister(self.pid);
     }
 }
 

@@ -118,20 +118,15 @@ impl Page {
         Ok(res.result.value.and_then(|v| v.as_str().map(|s| s.to_string())).unwrap_or_default())
     }
 
-    /// Captures a screenshot of the page as a PNG.
     pub async fn screenshot(&self) -> XcelerateResult<Vec<u8>> {
-        use base64::{Engine as _, engine::general_purpose};
         let res = self.client.execute_with_session(
             Some(&self.session_id),
             CaptureScreenshotParams { ..Default::default() }
         ).await?;
-        Ok(general_purpose::STANDARD.decode(res.data).map_err(|_| XcelerateError::InternalError)?)
+        self.decode_base64(res.data)
     }
 
-    /// Captures a full-page screenshot by overriding device metrics.
     pub async fn screenshot_full(&self) -> XcelerateResult<Vec<u8>> {
-        use base64::{Engine as _, engine::general_purpose};
-        
         let _ = self.client.execute_with_session(
             Some(&self.session_id),
             EnableParams { ..Default::default() }
@@ -166,17 +161,15 @@ impl Page {
             ClearDeviceMetricsOverrideParams {}
         ).await?;
 
-        Ok(general_purpose::STANDARD.decode(res.data).map_err(|_| XcelerateError::InternalError)?)
+        self.decode_base64(res.data)
     }
 
-    /// Captures a PDF of the page.
     pub async fn pdf(&self) -> XcelerateResult<Vec<u8>> {
-        use base64::{Engine as _, engine::general_purpose};
         let res = self.client.execute_with_session(
             Some(&self.session_id),
             browser_protocol::page::PrintToPDFParams { ..Default::default() }
         ).await?;
-        Ok(general_purpose::STANDARD.decode(res.data).map_err(|_| XcelerateError::InternalError)?)
+        self.decode_base64(res.data)
     }
 
     /// Evaluates a script on every new document.
@@ -191,7 +184,6 @@ impl Page {
         Ok(res.identifier)
     }
 
-    /// Navigates back in history.
     pub async fn go_back(&self) -> XcelerateResult<()> {
         let history = self.client.execute_with_session(
             Some(&self.session_id),
@@ -206,5 +198,10 @@ impl Page {
             ).await?;
         }
         Ok(())
+    }
+
+    fn decode_base64(&self, data: String) -> XcelerateResult<Vec<u8>> {
+        use base64::{Engine as _, engine::general_purpose};
+        general_purpose::STANDARD.decode(data).map_err(|e| XcelerateError::SerdeError(format!("Base64 decode failed: {}", e)))
     }
 }

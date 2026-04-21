@@ -1,6 +1,6 @@
 {
   "name": "xcelerate",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "High-performance, lightweight Chrome DevTools Protocol (CDP) client for Node.js",
   "type": "module",
   "main": "./index.js",

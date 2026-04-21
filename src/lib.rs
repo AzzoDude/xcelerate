@@ -21,80 +21,32 @@ uniffi::setup_scaffolding!("xcelerate_core");
 /// The core trait for defining CDP commands.
 pub use connection::client::CdpCommand;
 
-// Boilerplate trait implementations (usually generated)
-impl CdpCommand for browser_protocol::page::NavigateParams {
-    type Response = browser_protocol::page::NavigateReturns;
-    const METHOD: &'static str = "Page.navigate";
+macro_rules! impl_cdp_command {
+    ($params:ty, $returns:ty, $method:expr) => {
+        impl CdpCommand for $params {
+            type Response = $returns;
+            const METHOD: &'static str = $method;
+        }
+    };
 }
-impl CdpCommand for browser_protocol::page::EnableParams {
-    type Response = serde_json::Value;
-    const METHOD: &'static str = "Page.enable";
-}
-impl CdpCommand for browser_protocol::target::CreateTargetParams {
-    type Response = browser_protocol::target::CreateTargetReturns;
-    const METHOD: &'static str = "Target.createTarget";
-}
-impl CdpCommand for browser_protocol::target::AttachToTargetParams {
-    type Response = browser_protocol::target::AttachToTargetReturns;
-    const METHOD: &'static str = "Target.attachToTarget";
-}
-impl CdpCommand for js_protocol::runtime::EvaluateParams {
-    type Response = js_protocol::runtime::EvaluateReturns;
-    const METHOD: &'static str = "Runtime.evaluate";
-}
-impl CdpCommand for js_protocol::runtime::CallFunctionOnParams {
-    type Response = js_protocol::runtime::CallFunctionOnReturns;
-    const METHOD: &'static str = "Runtime.callFunctionOn";
-}
-impl CdpCommand for browser_protocol::browser::GetVersionParams {
-    type Response = browser_protocol::browser::GetVersionReturns;
-    const METHOD: &'static str = "Browser.getVersion";
-}
-impl CdpCommand for browser_protocol::browser::CloseParams {
-    type Response = serde_json::Value;
-    const METHOD: &'static str = "Browser.close";
-}
-impl CdpCommand for browser_protocol::page::ReloadParams {
-    type Response = serde_json::Value;
-    const METHOD: &'static str = "Page.reload";
-}
-impl CdpCommand for browser_protocol::page::CaptureScreenshotParams {
-    type Response = browser_protocol::page::CaptureScreenshotReturns;
-    const METHOD: &'static str = "Page.captureScreenshot";
-}
-impl CdpCommand for browser_protocol::page::PrintToPDFParams {
-    type Response = browser_protocol::page::PrintToPDFReturns;
-    const METHOD: &'static str = "Page.printToPDF";
-}
-impl CdpCommand for browser_protocol::page::GetNavigationHistoryParams {
-    type Response = browser_protocol::page::GetNavigationHistoryReturns;
-    const METHOD: &'static str = "Page.getNavigationHistory";
-}
-impl CdpCommand for browser_protocol::page::NavigateToHistoryEntryParams {
-    type Response = serde_json::Value;
-    const METHOD: &'static str = "Page.navigateToHistoryEntry";
-}
-impl CdpCommand for browser_protocol::network::EnableParams {
-    type Response = serde_json::Value;
-    const METHOD: &'static str = "Network.enable";
-}
-impl CdpCommand for browser_protocol::target::GetTargetsParams {
-    type Response = browser_protocol::target::GetTargetsReturns;
-    const METHOD: &'static str = "Target.getTargets";
-}
-impl CdpCommand for browser_protocol::page::AddScriptToEvaluateOnNewDocumentParams {
-    type Response = browser_protocol::page::AddScriptToEvaluateOnNewDocumentReturns;
-    const METHOD: &'static str = "Page.addScriptToEvaluateOnNewDocument";
-}
-impl CdpCommand for browser_protocol::page::GetLayoutMetricsParams {
-    type Response = browser_protocol::page::GetLayoutMetricsReturns;
-    const METHOD: &'static str = "Page.getLayoutMetrics";
-}
-impl CdpCommand for browser_protocol::emulation::SetDeviceMetricsOverrideParams {
-    type Response = serde_json::Value;
-    const METHOD: &'static str = "Emulation.setDeviceMetricsOverride";
-}
-impl CdpCommand for browser_protocol::emulation::ClearDeviceMetricsOverrideParams {
-    type Response = serde_json::Value;
-    const METHOD: &'static str = "Emulation.clearDeviceMetricsOverride";
-}
+
+impl_cdp_command!(browser_protocol::page::NavigateParams, browser_protocol::page::NavigateReturns, "Page.navigate");
+impl_cdp_command!(browser_protocol::page::EnableParams, serde_json::Value, "Page.enable");
+impl_cdp_command!(browser_protocol::target::CreateTargetParams, browser_protocol::target::CreateTargetReturns, "Target.createTarget");
+impl_cdp_command!(browser_protocol::target::AttachToTargetParams, browser_protocol::target::AttachToTargetReturns, "Target.attachToTarget");
+impl_cdp_command!(js_protocol::runtime::EvaluateParams, js_protocol::runtime::EvaluateReturns, "Runtime.evaluate");
+impl_cdp_command!(js_protocol::runtime::CallFunctionOnParams, js_protocol::runtime::CallFunctionOnReturns, "Runtime.callFunctionOn");
+impl_cdp_command!(browser_protocol::browser::GetVersionParams, browser_protocol::browser::GetVersionReturns, "Browser.getVersion");
+impl_cdp_command!(browser_protocol::browser::CloseParams, serde_json::Value, "Browser.close");
+impl_cdp_command!(browser_protocol::page::ReloadParams, serde_json::Value, "Page.reload");
+impl_cdp_command!(browser_protocol::page::CaptureScreenshotParams, browser_protocol::page::CaptureScreenshotReturns, "Page.captureScreenshot");
+impl_cdp_command!(browser_protocol::page::PrintToPDFParams, browser_protocol::page::PrintToPDFReturns, "Page.printToPDF");
+impl_cdp_command!(browser_protocol::page::GetNavigationHistoryParams, browser_protocol::page::GetNavigationHistoryReturns, "Page.getNavigationHistory");
+impl_cdp_command!(browser_protocol::page::NavigateToHistoryEntryParams, serde_json::Value, "Page.navigateToHistoryEntry");
+impl_cdp_command!(browser_protocol::network::EnableParams, serde_json::Value, "Network.enable");
+impl_cdp_command!(browser_protocol::target::GetTargetsParams, browser_protocol::target::GetTargetsReturns, "Target.getTargets");
+impl_cdp_command!(browser_protocol::page::AddScriptToEvaluateOnNewDocumentParams, browser_protocol::page::AddScriptToEvaluateOnNewDocumentReturns, "Page.addScriptToEvaluateOnNewDocument");
+impl_cdp_command!(browser_protocol::page::GetLayoutMetricsParams, browser_protocol::page::GetLayoutMetricsReturns, "Page.getLayoutMetrics");
+impl_cdp_command!(browser_protocol::emulation::SetDeviceMetricsOverrideParams, serde_json::Value, "Emulation.setDeviceMetricsOverride");
+impl_cdp_command!(browser_protocol::emulation::ClearDeviceMetricsOverrideParams, serde_json::Value, "Emulation.clearDeviceMetricsOverride");
+impl_cdp_command!(browser_protocol::input::DispatchKeyEventParams, serde_json::Value, "Input.dispatchKeyEvent");

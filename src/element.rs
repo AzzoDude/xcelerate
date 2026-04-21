@@ -13,32 +13,31 @@ pub struct Element {
 impl Element {
     /// Clicks the element.
     pub async fn click(self: Arc<Self>) -> XcelerateResult<Arc<Self>> {
-        self.page.client.execute_with_session(
-            Some(&self.page.session_id),
-            js_protocol::runtime::CallFunctionOnParams {
-                functionDeclaration: "function() { this.click(); }".into(),
-                objectId: Some(self.object_id.clone()),
-                ..Default::default()
-            }
-        ).await?;
-        
+        self.call_js("function() { this.click(); }".to_string()).await?;
         Ok(self)
     }
 
     pub async fn type_text(self: Arc<Self>, text: String) -> XcelerateResult<Arc<Self>> {
-        let js = "function(t) { this.value = t; this.dispatchEvent(new Event('input', { bubbles: true })); }";
-        self.page.client.execute_with_session(
-            Some(&self.page.session_id),
-            js_protocol::runtime::CallFunctionOnParams {
-                functionDeclaration: js.into(),
-                arguments: Some(vec![js_protocol::runtime::CallArgument {
-                    value: Some(serde_json::json!(text)),
-                    ..Default::default()
-                }]),
-                objectId: Some(self.object_id.clone()),
+        // 1. Focus the element first
+        self.clone().focus().await?;
+
+        // 2. Dispatch key events for each character
+        for c in text.chars() {
+            let mut params = browser_protocol::input::DispatchKeyEventParams {
+                type_: "char".into(),
                 ..Default::default()
-            }
-        ).await?;
+            };
+            params.text = Some(c.to_string());
+            params.unmodifiedText = Some(c.to_string());
+
+            self.page.client.execute_with_session(
+                Some(&self.page.session_id),
+                params
+            ).await?;
+            
+            // Subtle delay to mimic human typing
+            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        }
         
         Ok(self)
     }

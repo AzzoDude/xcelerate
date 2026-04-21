@@ -68,7 +68,7 @@ def main():
         # Ensure __init__.py exists with version
         init_file = os.path.join(package_dir, "__init__.py")
         with open(init_file, "w") as f:
-            f.write("__version__ = \"0.1.4\"\n")
+            f.write("__version__ = \"0.1.6\"\n")
             f.write("from .xcelerate_core import Browser, BrowserConfig, Page, Element, XcelerateError\n")
             f.write("__all__ = [\"Browser\", \"BrowserConfig\", \"Page\", \"Element\", \"XcelerateError\"]\n")
 
