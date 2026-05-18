@@ -17,7 +17,7 @@ impl BinaryPatcher {
         let file_name = path.file_name().ok_or(XcelerateError::InternalError)?;
         let mut patch_path = path.parent()
             .map(|p| p.to_path_buf())
-            .unwrap_or_else(|| std::env::temp_dir());
+            .unwrap_or_else(std::env::temp_dir);
         
         patch_path.push(format!("xcelerate_{}", file_name.to_string_lossy()));
         
@@ -35,7 +35,7 @@ impl BinaryPatcher {
                     if payload.len() > len {
                         payload.truncate(len);
                     } else {
-                        payload.extend(std::iter::repeat(b' ').take(len - payload.len()));
+                        payload.extend(std::iter::repeat_n(b' ', len - payload.len()));
                     }
                     
                     content[start..end].copy_from_slice(&payload);

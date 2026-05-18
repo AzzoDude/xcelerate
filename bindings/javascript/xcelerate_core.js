@@ -85,7 +85,7 @@ import {
 
 export const componentMetadata = Object.freeze({
   namespace: "xcelerate_core",
-  packageName: "xcelerate_core",
+  packageName: "xcelerate",
   cdylibName: "xcelerate_core",
   nodeEngine: ">=16",
   bundledPrebuilds: false,
@@ -976,6 +976,20 @@ export class Page extends UniffiObjectBase {
     });
   }
 
+  decode_base64(data) {
+    const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);
+    const ffiMethod =
+      uniffiPageObjectFactory.usesGenericAbi(this)
+        ? ffiFunctions.uniffi_xcelerate_core_fn_method_page_decode_base64_generic_abi
+        : ffiFunctions.uniffi_xcelerate_core_fn_method_page_decode_base64;
+    const loweredData = uniffiLowerString(data);
+    const uniffiResult = uniffiRustCaller.rustCall(
+      (status) => ffiMethod(loweredSelf, loweredData, status),
+      uniffiRustCallOptions(FfiConverterXcelerateError),
+    );
+    return uniffiLiftFromRustBuffer(FfiConverterBytes, uniffiResult);
+  }
+
   /**
    * Finds an element matching the CSS selector.
    */
@@ -1006,9 +1020,6 @@ export class Page extends UniffiObjectBase {
     });
   }
 
-  /**
-   * Navigates back in history.
-   */
   async go_back() {
     const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);
     const ffiMethod =
@@ -1049,9 +1060,6 @@ export class Page extends UniffiObjectBase {
     });
   }
 
-  /**
-   * Captures a PDF of the page.
-   */
   async pdf() {
     const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);
     const ffiMethod =
@@ -1091,9 +1099,6 @@ export class Page extends UniffiObjectBase {
     });
   }
 
-  /**
-   * Captures a screenshot of the page as a PNG.
-   */
   async screenshot() {
     const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);
     const ffiMethod =
@@ -1112,9 +1117,6 @@ export class Page extends UniffiObjectBase {
     });
   }
 
-  /**
-   * Captures a full-page screenshot by overriding device metrics.
-   */
   async screenshotFull() {
     const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);
     const ffiMethod =

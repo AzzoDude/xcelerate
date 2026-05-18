@@ -132,33 +132,22 @@ export declare class Page extends UniffiObjectBase {
    * Returns the full HTML content of the page.
    */
   content(): Promise<string>;
+  decode_base64(data: string): Uint8Array;
   /**
    * Finds an element matching the CSS selector.
    */
   find_element(selector: string): Promise<Element>;
-  /**
-   * Navigates back in history.
-   */
   go_back(): Promise<void>;
   /**
    * Navigates to a URL.
    */
   navigate(url: string): Promise<void>;
-  /**
-   * Captures a PDF of the page.
-   */
   pdf(): Promise<Uint8Array>;
   /**
    * Reloads the page.
    */
   reload(): Promise<void>;
-  /**
-   * Captures a screenshot of the page as a PNG.
-   */
   screenshot(): Promise<Uint8Array>;
-  /**
-   * Captures a full-page screenshot by overriding device metrics.
-   */
   screenshot_full(): Promise<Uint8Array>;
   /**
    * Returns the page title.

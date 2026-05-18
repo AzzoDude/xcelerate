@@ -66,7 +66,7 @@ impl Page {
                 }
             ).await?;
             
-            if res.result.value.map_or(false, |v| v.as_str() == Some("complete")) {
+            if res.result.value.is_some_and(|v| v.as_str() == Some("complete")) {
                 return Ok(());
             }
             tokio::time::sleep(std::time::Duration::from_millis(250)).await;
@@ -185,18 +185,13 @@ impl Page {
     }
 
     pub async fn go_back(&self) -> XcelerateResult<()> {
-        let history = self.client.execute_with_session(
+        let _ = self.client.execute_with_session(
             Some(&self.session_id),
-            browser_protocol::page::GetNavigationHistoryParams {}
+            js_protocol::runtime::EvaluateParams {
+                expression: "window.history.back()".into(),
+                ..Default::default()
+            }
         ).await?;
-        
-        if history.currentIndex > 0 {
-            let entry = &history.entries[history.currentIndex as usize - 1];
-            self.client.execute_with_session(
-                Some(&self.session_id),
-                browser_protocol::page::NavigateToHistoryEntryParams { entryId: entry.id }
-            ).await?;
-        }
         Ok(())
     }
 

@@ -84,6 +84,8 @@ export declare function uniffi_xcelerate_core_fn_method_page_add_script_to_evalu
 
 export declare function uniffi_xcelerate_core_fn_method_page_content(...args: any[]): any;
 
+export declare function uniffi_xcelerate_core_fn_method_page_decode_base64(...args: any[]): any;
+
 export declare function uniffi_xcelerate_core_fn_method_page_find_element(...args: any[]): any;
 
 export declare function uniffi_xcelerate_core_fn_method_page_go_back(...args: any[]): any;
@@ -231,6 +233,8 @@ export declare function uniffi_xcelerate_core_checksum_method_element_type_text(
 export declare function uniffi_xcelerate_core_checksum_method_page_add_script_to_evaluate_on_new_document(...args: any[]): any;
 
 export declare function uniffi_xcelerate_core_checksum_method_page_content(...args: any[]): any;
+
+export declare function uniffi_xcelerate_core_checksum_method_page_decode_base64(...args: any[]): any;
 
 export declare function uniffi_xcelerate_core_checksum_method_page_find_element(...args: any[]): any;
 

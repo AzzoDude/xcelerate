@@ -113,7 +113,6 @@ impl Browser {
         let session = self.client.execute(browser_protocol::target::AttachToTargetParams {
             targetId: target.targetId,
             flatten: Some(true),
-            ..Default::default()
         }).await?;
 
         let page = Arc::new(Page {
@@ -139,14 +138,14 @@ impl Browser {
 
     /// Returns the browser version information.
     pub async fn version(&self) -> XcelerateResult<String> {
-        let res = self.client.execute(browser_protocol::browser::GetVersionParams { ..Default::default() }).await?;
+        let res = self.client.execute(browser_protocol::browser::GetVersionParams {}).await?;
         Ok(format!("{} (Protocol {})", res.product, res.protocolVersion))
     }
 
     /// Closes the browser and kills the process.
     pub async fn close(&self) -> XcelerateResult<()> {
         // Try to close gracefully via CDP first
-        let _ = self.client.execute(browser_protocol::browser::CloseParams { ..Default::default() }).await;
+        let _ = self.client.execute(browser_protocol::browser::CloseParams {}).await;
         
         // Kill the process if it's still running
         let mut lock = self._process.lock().await;
