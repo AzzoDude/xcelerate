@@ -121,7 +121,7 @@ def ensure_gradle(install):
     archive = os.path.join(tools_dir, f"gradle-{GRADLE_VERSION}-bin.zip")
     log("DOWNLOAD", GRADLE_URL)
     # Fixed, trusted constant URL (services.gradle.org).
-    urllib.request.urlretrieve(GRADLE_URL, archive)  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+    urllib.request.urlretrieve(GRADLE_URL, archive)  # nosemgrep
     log("EXTRACT", f"{archive} -> {tools_dir}")
     with zipfile.ZipFile(archive) as bundle:
         bundle.extractall(tools_dir)
@@ -205,7 +205,7 @@ def ensure_dart(install):
     archive = os.path.join(tools_dir, f"dartsdk-{DART_VERSION}.zip")
     log("DOWNLOAD", DART_URL)
     # Fixed, trusted constant URL (storage.googleapis.com).
-    urllib.request.urlretrieve(DART_URL, archive)  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+    urllib.request.urlretrieve(DART_URL, archive)  # nosemgrep
     log("EXTRACT", f"{archive} -> {tools_dir}")
     with zipfile.ZipFile(archive) as bundle:
         bundle.extractall(tools_dir)

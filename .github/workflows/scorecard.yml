@@ -17,6 +17,10 @@ jobs:
   analysis:
     name: Scorecard analysis
     runs-on: ubuntu-latest
+    # Scorecard runs from a Docker image on gcr.io, which occasionally fails to
+    # pull on hosted runners; treat the report as advisory so an upstream image
+    # pull flake does not fail the workflow.
+    continue-on-error: true
     permissions:
       security-events: write
       id-token: write

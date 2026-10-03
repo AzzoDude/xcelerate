@@ -13,15 +13,18 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   gitleaks:
     name: Scan for secrets
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Run gitleaks

@@ -40,16 +40,18 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  actions: read
   contents: read
-  packages: read
-  security-events: write
 
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+      security-events: write
     strategy:
       fail-fast: false
       matrix:
@@ -61,6 +63,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@1190a975f95ce23525efb6a3fc21ea29567c1b52 # v3

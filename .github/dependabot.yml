@@ -7,6 +7,10 @@ updates:
     directory: "/"
     schedule: { interval: weekly }
     open-pull-requests-limit: 10
+    # Wait a week after a release before proposing it, so regressions are usually
+    # caught upstream first (zizmor / Semgrep "cooldown" checks).
+    cooldown:
+      default-days: 7
     groups:
       cargo:
         patterns: ["*"]
@@ -21,6 +25,8 @@ updates:
   - package-ecosystem: github-actions
     directory: "/"
     schedule: { interval: weekly }
+    cooldown:
+      default-days: 7
     groups:
       actions:
         patterns: ["*"]
@@ -28,23 +34,35 @@ updates:
   - package-ecosystem: npm
     directory: "/bindings/javascript"
     schedule: { interval: weekly }
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: pip
     directory: "/bindings/python"
     schedule: { interval: weekly }
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: gomod
     directory: "/bindings/go"
     schedule: { interval: weekly }
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: gradle
     directory: "/bindings/java"
     schedule: { interval: weekly }
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: gradle
     directory: "/bindings/kotlin"
     schedule: { interval: weekly }
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: nuget
     directory: "/bindings/csharp"
     schedule: { interval: weekly }
+    cooldown:
+      default-days: 7

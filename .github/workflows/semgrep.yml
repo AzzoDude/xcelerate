@@ -13,14 +13,18 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   semgrep:
     name: Semgrep scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
