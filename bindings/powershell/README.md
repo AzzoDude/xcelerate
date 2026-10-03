@@ -7,13 +7,19 @@ SDK** (`uniffi.xcelerate`). The module code is hand-written; the managed
 assembly and the native `xcelerate` cdylib are staged next to each other by
 `scripts/generate_powershell_bindings.py`.
 
-## Requirements
+## Installation
 
-- **PowerShell 7.0+** (`pwsh`). Windows PowerShell 5.1 cannot load the .NET 8+
-  assembly.
-- The staged payload (`lib/`), produced by the generator. This is not committed.
+```powershell
+Install-PSResource Xcelerate      # PSResourceGet (PowerShell 7.4+)
+# or, with PowerShellGet:
+Install-Module Xcelerate
+```
 
-## Building
+Requires **PowerShell 7.0+** (`pwsh`); Windows PowerShell 5.1 cannot load the
+bundled .NET 8+ assembly. The published module ships the managed assembly and the
+native `xcelerate` cdylib for Windows x64.
+
+## Building from source
 
 ```bash
 python scripts/generate_powershell_bindings.py
@@ -21,13 +27,13 @@ python scripts/generate_powershell_bindings.py
 
 This builds the Rust core and the .NET SDK if needed, then copies
 `Xcelerate.Net.dll` plus the native library into `bindings/powershell/lib/<tfm>/`
-for `net8.0`, `net9.0`, and `net10.0`. The module picks the framework that
-matches the runtime hosting PowerShell.
+for `net8.0`, `net9.0`, and `net10.0` (the module picks the framework matching
+the hosting runtime). The staged `lib/` is not committed.
 
 ## Quick start
 
 ```powershell
-Import-Module ./bindings/powershell/Xcelerate.psd1
+Import-Module Xcelerate            # or: Import-Module ./bindings/powershell/Xcelerate.psd1
 
 $browser = Start-XcelerateBrowser -Plugins stealth, human -NoHeadless
 $page    = New-XceleratePage -Browser $browser -Url 'https://example.com'

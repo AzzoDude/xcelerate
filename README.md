@@ -1,11 +1,20 @@
 # Xcelerate
 
+[![CI](https://github.com/ChaoswareHQ/xcelerate/actions/workflows/ci.yml/badge.svg)](https://github.com/ChaoswareHQ/xcelerate/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/ChaoswareHQ/xcelerate/actions/workflows/codeql.yml/badge.svg)](https://github.com/ChaoswareHQ/xcelerate/actions/workflows/codeql.yml)
+[![Semgrep](https://github.com/ChaoswareHQ/xcelerate/actions/workflows/semgrep.yml/badge.svg)](https://github.com/ChaoswareHQ/xcelerate/actions/workflows/semgrep.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/ChaoswareHQ/xcelerate/badge)](https://securityscorecards.dev/viewer/?uri=github.com/ChaoswareHQ/xcelerate)
+
 [![Crates.io](https://img.shields.io/crates/v/xcelerate.svg)](https://crates.io/crates/xcelerate)
+[![Crates.io downloads](https://img.shields.io/crates/d/xcelerate.svg)](https://crates.io/crates/xcelerate)
 [![PyPI](https://img.shields.io/pypi/v/xcelerate.svg)](https://pypi.org/project/xcelerate/)
 [![npm](https://img.shields.io/npm/v/xcelerate.svg)](https://www.npmjs.com/package/xcelerate)
 [![NuGet](https://img.shields.io/nuget/v/Xcelerate.svg)](https://www.nuget.org/packages/Xcelerate)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.azzodude/xcelerate.svg)](https://central.sonatype.com/artifact/io.github.azzodude/xcelerate)
-[![Documentation](https://img.shields.io/badge/docs.rs-xcelerate-blue)](https://docs.rs/xcelerate)
+[![PowerShell Gallery](https://img.shields.io/powershellgallery/v/Xcelerate.svg)](https://www.powershellgallery.com/packages/Xcelerate)
+
+[![docs.rs](https://img.shields.io/docsrs/xcelerate.svg)](https://docs.rs/xcelerate)
+[![Rust](https://img.shields.io/badge/rust-1.99%2B-dea584.svg)](https://github.com/ChaoswareHQ/xcelerate/blob/master/Cargo.toml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
 Xcelerate is a high-performance, lightweight Chrome DevTools Protocol (CDP) client
@@ -28,7 +37,7 @@ Playwright, and Puppeteer scripts run against the same engine.
 | Ruby | `xcelerate` | built from source ([readme](bindings/ruby/README.md)) |
 | Dart / Flutter | `xcelerate` | built from source ([readme](bindings/dart/README.md)) |
 | Go | `xcelerate` | built from source ([readme](bindings/go/README.md)) |
-| PowerShell | `Xcelerate` | built from source ([readme](bindings/powershell/README.md)) |
+| PowerShell | `Xcelerate` | [PowerShell Gallery](https://www.powershellgallery.com/packages/Xcelerate) |
 
 ## Features
 
@@ -118,11 +127,17 @@ python scripts/generate_go_bindings.py       # Go sources + go.mod
 
 ### PowerShell
 
-PowerShell has no UniFFI generator, so it drives the .NET SDK through a small
-module. Stage the payload, then import it:
+```powershell
+Install-PSResource Xcelerate      # PSResourceGet (PowerShell 7.4+)
+# or, with PowerShellGet:
+Install-Module Xcelerate
+```
+
+PowerShell has no UniFFI generator, so the module wraps the .NET SDK. To build
+and stage the payload from source instead:
 
 ```powershell
-python scripts/generate_powershell_bindings.py   # build + stage the module payload
+python scripts/generate_powershell_bindings.py
 Import-Module ./bindings/powershell/Xcelerate.psd1
 ```
 

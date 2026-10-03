@@ -1,3 +1,0 @@
-# Staged managed assembly + native cdylib (produced by
-# scripts/generate_powershell_bindings.py from the .NET binding build).
-lib/
