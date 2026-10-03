@@ -17,7 +17,7 @@ dependencies {
     // The generated bindings use JNA for the FFI and kotlinx-coroutines for the
     // suspend/asynchronous API surface.
     api("net.java.dev.jna:jna:5.16.0")
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 }
 
 java {
