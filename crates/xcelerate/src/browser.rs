@@ -149,6 +149,7 @@ impl Browser {
             interception_task: Arc::new(tokio::sync::Mutex::new(None)),
             credentials: Arc::new(tokio::sync::Mutex::new(None)),
             drag_interception: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            default_timeout_ms: std::sync::atomic::AtomicU64::new(30_000),
         });
 
         // 3. Run plugin page-created hooks (e.g. stealth payload injection).

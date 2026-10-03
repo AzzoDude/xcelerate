@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches: [main, master]
-    paths: ['crates/**', 'Cargo.toml', 'Cargo.lock', 'clippy.toml', '.github/workflows/ci.yml']
+    paths: ['crates/**', 'Cargo.toml', 'Cargo.lock', 'clippy.toml', 'scripts/**', 'adapters/**', '.github/workflows/ci.yml']
   pull_request:
     branches: [main, master]
 
@@ -30,3 +30,20 @@ jobs:
 
       - name: Run Unit Tests
         run: cargo test --workspace --lib
+
+  generated-artifacts:
+    name: Generated artifacts in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Regenerate adapters
+        run: python scripts/generate_adapters.py
+
+      - name: Fail if committed generated output is stale
+        run: git diff --exit-code -- crates/xcelerate/src/adapters bindings/python/xcelerate/adapters

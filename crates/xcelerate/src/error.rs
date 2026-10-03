@@ -23,6 +23,9 @@ pub enum XcelerateError {
 
     #[error("unsupported: {0}")]
     Unsupported(String),
+
+    #[error("plugin error: {0}")]
+    Plugin(String),
 }
 
 impl From<xcelerate_core::Error> for XcelerateError {
@@ -53,7 +56,7 @@ impl From<xcelerate_plugin_api::PluginError> for XcelerateError {
         match e {
             ApiError::NotFound(message) => Self::NotFound(message),
             ApiError::Unsupported(message) => Self::Unsupported(message),
-            ApiError::Message(message) => Self::Unsupported(message),
+            ApiError::Message(message) => Self::Plugin(message),
         }
     }
 }

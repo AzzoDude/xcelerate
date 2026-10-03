@@ -16,37 +16,11 @@ use browser_protocol::page::{
 use browser_protocol::performance::GetMetricsParams;
 use std::sync::Arc;
 
-pub(crate) struct Lcg {
-    state: u64,
-}
+mod intercept;
+mod rng;
 
-impl Lcg {
-    pub(crate) fn new() -> Self {
-        use std::time::SystemTime;
-        let seed = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos() as u64;
-        Self { state: seed }
-    }
-
-    fn next(&mut self) -> u64 {
-        self.state = self
-            .state
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
-        self.state
-    }
-
-    fn next_f64(&mut self) -> f64 {
-        let val = self.next();
-        (val as f64) / (u64::MAX as f64)
-    }
-
-    pub(crate) fn range(&mut self, min: f64, max: f64) -> f64 {
-        min + self.next_f64() * (max - min)
-    }
-}
+use intercept::run_interception;
+pub(crate) use rng::Lcg;
 
 #[derive(uniffi::Object)]
 pub struct Page {
@@ -61,6 +35,7 @@ pub struct Page {
     pub(crate) interception_task: Arc<tokio::sync::Mutex<Option<tokio::task::JoinHandle<()>>>>,
     pub(crate) credentials: Arc<tokio::sync::Mutex<Option<(String, String)>>>,
     pub(crate) drag_interception: Arc<std::sync::atomic::AtomicBool>,
+    pub(crate) default_timeout_ms: std::sync::atomic::AtomicU64,
 }
 
 /// A declarative network-interception rule.
@@ -71,163 +46,6 @@ pub(crate) struct RouteRule {
     action: String,
     body: Option<String>,
     content_type: Option<String>,
-}
-
-/// Matches a Playwright-style glob (`*` wildcard) or a plain substring.
-fn pattern_matches(pattern: &str, url: &str) -> bool {
-    if pattern.is_empty() || pattern == "*" {
-        return true;
-    }
-    if !pattern.contains('*') {
-        return url.contains(pattern);
-    }
-    let parts: Vec<&str> = pattern.split('*').collect();
-    let mut rest = url;
-    for (index, part) in parts.iter().enumerate() {
-        if part.is_empty() {
-            continue;
-        }
-        if index == 0 {
-            if !rest.starts_with(part) {
-                return false;
-            }
-            rest = &rest[part.len()..];
-        } else if index == parts.len() - 1 {
-            if !rest.ends_with(part) {
-                return false;
-            }
-        } else if let Some(position) = rest.find(part) {
-            rest = &rest[position + part.len()..];
-        } else {
-            return false;
-        }
-    }
-    true
-}
-
-/// Background pump: answers `Fetch.requestPaused` from the stored rules and
-/// handles `Fetch.authRequired` from the stored credentials.
-async fn run_interception(
-    client: Arc<CdpClient>,
-    session_id: String,
-    routes: Arc<tokio::sync::Mutex<Vec<RouteRule>>>,
-    requests: Arc<tokio::sync::Mutex<Vec<serde_json::Value>>>,
-    credentials: Arc<tokio::sync::Mutex<Option<(String, String)>>>,
-) {
-    let _ = client
-        .execute_raw_with_session(
-            Some(&session_id),
-            "Fetch.enable",
-            serde_json::json!({ "patterns": [{ "urlPattern": "*" }] }),
-        )
-        .await;
-
-    let mut receiver = client.subscribe();
-    loop {
-        let value = match receiver.recv().await {
-            Ok(value) => value,
-            // A slow consumer only misses events; keep pumping.
-            Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
-            Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
-        };
-        if value.get("sessionId").and_then(|s| s.as_str()) != Some(session_id.as_str()) {
-            continue;
-        }
-        let method = value.get("method").and_then(|m| m.as_str()).unwrap_or("");
-        let params = value
-            .get("params")
-            .cloned()
-            .unwrap_or(serde_json::Value::Null);
-        match method {
-            "Fetch.requestPaused" => {
-                let request_id = params
-                    .get("requestId")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default()
-                    .to_string();
-                let request = params.get("request").cloned().unwrap_or_default();
-                let url = request
-                    .get("url")
-                    .and_then(|u| u.as_str())
-                    .unwrap_or_default()
-                    .to_string();
-                requests.lock().await.push(request);
-                let rule = {
-                    let guard = routes.lock().await;
-                    guard
-                        .iter()
-                        .find(|rule| pattern_matches(&rule.pattern, &url))
-                        .cloned()
-                };
-                let result = match rule {
-                    Some(rule) if rule.action == "abort" => {
-                        client
-                            .execute_raw_with_session(
-                                Some(&session_id),
-                                "Fetch.failRequest",
-                                serde_json::json!({ "requestId": request_id, "errorReason": "Aborted" }),
-                            )
-                            .await
-                    }
-                    Some(rule) if rule.action == "fulfill" => {
-                        use base64::{Engine as _, engine::general_purpose};
-                        let body = general_purpose::STANDARD.encode(rule.body.unwrap_or_default());
-                        let content_type = rule
-                            .content_type
-                            .unwrap_or_else(|| "text/html".to_string());
-                        client
-                            .execute_raw_with_session(
-                                Some(&session_id),
-                                "Fetch.fulfillRequest",
-                                serde_json::json!({
-                                    "requestId": request_id,
-                                    "responseCode": 200,
-                                    "body": body,
-                                    "responseHeaders": [{ "name": "Content-Type", "value": content_type }]
-                                }),
-                            )
-                            .await
-                    }
-                    _ => {
-                        client
-                            .execute_raw_with_session(
-                                Some(&session_id),
-                                "Fetch.continueRequest",
-                                serde_json::json!({ "requestId": request_id }),
-                            )
-                            .await
-                    }
-                };
-                let _ = result;
-            }
-            "Fetch.authRequired" => {
-                let request_id = params
-                    .get("requestId")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default()
-                    .to_string();
-                let creds = credentials.lock().await.clone();
-                let payload = match creds {
-                    Some((username, password)) => serde_json::json!({
-                        "requestId": request_id,
-                        "authChallengeResponse": {
-                            "response": "ProvideCredentials",
-                            "username": username,
-                            "password": password
-                        }
-                    }),
-                    None => serde_json::json!({
-                        "requestId": request_id,
-                        "authChallengeResponse": { "response": "Default" }
-                    }),
-                };
-                let _ = client
-                    .execute_raw_with_session(Some(&session_id), "Fetch.continueWithAuth", payload)
-                    .await;
-            }
-            _ => {}
-        }
-    }
 }
 
 #[uniffi::export(async_runtime = "tokio")]
@@ -269,7 +87,7 @@ impl Page {
         selector: String,
     ) -> XcelerateResult<Arc<Element>> {
         let start = std::time::Instant::now();
-        let timeout = std::time::Duration::from_secs(30);
+        let timeout = std::time::Duration::from_millis(self.default_timeout());
 
         while start.elapsed() < timeout {
             if let Ok(element) = self.clone().find_element(selector.clone()).await {
@@ -287,7 +105,7 @@ impl Page {
     /// Waits for the page to finish loading.
     pub async fn wait_for_navigation(&self) -> XcelerateResult<()> {
         let start = std::time::Instant::now();
-        let timeout = std::time::Duration::from_secs(30);
+        let timeout = std::time::Duration::from_millis(self.default_timeout());
 
         while start.elapsed() < timeout {
             // Internal call to evaluate
@@ -1277,9 +1095,10 @@ impl Page {
         }
     }
 
-    /// [`Page::wait_for_event`] with the default 30s timeout.
+    /// [`Page::wait_for_event`] with the page's default timeout.
     pub async fn wait_for_event_default(&self, event_name: String) -> XcelerateResult<String> {
-        self.wait_for_event(event_name, 30_000).await
+        self.wait_for_event(event_name, self.default_timeout())
+            .await
     }
 
     // -----------------------------------------------------------------------
@@ -1984,25 +1803,37 @@ impl Page {
         Ok(())
     }
 
-    /// Stores a default timeout (ms) for adapter compatibility.
+    /// The default timeout (ms) used by the waiting helpers. A stored value of
+    /// `0` means "no timeout" and is mapped to the largest representable wait.
+    fn default_timeout(&self) -> u64 {
+        match self
+            .default_timeout_ms
+            .load(std::sync::atomic::Ordering::SeqCst)
+        {
+            0 => u64::MAX,
+            millis => millis,
+        }
+    }
+
+    /// Sets the default timeout (ms) applied by [`Page::wait_for_selector`],
+    /// [`Page::wait_for_navigation`], and [`Page::wait_for_event_default`].
+    /// As in Playwright, `0` disables the timeout.
     pub async fn set_default_timeout(&self, milliseconds: f64) -> XcelerateResult<()> {
-        self.call_json(
-            "function(v){window.__xcelerate_timeouts=window.__xcelerate_timeouts||{};window.__xcelerate_timeouts.default=v;}"
-                .to_string(),
-            serde_json::json!([milliseconds]).to_string(),
-        )
-        .await?;
+        let millis = if milliseconds.is_finite() && milliseconds > 0.0 {
+            milliseconds as u64
+        } else {
+            0
+        };
+        self.default_timeout_ms
+            .store(millis, std::sync::atomic::Ordering::SeqCst);
         Ok(())
     }
 
     /// Returns the stored default timeout (ms).
     pub async fn get_default_timeout(&self) -> XcelerateResult<f64> {
-        let value = self
-            .evaluate_json(
-                "(window.__xcelerate_timeouts&&window.__xcelerate_timeouts.default)||0".to_string(),
-            )
-            .await?;
-        Ok(value.trim().parse().unwrap_or(0.0))
+        Ok(self
+            .default_timeout_ms
+            .load(std::sync::atomic::Ordering::SeqCst) as f64)
     }
 }
 
