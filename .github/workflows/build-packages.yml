@@ -25,12 +25,12 @@ jobs:
           - os: macos-latest
             lib_path: target/release/libxcelerate.dylib
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Cache Native Library
         id: cache-native
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ matrix.lib_path }}
           key: ${{ runner.os }}-native-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'crates/**', 'build.rs') }}
@@ -38,7 +38,7 @@ jobs:
         if: steps.cache-native.outputs.cache-hit != 'true'
         run: cargo build --release
       - name: Upload Native Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: native-lib-${{ matrix.os }}
           path: ${{ matrix.lib_path }}
@@ -48,24 +48,24 @@ jobs:
     needs: build-native
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           path: native-libs
 
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
           cache: 'pip'
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
             8.0.x
             9.0.x
             10.0.x
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version: 'stable'
 
@@ -77,7 +77,7 @@ jobs:
 
       - name: Cache Cargo Binaries
         id: cache-tools
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cargo/bin
           key: ${{ runner.os }}-uniffi-tools-v2
@@ -129,7 +129,7 @@ jobs:
           # publish workflow, so they are not collected as artifacts here.
 
       - name: Upload Package Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: language-packages
           path: dist-final/
