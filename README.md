@@ -393,6 +393,11 @@ python scripts/install_toolchains.py
 The end-to-end tests launch a real browser and require Chrome or Edge. Point them at a
 different site or browser with `XCELERATE_TEST_URL` and `XCELERATE_CHROME`.
 
+## Security
+
+Found a vulnerability? Please follow [SECURITY.md](SECURITY.md) - do not open a
+public issue. Supported versions, reporting channels, and scope are listed there.
+
 ## License
 
 Licensed under either of
