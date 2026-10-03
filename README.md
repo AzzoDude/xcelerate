@@ -43,7 +43,7 @@ the same engine.
 
 ```toml
 [dependencies]
-xcelerate = "1.0.7"
+xcelerate = "1.0.8"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -73,8 +73,8 @@ Published to Maven Central as `io.github.azzodude:xcelerate` (Kotlin) and
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("io.github.azzodude:xcelerate:1.0.7")        // Kotlin
-    implementation("io.github.azzodude:xcelerate-java:1.0.7")   // Java
+    implementation("io.github.azzodude:xcelerate:1.0.8")        // Kotlin
+    implementation("io.github.azzodude:xcelerate-java:1.0.8")   // Java
 }
 ```
 
