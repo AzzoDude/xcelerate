@@ -56,6 +56,26 @@ try await browser.close()
 Every call is `async throws`. Third-party plugins (WASM, sandboxed) are not
 executable yet - `loadPlugin` refuses rather than running unknown code.
 
+## Publishing
+
+SwiftPM has no central registry: a package is a tagged repository whose **root**
+contains `Package.swift`. This repo keeps the package in `bindings/swift`, so
+split it onto its own repository:
+
+```bash
+python scripts/publish_swift.py                    # git subtree split -> local branch
+python scripts/publish_swift.py --push --remote swift
+```
+
+Consumers then depend on that repository:
+
+```swift
+.package(url: "https://github.com/AzzoDude/xcelerate-swift", from: "1.0.8")
+```
+
+For binary distribution, publish an XCFramework and reference it with
+`.binaryTarget` so consumers do not need to build the Rust core.
+
 ## License
 
 Licensed under either of [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) or

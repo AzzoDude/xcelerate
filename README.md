@@ -52,7 +52,7 @@ Playwright, and Puppeteer scripts run against the same engine.
 
 ```toml
 [dependencies]
-xcelerate = "1.0.8"
+xcelerate = "1.0.9"
 tokio = { version = "1", features = ["full"] }
 ```
 

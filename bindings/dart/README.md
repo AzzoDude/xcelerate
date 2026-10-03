@@ -60,6 +60,16 @@ await browser.close();
 Third-party plugins (WASM, sandboxed) are not executable yet; `loadPlugin`
 refuses rather than running unknown code.
 
+## Publishing
+
+```bash
+python scripts/publish_dart.py          # regenerate + `dart pub publish --dry-run`
+python scripts/publish_dart.py --push   # `dart pub publish --force`
+```
+
+`dart pub publish` authenticates with a Google account (OAuth on first run) or a
+`PUB_TOKEN` in CI. The package ships per-platform native libraries under `src/`.
+
 ## License
 
 Licensed under either of [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) or

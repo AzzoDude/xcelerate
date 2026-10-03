@@ -53,6 +53,17 @@ browser.close
 The generated bindings are synchronous (UniFFI blocks on the async core).
 `load_plugin` refuses third-party plugins until the sandboxed runner ships.
 
+## Publishing
+
+```bash
+python scripts/publish_ruby.py          # regenerate + gem build (dry run)
+python scripts/publish_ruby.py --push   # gem build + gem push
+```
+
+`gem push` authenticates with `~/.gem/credentials` (run `gem signin` once) or the
+`GEM_HOST_API_KEY` environment variable. Ship a platform gem per target OS so the
+native library is included.
+
 ## License
 
 Licensed under either of [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) or

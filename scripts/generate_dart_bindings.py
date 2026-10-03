@@ -34,6 +34,7 @@ name: xcelerate
 description: Chrome DevTools Protocol client for Dart/Flutter, backed by the xcelerate Rust core.
 version: {version}
 homepage: https://github.com/AzzoDude/xcelerate
+repository: https://github.com/AzzoDude/xcelerate
 environment:
   sdk: ">=3.0.0 <4.0.0"
 dependencies:

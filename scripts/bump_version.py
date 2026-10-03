@@ -82,6 +82,16 @@ def main():
             r'^version = "[^"]+"',
             f'version = "{version}"',
         )
+    update_file(
+        os.path.join(ROOT, "bindings", "ruby", "xcelerate.gemspec"),
+        r'(spec\.version\s*=\s*)"[^"]+"',
+        rf'\g<1>"{version}"',
+    )
+    update_file(
+        os.path.join(ROOT, "bindings", "dart", "pubspec.yaml"),
+        r'^version: .+$',
+        f'version: {version}',
+    )
 
     print("=== Done ===")
     return 0
