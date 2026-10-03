@@ -1,0 +1,47 @@
+# Rust lint results in GitHub code scanning.
+#
+# Rust is not a CodeQL language, so this is the only way `cargo clippy` findings
+# appear in the Security -> Code scanning tab. It reports; it does not gate
+# (ci.yml already runs clippy with `-D warnings`).
+
+name: Clippy (SARIF)
+
+on:
+  push:
+    branches: [main, master]
+    paths: ['crates/**', 'Cargo.*', '.github/workflows/clippy-sarif.yml']
+  pull_request:
+    branches: [main, master]
+    paths: ['crates/**', 'Cargo.*']
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install SARIF converters
+        run: cargo install clippy-sarif sarif-fmt
+
+      - name: Run clippy
+        run: |
+          cargo clippy --workspace --all-targets --all-features \
+            --message-format=json | clippy-sarif | tee clippy.sarif | sarif-fmt
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: clippy.sarif
+          category: clippy

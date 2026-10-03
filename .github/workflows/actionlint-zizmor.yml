@@ -1,0 +1,46 @@
+# Lint and security-audit the GitHub Actions workflows themselves.
+
+name: Workflow Lint
+
+on:
+  push:
+    branches: [main, master]
+    paths: ['.github/workflows/**', '.github/dependabot.yml']
+  pull_request:
+    branches: [main, master]
+    paths: ['.github/workflows/**', '.github/dependabot.yml']
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+      - run: go install github.com/rhysd/actionlint/cmd/actionlint@latest
+      - name: Run actionlint
+        run: '"$(go env GOPATH)/bin/actionlint" -color || true'
+
+  zizmor:
+    name: zizmor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: pip install zizmor
+      - name: Run zizmor
+        run: zizmor --format sarif .github > zizmor.sarif || true
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: zizmor.sarif
+          category: zizmor

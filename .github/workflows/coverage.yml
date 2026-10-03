@@ -1,0 +1,38 @@
+# Test coverage for the Rust workspace, uploaded as an artifact (advisory).
+
+name: Coverage
+
+on:
+  push:
+    branches: [main, master]
+    paths: ['crates/**', 'Cargo.*']
+  pull_request:
+    branches: [main, master]
+    paths: ['crates/**', 'Cargo.*']
+
+permissions:
+  contents: read
+
+jobs:
+  coverage:
+    name: cargo-llvm-cov
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Run tests with coverage
+        run: cargo llvm-cov --workspace --lib --lcov --output-path lcov.info
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lcov
+          path: lcov.info

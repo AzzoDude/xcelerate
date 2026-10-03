@@ -1,0 +1,44 @@
+# OSV-Scanner: vulnerabilities across every lockfile in the repo
+# (Cargo, npm, pip/pyproject, Go, Gradle, NuGet, gems, pub).
+#
+# Runs the scanner directly so it does not depend on a versioned action ref.
+
+name: OSV Scanner
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    - cron: '40 4 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  osv-scan:
+    name: Scan dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - name: Install osv-scanner
+        run: go install github.com/google/osv-scanner/v2/cmd/osv-scanner@latest
+
+      - name: Scan
+        run: |
+          "$(go env GOPATH)/bin/osv-scanner" scan source -r . \
+            --format sarif --output osv.sarif || true
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: osv.sarif
+          category: osv

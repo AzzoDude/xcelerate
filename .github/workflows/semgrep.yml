@@ -1,0 +1,42 @@
+# Semgrep: multi-language SAST, including Rust community rules (CodeQL has no
+# Rust support). Generated bindings are excluded to avoid noise.
+
+name: Semgrep
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    - cron: '0 7 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  semgrep:
+    name: Semgrep scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - run: pip install semgrep
+
+      - name: Scan
+        run: |
+          semgrep scan --config auto \
+            --exclude bindings --exclude docs --exclude tools \
+            --sarif --output semgrep.sarif --quiet || true
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep

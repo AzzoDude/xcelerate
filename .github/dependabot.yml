@@ -1,0 +1,43 @@
+# Dependabot: version updates and security advisories for every ecosystem here.
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates
+
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 10
+    groups:
+      cargo:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule: { interval: weekly }
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: "/bindings/javascript"
+    schedule: { interval: weekly }
+
+  - package-ecosystem: pip
+    directory: "/bindings/python"
+    schedule: { interval: weekly }
+
+  - package-ecosystem: gomod
+    directory: "/bindings/go"
+    schedule: { interval: weekly }
+
+  - package-ecosystem: gradle
+    directory: "/bindings/java"
+    schedule: { interval: weekly }
+
+  - package-ecosystem: gradle
+    directory: "/bindings/kotlin"
+    schedule: { interval: weekly }
+
+  - package-ecosystem: nuget
+    directory: "/bindings/csharp"
+    schedule: { interval: weekly }

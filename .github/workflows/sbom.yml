@@ -1,0 +1,27 @@
+# Software Bill of Materials (CycloneDX) via Syft, uploaded as a build artifact.
+
+name: SBOM
+
+on:
+  push:
+    branches: [main, master]
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: xcelerate-sbom.cdx.json
+          artifact-name: xcelerate-sbom

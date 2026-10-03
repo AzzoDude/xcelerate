@@ -1,0 +1,50 @@
+# cargo-deny policy for xcelerate.
+#
+# Run locally with:  cargo deny check
+#
+# Sections: advisories (RustSec CVEs), licenses, bans, sources.
+
+[graph]
+# Analyse every workspace target.
+all-features = true
+
+[advisories]
+version = 2
+# Deny any advisory that is not explicitly ignored.
+ignore = []
+
+[licenses]
+version = 2
+# Broad, permissive set; keeps the dual MIT OR Apache-2.0 project unencumbered.
+allow = [
+    "MIT",
+    "MIT-0",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "Zlib",
+    "MPL-2.0",
+    "CC0-1.0",
+    "Unlicense",
+    "0BSD",
+    "BSL-1.0",
+    "CDLA-Permissive-2.0",
+]
+confidence-threshold = 0.8
+# Don't fail just because an allow-listed license is not actually used.
+unused-allowed-license = "allow"
+
+[bans]
+# Duplicate versions are common and usually fine; warn rather than fail.
+multiple-versions = "warn"
+wildcards = "allow"
+deny = []
+
+[sources]
+unknown-registry = "warn"
+unknown-git = "warn"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

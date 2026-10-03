@@ -1,0 +1,75 @@
+# Supply-chain checks for the Rust workspace.
+#
+#   * deny          - advisories + licenses + bans + sources (deny.toml). Gate.
+#   * audit         - RustSec advisories (updates a tracking issue). Gate.
+#   * semver-checks - detect API breaks against the published crate. Advisory.
+#   * machete       - unused dependencies. Advisory.
+#   * geiger        - count unsafe code (we allow `unsafe` for syscalls). Advisory.
+
+name: Supply Chain
+
+on:
+  push:
+    branches: [main, master]
+    paths: ['crates/**', 'Cargo.*', 'deny.toml', '.github/workflows/supply-chain.yml']
+  pull_request:
+    branches: [main, master]
+    paths: ['crates/**', 'Cargo.*', 'deny.toml']
+  schedule:
+    - cron: '15 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  deny:
+    name: cargo-deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check advisories licenses bans sources
+          arguments: --all-features
+
+  audit:
+    name: cargo-audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  semver-checks:
+    name: cargo-semver-checks
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: obi1kenobi/cargo-semver-checks-action@v2
+        with:
+          package: xcelerate
+          feature-group: all-features
+
+  machete:
+    name: cargo-machete
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@cargo-machete
+      - run: cargo machete
+
+  geiger:
+    name: cargo-geiger (unsafe)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install cargo-geiger
+      - run: cargo geiger --all-features --output-format Markdown

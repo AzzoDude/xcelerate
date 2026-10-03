@@ -1,0 +1,48 @@
+# Static checks for the hand-written Python tooling (scripts/ and
+# adapters/runtime.py). Generated bindings are not scanned.
+
+name: Python Quality
+
+on:
+  push:
+    branches: [main, master]
+    paths: ['scripts/**', 'adapters/**', '.github/workflows/python-quality.yml']
+  pull_request:
+    branches: [main, master]
+    paths: ['scripts/**', 'adapters/**']
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  lint:
+    name: ruff + bandit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - run: pip install ruff bandit
+
+      - name: ruff (lint)
+        continue-on-error: true
+        run: ruff check scripts adapters
+
+      - name: ruff (format)
+        continue-on-error: true
+        run: ruff format --check scripts adapters
+
+      - name: bandit (SARIF)
+        continue-on-error: true
+        run: bandit -r scripts adapters -f sarif -o bandit.sarif -ll
+
+      - name: Upload SARIF
+        if: ${{ hashFiles('bandit.sarif') != '' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: bandit.sarif
+          category: bandit
