@@ -1,0 +1,11 @@
+# Configuration for uniffi-bindgen-cs.
+#
+# The C# generator emits an `IDisposable.Dispose()` for every exported object.
+# The core `Element` type also exposes a `dispose()` method (it releases the
+# remote object handle), which collides with that generated member
+# (`CS0111: Type 'Element' already defines a member called 'Dispose'`).
+#
+# Rename only the C# surface name so the Rust, Python and JavaScript APIs keep
+# their existing `dispose` spelling.
+[bindings.csharp.rename.xcelerate]
+"Element.dispose" = "release"

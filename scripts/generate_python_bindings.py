@@ -77,12 +77,12 @@ def main():
         with open(generated_py, "r", encoding="utf-8") as handle:
             content = handle.read()
         pattern = (
-            r"def __init__\(self, \*, headless: \"bool\", stealth: \"bool\", detached: \"bool\", "
-            r"executable_path: \"typing\.Optional\[str\]\"\):"
+            r"def __init__\(self, \*, headless:\s*[\"']?bool[\"']?, stealth:\s*[\"']?bool[\"']?, "
+            r"detached:\s*[\"']?bool[\"']?, executable_path:\s*[\"']?typing\.Optional\[str\][\"']?\):"
         )
         replacement = (
-            r'def __init__(self, *, headless: "bool" = True, stealth: "bool" = True, '
-            r'detached: "bool" = True, executable_path: "typing.Optional[str]" = None):'
+            r"def __init__(self, *, headless: bool = True, stealth: bool = True, "
+            r"detached: bool = True, executable_path: typing.Optional[str] = None):"
         )
         content = re.sub(pattern, replacement, content)
         with open(os.path.join(package_dir, "xcelerate.py"), "w", encoding="utf-8") as handle:

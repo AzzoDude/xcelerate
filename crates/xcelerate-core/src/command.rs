@@ -79,4 +79,5 @@ register!(browser_protocol; plain
 register!(js_protocol; lt
     runtime::EvaluateParams,
     runtime::CallFunctionOnParams,
+    runtime::GetPropertiesParams,
 );

@@ -1,4 +1,4 @@
-__version__ = "0.1.6"
+__version__ = "1.0.7"
 from .xcelerate import Browser, BrowserConfig, Page, Element, XcelerateError
 
 # API-style adapters (Selenium / Playwright / Puppeteer profiles).

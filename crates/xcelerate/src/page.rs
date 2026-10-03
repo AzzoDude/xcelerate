@@ -123,7 +123,13 @@ async fn run_interception(
         .await;
 
     let mut receiver = client.subscribe();
-    while let Ok(value) = receiver.recv().await {
+    loop {
+        let value = match receiver.recv().await {
+            Ok(value) => value,
+            // A slow consumer only misses events; keep pumping.
+            Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
+            Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+        };
         if value.get("sessionId").and_then(|s| s.as_str()) != Some(session_id.as_str()) {
             continue;
         }
@@ -228,7 +234,11 @@ async fn run_interception(
 impl Page {
     /// Finds an element matching the CSS selector.
     pub async fn find_element(self: Arc<Self>, selector: String) -> XcelerateResult<Arc<Element>> {
-        let js = format!("document.querySelector('{}')", selector);
+        // JSON-escape the selector so quotes/backslashes cannot break out of the
+        // JS string literal (and to avoid injection into the expression).
+        let quoted = serde_json::to_string(&selector)
+            .map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
+        let js = format!("document.querySelector({quoted})");
 
         // Evaluate returns complex JSON, we handle it internally
         self.client
@@ -753,25 +763,32 @@ impl Page {
     }
 
     /// Returns every element matching the CSS selector.
+    ///
+    /// Uses two round trips (fetch the node list, then read its properties)
+    /// instead of one `evaluate` per match.
     pub async fn query_selector_all(
         self: Arc<Self>,
         selector: String,
     ) -> XcelerateResult<Vec<Arc<Element>>> {
         let quoted = serde_json::to_string(&selector)
             .map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
-        let count = self
-            .evaluate_json(format!("document.querySelectorAll({quoted}).length"))
+        let res = self
+            .client
+            .execute_with_session(
+                Some(&self.session_id),
+                js_protocol::runtime::EvaluateParams {
+                    expression: format!("Array.from(document.querySelectorAll({quoted}))").into(),
+                    return_by_value: Some(false),
+                    ..Default::default()
+                },
+            )
             .await?;
-        let total: u64 = count.trim().parse().unwrap_or(0);
-        let mut elements = Vec::with_capacity(total as usize);
-        for index in 0..total {
-            let handle = self
-                .clone()
-                .evaluate_handle(format!("document.querySelectorAll({quoted})[{index}]"))
-                .await?;
-            elements.push(handle);
+        match res.result.object_id {
+            Some(object_id) => {
+                collect_elements(&self.client, &self.session_id, &self, object_id).await
+            }
+            None => Ok(Vec::new()),
         }
-        Ok(elements)
     }
 
     /// Returns the current document URL.
@@ -1250,7 +1267,7 @@ impl Page {
                             .to_string());
                     }
                 }
-                Ok(Err(_)) => return Err(XcelerateError::InternalError),
+                Ok(Err(_)) => continue,
                 Err(_) => {
                     return Err(XcelerateError::NotFound(format!(
                         "Timeout waiting for event: {event_name}"
@@ -1999,4 +2016,44 @@ fn collect_frames(node: &serde_json::Value, out: &mut Vec<serde_json::Value>) {
             collect_frames(child, out);
         }
     }
+}
+
+/// Reads the indexed elements of a JS array remote object as [`Element`] handles.
+///
+/// Shared by `Page::query_selector_all` and `Element::query_selector_all` so both
+/// resolve an entire node list with a single `Runtime.getProperties` call.
+pub(crate) async fn collect_elements(
+    client: &CdpClient,
+    session_id: &str,
+    page: &Arc<Page>,
+    object_id: js_protocol::runtime::RemoteObjectId<'_>,
+) -> XcelerateResult<Vec<Arc<Element>>> {
+    let properties = client
+        .execute_with_session(
+            Some(session_id),
+            js_protocol::runtime::GetPropertiesParams {
+                object_id,
+                own_properties: Some(true),
+                ..Default::default()
+            },
+        )
+        .await?;
+
+    // Array indices can be returned in any order; sort so the result matches DOM order.
+    let mut indexed: Vec<(usize, Arc<Element>)> = Vec::new();
+    for descriptor in properties.result {
+        if let Ok(index) = descriptor.name.parse::<usize>()
+            && let Some(object_id) = descriptor.value.and_then(|value| value.object_id)
+        {
+            indexed.push((
+                index,
+                Arc::new(Element {
+                    page: Arc::clone(page),
+                    object_id: object_id.into_owned(),
+                }),
+            ));
+        }
+    }
+    indexed.sort_by_key(|(index, _)| *index);
+    Ok(indexed.into_iter().map(|(_, element)| element).collect())
 }

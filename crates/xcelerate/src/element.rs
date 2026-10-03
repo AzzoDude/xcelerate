@@ -404,31 +404,43 @@ impl Element {
     }
 
     /// Returns every descendant matching `selector`.
+    ///
+    /// Resolves the whole node list with a single `Runtime.getProperties` call
+    /// rather than one `evaluate` per match.
     pub async fn query_selector_all(
         self: Arc<Self>,
         selector: String,
     ) -> XcelerateResult<Vec<Arc<Element>>> {
         let quoted = serde_json::to_string(&selector)
             .map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
-        let count = self
-            .clone()
-            .call_json(
-                format!("function(){{return this.querySelectorAll({quoted}).length;}}"),
-                "[]".to_string(),
+        let res = self
+            .page
+            .client
+            .execute_with_session(
+                Some(&self.page.session_id),
+                js_protocol::runtime::CallFunctionOnParams {
+                    function_declaration: format!(
+                        "function(){{return Array.from(this.querySelectorAll({quoted}));}}"
+                    )
+                    .into(),
+                    object_id: Some(self.object_id.clone().into()),
+                    return_by_value: Some(false),
+                    ..Default::default()
+                },
             )
             .await?;
-        let total: u64 = count.trim().parse().unwrap_or(0);
-        let mut elements = Vec::with_capacity(total as usize);
-        for index in 0..total {
-            elements.push(
-                self.clone()
-                    .evaluate_handle(format!(
-                        "function(){{return this.querySelectorAll({quoted})[{index}];}}"
-                    ))
-                    .await?,
-            );
+        match res.result.object_id {
+            Some(object_id) => {
+                crate::page::collect_elements(
+                    &self.page.client,
+                    &self.page.session_id,
+                    &self.page,
+                    object_id,
+                )
+                .await
+            }
+            None => Ok(Vec::new()),
         }
-        Ok(elements)
     }
 
     /// Captures a PNG screenshot cropped to this element.

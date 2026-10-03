@@ -5,7 +5,7 @@ Console.WriteLine("--- Xcelerate C# UniFFI Test App ---");
 try
 {
     Console.WriteLine("[TEST 1] Launching Browser...");
-    var config = new BrowserConfig(headless: false, stealth: true, detached: false, executablePath: null);
+    var config = new BrowserConfig(Headless: false, Stealth: true, Detached: false, ExecutablePath: null);
     using var browser = await Browser.Launch(config);
     
     Console.WriteLine("[TEST 2] Creating New Page and Navigating...");

@@ -6,7 +6,7 @@
     "node": ">=12"
   },
   "dependencies": {
-    "koffi": "^2.15.6"
+    "koffi": "^3.0.2"
   },
   "exports": "./index.js",
   "description": "A high-performance, lightweight Chrome DevTools Protocol (CDP) client for Node.js",

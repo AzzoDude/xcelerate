@@ -24,7 +24,7 @@ impl CdpHandler {
         ws: WebSocketStream<MaybeTlsStream<TcpStream>>,
         cmd_rx: mpsc::UnboundedReceiver<(u32, Value, oneshot::Sender<Result<Value>>)>,
     ) -> (Self, broadcast::Receiver<Value>) {
-        let (event_tx, event_rx) = broadcast::channel(100);
+        let (event_tx, event_rx) = broadcast::channel(1024);
         let handler = Self {
             ws,
             cmd_rx,

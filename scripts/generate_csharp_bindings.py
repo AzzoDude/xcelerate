@@ -10,6 +10,40 @@ import shutil
 from common import ROOT, find_tool, log, run_checked
 
 
+def _with_browser_config_defaults(content):
+    """Add default values to the generated ``BrowserConfig`` record fields.
+
+    ``uniffi-bindgen-cs`` emits required positional fields, which forces every
+    caller to pass all four values. Supplying defaults lets callers write
+    ``new BrowserConfig()``. The exact formatting (doc comments, field casing,
+    trailing commas) changes between bindgen releases, so this walks the record
+    body line by line instead of matching a fixed multi-line block.
+    """
+    lines = content.split("\n")
+    inside = False
+    for index, line in enumerate(lines):
+        if "record BrowserConfig (" in line:
+            inside = True
+            continue
+        if not inside:
+            continue
+        stripped = line.strip()
+        if stripped.startswith(")"):
+            break
+        if "=" in stripped:
+            continue
+        if stripped.startswith("bool "):
+            default = "true"
+        elif stripped.startswith("string? "):
+            default = "null"
+        else:
+            continue
+        end = "," if stripped.endswith(",") else ""
+        core = line.rstrip().rstrip(",").rstrip()
+        lines[index] = f"{core} = {default}{end}"
+    return "\n".join(lines)
+
+
 def main():
     dll_name = "xcelerate.dll"
     built_dll = os.path.join(ROOT, "target", "release", dll_name)
@@ -24,7 +58,11 @@ def main():
     print("\n--- 2. Generating UniFFI C# bindings ---")
     tool_cmd = find_tool("uniffi-bindgen-cs")
     log("DEBUG", f"using bindgen: {tool_cmd}")
-    run_checked([tool_cmd, "--library", "--out-dir", csharp_dir, built_dll], cwd=ROOT)
+    config = os.path.join(ROOT, "scripts", "uniffi-csharp.toml")
+    run_checked(
+        [tool_cmd, "-c", config, "--library", "--out-dir", csharp_dir, built_dll],
+        cwd=ROOT,
+    )
 
     print("\n--- 3. Fixing visibility (internal -> public) ---")
     # UniFFI's C# generator defaults to internal; make it public for consumers.
@@ -45,16 +83,8 @@ def main():
     for keyword in ("class", "struct", "interface", "enum"):
         content = re.sub(rf"^{keyword} ", f"public {keyword} ", content, flags=re.MULTILINE)
 
-    # Make BrowserConfig arguments optional.
-    pattern = (
-        r"public record BrowserConfig \(\n    bool @headless, \n    bool @stealth, \n"
-        r"    bool @detached, \n    string\? @executablePath\n\)"
-    )
-    replacement = (
-        r"public record BrowserConfig (\n    bool @headless = true, \n    bool @stealth = true, \n"
-        r"    bool @detached = true, \n    string? @executablePath = null\n)"
-    )
-    content = re.sub(pattern, replacement, content)
+    # Make BrowserConfig arguments optional so `new BrowserConfig()` works.
+    content = _with_browser_config_defaults(content)
 
     with open(generated_cs, "w", encoding="utf-8") as handle:
         handle.write(content)

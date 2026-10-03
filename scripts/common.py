@@ -109,7 +109,12 @@ def safe_name(name):
 
 
 def find_tool(name, extra_dirs=None):
-    """Locate a tool on PATH, falling back to common install directories."""
+    """Locate a tool on PATH, falling back to common install directories.
+
+    Only exact executable names are accepted. A substring match would resolve
+    ``uniffi-bindgen`` to ``uniffi-bindgen-cs`` (or ``-node-js``), which would
+    silently invoke the wrong generator.
+    """
     found = shutil.which(name)
     if found:
         return found
@@ -122,7 +127,8 @@ def find_tool(name, extra_dirs=None):
     for directory in dirs:
         if directory and os.path.isdir(directory):
             for entry in os.listdir(directory):
-                if name.lower() in entry.lower() and entry.endswith(".exe"):
+                stem = entry[:-4] if entry.lower().endswith(".exe") else entry
+                if stem.lower() == name.lower():
                     return os.path.join(directory, entry)
     return name
 

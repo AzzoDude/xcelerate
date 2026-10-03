@@ -352,7 +352,7 @@ impl Browser {
                             .to_string());
                     }
                 }
-                Ok(Err(_)) => return Err(XcelerateError::InternalError),
+                Ok(Err(_)) => continue,
                 Err(_) => {
                     return Err(XcelerateError::NotFound(format!(
                         "Timeout waiting for event: {event_name}"

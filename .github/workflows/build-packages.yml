@@ -70,15 +70,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cargo/bin
-          key: ${{ runner.os }}-uniffi-tools-v1
+          key: ${{ runner.os }}-uniffi-tools-v2
 
       - name: Install & Verify Generation Tools
         if: steps.cache-tools.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           python -m pip install --upgrade pip build wheel
-          cargo install uniffi-bindgen-cs --git https://github.com/NordSecurity/uniffi-bindgen-cs --tag v0.10.0+v0.29.4 --force
-          cargo install uniffi-bindgen-node-js --force
+          cargo install uniffi-bindgen-cs --git https://github.com/NordSecurity/uniffi-bindgen-cs --tag v0.11.0+v0.31.0 --force
+          cargo install uniffi-bindgen-node-js --version 0.0.16 --force
           $cargoBin = "$env:USERPROFILE\.cargo\bin"
           $cargoBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           $env:PATH = "$cargoBin;$env:PATH"
