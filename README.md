@@ -5,133 +5,187 @@
 [![Documentation](https://img.shields.io/badge/docs.rs-xcelerate-blue)](https://docs.rs/xcelerate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Xcelerate is a high-performance, lightweight Chrome DevTools Protocol (CDP) client designed for Rust, .NET, Python, and JavaScript (Node.js). It provides a modular architecture that combines a fast Rust core with idiomatic wrappers for every major language.
+Xcelerate is a high-performance, lightweight Chrome DevTools Protocol (CDP) client
+with idiomatic bindings for Rust, .NET, Python, and JavaScript (Node.js). It pairs a
+fast Rust core with an async-first API and a data-driven adapter layer that lets
+existing Selenium, Playwright, and Puppeteer scripts run against the same engine.
 
-## Key Features
+## Features
 
-- **Automated Process Management**: Seamlessly discovers and initializes Chrome or Edge binaries on Windows.
-- **Advanced Stealth Integration**: Built-in binary patching and runtime JavaScript payloads to neutralize automation detection.
-- **Async Implementation**: Fully optimized for `tokio` in Rust and `Task`-based async/await in C#.
-- **Fluent API**: Designed for readability with chained method patterns for common interactions like clicking, typing, and hovering.
-- **Headless=New Support**: Utilizes the modern Chrome headless engine for superior compatibility with state-of-the-art web applications.
+- **Automated process management** - discovers and launches Chrome or Edge, and
+  manages the lifecycle of the browser process.
+- **Stealth by default** - optional binary patching and a runtime JavaScript payload
+  that reduces common automation fingerprints.
+- **Async-first** - built on `tokio` in Rust and `async`/`await` in every binding.
+- **API-style adapters** - expose Selenium, Playwright, and Puppeteer method names on
+  top of the native engine, generated from declarative profiles.
+- **Multi-language bindings** - one core, generated bindings for Rust, Python, Node.js,
+  and .NET via `uniffi`.
 
 ## Installation
 
 ### Rust
-Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-xcelerate = "0.1.3"
-tokio = { version = "1.0", features = ["full"] }
-```
-
-### .NET / C#
-```powershell
-dotnet add package Xcelerate
+xcelerate = "1.0.7"
+tokio = { version = "1", features = ["full"] }
 ```
 
 ### Python
+
 ```bash
 pip install xcelerate
 ```
 
 ### JavaScript (Node.js)
+
 ```bash
 npm install xcelerate
 ```
 
-## Usage Examples
+### .NET / C#
 
-### Rust Implementation
+```powershell
+dotnet add package Xcelerate
+```
+
+## Quick start (Rust)
+
 ```rust
-use xcelerate::{Browser, BrowserConfig, XcelerateResult};
+use xcelerate::{Browser, BrowserConfig};
 
 #[tokio::main]
-async fn main() -> XcelerateResult<()> {
-    let (browser, handler) = Browser::launch(
-        BrowserConfig::builder().headless(true).stealth(true).build()?
-    ).await?;
-    tokio::spawn(handler.run());
+async fn main() -> Result<(), xcelerate::XcelerateError> {
+    let browser = Browser::launch(BrowserConfig::default()).await?;
+    let page = browser.new_page("https://example.com".to_string()).await?;
 
-    let page = browser.new_page("https://www.example.com").await?;
-    let title = page.title().await?;
-    println!("Title: {}", title);
+    println!("Title: {}", page.title().await?);
 
+    let heading = page.query_selector("h1".to_string()).await?;
+    println!("Heading: {}", heading.text().await?);
+
+    browser.close().await?;
     Ok(())
 }
 ```
 
-### Python Implementation
-Xcelerate for Python offers full `asyncio` support with a very lightweight API.
+`BrowserConfig` defaults to headless mode with stealth enabled. Disable either when
+you do not need it:
+
+```rust
+use xcelerate::BrowserConfig;
+
+let config = BrowserConfig {
+    headless: false,
+    stealth: false,
+    detached: false,
+    executable_path: None, // auto-discover Chrome/Edge
+};
+```
+
+## API-style adapters
+
+The adapter layer exposes familiar Selenium, Playwright, and Puppeteer method names
+over the native engine, so existing scripts can be ported with minimal changes. Each
+adapter is generated from a declarative profile and is fully typed in Rust and Python.
+
+Rust:
+
+```rust
+use xcelerate::adapters::playwright;
+
+let browser = playwright::launch(None).await?;
+let page = browser.new_page("https://example.com".to_string()).await?;
+
+let paragraphs = page.query_selector_all("p".to_string()).await?;
+println!("{} paragraph(s)", paragraphs.len());
+
+browser.close().await?;
+```
+
+Python:
+
+```python
+from xcelerate import use
+
+pw = use("playwright")
+browser = await pw.launch()
+page = await browser.new_page()
+await page.goto("https://example.com")
+print(await page.title())
+await browser.close()
+```
+
+The same engine is available through `use("selenium")` and `use("puppeteer")`. See
+[`adapters/README.md`](adapters/README.md) for the profile format and how to extend
+an adapter.
+
+## Native bindings
+
+The generated bindings expose the same asynchronous API in each language.
+
+Python:
 
 ```python
 import asyncio
 from xcelerate import Browser, BrowserConfig
 
 async def main():
-    # Intelligent defaults: headless=True, stealth=True, detached=True
     browser = await Browser.launch(BrowserConfig())
-    
-    page = await browser.new_page("https://www.example.com")
-    print(f"Title: {await page.title()}")
-    
+    page = await browser.new_page("https://example.com")
+    print(await page.title())
     await browser.close()
 
-if __name__ == "__main__":
-    asyncio.run(main())
+asyncio.run(main())
 ```
 
-### JavaScript Implementation (Node.js)
-Xcelerate for Node.js provides a modern `async/await` API that feels natural for web developers.
+JavaScript (Node.js):
 
 ```javascript
-const { Browser, BrowserConfig } = require('xcelerate');
+const { Browser, BrowserConfig } = require("xcelerate");
 
 async function main() {
     const browser = await Browser.launch(new BrowserConfig());
-    const page = await browser.newPage("https://pixelscan.net/");
-    console.log("Title:", await page.title());
+    const page = await browser.newPage("https://example.com");
+    console.log(await page.title());
     await browser.close();
 }
 
 main();
 ```
 
-### C# Implementation
-Xcelerate offers idiomatic .NET support with standard `IDisposable` patterns for resource management.
+## Workspace layout
 
-```csharp
-using Xcelerate;
-
-// Launch browser with modern headless mode and stealth patches
-// (Optional: headless=true, stealth=true, detached=true)
-using var browser = await Browser.Launch(new BrowserConfig());
-
-// Create a new page and perform navigation
-using var page = await browser.NewPageAsync("https://pixelscan.net/");
-
-// Wait for a selector and extract results
-using var element = await page.WaitForSelectorAsync("body");
-string title = await page.GetTitleAsync();
-Console.WriteLine($"Page Title: {title}");
-
-// Capture full-page documentation of results
-byte[] screenshot = await page.ScreenshotFullAsync();
-File.WriteAllBytes("result.png", screenshot);
+```
+xcelerate/
+  crates/
+    xcelerate-core/     # WebSocket transport and typed CDP command layer
+    xcelerate-stealth/  # binary patching, detached processes, stealth payload
+    xcelerate/          # high-level facade: Browser, Page, Element, adapters
+    xcelerate-bindgen/  # uniffi bindgen helper binary
+  adapters/             # adapter profiles, runtime, and generator inputs
+  bindings/             # generated Python, JavaScript, and C# packages
+  scripts/              # code generation, harvesting, and release tooling
 ```
 
-## Advanced Capabilities
+## Development
 
-### Stealth and Anti-Detection
-Xcelerate implements a defense-in-depth strategy to bypass bot detection services:
-- **Binary Patching**: Actively replaces `cdc_` signatures in the browser binary.
-- **Runtime Masking**: Injects a hardened JavaScript payload to hide `navigator.webdriver`, mock `window.chrome`, and protect the Permissions API.
-- **Detached Logic**: Supports spawning browser instances that persist independently of the parent application.
+```bash
+# Generate the API-style adapters (Python and Rust) from the profiles.
+python scripts/generate_adapters.py
 
-## Development and Contributions
+# Validate the profiles and print coverage.
+python scripts/harvest_adapters.py --check
 
-Xcelerate is actively maintained. To contribute or modify the cross-language bindings, refer to the automation scripts located in the `scripts/` directory.
+# Build, lint, and test.
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test -p xcelerate --test adapters_e2e -- --nocapture
+```
+
+The end-to-end tests launch a real browser and require Chrome or Edge. Point them at a
+different site or browser with `XCELERATE_TEST_URL` and `XCELERATE_CHROME`.
 
 ## License
+
 Distributed under the MIT License.

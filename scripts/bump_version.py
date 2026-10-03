@@ -49,6 +49,18 @@ def main():
         r'^version = "[^"]+"',
         f'version = "{version}"',
     )
+    # Internal crate pins in [workspace.dependencies].
+    for internal in ("xcelerate-core", "xcelerate-stealth"):
+        update_file(
+            os.path.join(ROOT, "Cargo.toml"),
+            rf'({internal} = \{{ path = "crates/{internal}", version = )"[^"]+"',
+            rf'\g<1>"{version}"',
+        )
+    update_file(
+        os.path.join(ROOT, "README.md"),
+        r'xcelerate = "[^"]+"',
+        f'xcelerate = "{version}"',
+    )
     update_file(
         os.path.join(ROOT, "bindings", "javascript", "package.json"),
         r'"version": "[^"]+"',

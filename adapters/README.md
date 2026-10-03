@@ -33,17 +33,17 @@ await driver.quit()
 
 ```
 adapters/
-├── profiles/            # DATA  - one JSON per target library
-│   ├── playwright.json
-│   ├── selenium.json
-│   └── puppeteer.json
-├── runtime.py           # CODE  - the ops, implemented once
-└── discovered/          # OUTPUT - harvester snapshots (optional)
+|-- profiles/            # DATA  - one JSON per target library
+|   |-- playwright.json
+|   |-- selenium.json
+|   |-- puppeteer.json
+|-- runtime.py           # CODE  - the ops, implemented once
+|-- discovered/          # OUTPUT - harvester snapshots (optional)
 
 scripts/
-├── generate_adapters.py       # profiles -> Python wrappers + Rust modules + support
-├── backfill_impls.py          # populate impls, inject classes, --prune out-of-scope members
-└── harvest_adapters.py        # upstream libs -> coverage report / snapshots / --check
+|-- generate_adapters.py       # profiles -> Python wrappers + Rust modules + support
+|-- backfill_impls.py          # populate impls, inject classes, --prune out-of-scope members
+|-- harvest_adapters.py        # upstream libs -> coverage report / snapshots / --check
 ```
 
 One generator consumes the profiles and emits both target languages:
@@ -58,7 +58,7 @@ One generator consumes the profiles and emits both target languages:
 
 * **`profiles/*.json`** declare, per target library, the classes and method
   names and which runtime op each maps to. This is the only thing you edit to
-  add coverage — no codegen code changes.
+  add coverage - no codegen code changes.
 * **`runtime.py`** is the single implementation of every op. It talks to the
   xcelerate core and absorbs library quirks (Selenium `(By, value)` selectors,
   Playwright `full_page`, Puppeteer camelCase). It is copied into the generated
@@ -94,11 +94,11 @@ One generator consumes the profiles and emits both target languages:
    ```json
    { "name": "goto", "op": "page_goto", "params": ["url"], "returns": null }
    ```
-   * `name` — the target library's method name (use `"as"` if it is not a valid
-     Python identifier, e.g. Puppeteer's `$` → `query_selector`).
-   * `op` — a function in `runtime.py`.
-   * `params` — `"arg"` or `{ "name": "arg", "default": "None" }`.
-   * `returns` — a profile class name to wrap the result in, else `null`.
+   * `name` - the target library's method name (use `"as"` if it is not a valid
+     Python identifier, e.g. Puppeteer's `$` -> `query_selector`).
+   * `op` - a function in `runtime.py`.
+   * `params` - `"arg"` or `{ "name": "arg", "default": "None" }`.
+   * `returns` - a profile class name to wrap the result in, else `null`.
 
 3. Regenerate:
 
@@ -123,12 +123,12 @@ One generator consumes the profiles and emits both target languages:
 These adapters match **method names and call shapes**, not the full semantics of
 each library. Known gaps:
 
-* **Selectors** — CSS only. Selenium's XPath raises `NotImplementedError`.
-* **Sync APIs** — xcelerate is async end-to-end, so all adapters are `async`.
+* **Selectors** - CSS only. Selenium's XPath raises `NotImplementedError`.
+* **Sync APIs** - xcelerate is async end-to-end, so all adapters are `async`.
   Selenium users should `await` (there is no blocking shim yet).
-* **Waits/timeouts** — xcelerate applies its own 30s timeout; a `timeout=`
+* **Waits/timeouts** - xcelerate applies its own 30s timeout; a `timeout=`
   argument is accepted for shape but not yet honoured.
-* **Missing primitives** — a few upstream APIs have no faithful equivalent
+* **Missing primitives** - a few upstream APIs have no faithful equivalent
   (callback-style `expose_function`/`on(handler)`, Chrome-specific PWA/extension
   APIs, Playwright-only `video`/`pick_locator`/`clock`). These members are
   **removed** from the profiles rather than faked, so the adapter never silently

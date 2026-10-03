@@ -7,9 +7,9 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>Xcelerate.Net</AssemblyName>
     <PackageId>Xcelerate</PackageId>
-    <Version>0.1.6</Version>
+    <Version>1.0.7</Version>
     <Authors>AzzoDude</Authors>
-    <Copyright>Copyright © 2026 AzzoDude</Copyright>
+    <Copyright>Copyright (c) 2026 AzzoDude</Copyright>
     <Description>C# wrapper for the xcelerate Rust CDP library.</Description>
     <DefaultItemExcludes>$(DefaultItemExcludes);Xcelerate.TestApp\**</DefaultItemExcludes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

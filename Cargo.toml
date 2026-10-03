@@ -8,7 +8,7 @@ members = [
 resolver = "3"
 
 [workspace.package]
-version = "0.1.6"
+version = "1.0.7"
 edition = "2024"
 rust-version = "1.99.0"
 authors = ["AzzoDude"]
@@ -30,8 +30,8 @@ doc_lazy_continuation = "allow"
 # the latest release from a single place.
 [workspace.dependencies]
 # Internal crates.
-xcelerate-core = { path = "crates/xcelerate-core", version = "0.1.6" }
-xcelerate-stealth = { path = "crates/xcelerate-stealth", version = "0.1.6" }
+xcelerate-core = { path = "crates/xcelerate-core", version = "1.0.7" }
+xcelerate-stealth = { path = "crates/xcelerate-stealth", version = "1.0.7" }
 
 # Third-party crates.
 js-protocol = "0.1.6"
