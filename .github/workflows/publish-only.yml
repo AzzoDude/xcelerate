@@ -54,25 +54,48 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Publish to npm
+        # Authenticates with npm Trusted Publishing (OIDC) — no long-lived
+        # NPM_TOKEN required. Requires a "Trusted Publisher" entry for the
+        # `xcelerate` package on npmjs.com pointing at this repo and the
+        # `publish-only.yml` workflow filename, with "npm publish" allowed.
+        # See https://docs.npmjs.com/trusted-publishers
+        #
+        # Best-effort: if auth is missing or this package can't be published,
+        # emit a warning and continue so the other registries still run.
         run: |
-          cd dist-packages
+          if ! cd dist-packages; then
+            echo "::warning::dist-packages directory not found; skipping npm publish."
+            exit 0
+          fi
           for f in *.tgz; do
-            if [ -f "$f" ]; then
-              echo "Extracting metadata from $f..."
-              PACKAGE_JSON=$(tar -xOzf "$f" package/package.json)
-              PACKAGE_NAME=$(echo "$PACKAGE_JSON" | node -p "JSON.parse(fs.readFileSync(0)).name")
-              PACKAGE_VERSION=$(echo "$PACKAGE_JSON" | node -p "JSON.parse(fs.readFileSync(0)).version")
-              
-              if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version >/dev/null 2>&1; then
-                echo "Version $PACKAGE_VERSION of $PACKAGE_NAME already exists. Skipping."
-              else
-                echo "Publishing $f to npm..."
-                npm publish "$f" --access public
-              fi
+            [ -f "$f" ] || continue
+
+            echo "Extracting metadata from $f..."
+            if ! PACKAGE_JSON=$(tar -xOzf "$f" package/package.json); then
+              echo "::warning::Could not read package.json from $f; skipping."
+              continue
+            fi
+            if ! PACKAGE_NAME=$(echo "$PACKAGE_JSON" | node -p "JSON.parse(fs.readFileSync(0)).name"); then
+              echo "::warning::Could not parse package name from $f; skipping."
+              continue
+            fi
+            if ! PACKAGE_VERSION=$(echo "$PACKAGE_JSON" | node -p "JSON.parse(fs.readFileSync(0)).version"); then
+              echo "::warning::Could not parse package version from $f; skipping."
+              continue
+            fi
+
+            if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version >/dev/null 2>&1; then
+              echo "Version $PACKAGE_VERSION of $PACKAGE_NAME already exists. Skipping."
+              continue
+            fi
+
+            echo "Publishing $f to npm..."
+            if npm publish "$f" --access public; then
+              echo "Published $PACKAGE_NAME@$PACKAGE_VERSION to npm."
+            else
+              echo "::warning::Could not publish $PACKAGE_NAME@$PACKAGE_VERSION to npm (missing/invalid auth or insufficient permission). Skipping; continuing with remaining registries."
             fi
           done
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Prepare PyPI Artifacts
         id: pypi-prep
@@ -90,19 +113,30 @@ jobs:
 
       - name: Publish to PyPI
         if: steps.pypi-prep.outputs.has_artifacts == 'true'
+        continue-on-error: true
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist-pypi/
           skip-existing: true
 
       - name: Publish to NuGet
+        # Best-effort: warn and skip if there's nothing to push or auth fails.
         run: |
-          dotnet nuget push dist-packages/*.nupkg \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
+          shopt -s nullglob
+          packages=(dist-packages/*.nupkg)
+          if [ ${#packages[@]} -eq 0 ]; then
+            echo "::warning::No NuGet packages (*.nupkg) found; skipping."
+            exit 0
+          fi
+          if ! dotnet nuget push "${packages[@]}" \
+              --api-key ${{ secrets.NUGET_API_KEY }} \
+              --source https://api.nuget.org/v3/index.json \
+              --skip-duplicate; then
+            echo "::warning::Could not publish NuGet package(s) (missing/invalid API key or insufficient permission). Skipping."
+          fi
 
       - name: Publish to crates.io
+        # Best-effort: warn and skip a crate if it can't be published.
         run: |
           CRATE_VERSION=$(grep -oP '^version = "\K[^"]+' Cargo.toml | head -n 1)
 
@@ -113,14 +147,20 @@ jobs:
               continue
             fi
 
+            published=false
             for attempt in 1 2 3; do
               echo "Attempt $attempt: publishing $CRATE $CRATE_VERSION..."
               if cargo publish -p "$CRATE" --token ${{ secrets.CARGO_REGISTRY_TOKEN }} --allow-dirty; then
+                published=true
                 break
               fi
               echo "crates.io error, retrying in 15s..."
               sleep 15
             done
+            if [ "$published" != "true" ]; then
+              echo "::warning::Could not publish $CRATE $CRATE_VERSION to crates.io after 3 attempts (missing/invalid token or insufficient permission). Skipping."
+              continue
+            fi
 
             # Wait for the crate to appear in the index before the next one.
             for i in $(seq 1 30); do

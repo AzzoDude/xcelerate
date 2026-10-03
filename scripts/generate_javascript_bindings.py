@@ -24,12 +24,13 @@ def main():
     else:
         run_checked(["cargo", "build", "--release"], cwd=ROOT)
 
-    # Remove stale generated files (but never package.json).
+    # Remove stale generated files (but never package.json). Tarballs are
+    # cleared too so a previous `npm pack` output can't be bundled into the next.
     if os.path.exists(js_dir):
         for name in os.listdir(js_dir):
             if name == "package.json":
                 continue
-            if name.endswith((".ts", ".js", ".d.ts")):
+            if name.endswith((".ts", ".js", ".d.ts", ".tgz")):
                 os.remove(os.path.join(js_dir, name))
     os.makedirs(js_dir, exist_ok=True)
 
