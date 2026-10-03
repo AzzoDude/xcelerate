@@ -1,48 +1,62 @@
 # CodeQL analysis (Advanced setup).
 #
-# This repo is Rust-first, and Rust is not a CodeQL language, so this workflow
-# only covers the non-Rust code that actually exists:
+# Rust is not a CodeQL language, so the Rust core (`crates/`) is not covered.
+# This workflow scans the hand-written non-Rust code that actually exists:
 #
-#   * java-kotlin - the generated UniFFI bindings under bindings/{java,kotlin}.
-#     These are Gradle projects *without* a wrapper and Gradle is not installed
-#     on the runner, so we use `build-mode: none` (extract only) instead of the
-#     default `autobuild`, which had nothing to build and failed.
-#   * python      - scripts/ and adapters/runtime.py (real source).
+#   * python  - scripts/ and adapters/runtime.py
+#   * actions - the GitHub Actions workflows in .github/workflows
 #
-# C/C++ is intentionally NOT analyzed: there are no translation units to build
-# (only generated headers), and CodeQL does not support `build-mode: none` for
-# C/C++, so it can only ever autobuild-fail here.
+# The generated language bindings under `bindings/` are excluded via
+# .github/codeql/codeql-config.yml, and every language uses `build-mode: none`,
+# so CodeQL extracts without building. The previous Default-setup run failed
+# because it tried to autobuild generated Gradle projects (java-kotlin) and
+# nonexistent C/C++ translation units.
 #
 # Requires switching the repository from CodeQL **Default setup** to
-# **Advanced** (Settings -> Code security -> Code scanning). Default setup and a
-# workflow cannot both be enabled.
+# **Advanced** (Settings -> Code security -> Code scanning); the two cannot be
+# enabled at the same time.
 
 name: CodeQL
 
 on:
   push:
     branches: [main, master]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'LICENSE*'
   pull_request:
     branches: [main, master]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'LICENSE*'
   schedule:
     - cron: '27 3 * * 1'
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   actions: read
   contents: read
+  packages: read
   security-events: write
 
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
-          - language: java-kotlin
-            build-mode: none
           - language: python
+            build-mode: none
+          - language: actions
             build-mode: none
     steps:
       - name: Checkout
@@ -53,6 +67,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+          config-file: ./.github/codeql/codeql-config.yml
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
