@@ -69,6 +69,12 @@ jobs:
         with:
           go-version: 'stable'
 
+      - name: Install Python Build Tooling
+        # Must run unconditionally: the cargo-tools cache may be warm, but the
+        # Python `build`/`wheel` modules live outside that cache and are needed
+        # by the Python binding generator (`python -m build`).
+        run: python -m pip install --upgrade pip build wheel
+
       - name: Cache Cargo Binaries
         id: cache-tools
         uses: actions/cache@v4
@@ -76,24 +82,18 @@ jobs:
           path: ~/.cargo/bin
           key: ${{ runner.os }}-uniffi-tools-v2
 
-      - name: Install & Verify Generation Tools
+      - name: Install Generation Tools
         if: steps.cache-tools.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
-          python -m pip install --upgrade pip build wheel
           cargo install uniffi-bindgen-cs --git https://github.com/NordSecurity/uniffi-bindgen-cs --tag v0.11.0+v0.31.0 --force
           cargo install uniffi-bindgen-node-js --version 0.0.16 --force
-          $cargoBin = "$env:USERPROFILE\.cargo\bin"
-          $cargoBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          $env:PATH = "$cargoBin;$env:PATH"
-          uniffi-bindgen-cs --version
 
-      - name: Setup Cargo Path (Cached)
-        if: steps.cache-tools.outputs.cache-hit == 'true'
+      - name: Add Cargo Bin to PATH
+        # `echo ... >>` writes plain newline-terminated UTF-8 (no BOM), unlike
+        # Out-File which prepends a BOM and corrupts the first PATH entry.
         shell: pwsh
-        run: |
-          $cargoBin = "$env:USERPROFILE\.cargo\bin"
-          $cargoBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        run: echo "$env:USERPROFILE\.cargo\bin" >> $env:GITHUB_PATH
 
       - name: Organize Binaries
         shell: bash
