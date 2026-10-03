@@ -47,6 +47,33 @@ final class UniffiLib {
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
+    // uniffi_xcelerate_fn_method_browser_audit_log
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_browser_audit_log = findDowncallHandle("uniffi_xcelerate_fn_method_browser_audit_log", java.lang.foreign.FunctionDescriptor.of(RustBuffer.LAYOUT, java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.ADDRESS));
+
+    static java.lang.foreign.MemorySegment uniffi_xcelerate_fn_method_browser_audit_log(java.lang.foreign.SegmentAllocator _allocator, long ptr, java.lang.foreign.MemorySegment uniffiOutErr) {
+        try {
+            return (java.lang.foreign.MemorySegment) MH_uniffi_xcelerate_fn_method_browser_audit_log.invokeExact(_allocator, ptr, uniffiOutErr);
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_fn_method_browser_audit_verify
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_browser_audit_verify = findDowncallHandle("uniffi_xcelerate_fn_method_browser_audit_verify", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_BYTE, java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.ADDRESS));
+
+    static byte uniffi_xcelerate_fn_method_browser_audit_verify(long ptr, java.lang.foreign.MemorySegment uniffiOutErr) {
+        try {
+            return (byte) MH_uniffi_xcelerate_fn_method_browser_audit_verify.invokeExact(ptr, uniffiOutErr);
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_fn_method_browser_available_plugins
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_browser_available_plugins = findDowncallHandle("uniffi_xcelerate_fn_method_browser_available_plugins", java.lang.foreign.FunctionDescriptor.of(RustBuffer.LAYOUT, java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.ADDRESS));
+
+    static java.lang.foreign.MemorySegment uniffi_xcelerate_fn_method_browser_available_plugins(java.lang.foreign.SegmentAllocator _allocator, long ptr, java.lang.foreign.MemorySegment uniffiOutErr) {
+        try {
+            return (java.lang.foreign.MemorySegment) MH_uniffi_xcelerate_fn_method_browser_available_plugins.invokeExact(_allocator, ptr, uniffiOutErr);
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
     // uniffi_xcelerate_fn_method_browser_browser_contexts
     private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_browser_browser_contexts = findDowncallHandle("uniffi_xcelerate_fn_method_browser_browser_contexts", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.JAVA_LONG));
 
@@ -128,6 +155,15 @@ final class UniffiLib {
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
+    // uniffi_xcelerate_fn_method_browser_load_plugin
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_browser_load_plugin = findDowncallHandle("uniffi_xcelerate_fn_method_browser_load_plugin", java.lang.foreign.FunctionDescriptor.of(RustBuffer.LAYOUT, java.lang.foreign.ValueLayout.JAVA_LONG, RustBuffer.LAYOUT, java.lang.foreign.ValueLayout.ADDRESS));
+
+    static java.lang.foreign.MemorySegment uniffi_xcelerate_fn_method_browser_load_plugin(java.lang.foreign.SegmentAllocator _allocator, long ptr, java.lang.foreign.MemorySegment path, java.lang.foreign.MemorySegment uniffiOutErr) {
+        try {
+            return (java.lang.foreign.MemorySegment) MH_uniffi_xcelerate_fn_method_browser_load_plugin.invokeExact(_allocator, ptr, path, uniffiOutErr);
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
     // uniffi_xcelerate_fn_method_browser_new_context
     private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_browser_new_context = findDowncallHandle("uniffi_xcelerate_fn_method_browser_new_context", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.JAVA_LONG));
 
@@ -161,6 +197,24 @@ final class UniffiLib {
     static long uniffi_xcelerate_fn_method_browser_once(long ptr, java.lang.foreign.MemorySegment eventName) {
         try {
             return (long) MH_uniffi_xcelerate_fn_method_browser_once.invokeExact(ptr, eventName);
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_fn_method_browser_plugin
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_browser_plugin = findDowncallHandle("uniffi_xcelerate_fn_method_browser_plugin", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.JAVA_LONG, RustBuffer.LAYOUT, java.lang.foreign.ValueLayout.ADDRESS));
+
+    static long uniffi_xcelerate_fn_method_browser_plugin(long ptr, java.lang.foreign.MemorySegment name, java.lang.foreign.MemorySegment uniffiOutErr) {
+        try {
+            return (long) MH_uniffi_xcelerate_fn_method_browser_plugin.invokeExact(ptr, name, uniffiOutErr);
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_fn_method_browser_plugin_names
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_browser_plugin_names = findDowncallHandle("uniffi_xcelerate_fn_method_browser_plugin_names", java.lang.foreign.FunctionDescriptor.of(RustBuffer.LAYOUT, java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.ADDRESS));
+
+    static java.lang.foreign.MemorySegment uniffi_xcelerate_fn_method_browser_plugin_names(java.lang.foreign.SegmentAllocator _allocator, long ptr, java.lang.foreign.MemorySegment uniffiOutErr) {
+        try {
+            return (java.lang.foreign.MemorySegment) MH_uniffi_xcelerate_fn_method_browser_plugin_names.invokeExact(_allocator, ptr, uniffiOutErr);
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
@@ -233,6 +287,15 @@ final class UniffiLib {
     static long uniffi_xcelerate_fn_method_browser_targets(long ptr) {
         try {
             return (long) MH_uniffi_xcelerate_fn_method_browser_targets.invokeExact(ptr);
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_fn_method_browser_use_plugin
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_browser_use_plugin = findDowncallHandle("uniffi_xcelerate_fn_method_browser_use_plugin", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.JAVA_LONG, RustBuffer.LAYOUT));
+
+    static long uniffi_xcelerate_fn_method_browser_use_plugin(long ptr, java.lang.foreign.MemorySegment name) {
+        try {
+            return (long) MH_uniffi_xcelerate_fn_method_browser_use_plugin.invokeExact(ptr, name);
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
@@ -1649,6 +1712,51 @@ final class UniffiLib {
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
+    // uniffi_xcelerate_fn_clone_pluginhandle
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_clone_pluginhandle = findDowncallHandle("uniffi_xcelerate_fn_clone_pluginhandle", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.ADDRESS));
+
+    static long uniffi_xcelerate_fn_clone_pluginhandle(long handle, java.lang.foreign.MemorySegment uniffiOutErr) {
+        try {
+            return (long) MH_uniffi_xcelerate_fn_clone_pluginhandle.invokeExact(handle, uniffiOutErr);
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_fn_free_pluginhandle
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_free_pluginhandle = findDowncallHandle("uniffi_xcelerate_fn_free_pluginhandle", java.lang.foreign.FunctionDescriptor.ofVoid(java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.ADDRESS));
+
+    static void uniffi_xcelerate_fn_free_pluginhandle(long handle, java.lang.foreign.MemorySegment uniffiOutErr) {
+        try {
+            MH_uniffi_xcelerate_fn_free_pluginhandle.invokeExact(handle, uniffiOutErr);
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_fn_method_pluginhandle_invoke
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_pluginhandle_invoke = findDowncallHandle("uniffi_xcelerate_fn_method_pluginhandle_invoke", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.JAVA_LONG, RustBuffer.LAYOUT, RustBuffer.LAYOUT));
+
+    static long uniffi_xcelerate_fn_method_pluginhandle_invoke(long ptr, java.lang.foreign.MemorySegment op, java.lang.foreign.MemorySegment argsJson) {
+        try {
+            return (long) MH_uniffi_xcelerate_fn_method_pluginhandle_invoke.invokeExact(ptr, op, argsJson);
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_fn_method_pluginhandle_ops
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_pluginhandle_ops = findDowncallHandle("uniffi_xcelerate_fn_method_pluginhandle_ops", java.lang.foreign.FunctionDescriptor.of(RustBuffer.LAYOUT, java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.ADDRESS));
+
+    static java.lang.foreign.MemorySegment uniffi_xcelerate_fn_method_pluginhandle_ops(java.lang.foreign.SegmentAllocator _allocator, long ptr, java.lang.foreign.MemorySegment uniffiOutErr) {
+        try {
+            return (java.lang.foreign.MemorySegment) MH_uniffi_xcelerate_fn_method_pluginhandle_ops.invokeExact(_allocator, ptr, uniffiOutErr);
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_fn_method_pluginhandle_plugin_name
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_pluginhandle_plugin_name = findDowncallHandle("uniffi_xcelerate_fn_method_pluginhandle_plugin_name", java.lang.foreign.FunctionDescriptor.of(RustBuffer.LAYOUT, java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.ADDRESS));
+
+    static java.lang.foreign.MemorySegment uniffi_xcelerate_fn_method_pluginhandle_plugin_name(java.lang.foreign.SegmentAllocator _allocator, long ptr, java.lang.foreign.MemorySegment uniffiOutErr) {
+        try {
+            return (java.lang.foreign.MemorySegment) MH_uniffi_xcelerate_fn_method_pluginhandle_plugin_name.invokeExact(_allocator, ptr, uniffiOutErr);
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
     // ffi_xcelerate_rustbuffer_alloc
     private static final java.lang.invoke.MethodHandle MH_ffi_xcelerate_rustbuffer_alloc = findDowncallHandle("ffi_xcelerate_rustbuffer_alloc", java.lang.foreign.FunctionDescriptor.of(RustBuffer.LAYOUT, java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.ADDRESS));
 
@@ -2117,6 +2225,33 @@ final class UniffiLib {
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
+    // uniffi_xcelerate_checksum_method_browser_audit_log
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_browser_audit_log = findDowncallHandle("uniffi_xcelerate_checksum_method_browser_audit_log", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
+
+    static short uniffi_xcelerate_checksum_method_browser_audit_log() {
+        try {
+            return (short) MH_uniffi_xcelerate_checksum_method_browser_audit_log.invokeExact();
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_checksum_method_browser_audit_verify
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_browser_audit_verify = findDowncallHandle("uniffi_xcelerate_checksum_method_browser_audit_verify", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
+
+    static short uniffi_xcelerate_checksum_method_browser_audit_verify() {
+        try {
+            return (short) MH_uniffi_xcelerate_checksum_method_browser_audit_verify.invokeExact();
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_checksum_method_browser_available_plugins
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_browser_available_plugins = findDowncallHandle("uniffi_xcelerate_checksum_method_browser_available_plugins", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
+
+    static short uniffi_xcelerate_checksum_method_browser_available_plugins() {
+        try {
+            return (short) MH_uniffi_xcelerate_checksum_method_browser_available_plugins.invokeExact();
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
     // uniffi_xcelerate_checksum_method_browser_browser_contexts
     private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_browser_browser_contexts = findDowncallHandle("uniffi_xcelerate_checksum_method_browser_browser_contexts", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
 
@@ -2198,6 +2333,15 @@ final class UniffiLib {
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
+    // uniffi_xcelerate_checksum_method_browser_load_plugin
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_browser_load_plugin = findDowncallHandle("uniffi_xcelerate_checksum_method_browser_load_plugin", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
+
+    static short uniffi_xcelerate_checksum_method_browser_load_plugin() {
+        try {
+            return (short) MH_uniffi_xcelerate_checksum_method_browser_load_plugin.invokeExact();
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
     // uniffi_xcelerate_checksum_method_browser_new_context
     private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_browser_new_context = findDowncallHandle("uniffi_xcelerate_checksum_method_browser_new_context", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
 
@@ -2231,6 +2375,24 @@ final class UniffiLib {
     static short uniffi_xcelerate_checksum_method_browser_once() {
         try {
             return (short) MH_uniffi_xcelerate_checksum_method_browser_once.invokeExact();
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_checksum_method_browser_plugin
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_browser_plugin = findDowncallHandle("uniffi_xcelerate_checksum_method_browser_plugin", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
+
+    static short uniffi_xcelerate_checksum_method_browser_plugin() {
+        try {
+            return (short) MH_uniffi_xcelerate_checksum_method_browser_plugin.invokeExact();
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_checksum_method_browser_plugin_names
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_browser_plugin_names = findDowncallHandle("uniffi_xcelerate_checksum_method_browser_plugin_names", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
+
+    static short uniffi_xcelerate_checksum_method_browser_plugin_names() {
+        try {
+            return (short) MH_uniffi_xcelerate_checksum_method_browser_plugin_names.invokeExact();
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
@@ -2303,6 +2465,15 @@ final class UniffiLib {
     static short uniffi_xcelerate_checksum_method_browser_targets() {
         try {
             return (short) MH_uniffi_xcelerate_checksum_method_browser_targets.invokeExact();
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_checksum_method_browser_use_plugin
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_browser_use_plugin = findDowncallHandle("uniffi_xcelerate_checksum_method_browser_use_plugin", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
+
+    static short uniffi_xcelerate_checksum_method_browser_use_plugin() {
+        try {
+            return (short) MH_uniffi_xcelerate_checksum_method_browser_use_plugin.invokeExact();
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
@@ -3680,6 +3851,33 @@ final class UniffiLib {
     static short uniffi_xcelerate_checksum_method_page_window_size() {
         try {
             return (short) MH_uniffi_xcelerate_checksum_method_page_window_size.invokeExact();
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_checksum_method_pluginhandle_invoke
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_pluginhandle_invoke = findDowncallHandle("uniffi_xcelerate_checksum_method_pluginhandle_invoke", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
+
+    static short uniffi_xcelerate_checksum_method_pluginhandle_invoke() {
+        try {
+            return (short) MH_uniffi_xcelerate_checksum_method_pluginhandle_invoke.invokeExact();
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_checksum_method_pluginhandle_ops
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_pluginhandle_ops = findDowncallHandle("uniffi_xcelerate_checksum_method_pluginhandle_ops", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
+
+    static short uniffi_xcelerate_checksum_method_pluginhandle_ops() {
+        try {
+            return (short) MH_uniffi_xcelerate_checksum_method_pluginhandle_ops.invokeExact();
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_checksum_method_pluginhandle_plugin_name
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_pluginhandle_plugin_name = findDowncallHandle("uniffi_xcelerate_checksum_method_pluginhandle_plugin_name", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
+
+    static short uniffi_xcelerate_checksum_method_pluginhandle_plugin_name() {
+        try {
+            return (short) MH_uniffi_xcelerate_checksum_method_pluginhandle_plugin_name.invokeExact();
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 

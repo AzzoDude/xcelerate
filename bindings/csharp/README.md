@@ -9,7 +9,7 @@ Xcelerate is a high-performance, lightweight Chrome DevTools Protocol (CDP) clie
 
 - **Managed Lifecycle**: Fully supports `IDisposable` patterns to ensure clean browser and process termination.
 - **Async/Await First**: Standard `Task`-based asynchronous API for modern C# applications.
-- **Advanced Stealth Support**: Built-in mechanisms to neutralize automation detection (masking WebDriver, mocking Chrome APIs).
+- **Security-first Plugins**: Default-deny plugin system; `stealth` (binary patching + Chrome API masking) is a first-party plugin you opt into.
 - **NativeAOT Compatible**: Designed for high performance and low memory footprints.
 - **Simplified Deployment**: Bundles the required native binaries for Windows (x64), removing the need for external C++ or Rust installations on the target machine.
 
@@ -28,9 +28,10 @@ Xcelerate emphasizes a clean, readable API. The library handles port polling, br
 ```csharp
 using Xcelerate;
 
-// Launch a stealth-hardened browser instance with intelligent defaults
-// (Optional: headless=true, stealth=true, detached=true)
-using var browser = await Browser.Launch(new BrowserConfig());
+// Launch a browser instance with intelligent defaults
+// (Optional: headless=true, stealth=false, detached=true, executablePath=null)
+// Plugins are opt-in: pass Plugins to enable the stealth plugin.
+using var browser = await Browser.Launch(new BrowserConfig(Plugins: new[] { "stealth" }));
 
 // Initialize a new page and perform navigation
 using var page = await browser.NewPage("https://www.example.com");
@@ -52,7 +53,8 @@ File.WriteAllBytes("capture.png", screenshot);
 
 The SDK supports specialized launch options for complex automation scenarios:
 
-- **Stealth Mode**: Applies binary patches and runtime JavaScript masking to bypass bot detection.
+- **Plugins**: Default-deny list of first-party plugins to enable. `new BrowserConfig(Plugins: new[] { "stealth", "human" })` opts into stealth and human-like input; nothing runs unless listed. `load_plugin` refuses third-party plugins until the sandboxed runner ships.
+- **Stealth Mode**: Deprecated sugar for the `stealth` plugin - applies binary patches and runtime JavaScript masking to reduce bot detection.
 - **Detached Mode**: Allows the browser process to persist independently of the parent .NET application.
 - **Headless=New**: Utilizes the modern Chromium headless engine for improved rendering and compatibility.
 

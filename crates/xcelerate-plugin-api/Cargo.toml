@@ -1,17 +1,16 @@
 [package]
-name = "xcelerate-stealth"
+name = "xcelerate-plugin-api"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Stealth helpers (binary patching and detached process management) for xcelerate."
+description = "Plugin API, trust model, and host interface for xcelerate."
 
 [dependencies]
-libc = { workspace = true }
-once_cell = { workspace = true }
-regex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
 
 [lints]

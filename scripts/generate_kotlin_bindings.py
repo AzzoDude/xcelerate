@@ -167,9 +167,13 @@ def _patch_defaults(content):
     """
     edits = (
         (r"var `headless`: kotlin\.Boolean(?!\s*=)", "var `headless`: kotlin.Boolean = true"),
-        (r"var `stealth`: kotlin\.Boolean(?!\s*=)", "var `stealth`: kotlin.Boolean = true"),
+        (r"var `stealth`: kotlin\.Boolean(?!\s*=)", "var `stealth`: kotlin.Boolean = false"),
         (r"var `detached`: kotlin\.Boolean(?!\s*=)", "var `detached`: kotlin.Boolean = true"),
         (r"var `executablePath`: kotlin\.String\?(?!\s*=)", "var `executablePath`: kotlin.String? = null"),
+        (
+            r"var `plugins`: List<kotlin\.String>\?(?!\s*=)",
+            "var `plugins`: List<kotlin.String>? = null",
+        ),
         (r"(suspend fun `launch`\(`config`: BrowserConfig)\)", r"\1 = BrowserConfig())"),
     )
     for pattern, replacement in edits:

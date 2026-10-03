@@ -2,7 +2,8 @@
 members = [
     "crates/xcelerate",
     "crates/xcelerate-core",
-    "crates/xcelerate-stealth",
+    "crates/xcelerate-plugin-api",
+    "crates/xcelerate-plugins",
     "crates/xcelerate-bindgen",
 ]
 
@@ -23,8 +24,8 @@ repository = "https://github.com/AzzoDude/xcelerate"
 
 # Shared lint policy for every crate in the workspace.
 [workspace.lints.rust]
-# `unsafe` is used deliberately in the stealth layer for platform syscalls
-# (setsid/pre_exec, libc::kill), so it is allowed rather than forbidden.
+# `unsafe` is used deliberately in the first-party plugins crate for platform
+# syscalls (setsid/pre_exec, libc::kill), so it is allowed rather than forbidden.
 unsafe_code = "allow"
 
 [workspace.lints.clippy]
@@ -37,7 +38,8 @@ doc_lazy_continuation = "allow"
 [workspace.dependencies]
 # Internal crates.
 xcelerate-core = { path = "crates/xcelerate-core", version = "1.0.8" }
-xcelerate-stealth = { path = "crates/xcelerate-stealth", version = "1.0.8" }
+xcelerate-plugin-api = { path = "crates/xcelerate-plugin-api", version = "1.0.8" }
+xcelerate-plugins = { path = "crates/xcelerate-plugins", version = "1.0.8" }
 
 # Third-party crates.
 js-protocol = "0.1.6"

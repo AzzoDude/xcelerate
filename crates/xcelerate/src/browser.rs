@@ -1,32 +1,44 @@
 use crate::CdpClient;
 use crate::error::{XcelerateError, XcelerateResult};
 use crate::page::Page;
+use crate::plugin::{PluginHandle, PluginManager};
 use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Duration;
-use xcelerate_stealth::{BinaryPatcher, CDC_PAYLOAD, ProcessGuard, spawn_detached};
+use xcelerate_plugin_api::LaunchPlan;
+use xcelerate_plugins::{ProcessGuard, spawn_detached};
 
 /// Configuration for the Browser instance.
 #[derive(uniffi::Record)]
 pub struct BrowserConfig {
     /// Whether to run the browser in headless mode.
     pub headless: bool,
-    /// Whether to apply stealth patches to the binary.
+    /// Deprecated: enable the first-party `stealth` plugin. Prefer `plugins`.
+    ///
+    /// This is sugar for adding `"stealth"` to [`BrowserConfig::plugins`] and
+    /// will be removed in a future major release.
     pub stealth: bool,
     /// Whether to run the browser as a detached process.
     pub detached: bool,
     /// Optional path to the browser executable.
     pub executable_path: Option<String>,
+    /// First-party plugins to enable for this browser (for example
+    /// `["stealth"]`). Default-deny: no plugin does anything unless listed
+    /// here (or enabled afterwards with `Browser::use_plugin`).
+    pub plugins: Option<Vec<String>>,
 }
 
 impl Default for BrowserConfig {
     fn default() -> Self {
         Self {
             headless: true,
-            stealth: true,
+            // Stealth is opt-in now: enable it through `plugins` (or the
+            // deprecated `stealth` flag) rather than by default.
+            stealth: false,
             detached: true,
             executable_path: None,
+            plugins: None,
         }
     }
 }
@@ -38,7 +50,7 @@ pub struct Browser {
     _process: tokio::sync::Mutex<Option<tokio::process::Child>>,
     _process_guard: Option<ProcessGuard>,
     _user_data_dir: Option<tempfile::TempDir>,
-    _stealth: bool,
+    pub(crate) plugins: Arc<PluginManager>,
     ws_url: String,
     events: tokio::sync::Mutex<Vec<String>>,
 }
@@ -61,17 +73,28 @@ impl Browser {
         let user_data_dir = tempfile::tempdir().map_err(|_| XcelerateError::InternalError)?;
         let port = get_free_port().ok_or(XcelerateError::InternalError)?;
 
-        let exe = if config.stealth {
-            BinaryPatcher::patch_to_temp(&exe)?
-        } else {
-            exe
-        };
+        // Resolve the enabled plugins (default-deny). The `stealth` flag is kept
+        // as deprecated sugar for `plugins = ["stealth"]`.
+        let mut names = config.plugins.clone().unwrap_or_default();
+        if config.stealth && !names.iter().any(|name| name == "stealth") {
+            names.push("stealth".to_string());
+        }
+        let manager = PluginManager::new(&names, crate::plugin::catalog())?;
+
+        // Let first-party plugins contribute to the launch (e.g. binary patching)
+        // before the process is spawned.
+        let mut plan = LaunchPlan::new(exe, config.headless, config.detached);
+        manager.configure_launch(&mut plan)?;
+        manager.mark_launched();
 
         // 2. Spawn process
-        let mut cmd = std::process::Command::new(&exe);
-        setup_browser_args(&mut cmd, &user_data_dir, port, config.headless);
+        let mut cmd = std::process::Command::new(&plan.executable);
+        setup_browser_args(&mut cmd, &user_data_dir, port, plan.headless);
+        for arg in &plan.extra_args {
+            cmd.arg(arg);
+        }
 
-        let (child, guard) = if config.detached {
+        let (child, guard) = if plan.detached {
             let pid = spawn_detached(cmd)?;
             let guard = ProcessGuard {
                 pid,
@@ -100,7 +123,7 @@ impl Browser {
             _process: tokio::sync::Mutex::new(child),
             _process_guard: guard,
             _user_data_dir: Some(user_data_dir),
-            _stealth: config.stealth,
+            plugins: Arc::new(manager),
             ws_url: ws_url.clone(),
             events: tokio::sync::Mutex::new(Vec::new()),
         }))
@@ -140,25 +163,82 @@ impl Browser {
             drag_interception: Arc::new(std::sync::atomic::AtomicBool::new(false)),
         });
 
-        // 3. Inject stealth payload if enabled
-        if self._stealth {
-            page.add_script_to_evaluate_on_new_document(CDC_PAYLOAD.to_string())
-                .await?;
-            // We also need to enable the Page domain for some events to fire correctly
-            self.client
-                .execute_with_session(
-                    Some(&page.session_id),
-                    browser_protocol::page::EnableParams {
-                        ..Default::default()
-                    },
-                )
-                .await?;
-        }
+        // 3. Run plugin page-created hooks (e.g. stealth payload injection).
+        self.plugins
+            .on_page_created(crate::plugin::page_host(Arc::clone(&page)))
+            .await?;
 
         // 4. Finally navigate to the actual URL
         page.navigate(url).await?;
 
         Ok(page)
+    }
+
+    /// Names of all compiled-in first-party plugins (the catalog).
+    pub fn available_plugins(&self) -> Vec<String> {
+        xcelerate_plugins::builtin_names()
+            .iter()
+            .map(|name| (*name).to_string())
+            .collect()
+    }
+
+    /// Names of the plugins currently enabled on this browser.
+    pub fn plugin_names(&self) -> Vec<String> {
+        self.plugins.names()
+    }
+
+    /// Enables a compiled-in first-party plugin at runtime.
+    ///
+    /// Launch-time contributions (such as binary patching) only take effect if
+    /// the plugin was enabled before the browser launched; enabling a plugin
+    /// afterwards applies its runtime hooks to pages created from now on. This
+    /// is audited as a runtime enable. Unknown or third-party names are refused.
+    pub async fn use_plugin(&self, name: String) -> XcelerateResult<()> {
+        self.plugins.enable(&name).map_err(XcelerateError::from)
+    }
+
+    /// Returns a handle to an enabled plugin so its ops can be invoked.
+    pub fn plugin(&self, name: String) -> XcelerateResult<Arc<PluginHandle>> {
+        if self.plugins.has(&name) {
+            Ok(PluginHandle::new(Arc::clone(&self.plugins), name))
+        } else {
+            Err(XcelerateError::NotFound(format!(
+                "plugin '{name}' is not enabled"
+            )))
+        }
+    }
+
+    /// Loads a third-party plugin. Not supported in this phase.
+    ///
+    /// The sandboxed, out-of-process runner required for untrusted plugins does
+    /// not exist yet, so this always refuses rather than executing unknown code.
+    pub fn load_plugin(&self, path: String) -> XcelerateResult<String> {
+        Err(XcelerateError::Unsupported(format!(
+            "cannot load third-party plugin '{path}': only compiled-in first-party \
+             plugins are supported in this phase"
+        )))
+    }
+
+    /// Verifies the integrity of the append-only plugin audit log.
+    pub fn audit_verify(&self) -> bool {
+        xcelerate_plugin_api::audit_verify()
+    }
+
+    /// Returns the plugin audit log as a JSON array (no secrets are recorded).
+    pub fn audit_log(&self) -> String {
+        let entries: Vec<serde_json::Value> = xcelerate_plugin_api::audit_entries()
+            .into_iter()
+            .map(|event| {
+                serde_json::json!({
+                    "seq": event.seq,
+                    "plugin": event.plugin,
+                    "action": event.action,
+                    "detail": event.detail,
+                    "hash": event.hash,
+                })
+            })
+            .collect();
+        serde_json::Value::Array(entries).to_string()
     }
 
     /// Returns the browser version information.

@@ -14,7 +14,7 @@ def _with_browser_config_defaults(content):
     """Add default values to the generated ``BrowserConfig`` record fields.
 
     ``uniffi-bindgen-cs`` emits required positional fields, which forces every
-    caller to pass all four values. Supplying defaults lets callers write
+    caller to pass all values. Supplying defaults lets callers write
     ``new BrowserConfig()``. The exact formatting (doc comments, field casing,
     trailing commas) changes between bindgen releases, so this walks the record
     body line by line instead of matching a fixed multi-line block.
@@ -33,8 +33,13 @@ def _with_browser_config_defaults(content):
         if "=" in stripped:
             continue
         if stripped.startswith("bool "):
-            default = "true"
+            # Stealth is opt-in, matching BrowserConfig::default().
+            default = "false" if "Stealth" in stripped else "true"
+        elif stripped.startswith("string[]"):
+            default = "null"
         elif stripped.startswith("string? "):
+            default = "null"
+        elif stripped.startswith("List<") or stripped.startswith("System.Collections"):
             default = "null"
         else:
             continue

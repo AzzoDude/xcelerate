@@ -9,7 +9,10 @@ public class BrowserConfig {
      */
     private boolean headless;
     /**
-     * Whether to apply stealth patches to the binary.
+     * Deprecated: enable the first-party `stealth` plugin. Prefer `plugins`.
+     *
+     * This is sugar for adding `"stealth"` to [`BrowserConfig::plugins`] and
+     * will be removed in a future major release.
      */
     private boolean stealth;
     /**
@@ -20,12 +23,19 @@ public class BrowserConfig {
      * Optional path to the browser executable.
      */
     private java.lang.String executablePath;
+    /**
+     * First-party plugins to enable for this browser (for example
+     * `["stealth"]`). Default-deny: no plugin does anything unless listed
+     * here (or enabled afterwards with `Browser::use_plugin`).
+     */
+    private java.util.List<java.lang.String> plugins;
 
     public BrowserConfig(
         boolean headless, 
         boolean stealth, 
         boolean detached, 
-        java.lang.String executablePath
+        java.lang.String executablePath, 
+        java.util.List<java.lang.String> plugins
     ) {
         
         this.headless = headless;
@@ -35,6 +45,8 @@ public class BrowserConfig {
         this.detached = detached;
         
         this.executablePath = executablePath;
+        
+        this.plugins = plugins;
     }
     
     public boolean headless() {
@@ -52,6 +64,10 @@ public class BrowserConfig {
     public java.lang.String executablePath() {
         return this.executablePath;
     }
+    
+    public java.util.List<java.lang.String> plugins() {
+        return this.plugins;
+    }
     public void setHeadless(boolean headless) {
         this.headless = headless;
     }
@@ -63,6 +79,9 @@ public class BrowserConfig {
     }
     public void setExecutablePath(java.lang.String executablePath) {
         this.executablePath = executablePath;
+    }
+    public void setPlugins(java.util.List<java.lang.String> plugins) {
+        this.plugins = plugins;
     }
 
     
@@ -79,7 +98,9 @@ public class BrowserConfig {
               
               detached == t.detached && 
               
-              java.util.Objects.equals(executablePath, t.executablePath)
+              java.util.Objects.equals(executablePath, t.executablePath) && 
+              
+              java.util.Objects.equals(plugins, t.plugins)
               
             );
         };
@@ -92,6 +113,7 @@ public class BrowserConfig {
         result = 31 * result + java.lang.Boolean.hashCode(stealth);
         result = 31 * result + java.lang.Boolean.hashCode(detached);
         result = 31 * result + java.util.Objects.hashCode(executablePath);
+        result = 31 * result + java.util.Objects.hashCode(plugins);
         return result;
     }
 

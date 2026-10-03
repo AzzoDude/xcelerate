@@ -140,8 +140,8 @@ jobs:
         run: |
           CRATE_VERSION=$(grep -oP '^version = "\K[^"]+' Cargo.toml | head -n 1)
 
-          # Publish in dependency order: the facade depends on stealth + core.
-          for CRATE in xcelerate-stealth xcelerate-core xcelerate; do
+          # Publish in dependency order: facade <- plugins <- plugin-api <- core.
+          for CRATE in xcelerate-core xcelerate-plugin-api xcelerate-plugins xcelerate; do
             if cargo search "$CRATE" --limit 1 | grep -q "\"$CRATE_VERSION\""; then
               echo "$CRATE $CRATE_VERSION already published. Skipping."
               continue

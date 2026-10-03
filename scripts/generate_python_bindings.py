@@ -78,11 +78,13 @@ def main():
             content = handle.read()
         pattern = (
             r"def __init__\(self, \*, headless:\s*[\"']?bool[\"']?, stealth:\s*[\"']?bool[\"']?, "
-            r"detached:\s*[\"']?bool[\"']?, executable_path:\s*[\"']?typing\.Optional\[str\][\"']?\):"
+            r"detached:\s*[\"']?bool[\"']?, executable_path:\s*[\"']?typing\.Optional\[str\][\"']?, "
+            r"plugins:\s*[\"']?typing\.Optional\[typing\.(?:List|Sequence)\[str\]\][\"']?\):"
         )
         replacement = (
-            r"def __init__(self, *, headless: bool = True, stealth: bool = True, "
-            r"detached: bool = True, executable_path: typing.Optional[str] = None):"
+            r"def __init__(self, *, headless: bool = True, stealth: bool = False, "
+            r"detached: bool = True, executable_path: typing.Optional[str] = None, "
+            r"plugins: typing.Optional[typing.List[str]] = None):"
         )
         content = re.sub(pattern, replacement, content)
         with open(os.path.join(package_dir, "xcelerate.py"), "w", encoding="utf-8") as handle:

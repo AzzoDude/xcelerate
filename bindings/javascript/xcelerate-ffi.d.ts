@@ -52,6 +52,12 @@ export declare function uniffi_xcelerate_fn_free_browser(...args: any[]): any;
 
 export declare function uniffi_xcelerate_fn_constructor_browser_launch(...args: any[]): any;
 
+export declare function uniffi_xcelerate_fn_method_browser_audit_log(...args: any[]): any;
+
+export declare function uniffi_xcelerate_fn_method_browser_audit_verify(...args: any[]): any;
+
+export declare function uniffi_xcelerate_fn_method_browser_available_plugins(...args: any[]): any;
+
 export declare function uniffi_xcelerate_fn_method_browser_browser_contexts(...args: any[]): any;
 
 export declare function uniffi_xcelerate_fn_method_browser_capabilities(...args: any[]): any;
@@ -70,6 +76,8 @@ export declare function uniffi_xcelerate_fn_method_browser_is_connected(...args:
 
 export declare function uniffi_xcelerate_fn_method_browser_listens_to(...args: any[]): any;
 
+export declare function uniffi_xcelerate_fn_method_browser_load_plugin(...args: any[]): any;
+
 export declare function uniffi_xcelerate_fn_method_browser_new_context(...args: any[]): any;
 
 export declare function uniffi_xcelerate_fn_method_browser_new_page(...args: any[]): any;
@@ -77,6 +85,10 @@ export declare function uniffi_xcelerate_fn_method_browser_new_page(...args: any
 export declare function uniffi_xcelerate_fn_method_browser_on(...args: any[]): any;
 
 export declare function uniffi_xcelerate_fn_method_browser_once(...args: any[]): any;
+
+export declare function uniffi_xcelerate_fn_method_browser_plugin(...args: any[]): any;
+
+export declare function uniffi_xcelerate_fn_method_browser_plugin_names(...args: any[]): any;
 
 export declare function uniffi_xcelerate_fn_method_browser_remove_all_listeners(...args: any[]): any;
 
@@ -93,6 +105,8 @@ export declare function uniffi_xcelerate_fn_method_browser_start_tracing(...args
 export declare function uniffi_xcelerate_fn_method_browser_stop_tracing(...args: any[]): any;
 
 export declare function uniffi_xcelerate_fn_method_browser_targets(...args: any[]): any;
+
+export declare function uniffi_xcelerate_fn_method_browser_use_plugin(...args: any[]): any;
 
 export declare function uniffi_xcelerate_fn_method_browser_user_agent(...args: any[]): any;
 
@@ -408,6 +422,16 @@ export declare function uniffi_xcelerate_fn_method_page_window_rect(...args: any
 
 export declare function uniffi_xcelerate_fn_method_page_window_size(...args: any[]): any;
 
+export declare function uniffi_xcelerate_fn_clone_pluginhandle(...args: any[]): any;
+
+export declare function uniffi_xcelerate_fn_free_pluginhandle(...args: any[]): any;
+
+export declare function uniffi_xcelerate_fn_method_pluginhandle_invoke(...args: any[]): any;
+
+export declare function uniffi_xcelerate_fn_method_pluginhandle_ops(...args: any[]): any;
+
+export declare function uniffi_xcelerate_fn_method_pluginhandle_plugin_name(...args: any[]): any;
+
 export declare function ffi_xcelerate_rustbuffer_alloc(...args: any[]): any;
 
 export declare function ffi_xcelerate_rustbuffer_from_bytes(...args: any[]): any;
@@ -512,6 +536,12 @@ export declare function ffi_xcelerate_rust_future_free_void(...args: any[]): any
 
 export declare function ffi_xcelerate_rust_future_complete_void(...args: any[]): any;
 
+export declare function uniffi_xcelerate_checksum_method_browser_audit_log(...args: any[]): any;
+
+export declare function uniffi_xcelerate_checksum_method_browser_audit_verify(...args: any[]): any;
+
+export declare function uniffi_xcelerate_checksum_method_browser_available_plugins(...args: any[]): any;
+
 export declare function uniffi_xcelerate_checksum_method_browser_browser_contexts(...args: any[]): any;
 
 export declare function uniffi_xcelerate_checksum_method_browser_capabilities(...args: any[]): any;
@@ -530,6 +560,8 @@ export declare function uniffi_xcelerate_checksum_method_browser_is_connected(..
 
 export declare function uniffi_xcelerate_checksum_method_browser_listens_to(...args: any[]): any;
 
+export declare function uniffi_xcelerate_checksum_method_browser_load_plugin(...args: any[]): any;
+
 export declare function uniffi_xcelerate_checksum_method_browser_new_context(...args: any[]): any;
 
 export declare function uniffi_xcelerate_checksum_method_browser_new_page(...args: any[]): any;
@@ -537,6 +569,10 @@ export declare function uniffi_xcelerate_checksum_method_browser_new_page(...arg
 export declare function uniffi_xcelerate_checksum_method_browser_on(...args: any[]): any;
 
 export declare function uniffi_xcelerate_checksum_method_browser_once(...args: any[]): any;
+
+export declare function uniffi_xcelerate_checksum_method_browser_plugin(...args: any[]): any;
+
+export declare function uniffi_xcelerate_checksum_method_browser_plugin_names(...args: any[]): any;
 
 export declare function uniffi_xcelerate_checksum_method_browser_remove_all_listeners(...args: any[]): any;
 
@@ -553,6 +589,8 @@ export declare function uniffi_xcelerate_checksum_method_browser_start_tracing(.
 export declare function uniffi_xcelerate_checksum_method_browser_stop_tracing(...args: any[]): any;
 
 export declare function uniffi_xcelerate_checksum_method_browser_targets(...args: any[]): any;
+
+export declare function uniffi_xcelerate_checksum_method_browser_use_plugin(...args: any[]): any;
 
 export declare function uniffi_xcelerate_checksum_method_browser_user_agent(...args: any[]): any;
 
@@ -859,6 +897,12 @@ export declare function uniffi_xcelerate_checksum_method_page_window_position(..
 export declare function uniffi_xcelerate_checksum_method_page_window_rect(...args: any[]): any;
 
 export declare function uniffi_xcelerate_checksum_method_page_window_size(...args: any[]): any;
+
+export declare function uniffi_xcelerate_checksum_method_pluginhandle_invoke(...args: any[]): any;
+
+export declare function uniffi_xcelerate_checksum_method_pluginhandle_ops(...args: any[]): any;
+
+export declare function uniffi_xcelerate_checksum_method_pluginhandle_plugin_name(...args: any[]): any;
 
 export declare function uniffi_xcelerate_checksum_constructor_browser_launch(...args: any[]): any;
 

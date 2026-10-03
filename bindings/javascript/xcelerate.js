@@ -407,7 +407,7 @@ export class XcelerateErrorUnsupported extends XcelerateError {
 const FfiConverterBrowserConfig = new (class extends AbstractFfiConverterByteArray {
   allocationSize(value) {
     const recordValue = uniffiRequireRecordObject("BrowserConfig", value);
-    return FfiConverterBool.allocationSize(recordValue["headless"]) + FfiConverterBool.allocationSize(recordValue["stealth"]) + FfiConverterBool.allocationSize(recordValue["detached"]) + uniffiOptionalConverter(FfiConverterString).allocationSize(recordValue["executable_path"]);
+    return FfiConverterBool.allocationSize(recordValue["headless"]) + FfiConverterBool.allocationSize(recordValue["stealth"]) + FfiConverterBool.allocationSize(recordValue["detached"]) + uniffiOptionalConverter(FfiConverterString).allocationSize(recordValue["executable_path"]) + uniffiOptionalConverter(uniffiArrayConverter(FfiConverterString)).allocationSize(recordValue["plugins"]);
   }
 
   write(value, writer) {
@@ -416,6 +416,7 @@ const FfiConverterBrowserConfig = new (class extends AbstractFfiConverterByteArr
     FfiConverterBool.write(recordValue["stealth"], writer);
     FfiConverterBool.write(recordValue["detached"], writer);
     uniffiOptionalConverter(FfiConverterString).write(recordValue["executable_path"], writer);
+    uniffiOptionalConverter(uniffiArrayConverter(FfiConverterString)).write(recordValue["plugins"], writer);
   }
 
   read(reader) {
@@ -424,6 +425,7 @@ const FfiConverterBrowserConfig = new (class extends AbstractFfiConverterByteArr
       "stealth": FfiConverterBool.read(reader),
       "detached": FfiConverterBool.read(reader),
       "executable_path": uniffiOptionalConverter(FfiConverterString).read(reader),
+      "plugins": uniffiOptionalConverter(uniffiArrayConverter(FfiConverterString)).read(reader),
     };
   }
 })();
@@ -547,9 +549,10 @@ export class Browser extends UniffiObjectBase {
   static async launch(config = {}) {
     const finalConfig = {
       headless: true,
-      stealth: true,
+      stealth: false,
       detached: true,
       executable_path: null,
+      plugins: null,
       ...config
     };
     config = finalConfig;
@@ -572,6 +575,54 @@ export class Browser extends UniffiObjectBase {
       liftFunc: (pointer) => uniffiBrowserObjectFactory.createRawExternal(pointer),
       ...uniffiRustCallOptions(FfiConverterXcelerateError),
     });
+  }
+
+  /**
+   * Returns the plugin audit log as a JSON array (no secrets are recorded).
+   */
+  auditLog() {
+    const loweredSelf = uniffiBrowserObjectFactory.cloneHandle(this);
+    const ffiMethod =
+      uniffiBrowserObjectFactory.usesGenericAbi(this)
+        ? ffiFunctions.uniffi_xcelerate_fn_method_browser_audit_log_generic_abi
+        : ffiFunctions.uniffi_xcelerate_fn_method_browser_audit_log;
+    const uniffiResult = uniffiRustCaller.rustCall(
+      (status) => ffiMethod(loweredSelf, status),
+      uniffiRustCallOptions(),
+    );
+    return uniffiLiftStringFromRustBuffer(uniffiResult);
+  }
+
+  /**
+   * Verifies the integrity of the append-only plugin audit log.
+   */
+  auditVerify() {
+    const loweredSelf = uniffiBrowserObjectFactory.cloneHandle(this);
+    const ffiMethod =
+      uniffiBrowserObjectFactory.usesGenericAbi(this)
+        ? ffiFunctions.uniffi_xcelerate_fn_method_browser_audit_verify_generic_abi
+        : ffiFunctions.uniffi_xcelerate_fn_method_browser_audit_verify;
+    const uniffiResult = uniffiRustCaller.rustCall(
+      (status) => ffiMethod(loweredSelf, status),
+      uniffiRustCallOptions(),
+    );
+    return FfiConverterBool.lift(uniffiResult);
+  }
+
+  /**
+   * Names of all compiled-in first-party plugins (the catalog).
+   */
+  availablePlugins() {
+    const loweredSelf = uniffiBrowserObjectFactory.cloneHandle(this);
+    const ffiMethod =
+      uniffiBrowserObjectFactory.usesGenericAbi(this)
+        ? ffiFunctions.uniffi_xcelerate_fn_method_browser_available_plugins_generic_abi
+        : ffiFunctions.uniffi_xcelerate_fn_method_browser_available_plugins;
+    const uniffiResult = uniffiRustCaller.rustCall(
+      (status) => ffiMethod(loweredSelf, status),
+      uniffiRustCallOptions(),
+    );
+    return uniffiLiftFromRustBuffer(uniffiArrayConverter(FfiConverterString), uniffiResult);
   }
 
   /**
@@ -768,6 +819,26 @@ export class Browser extends UniffiObjectBase {
   }
 
   /**
+   * Loads a third-party plugin. Not supported in this phase.
+   *
+   * The sandboxed, out-of-process runner required for untrusted plugins does
+   * not exist yet, so this always refuses rather than executing unknown code.
+   */
+  loadPlugin(path) {
+    const loweredSelf = uniffiBrowserObjectFactory.cloneHandle(this);
+    const ffiMethod =
+      uniffiBrowserObjectFactory.usesGenericAbi(this)
+        ? ffiFunctions.uniffi_xcelerate_fn_method_browser_load_plugin_generic_abi
+        : ffiFunctions.uniffi_xcelerate_fn_method_browser_load_plugin;
+    const loweredPath = uniffiLowerString(path);
+    const uniffiResult = uniffiRustCaller.rustCall(
+      (status) => ffiMethod(loweredSelf, loweredPath, status),
+      uniffiRustCallOptions(FfiConverterXcelerateError),
+    );
+    return uniffiLiftStringFromRustBuffer(uniffiResult);
+  }
+
+  /**
    * Creates a new (incognito) browser context and returns its id.
    */
   async new_context() {
@@ -857,6 +928,39 @@ export class Browser extends UniffiObjectBase {
       liftFunc: (_uniffiResult) => undefined,
       ...uniffiRustCallOptions(),
     });
+  }
+
+  /**
+   * Returns a handle to an enabled plugin so its ops can be invoked.
+   */
+  plugin(name) {
+    const loweredSelf = uniffiBrowserObjectFactory.cloneHandle(this);
+    const ffiMethod =
+      uniffiBrowserObjectFactory.usesGenericAbi(this)
+        ? ffiFunctions.uniffi_xcelerate_fn_method_browser_plugin_generic_abi
+        : ffiFunctions.uniffi_xcelerate_fn_method_browser_plugin;
+    const loweredName = uniffiLowerString(name);
+    const uniffiResult = uniffiRustCaller.rustCall(
+      (status) => ffiMethod(loweredSelf, loweredName, status),
+      uniffiRustCallOptions(FfiConverterXcelerateError),
+    );
+    return uniffiPluginHandleObjectFactory.create(uniffiResult);
+  }
+
+  /**
+   * Names of the plugins currently enabled on this browser.
+   */
+  pluginNames() {
+    const loweredSelf = uniffiBrowserObjectFactory.cloneHandle(this);
+    const ffiMethod =
+      uniffiBrowserObjectFactory.usesGenericAbi(this)
+        ? ffiFunctions.uniffi_xcelerate_fn_method_browser_plugin_names_generic_abi
+        : ffiFunctions.uniffi_xcelerate_fn_method_browser_plugin_names;
+    const uniffiResult = uniffiRustCaller.rustCall(
+      (status) => ffiMethod(loweredSelf, status),
+      uniffiRustCallOptions(),
+    );
+    return uniffiLiftFromRustBuffer(uniffiArrayConverter(FfiConverterString), uniffiResult);
   }
 
   /**
@@ -1026,6 +1130,33 @@ export class Browser extends UniffiObjectBase {
       completeFunc,
       freeFunc: (rustFuture) => ffiFunctions.ffi_xcelerate_rust_future_free_rust_buffer(rustFuture),
       liftFunc: (uniffiResult) => uniffiLiftStringFromRustBuffer(uniffiResult),
+      ...uniffiRustCallOptions(FfiConverterXcelerateError),
+    });
+  }
+
+  /**
+   * Enables a compiled-in first-party plugin at runtime.
+   *
+   * Launch-time contributions (such as binary patching) only take effect if
+   * the plugin was enabled before the browser launched; enabling a plugin
+   * afterwards applies its runtime hooks to pages created from now on. This
+   * is audited as a runtime enable. Unknown or third-party names are refused.
+   */
+  async usePlugin(name) {
+    const loweredSelf = uniffiBrowserObjectFactory.cloneHandle(this);
+    const ffiMethod =
+      uniffiBrowserObjectFactory.usesGenericAbi(this)
+        ? ffiFunctions.uniffi_xcelerate_fn_method_browser_use_plugin_generic_abi
+        : ffiFunctions.uniffi_xcelerate_fn_method_browser_use_plugin;
+    const loweredName = uniffiLowerString(name);
+    const completeFunc = (rustFuture, status) => ffiFunctions.ffi_xcelerate_rust_future_complete_void(rustFuture, status);
+    return rustCallAsync({
+      rustFutureFunc: () => ffiMethod(loweredSelf, loweredName),
+      pollFunc: (rustFuture, _continuationCallback, continuationHandle) => ffiFunctions.ffi_xcelerate_rust_future_poll_void(rustFuture, uniffiGetRustFutureContinuationPointer(), continuationHandle),
+      cancelFunc: (rustFuture) => ffiFunctions.ffi_xcelerate_rust_future_cancel_void(rustFuture),
+      completeFunc,
+      freeFunc: (rustFuture) => ffiFunctions.ffi_xcelerate_rust_future_free_void(rustFuture),
+      liftFunc: (_uniffiResult) => undefined,
       ...uniffiRustCallOptions(FfiConverterXcelerateError),
     });
   }
@@ -4751,3 +4882,127 @@ const uniffiPageObjectFactory = createObjectFactory({
   },
 });
 const FfiConverterPage = createObjectConverter(uniffiPageObjectFactory);
+
+/**
+ * A handle to an enabled plugin, exposed to every language.
+ */
+export class PluginHandle extends UniffiObjectBase {
+  constructor() {
+    super();
+    return uniffiNotImplemented("PluginHandle.constructor");
+  }
+
+  /**
+   * Invoke an op with a JSON-encoded argument object; returns JSON.
+   */
+  async invoke(op, args_json) {
+    const loweredSelf = uniffiPluginHandleObjectFactory.cloneHandle(this);
+    const ffiMethod =
+      uniffiPluginHandleObjectFactory.usesGenericAbi(this)
+        ? ffiFunctions.uniffi_xcelerate_fn_method_pluginhandle_invoke_generic_abi
+        : ffiFunctions.uniffi_xcelerate_fn_method_pluginhandle_invoke;
+    const loweredOp = uniffiLowerString(op);
+    const loweredArgsJson = uniffiLowerString(args_json);
+    const completeFunc = (rustFuture, status) => ffiFunctions.ffi_xcelerate_rust_future_complete_rust_buffer(rustFuture, status);
+    return rustCallAsync({
+      rustFutureFunc: () => ffiMethod(loweredSelf, loweredOp, loweredArgsJson),
+      pollFunc: (rustFuture, _continuationCallback, continuationHandle) => ffiFunctions.ffi_xcelerate_rust_future_poll_rust_buffer(rustFuture, uniffiGetRustFutureContinuationPointer(), continuationHandle),
+      cancelFunc: (rustFuture) => ffiFunctions.ffi_xcelerate_rust_future_cancel_rust_buffer(rustFuture),
+      completeFunc,
+      freeFunc: (rustFuture) => ffiFunctions.ffi_xcelerate_rust_future_free_rust_buffer(rustFuture),
+      liftFunc: (uniffiResult) => uniffiLiftStringFromRustBuffer(uniffiResult),
+      ...uniffiRustCallOptions(FfiConverterXcelerateError),
+    });
+  }
+
+  /**
+   * The ops this plugin exposes.
+   */
+  ops() {
+    const loweredSelf = uniffiPluginHandleObjectFactory.cloneHandle(this);
+    const ffiMethod =
+      uniffiPluginHandleObjectFactory.usesGenericAbi(this)
+        ? ffiFunctions.uniffi_xcelerate_fn_method_pluginhandle_ops_generic_abi
+        : ffiFunctions.uniffi_xcelerate_fn_method_pluginhandle_ops;
+    const uniffiResult = uniffiRustCaller.rustCall(
+      (status) => ffiMethod(loweredSelf, status),
+      uniffiRustCallOptions(),
+    );
+    return uniffiLiftFromRustBuffer(uniffiArrayConverter(FfiConverterString), uniffiResult);
+  }
+
+  /**
+   * The plugin's name.
+   */
+  pluginName() {
+    const loweredSelf = uniffiPluginHandleObjectFactory.cloneHandle(this);
+    const ffiMethod =
+      uniffiPluginHandleObjectFactory.usesGenericAbi(this)
+        ? ffiFunctions.uniffi_xcelerate_fn_method_pluginhandle_plugin_name_generic_abi
+        : ffiFunctions.uniffi_xcelerate_fn_method_pluginhandle_plugin_name;
+    const uniffiResult = uniffiRustCaller.rustCall(
+      (status) => ffiMethod(loweredSelf, status),
+      uniffiRustCallOptions(),
+    );
+    return uniffiLiftStringFromRustBuffer(uniffiResult);
+  }
+}
+
+const uniffiPluginHandleObjectFactory = createObjectFactory({
+  typeName: "PluginHandle",
+  createInstance: () => Object.create(PluginHandle.prototype),
+  cloneFreeUsesUniffiHandle: true,
+  cloneHandleGeneric(handle) {
+    return uniffiRustCaller.rustCall(
+      (status) => ffiFunctions.uniffi_xcelerate_fn_clone_pluginhandle_generic_abi(handle, status),
+      uniffiRustCallOptions(),
+    );
+  },
+  cloneHandleRawExternal(handle) {
+    const rawExternalCloneHandle = uniffiGetCachedLibraryFunction(
+      "uniffi_xcelerate_fn_clone_pluginhandle:raw-external",
+      (bindings) => bindings.library.func(
+        "uniffi_xcelerate_fn_clone_pluginhandle",
+        bindings.ffiTypes.VoidPointer,
+        [bindings.ffiTypes.VoidPointer, koffi.pointer(bindings.ffiTypes.RustCallStatus)],
+      ),
+    );
+    return uniffiRustCaller.rustCall(
+      (status) => rawExternalCloneHandle(handle, status),
+      uniffiRustCallOptions(),
+    );
+  },
+  cloneHandle(handle) {
+    return uniffiRustCaller.rustCall(
+      (status) => ffiFunctions.uniffi_xcelerate_fn_clone_pluginhandle(handle, status),
+      uniffiRustCallOptions(),
+    );
+  },
+  freeHandleGeneric(handle) {
+    uniffiRustCaller.rustCall(
+      (status) => ffiFunctions.uniffi_xcelerate_fn_free_pluginhandle_generic_abi(handle, status),
+      uniffiRustCallOptions(),
+    );
+  },
+  freeHandleRawExternal(handle) {
+    const rawExternalFreeHandle = uniffiGetCachedLibraryFunction(
+      "uniffi_xcelerate_fn_free_pluginhandle:raw-external",
+      (bindings) => bindings.library.func(
+        "uniffi_xcelerate_fn_free_pluginhandle",
+        "void",
+        [bindings.ffiTypes.VoidPointer, koffi.pointer(bindings.ffiTypes.RustCallStatus)],
+      ),
+    );
+    uniffiRustCaller.rustCall(
+      (status) => rawExternalFreeHandle(handle, status),
+      uniffiRustCallOptions(),
+    );
+  },
+  freeHandle(handle) {
+    uniffiRustCaller.rustCall(
+      (status) => ffiFunctions.uniffi_xcelerate_fn_free_pluginhandle(handle, status),
+      uniffiRustCallOptions(),
+    );
+  },
+});
+const FfiConverterPluginHandle = createObjectConverter(uniffiPluginHandleObjectFactory);

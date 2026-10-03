@@ -643,7 +643,13 @@ internal object IntegrityCheckingUniffiLib {
         uniffiCheckContractApiVersion(this)
         uniffiCheckApiChecksums(this)
     }
-    external fun uniffi_xcelerate_checksum_method_browser_browser_contexts(
+    external fun uniffi_xcelerate_checksum_method_browser_audit_log(
+): Int
+external fun uniffi_xcelerate_checksum_method_browser_audit_verify(
+): Int
+external fun uniffi_xcelerate_checksum_method_browser_available_plugins(
+): Int
+external fun uniffi_xcelerate_checksum_method_browser_browser_contexts(
 ): Int
 external fun uniffi_xcelerate_checksum_method_browser_capabilities(
 ): Int
@@ -661,6 +667,8 @@ external fun uniffi_xcelerate_checksum_method_browser_is_connected(
 ): Int
 external fun uniffi_xcelerate_checksum_method_browser_listens_to(
 ): Int
+external fun uniffi_xcelerate_checksum_method_browser_load_plugin(
+): Int
 external fun uniffi_xcelerate_checksum_method_browser_new_context(
 ): Int
 external fun uniffi_xcelerate_checksum_method_browser_new_page(
@@ -668,6 +676,10 @@ external fun uniffi_xcelerate_checksum_method_browser_new_page(
 external fun uniffi_xcelerate_checksum_method_browser_on(
 ): Int
 external fun uniffi_xcelerate_checksum_method_browser_once(
+): Int
+external fun uniffi_xcelerate_checksum_method_browser_plugin(
+): Int
+external fun uniffi_xcelerate_checksum_method_browser_plugin_names(
 ): Int
 external fun uniffi_xcelerate_checksum_method_browser_remove_all_listeners(
 ): Int
@@ -684,6 +696,8 @@ external fun uniffi_xcelerate_checksum_method_browser_start_tracing(
 external fun uniffi_xcelerate_checksum_method_browser_stop_tracing(
 ): Int
 external fun uniffi_xcelerate_checksum_method_browser_targets(
+): Int
+external fun uniffi_xcelerate_checksum_method_browser_use_plugin(
 ): Int
 external fun uniffi_xcelerate_checksum_method_browser_user_agent(
 ): Int
@@ -991,6 +1005,12 @@ external fun uniffi_xcelerate_checksum_method_page_window_rect(
 ): Int
 external fun uniffi_xcelerate_checksum_method_page_window_size(
 ): Int
+external fun uniffi_xcelerate_checksum_method_pluginhandle_invoke(
+): Int
+external fun uniffi_xcelerate_checksum_method_pluginhandle_ops(
+): Int
+external fun uniffi_xcelerate_checksum_method_pluginhandle_plugin_name(
+): Int
 external fun uniffi_xcelerate_checksum_constructor_browser_launch(
 ): Int
 external fun ffi_xcelerate_uniffi_contract_version(
@@ -1017,6 +1037,12 @@ external fun uniffi_xcelerate_fn_free_browser(`handle`: Long,uniffi_out_err: Uni
 ): Unit
 external fun uniffi_xcelerate_fn_constructor_browser_launch(`config`: RustBuffer.ByValue,
 ): Long
+external fun uniffi_xcelerate_fn_method_browser_audit_log(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun uniffi_xcelerate_fn_method_browser_audit_verify(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Byte
+external fun uniffi_xcelerate_fn_method_browser_available_plugins(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
 external fun uniffi_xcelerate_fn_method_browser_browser_contexts(`ptr`: Long,
 ): Long
 external fun uniffi_xcelerate_fn_method_browser_capabilities(`ptr`: Long,
@@ -1035,6 +1061,8 @@ external fun uniffi_xcelerate_fn_method_browser_is_connected(`ptr`: Long,
 ): Long
 external fun uniffi_xcelerate_fn_method_browser_listens_to(`ptr`: Long,`eventName`: RustBuffer.ByValue,
 ): Long
+external fun uniffi_xcelerate_fn_method_browser_load_plugin(`ptr`: Long,`path`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
 external fun uniffi_xcelerate_fn_method_browser_new_context(`ptr`: Long,
 ): Long
 external fun uniffi_xcelerate_fn_method_browser_new_page(`ptr`: Long,`url`: RustBuffer.ByValue,
@@ -1043,6 +1071,10 @@ external fun uniffi_xcelerate_fn_method_browser_on(`ptr`: Long,`eventName`: Rust
 ): Long
 external fun uniffi_xcelerate_fn_method_browser_once(`ptr`: Long,`eventName`: RustBuffer.ByValue,
 ): Long
+external fun uniffi_xcelerate_fn_method_browser_plugin(`ptr`: Long,`name`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+): Long
+external fun uniffi_xcelerate_fn_method_browser_plugin_names(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
 external fun uniffi_xcelerate_fn_method_browser_remove_all_listeners(`ptr`: Long,
 ): Long
 external fun uniffi_xcelerate_fn_method_browser_remove_listener(`ptr`: Long,`eventName`: RustBuffer.ByValue,
@@ -1058,6 +1090,8 @@ external fun uniffi_xcelerate_fn_method_browser_start_tracing(`ptr`: Long,
 external fun uniffi_xcelerate_fn_method_browser_stop_tracing(`ptr`: Long,
 ): Long
 external fun uniffi_xcelerate_fn_method_browser_targets(`ptr`: Long,
+): Long
+external fun uniffi_xcelerate_fn_method_browser_use_plugin(`ptr`: Long,`name`: RustBuffer.ByValue,
 ): Long
 external fun uniffi_xcelerate_fn_method_browser_user_agent(`ptr`: Long,
 ): Long
@@ -1373,6 +1407,16 @@ external fun uniffi_xcelerate_fn_method_page_window_rect(`ptr`: Long,
 ): Long
 external fun uniffi_xcelerate_fn_method_page_window_size(`ptr`: Long,
 ): Long
+external fun uniffi_xcelerate_fn_clone_pluginhandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Long
+external fun uniffi_xcelerate_fn_free_pluginhandle(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Unit
+external fun uniffi_xcelerate_fn_method_pluginhandle_invoke(`ptr`: Long,`op`: RustBuffer.ByValue,`argsJson`: RustBuffer.ByValue,
+): Long
+external fun uniffi_xcelerate_fn_method_pluginhandle_ops(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+external fun uniffi_xcelerate_fn_method_pluginhandle_plugin_name(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
 external fun ffi_xcelerate_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 external fun ffi_xcelerate_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -1492,6 +1536,15 @@ private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
 }
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_audit_log() != 37952) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_xcelerate_checksum_method_browser_audit_verify() != 5412) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_xcelerate_checksum_method_browser_available_plugins() != 9431) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_xcelerate_checksum_method_browser_browser_contexts() != 50137) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1519,6 +1572,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_xcelerate_checksum_method_browser_listens_to() != 12245) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_xcelerate_checksum_method_browser_load_plugin() != 5693) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_xcelerate_checksum_method_browser_new_context() != 28184) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1529,6 +1585,12 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_browser_once() != 22376) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_xcelerate_checksum_method_browser_plugin() != 11907) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_xcelerate_checksum_method_browser_plugin_names() != 58296) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_browser_remove_all_listeners() != 51158) {
@@ -1553,6 +1615,9 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_browser_targets() != 28936) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_xcelerate_checksum_method_browser_use_plugin() != 20462) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_browser_user_agent() != 20558) {
@@ -2012,6 +2077,15 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_page_window_size() != 35222) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_xcelerate_checksum_method_pluginhandle_invoke() != 29371) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_xcelerate_checksum_method_pluginhandle_ops() != 11713) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_xcelerate_checksum_method_pluginhandle_plugin_name() != 61258) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_constructor_browser_launch() != 45323) {
@@ -2484,6 +2558,21 @@ public object FfiConverterByteArray: FfiConverterRustBuffer<ByteArray> {
 public interface BrowserInterface {
     
     /**
+     * Returns the plugin audit log as a JSON array (no secrets are recorded).
+     */
+    fun `auditLog`(): kotlin.String
+    
+    /**
+     * Verifies the integrity of the append-only plugin audit log.
+     */
+    fun `auditVerify`(): kotlin.Boolean
+    
+    /**
+     * Names of all compiled-in first-party plugins (the catalog).
+     */
+    fun `availablePlugins`(): List<kotlin.String>
+    
+    /**
      * Returns the browser context ids as a JSON array.
      */
     suspend fun `browserContexts`(): kotlin.String
@@ -2529,6 +2618,14 @@ public interface BrowserInterface {
     suspend fun `listensTo`(`eventName`: kotlin.String): kotlin.Boolean
     
     /**
+     * Loads a third-party plugin. Not supported in this phase.
+     *
+     * The sandboxed, out-of-process runner required for untrusted plugins does
+     * not exist yet, so this always refuses rather than executing unknown code.
+     */
+    fun `loadPlugin`(`path`: kotlin.String): kotlin.String
+    
+    /**
      * Creates a new (incognito) browser context and returns its id.
      */
     suspend fun `newContext`(): kotlin.String
@@ -2544,6 +2641,16 @@ public interface BrowserInterface {
      * Alias for [`Browser::on`].
      */
     suspend fun `once`(`eventName`: kotlin.String)
+    
+    /**
+     * Returns a handle to an enabled plugin so its ops can be invoked.
+     */
+    fun `plugin`(`name`: kotlin.String): PluginHandle
+    
+    /**
+     * Names of the plugins currently enabled on this browser.
+     */
+    fun `pluginNames`(): List<kotlin.String>
     
     /**
      * Removes every registered listener.
@@ -2584,6 +2691,16 @@ public interface BrowserInterface {
      * Returns the current targets as a JSON array (`Target.getTargets`).
      */
     suspend fun `targets`(): kotlin.String
+    
+    /**
+     * Enables a compiled-in first-party plugin at runtime.
+     *
+     * Launch-time contributions (such as binary patching) only take effect if
+     * the plugin was enabled before the browser launched; enabling a plugin
+     * afterwards applies its runtime hooks to pages created from now on. This
+     * is audited as a runtime enable. Unknown or third-party names are refused.
+     */
+    suspend fun `usePlugin`(`name`: kotlin.String)
     
     /**
      * Returns the browser's user agent.
@@ -2711,6 +2828,54 @@ open class Browser: Disposable, AutoCloseable, BrowserInterface
             UniffiLib.uniffi_xcelerate_fn_clone_browser(handle, status)
         }
     }
+
+    
+    /**
+     * Returns the plugin audit log as a JSON array (no secrets are recorded).
+     */override fun `auditLog`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_xcelerate_fn_method_browser_audit_log(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Verifies the integrity of the append-only plugin audit log.
+     */override fun `auditVerify`(): kotlin.Boolean {
+            return FfiConverterBoolean.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_xcelerate_fn_method_browser_audit_verify(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Names of all compiled-in first-party plugins (the catalog).
+     */override fun `availablePlugins`(): List<kotlin.String> {
+            return FfiConverterSequenceString.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_xcelerate_fn_method_browser_available_plugins(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
 
     
     /**
@@ -2930,6 +3095,26 @@ open class Browser: Disposable, AutoCloseable, BrowserInterface
 
     
     /**
+     * Loads a third-party plugin. Not supported in this phase.
+     *
+     * The sandboxed, out-of-process runner required for untrusted plugins does
+     * not exist yet, so this always refuses rather than executing unknown code.
+     */
+    @Throws(XcelerateException::class)override fun `loadPlugin`(`path`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithHandle {
+    uniffiRustCallWithError(XcelerateException) { _status ->
+    UniffiLib.uniffi_xcelerate_fn_method_browser_load_plugin(
+        it,
+        FfiConverterString.lower(`path`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
      * Creates a new (incognito) browser context and returns its id.
      */
     @Throws(XcelerateException::class)
@@ -3020,6 +3205,39 @@ open class Browser: Disposable, AutoCloseable, BrowserInterface
         UniffiNullRustCallStatusErrorHandler,
     )
     }
+
+    
+    /**
+     * Returns a handle to an enabled plugin so its ops can be invoked.
+     */
+    @Throws(XcelerateException::class)override fun `plugin`(`name`: kotlin.String): PluginHandle {
+            return FfiConverterTypePluginHandle.lift(
+    callWithHandle {
+    uniffiRustCallWithError(XcelerateException) { _status ->
+    UniffiLib.uniffi_xcelerate_fn_method_browser_plugin(
+        it,
+        FfiConverterString.lower(`name`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Names of the plugins currently enabled on this browser.
+     */override fun `pluginNames`(): List<kotlin.String> {
+            return FfiConverterSequenceString.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_xcelerate_fn_method_browser_plugin_names(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
 
     
     /**
@@ -3213,6 +3431,36 @@ open class Browser: Disposable, AutoCloseable, BrowserInterface
         { future -> UniffiLib.ffi_xcelerate_rust_future_free_rust_buffer(future) },
         // lift function
         { FfiConverterString.lift(it) },
+        // Error FFI converter
+        XcelerateException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * Enables a compiled-in first-party plugin at runtime.
+     *
+     * Launch-time contributions (such as binary patching) only take effect if
+     * the plugin was enabled before the browser launched; enabling a plugin
+     * afterwards applies its runtime hooks to pages created from now on. This
+     * is audited as a runtime enable. Unknown or third-party names are refused.
+     */
+    @Throws(XcelerateException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `usePlugin`(`name`: kotlin.String) {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_xcelerate_fn_method_browser_use_plugin(
+                uniffiHandle,
+                FfiConverterString.lower(`name`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_xcelerate_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_xcelerate_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.ffi_xcelerate_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
         // Error FFI converter
         XcelerateException.ErrorHandler,
     )
@@ -8164,6 +8412,318 @@ public object FfiConverterTypePage: FfiConverter<Page, Long> {
 }
 
 
+// This template implements a class for working with a Rust struct via a handle
+// to the live Rust struct on the other side of the FFI.
+//
+// There's some subtlety here, because we have to be careful not to operate on a Rust
+// struct after it has been dropped, and because we must expose a public API for freeing
+// theq Kotlin wrapper object in lieu of reliable finalizers. The core requirements are:
+//
+//   * Each instance holds an opaque handle to the underlying Rust struct.
+//     Method calls need to read this handle from the object's state and pass it in to
+//     the Rust FFI.
+//
+//   * When an instance is no longer needed, its handle should be passed to a
+//     special destructor function provided by the Rust FFI, which will drop the
+//     underlying Rust struct.
+//
+//   * Given an instance, calling code is expected to call the special
+//     `destroy` method in order to free it after use, either by calling it explicitly
+//     or by using a higher-level helper like the `use` method. Failing to do so risks
+//     leaking the underlying Rust struct.
+//
+//   * We can't assume that calling code will do the right thing, and must be prepared
+//     to handle Kotlin method calls executing concurrently with or even after a call to
+//     `destroy`, and to handle multiple (possibly concurrent!) calls to `destroy`.
+//
+//   * We must never allow Rust code to operate on the underlying Rust struct after
+//     the destructor has been called, and must never call the destructor more than once.
+//     Doing so may trigger memory unsafety.
+//
+//   * To mitigate many of the risks of leaking memory and use-after-free unsafety, a `Cleaner`
+//     is implemented to call the destructor when the Kotlin object becomes unreachable.
+//     This is done in a background thread. This is not a panacea, and client code should be aware that
+//      1. the thread may starve if some there are objects that have poorly performing
+//     `drop` methods or do significant work in their `drop` methods.
+//      2. the thread is shared across the whole library. This can be tuned by using `android_cleaner = true`,
+//         or `android = true` in the [`kotlin` section of the `uniffi.toml` file](https://mozilla.github.io/uniffi-rs/kotlin/configuration.html).
+//
+// If we try to implement this with mutual exclusion on access to the handle, there is the
+// possibility of a race between a method call and a concurrent call to `destroy`:
+//
+//    * Thread A starts a method call, reads the value of the handle, but is interrupted
+//      before it can pass the handle over the FFI to Rust.
+//    * Thread B calls `destroy` and frees the underlying Rust struct.
+//    * Thread A resumes, passing the already-read handle value to Rust and triggering
+//      a use-after-free.
+//
+// One possible solution would be to use a `ReadWriteLock`, with each method call taking
+// a read lock (and thus allowed to run concurrently) and the special `destroy` method
+// taking a write lock (and thus blocking on live method calls). However, we aim not to
+// generate methods with any hidden blocking semantics, and a `destroy` method that might
+// block if called incorrectly seems to meet that bar.
+//
+// So, we achieve our goals by giving each instance an associated `AtomicLong` counter to track
+// the number of in-flight method calls, and an `AtomicBoolean` flag to indicate whether `destroy`
+// has been called. These are updated according to the following rules:
+//
+//    * The initial value of the counter is 1, indicating a live object with no in-flight calls.
+//      The initial value for the flag is false.
+//
+//    * At the start of each method call, we atomically check the counter.
+//      If it is 0 then the underlying Rust struct has already been destroyed and the call is aborted.
+//      If it is nonzero them we atomically increment it by 1 and proceed with the method call.
+//
+//    * At the end of each method call, we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+//    * When `destroy` is called, we atomically flip the flag from false to true.
+//      If the flag was already true we silently fail.
+//      Otherwise we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+// Astute readers may observe that this all sounds very similar to the way that Rust's `Arc<T>` works,
+// and indeed it is, with the addition of a flag to guard against multiple calls to `destroy`.
+//
+// The overall effect is that the underlying Rust struct is destroyed only when `destroy` has been
+// called *and* all in-flight method calls have completed, avoiding violating any of the expectations
+// of the underlying Rust code.
+//
+// This makes a cleaner a better alternative to _not_ calling `destroy()` as
+// and when the object is finished with, but the abstraction is not perfect: if the Rust object's `drop`
+// method is slow, and/or there are many objects to cleanup, and it's on a low end Android device, then the cleaner
+// thread may be starved, and the app will leak memory.
+//
+// In this case, `destroy`ing manually may be a better solution.
+//
+// The cleaner can live side by side with the manual calling of `destroy`. In the order of responsiveness, uniffi objects
+// with Rust peers are reclaimed:
+//
+// 1. By calling the `destroy` method of the object, which calls `rustObject.free()`. If that doesn't happen:
+// 2. When the object becomes unreachable, AND the Cleaner thread gets to call `rustObject.free()`. If the thread is starved then:
+// 3. The memory is reclaimed when the process terminates.
+//
+// [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
+//
+
+
+/**
+ * A handle to an enabled plugin, exposed to every language.
+ */
+public interface PluginHandleInterface {
+    
+    /**
+     * Invoke an op with a JSON-encoded argument object; returns JSON.
+     */
+    suspend fun `invoke`(`op`: kotlin.String, `argsJson`: kotlin.String): kotlin.String
+    
+    /**
+     * The ops this plugin exposes.
+     */
+    fun `ops`(): List<kotlin.String>
+    
+    /**
+     * The plugin's name.
+     */
+    fun `pluginName`(): kotlin.String
+    
+    companion object
+}
+
+/**
+ * A handle to an enabled plugin, exposed to every language.
+ */
+open class PluginHandle: Disposable, AutoCloseable, PluginHandleInterface
+{
+
+    @Suppress("UNUSED_PARAMETER")
+    /**
+     * @suppress
+     */
+    constructor(withHandle: UniffiWithHandle, handle: Long) {
+        this.handle = handle
+        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(handle))
+    }
+
+    /**
+     * @suppress
+     *
+     * This constructor can be used to instantiate a fake object. Only used for tests. Any
+     * attempt to actually use an object constructed this way will fail as there is no
+     * connected Rust object.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    constructor(noHandle: NoHandle) {
+        this.handle = 0
+        this.cleanable = null
+    }
+
+    protected val handle: Long
+    protected val cleanable: UniffiCleaner.Cleanable?
+
+    private val wasDestroyed = AtomicBoolean(false)
+    private val callCounter = AtomicLong(1)
+
+    override fun destroy() {
+        // Only allow a single call to this method.
+        // TODO: maybe we should log a warning if called more than once?
+        if (this.wasDestroyed.compareAndSet(false, true)) {
+            // This decrement always matches the initial count of 1 given at creation time.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable?.clean()
+            }
+        }
+    }
+
+    @Synchronized
+    override fun close() {
+        this.destroy()
+    }
+
+    internal inline fun <R> callWithHandle(block: (handle: Long) -> R): R {
+        // Check and increment the call counter, to keep the object alive.
+        // This needs a compare-and-set retry loop in case of concurrent updates.
+        do {
+            val c = this.callCounter.get()
+            if (c == 0L) {
+                throw IllegalStateException("${this.javaClass.simpleName} object has already been destroyed")
+            }
+            if (c == Long.MAX_VALUE) {
+                throw IllegalStateException("${this.javaClass.simpleName} call counter would overflow")
+            }
+        } while (! this.callCounter.compareAndSet(c, c + 1L))
+        // Now we can safely do the method call without the handle being freed concurrently.
+        try {
+            return block(this.uniffiCloneHandle())
+        } finally {
+            // This decrement always matches the increment we performed above.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable?.clean()
+            }
+        }
+    }
+
+    // Use a static inner class instead of a closure so as not to accidentally
+    // capture `this` as part of the cleanable's action.
+    private class UniffiCleanAction(private val handle: Long) : Runnable {
+        override fun run() {
+            if (handle == 0.toLong()) {
+                // Fake object created with `NoHandle`, don't try to free.
+                return;
+            }
+            uniffiRustCall { status ->
+                UniffiLib.uniffi_xcelerate_fn_free_pluginhandle(handle, status)
+            }
+        }
+    }
+
+    /**
+     * @suppress
+     */
+    fun uniffiCloneHandle(): Long {
+        if (handle == 0.toLong()) {
+            throw InternalException("uniffiCloneHandle() called on NoHandle object");
+        }
+        return uniffiRustCall() { status ->
+            UniffiLib.uniffi_xcelerate_fn_clone_pluginhandle(handle, status)
+        }
+    }
+
+    
+    /**
+     * Invoke an op with a JSON-encoded argument object; returns JSON.
+     */
+    @Throws(XcelerateException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `invoke`(`op`: kotlin.String, `argsJson`: kotlin.String) : kotlin.String {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_xcelerate_fn_method_pluginhandle_invoke(
+                uniffiHandle,
+                FfiConverterString.lower(`op`),FfiConverterString.lower(`argsJson`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_xcelerate_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_xcelerate_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_xcelerate_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterString.lift(it) },
+        // Error FFI converter
+        XcelerateException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * The ops this plugin exposes.
+     */override fun `ops`(): List<kotlin.String> {
+            return FfiConverterSequenceString.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_xcelerate_fn_method_pluginhandle_ops(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * The plugin's name.
+     */override fun `pluginName`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_xcelerate_fn_method_pluginhandle_plugin_name(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+
+    
+
+
+    
+    
+    /**
+     * @suppress
+     */
+    companion object
+    
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypePluginHandle: FfiConverter<PluginHandle, Long> {
+    override fun lower(value: PluginHandle): Long {
+        return value.uniffiCloneHandle()
+    }
+
+    override fun lift(value: Long): PluginHandle {
+        return PluginHandle(UniffiWithHandle, value)
+    }
+
+    override fun read(buf: ByteBuffer): PluginHandle {
+        return lift(buf.getLong())
+    }
+
+    override fun allocationSize(value: PluginHandle) = 8UL
+
+    override fun write(value: PluginHandle, buf: ByteBuffer) {
+        buf.putLong(lower(value))
+    }
+}
+
+
 
 /**
  * Configuration for the Browser instance.
@@ -8175,9 +8735,12 @@ data class BrowserConfig (
     var `headless`: kotlin.Boolean = true
     , 
     /**
-     * Whether to apply stealth patches to the binary.
+     * Deprecated: enable the first-party `stealth` plugin. Prefer `plugins`.
+     *
+     * This is sugar for adding `"stealth"` to [`BrowserConfig::plugins`] and
+     * will be removed in a future major release.
      */
-    var `stealth`: kotlin.Boolean = true
+    var `stealth`: kotlin.Boolean = false
     , 
     /**
      * Whether to run the browser as a detached process.
@@ -8188,6 +8751,13 @@ data class BrowserConfig (
      * Optional path to the browser executable.
      */
     var `executablePath`: kotlin.String? = null
+    , 
+    /**
+     * First-party plugins to enable for this browser (for example
+     * `["stealth"]`). Default-deny: no plugin does anything unless listed
+     * here (or enabled afterwards with `Browser::use_plugin`).
+     */
+    var `plugins`: List<kotlin.String>? = null
     
 ){
     
@@ -8208,6 +8778,7 @@ public object FfiConverterTypeBrowserConfig: FfiConverterRustBuffer<BrowserConfi
             FfiConverterBoolean.read(buf),
             FfiConverterBoolean.read(buf),
             FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalSequenceString.read(buf),
         )
     }
 
@@ -8215,7 +8786,8 @@ public object FfiConverterTypeBrowserConfig: FfiConverterRustBuffer<BrowserConfi
             FfiConverterBoolean.allocationSize(value.`headless`) +
             FfiConverterBoolean.allocationSize(value.`stealth`) +
             FfiConverterBoolean.allocationSize(value.`detached`) +
-            FfiConverterOptionalString.allocationSize(value.`executablePath`)
+            FfiConverterOptionalString.allocationSize(value.`executablePath`) +
+            FfiConverterOptionalSequenceString.allocationSize(value.`plugins`)
     )
 
     override fun write(value: BrowserConfig, buf: ByteBuffer) {
@@ -8223,6 +8795,7 @@ public object FfiConverterTypeBrowserConfig: FfiConverterRustBuffer<BrowserConfi
             FfiConverterBoolean.write(value.`stealth`, buf)
             FfiConverterBoolean.write(value.`detached`, buf)
             FfiConverterOptionalString.write(value.`executablePath`, buf)
+            FfiConverterOptionalSequenceString.write(value.`plugins`, buf)
     }
 }
 
@@ -8338,6 +8911,38 @@ public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?>
         } else {
             buf.put(1)
             FfiConverterString.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalSequenceString: FfiConverterRustBuffer<List<kotlin.String>?> {
+    override fun read(buf: ByteBuffer): List<kotlin.String>? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterSequenceString.read(buf)
+    }
+
+    override fun allocationSize(value: List<kotlin.String>?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterSequenceString.allocationSize(value)
+        }
+    }
+
+    override fun write(value: List<kotlin.String>?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterSequenceString.write(value, buf)
         }
     }
 }

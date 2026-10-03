@@ -108,6 +108,105 @@ public class Browser implements AutoCloseable, BrowserInterface {
 
   
     /**
+     * Returns the plugin audit log as a JSON array (no secrets are recorded).
+     */
+    @Override
+    public java.lang.String auditLog()  {
+            try {
+                return FfiConverterString.INSTANCE.lift(
+    callWithHandle(uniffiHandle -> {
+        try {
+    
+            return
+    UniffiHelpers.uniffiRustCall( (_allocator, _status) -> {
+        return UniffiLib.uniffi_xcelerate_fn_method_browser_audit_log(_allocator, uniffiHandle,
+            _status);
+    });
+    
+        } catch (java.lang.Exception _uniffi_ex) {
+            throw new java.lang.RuntimeException(_uniffi_ex);
+        }
+    })
+    );
+            } catch (java.lang.RuntimeException _uniffi_ex) {
+                
+                
+                if (InternalException.class.isInstance(_uniffi_ex.getCause())) {
+                    throw (InternalException)_uniffi_ex.getCause();
+                }
+                throw _uniffi_ex;
+            }
+    }
+    
+
+  
+    /**
+     * Verifies the integrity of the append-only plugin audit log.
+     */
+    @Override
+    public boolean auditVerify()  {
+            try {
+                return FfiConverterBoolean.INSTANCE.lift(
+    callWithHandle(uniffiHandle -> {
+        try {
+    
+            return
+    UniffiHelpers.uniffiRustCall( (_allocator, _status) -> {
+        return UniffiLib.uniffi_xcelerate_fn_method_browser_audit_verify(uniffiHandle,
+            _status);
+    });
+    
+        } catch (java.lang.Exception _uniffi_ex) {
+            throw new java.lang.RuntimeException(_uniffi_ex);
+        }
+    })
+    );
+            } catch (java.lang.RuntimeException _uniffi_ex) {
+                
+                
+                if (InternalException.class.isInstance(_uniffi_ex.getCause())) {
+                    throw (InternalException)_uniffi_ex.getCause();
+                }
+                throw _uniffi_ex;
+            }
+    }
+    
+
+  
+    /**
+     * Names of all compiled-in first-party plugins (the catalog).
+     */
+    @Override
+    public java.util.List<java.lang.String> availablePlugins()  {
+            try {
+                return FfiConverterSequenceString.INSTANCE.lift(
+    callWithHandle(uniffiHandle -> {
+        try {
+    
+            return
+    UniffiHelpers.uniffiRustCall( (_allocator, _status) -> {
+        return UniffiLib.uniffi_xcelerate_fn_method_browser_available_plugins(_allocator, uniffiHandle,
+            _status);
+    });
+    
+        } catch (java.lang.Exception _uniffi_ex) {
+            throw new java.lang.RuntimeException(_uniffi_ex);
+        }
+    })
+    );
+            } catch (java.lang.RuntimeException _uniffi_ex) {
+                
+                
+                if (InternalException.class.isInstance(_uniffi_ex.getCause())) {
+                    throw (InternalException)_uniffi_ex.getCause();
+                }
+                throw _uniffi_ex;
+            }
+    }
+    
+
+  
+    /**
      * Returns the browser context ids as a JSON array.
      */
     @Override
@@ -351,6 +450,45 @@ public class Browser implements AutoCloseable, BrowserInterface {
 
   
     /**
+     * Loads a third-party plugin. Not supported in this phase.
+     *
+     * The sandboxed, out-of-process runner required for untrusted plugins does
+     * not exist yet, so this always refuses rather than executing unknown code.
+     */
+    @Override
+    public java.lang.String loadPlugin(java.lang.String path) throws XcelerateException {
+            try {
+                return FfiConverterString.INSTANCE.lift(
+    callWithHandle(uniffiHandle -> {
+        try {
+    
+            return
+    UniffiHelpers.uniffiRustCallWithError(new XcelerateExceptionErrorHandler(), (_allocator, _status) -> {
+        return UniffiLib.uniffi_xcelerate_fn_method_browser_load_plugin(_allocator, uniffiHandle,
+            FfiConverterString.INSTANCE.lower(path), _status);
+    });
+    
+        } catch (java.lang.Exception _uniffi_ex) {
+            throw new java.lang.RuntimeException(_uniffi_ex);
+        }
+    })
+    );
+            } catch (java.lang.RuntimeException _uniffi_ex) {
+                
+                if (XcelerateException.class.isInstance(_uniffi_ex.getCause())) {
+                    throw (XcelerateException)_uniffi_ex.getCause();
+                }
+                
+                if (InternalException.class.isInstance(_uniffi_ex.getCause())) {
+                    throw (InternalException)_uniffi_ex.getCause();
+                }
+                throw _uniffi_ex;
+            }
+    }
+    
+
+  
+    /**
      * Creates a new (incognito) browser context and returns its id.
      */
     @Override
@@ -453,6 +591,75 @@ public class Browser implements AutoCloseable, BrowserInterface {
         new UniffiNullRustCallStatusErrorHandler()
     );
     }
+
+  
+    /**
+     * Returns a handle to an enabled plugin so its ops can be invoked.
+     */
+    @Override
+    public PluginHandle plugin(java.lang.String name) throws XcelerateException {
+            try {
+                return FfiConverterTypePluginHandle.INSTANCE.lift(
+    callWithHandle(uniffiHandle -> {
+        try {
+    
+            return
+    UniffiHelpers.uniffiRustCallWithError(new XcelerateExceptionErrorHandler(), (_allocator, _status) -> {
+        return UniffiLib.uniffi_xcelerate_fn_method_browser_plugin(uniffiHandle,
+            FfiConverterString.INSTANCE.lower(name), _status);
+    });
+    
+        } catch (java.lang.Exception _uniffi_ex) {
+            throw new java.lang.RuntimeException(_uniffi_ex);
+        }
+    })
+    );
+            } catch (java.lang.RuntimeException _uniffi_ex) {
+                
+                if (XcelerateException.class.isInstance(_uniffi_ex.getCause())) {
+                    throw (XcelerateException)_uniffi_ex.getCause();
+                }
+                
+                if (InternalException.class.isInstance(_uniffi_ex.getCause())) {
+                    throw (InternalException)_uniffi_ex.getCause();
+                }
+                throw _uniffi_ex;
+            }
+    }
+    
+
+  
+    /**
+     * Names of the plugins currently enabled on this browser.
+     */
+    @Override
+    public java.util.List<java.lang.String> pluginNames()  {
+            try {
+                return FfiConverterSequenceString.INSTANCE.lift(
+    callWithHandle(uniffiHandle -> {
+        try {
+    
+            return
+    UniffiHelpers.uniffiRustCall( (_allocator, _status) -> {
+        return UniffiLib.uniffi_xcelerate_fn_method_browser_plugin_names(_allocator, uniffiHandle,
+            _status);
+    });
+    
+        } catch (java.lang.Exception _uniffi_ex) {
+            throw new java.lang.RuntimeException(_uniffi_ex);
+        }
+    })
+    );
+            } catch (java.lang.RuntimeException _uniffi_ex) {
+                
+                
+                if (InternalException.class.isInstance(_uniffi_ex.getCause())) {
+                    throw (InternalException)_uniffi_ex.getCause();
+                }
+                throw _uniffi_ex;
+            }
+    }
+    
 
   
     /**
@@ -665,6 +872,38 @@ public class Browser implements AutoCloseable, BrowserInterface {
         (future) -> UniffiLib.ffi_xcelerate_rust_future_free_rust_buffer(future),
         // lift function
         (it) -> FfiConverterString.INSTANCE.lift(it),
+        // Error FFI converter
+        new XcelerateExceptionErrorHandler()
+    );
+    }
+
+  
+    /**
+     * Enables a compiled-in first-party plugin at runtime.
+     *
+     * Launch-time contributions (such as binary patching) only take effect if
+     * the plugin was enabled before the browser launched; enabling a plugin
+     * afterwards applies its runtime hooks to pages created from now on. This
+     * is audited as a runtime enable. Unknown or third-party names are refused.
+     */
+    @Override
+    public java.util.concurrent.CompletableFuture<java.lang.Void> usePlugin(java.lang.String name){
+        return usePlugin(name, java.util.concurrent.ForkJoinPool.commonPool());
+    }public java.util.concurrent.CompletableFuture<java.lang.Void> usePlugin(java.lang.String name, java.util.concurrent.Executor uniffiExecutor
+    ){
+        return UniffiAsyncHelpers.uniffiRustCallAsync(
+        uniffiExecutor,
+        callWithHandle(uniffiHandle -> {
+            return UniffiLib.uniffi_xcelerate_fn_method_browser_use_plugin(
+                uniffiHandle,
+                FfiConverterString.INSTANCE.lower(name)
+            );
+        }),
+        (future, callback, continuationHandle) -> UniffiLib.ffi_xcelerate_rust_future_poll_void(future, callback, continuationHandle),
+        (_allocator, future, continuation) -> UniffiLib.ffi_xcelerate_rust_future_complete_void(future, continuation),
+        (future) -> UniffiLib.ffi_xcelerate_rust_future_free_void(future),
+        // lift function
+        () -> {},
         // Error FFI converter
         new XcelerateExceptionErrorHandler()
     );

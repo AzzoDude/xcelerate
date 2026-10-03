@@ -37,13 +37,30 @@ impl From<xcelerate_core::Error> for XcelerateError {
     }
 }
 
-impl From<xcelerate_stealth::Error> for XcelerateError {
-    fn from(e: xcelerate_stealth::Error) -> Self {
-        use xcelerate_stealth::Error as StealthError;
+impl From<xcelerate_plugins::Error> for XcelerateError {
+    fn from(e: xcelerate_plugins::Error) -> Self {
+        use xcelerate_plugins::Error as PluginsError;
         match e {
-            StealthError::NotFound(message) => Self::NotFound(message),
-            StealthError::Internal => Self::InternalError,
+            PluginsError::NotFound(message) => Self::NotFound(message),
+            PluginsError::Internal => Self::InternalError,
         }
+    }
+}
+
+impl From<xcelerate_plugin_api::PluginError> for XcelerateError {
+    fn from(e: xcelerate_plugin_api::PluginError) -> Self {
+        use xcelerate_plugin_api::PluginError as ApiError;
+        match e {
+            ApiError::NotFound(message) => Self::NotFound(message),
+            ApiError::Unsupported(message) => Self::Unsupported(message),
+            ApiError::Message(message) => Self::Unsupported(message),
+        }
+    }
+}
+
+impl From<XcelerateError> for xcelerate_plugin_api::PluginError {
+    fn from(e: XcelerateError) -> Self {
+        xcelerate_plugin_api::PluginError::Message(e.to_string())
     }
 }
 

@@ -35,8 +35,9 @@ import uniffi.xcelerate.BrowserConfig
 import kotlinx.coroutines.runBlocking
 
 fun main() = runBlocking {
-    // headless = true, stealth = true, detached = true, executablePath = null
-    val browser = Browser.launch(BrowserConfig())
+    // headless = true, stealth = false, detached = true, executablePath = null,
+    // plugins = null. Stealth is opt-in via the first-party plugin.
+    val browser = Browser.launch(BrowserConfig(plugins = listOf("stealth")))
     val page = browser.newPage("https://example.com")
     println(page.title())
     val png = page.screenshotFull()
@@ -46,6 +47,22 @@ fun main() = runBlocking {
 
 Every call is a `suspend` function, so run inside a coroutine
 (`runBlocking { ... }`, `suspend fun`, etc.).
+
+## Plugins
+
+Plugins are default-deny. Enable the first-party `stealth` plugin by listing it
+in `BrowserConfig(plugins = listOf("stealth"))` before launch. The same fixed
+bridge is available in Kotlin:
+
+```kotlin
+println(browser.pluginNames())        // ["stealth"]
+println(browser.availablePlugins())   // ["stealth", "human"]
+val stealth = browser.plugin("stealth")
+println(stealth.invoke("info", "{}"))
+```
+
+`loadPlugin` refuses third-party plugins until the sandboxed runner ships; see the
+[top-level README](../../README.md#plugins) for trust tiers and the audit log.
 
 ## Native library
 

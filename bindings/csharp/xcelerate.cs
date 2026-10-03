@@ -1099,6 +1099,28 @@ static class _UniFFILib {
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     static _UniFFILib() {
         _UniFFILib.uniffiCheckContractApiVersion();
@@ -1137,6 +1159,39 @@ static class _UniFFILib {
     public static extern
 #endif
      ulong uniffi_xcelerate_fn_constructor_browser_launch(RustBuffer @config
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     RustBuffer uniffi_xcelerate_fn_method_browser_audit_log(ulong @ptr,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     sbyte uniffi_xcelerate_fn_method_browser_audit_verify(ulong @ptr,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     RustBuffer uniffi_xcelerate_fn_method_browser_available_plugins(ulong @ptr,ref UniffiRustCallStatus _uniffi_out_err
     );
 
     #if NET8_0_OR_GREATER
@@ -1246,6 +1301,17 @@ static class _UniFFILib {
     [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
     public static extern
 #endif
+     RustBuffer uniffi_xcelerate_fn_method_browser_load_plugin(ulong @ptr,RustBuffer @path,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
      ulong uniffi_xcelerate_fn_method_browser_new_context(ulong @ptr
     );
 
@@ -1280,6 +1346,28 @@ static class _UniFFILib {
     public static extern
 #endif
      ulong uniffi_xcelerate_fn_method_browser_once(ulong @ptr,RustBuffer @eventName
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ulong uniffi_xcelerate_fn_method_browser_plugin(ulong @ptr,RustBuffer @name,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     RustBuffer uniffi_xcelerate_fn_method_browser_plugin_names(ulong @ptr,ref UniffiRustCallStatus _uniffi_out_err
     );
 
     #if NET8_0_OR_GREATER
@@ -1368,6 +1456,17 @@ static class _UniFFILib {
     public static extern
 #endif
      ulong uniffi_xcelerate_fn_method_browser_targets(ulong @ptr
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ulong uniffi_xcelerate_fn_method_browser_use_plugin(ulong @ptr,RustBuffer @name
     );
 
     #if NET8_0_OR_GREATER
@@ -3105,6 +3204,61 @@ static class _UniFFILib {
     [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
     public static extern
 #endif
+     ulong uniffi_xcelerate_fn_clone_pluginhandle(ulong @handle,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     void uniffi_xcelerate_fn_free_pluginhandle(ulong @handle,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ulong uniffi_xcelerate_fn_method_pluginhandle_invoke(ulong @ptr,RustBuffer @op,RustBuffer @argsJson
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     RustBuffer uniffi_xcelerate_fn_method_pluginhandle_ops(ulong @ptr,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     RustBuffer uniffi_xcelerate_fn_method_pluginhandle_plugin_name(ulong @ptr,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
      RustBuffer ffi_xcelerate_rustbuffer_alloc(ulong @size,ref UniffiRustCallStatus _uniffi_out_err
     );
 
@@ -3677,6 +3831,39 @@ static class _UniFFILib {
     [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
     public static extern
 #endif
+     ushort uniffi_xcelerate_checksum_method_browser_audit_log(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ushort uniffi_xcelerate_checksum_method_browser_audit_verify(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ushort uniffi_xcelerate_checksum_method_browser_available_plugins(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
      ushort uniffi_xcelerate_checksum_method_browser_browser_contexts(
     );
 
@@ -3776,6 +3963,17 @@ static class _UniFFILib {
     [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
     public static extern
 #endif
+     ushort uniffi_xcelerate_checksum_method_browser_load_plugin(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
      ushort uniffi_xcelerate_checksum_method_browser_new_context(
     );
 
@@ -3810,6 +4008,28 @@ static class _UniFFILib {
     public static extern
 #endif
      ushort uniffi_xcelerate_checksum_method_browser_once(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ushort uniffi_xcelerate_checksum_method_browser_plugin(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ushort uniffi_xcelerate_checksum_method_browser_plugin_names(
     );
 
     #if NET8_0_OR_GREATER
@@ -3898,6 +4118,17 @@ static class _UniFFILib {
     public static extern
 #endif
      ushort uniffi_xcelerate_checksum_method_browser_targets(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ushort uniffi_xcelerate_checksum_method_browser_use_plugin(
     );
 
     #if NET8_0_OR_GREATER
@@ -5591,6 +5822,39 @@ static class _UniFFILib {
     [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
     public static extern
 #endif
+     ushort uniffi_xcelerate_checksum_method_pluginhandle_invoke(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ushort uniffi_xcelerate_checksum_method_pluginhandle_ops(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ushort uniffi_xcelerate_checksum_method_pluginhandle_plugin_name(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
      ushort uniffi_xcelerate_checksum_constructor_browser_launch(
     );
 
@@ -5614,6 +5878,24 @@ static class _UniFFILib {
         }
     }
     static void uniffiCheckApiChecksums() {
+        {
+            var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_audit_log();
+            if (checksum != 37952) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_audit_log` checksum `37952`, library returned `{checksum}`");
+            }
+        }
+        {
+            var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_audit_verify();
+            if (checksum != 5412) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_audit_verify` checksum `5412`, library returned `{checksum}`");
+            }
+        }
+        {
+            var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_available_plugins();
+            if (checksum != 9431) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_available_plugins` checksum `9431`, library returned `{checksum}`");
+            }
+        }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_browser_contexts();
             if (checksum != 50137) {
@@ -5669,6 +5951,12 @@ static class _UniFFILib {
             }
         }
         {
+            var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_load_plugin();
+            if (checksum != 5693) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_load_plugin` checksum `5693`, library returned `{checksum}`");
+            }
+        }
+        {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_new_context();
             if (checksum != 28184) {
                 throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_new_context` checksum `28184`, library returned `{checksum}`");
@@ -5690,6 +5978,18 @@ static class _UniFFILib {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_once();
             if (checksum != 22376) {
                 throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_once` checksum `22376`, library returned `{checksum}`");
+            }
+        }
+        {
+            var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_plugin();
+            if (checksum != 11907) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_plugin` checksum `11907`, library returned `{checksum}`");
+            }
+        }
+        {
+            var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_plugin_names();
+            if (checksum != 58296) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_plugin_names` checksum `58296`, library returned `{checksum}`");
             }
         }
         {
@@ -5738,6 +6038,12 @@ static class _UniFFILib {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_targets();
             if (checksum != 28936) {
                 throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_targets` checksum `28936`, library returned `{checksum}`");
+            }
+        }
+        {
+            var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_use_plugin();
+            if (checksum != 20462) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_use_plugin` checksum `20462`, library returned `{checksum}`");
             }
         }
         {
@@ -6659,6 +6965,24 @@ static class _UniFFILib {
             }
         }
         {
+            var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_pluginhandle_invoke();
+            if (checksum != 29371) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_pluginhandle_invoke` checksum `29371`, library returned `{checksum}`");
+            }
+        }
+        {
+            var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_pluginhandle_ops();
+            if (checksum != 11713) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_pluginhandle_ops` checksum `11713`, library returned `{checksum}`");
+            }
+        }
+        {
+            var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_pluginhandle_plugin_name();
+            if (checksum != 61258) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_pluginhandle_plugin_name` checksum `61258`, library returned `{checksum}`");
+            }
+        }
+        {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_constructor_browser_launch();
             if (checksum != 45323) {
                 throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_constructor_browser_launch` checksum `45323`, library returned `{checksum}`");
@@ -6851,6 +7175,18 @@ public class FfiConverterByteArray: FfiConverterRustBuffer<byte[]> {
 /// </summary>
 public interface IBrowser {
     /// <summary>
+    /// Returns the plugin audit log as a JSON array (no secrets are recorded).
+    /// </summary>
+    string AuditLog();
+    /// <summary>
+    /// Verifies the integrity of the append-only plugin audit log.
+    /// </summary>
+    bool AuditVerify();
+    /// <summary>
+    /// Names of all compiled-in first-party plugins (the catalog).
+    /// </summary>
+    string[] AvailablePlugins();
+    /// <summary>
     /// Returns the browser context ids as a JSON array.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
@@ -6893,6 +7229,14 @@ public interface IBrowser {
     /// </summary>
     Task<bool> ListensTo(string @eventName);
     /// <summary>
+    /// Loads a third-party plugin. Not supported in this phase.
+    ///
+    /// The sandboxed, out-of-process runner required for untrusted plugins does
+    /// not exist yet, so this always refuses rather than executing unknown code.
+    /// </summary>
+    /// <exception cref="XcelerateException"></exception>
+    string LoadPlugin(string @path);
+    /// <summary>
     /// Creates a new (incognito) browser context and returns its id.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
@@ -6907,6 +7251,15 @@ public interface IBrowser {
     /// Alias for [`Browser::on`].
     /// </summary>
     Task Once(string @eventName);
+    /// <summary>
+    /// Returns a handle to an enabled plugin so its ops can be invoked.
+    /// </summary>
+    /// <exception cref="XcelerateException"></exception>
+    PluginHandle Plugin(string @name);
+    /// <summary>
+    /// Names of the plugins currently enabled on this browser.
+    /// </summary>
+    string[] PluginNames();
     /// <summary>
     /// Removes every registered listener.
     /// </summary>
@@ -6945,6 +7298,16 @@ public interface IBrowser {
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<string> Targets();
+    /// <summary>
+    /// Enables a compiled-in first-party plugin at runtime.
+    ///
+    /// Launch-time contributions (such as binary patching) only take effect if
+    /// the plugin was enabled before the browser launched; enabling a plugin
+    /// afterwards applies its runtime hooks to pages created from now on. This
+    /// is audited as a runtime enable. Unknown or third-party names are refused.
+    /// </summary>
+    /// <exception cref="XcelerateException"></exception>
+    Task UsePlugin(string @name);
     /// <summary>
     /// Returns the browser's user agent.
     /// </summary>
@@ -7061,6 +7424,39 @@ public class Browser : IBrowser, IDisposable {
         }
     }
 
+    
+    /// <summary>
+    /// Returns the plugin audit log as a JSON array (no secrets are recorded).
+    /// </summary>
+    public string AuditLog() {
+        return CallWithPointer(thisPtr => FfiConverterString.INSTANCE.Lift(
+    _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_xcelerate_fn_method_browser_audit_log(thisPtr,  ref _status)
+)));
+    }
+    
+    
+    /// <summary>
+    /// Verifies the integrity of the append-only plugin audit log.
+    /// </summary>
+    public bool AuditVerify() {
+        return CallWithPointer(thisPtr => FfiConverterBoolean.INSTANCE.Lift(
+    _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_xcelerate_fn_method_browser_audit_verify(thisPtr,  ref _status)
+)));
+    }
+    
+    
+    /// <summary>
+    /// Names of all compiled-in first-party plugins (the catalog).
+    /// </summary>
+    public string[] AvailablePlugins() {
+        return CallWithPointer(thisPtr => FfiConverterSequenceString.INSTANCE.Lift(
+    _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_xcelerate_fn_method_browser_available_plugins(thisPtr,  ref _status)
+)));
+    }
+    
     
     /// <summary>
     /// Returns the browser context ids as a JSON array.
@@ -7276,6 +7672,21 @@ public class Browser : IBrowser, IDisposable {
     }
     
     /// <summary>
+    /// Loads a third-party plugin. Not supported in this phase.
+    ///
+    /// The sandboxed, out-of-process runner required for untrusted plugins does
+    /// not exist yet, so this always refuses rather than executing unknown code.
+    /// </summary>
+    /// <exception cref="XcelerateException"></exception>
+    public string LoadPlugin(string @path) {
+        return CallWithPointer(thisPtr => FfiConverterString.INSTANCE.Lift(
+    _UniffiHelpers.RustCallWithError(FfiConverterTypeXcelerateError.INSTANCE, (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_xcelerate_fn_method_browser_load_plugin(thisPtr, FfiConverterString.INSTANCE.Lower(@path), ref _status)
+)));
+    }
+    
+    
+    /// <summary>
     /// Creates a new (incognito) browser context and returns its id.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
@@ -7363,6 +7774,29 @@ public class Browser : IBrowser, IDisposable {
         
     );
     }
+    
+    /// <summary>
+    /// Returns a handle to an enabled plugin so its ops can be invoked.
+    /// </summary>
+    /// <exception cref="XcelerateException"></exception>
+    public PluginHandle Plugin(string @name) {
+        return CallWithPointer(thisPtr => FfiConverterTypePluginHandle.INSTANCE.Lift(
+    _UniffiHelpers.RustCallWithError(FfiConverterTypeXcelerateError.INSTANCE, (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_xcelerate_fn_method_browser_plugin(thisPtr, FfiConverterString.INSTANCE.Lower(@name), ref _status)
+)));
+    }
+    
+    
+    /// <summary>
+    /// Names of the plugins currently enabled on this browser.
+    /// </summary>
+    public string[] PluginNames() {
+        return CallWithPointer(thisPtr => FfiConverterSequenceString.INSTANCE.Lift(
+    _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_xcelerate_fn_method_browser_plugin_names(thisPtr,  ref _status)
+)));
+    }
+    
     
     /// <summary>
     /// Removes every registered listener.
@@ -7531,6 +7965,32 @@ public class Browser : IBrowser, IDisposable {
         (ulong future) => _UniFFILib.ffi_xcelerate_rust_future_free_rust_buffer(future),
         // Lift
         (result) => FfiConverterString.INSTANCE.Lift(result),
+        // Error
+        FfiConverterTypeXcelerateError.INSTANCE
+    );
+    }
+    
+    /// <summary>
+    /// Enables a compiled-in first-party plugin at runtime.
+    ///
+    /// Launch-time contributions (such as binary patching) only take effect if
+    /// the plugin was enabled before the browser launched; enabling a plugin
+    /// afterwards applies its runtime hooks to pages created from now on. This
+    /// is audited as a runtime enable. Unknown or third-party names are refused.
+    /// </summary>
+    /// <exception cref="XcelerateException"></exception>
+    public async Task UsePlugin(string @name) {await _UniFFIAsync.UniffiRustCallAsync(
+        // Get rust future
+        CallWithPointer(thisPtr => {
+            return _UniFFILib.uniffi_xcelerate_fn_method_browser_use_plugin(thisPtr, FfiConverterString.INSTANCE.Lower(@name));
+        }),
+        // Poll
+        (ulong future, IntPtr continuation, ulong data) => _UniFFILib.ffi_xcelerate_rust_future_poll_void(future, continuation, data),
+        // Complete
+        (ulong future, ref UniffiRustCallStatus status) => {_UniFFILib.ffi_xcelerate_rust_future_complete_void(future, ref status);
+        },
+        // Free
+        (ulong future) => _UniFFILib.ffi_xcelerate_rust_future_free_void(future),
         // Error
         FfiConverterTypeXcelerateError.INSTANCE
     );
@@ -12082,13 +12542,203 @@ public class FfiConverterTypePage: FfiConverter<Page, ulong> {
 
 
 /// <summary>
+/// A handle to an enabled plugin, exposed to every language.
+/// </summary>
+public interface IPluginHandle {
+    /// <summary>
+    /// Invoke an op with a JSON-encoded argument object; returns JSON.
+    /// </summary>
+    /// <exception cref="XcelerateException"></exception>
+    Task<string> Invoke(string @op, string @argsJson);
+    /// <summary>
+    /// The ops this plugin exposes.
+    /// </summary>
+    string[] Ops();
+    /// <summary>
+    /// The plugin's name.
+    /// </summary>
+    string PluginName();
+}
+/// <summary>
+/// A handle to an enabled plugin, exposed to every language.
+/// </summary>
+public class PluginHandle : IPluginHandle, IDisposable {
+    protected ulong pointer;
+    private int _wasDestroyed = 0;
+    private long _callCounter = 1;
+
+    public PluginHandle(ulong pointer) {
+        this.pointer = pointer;
+    }
+
+    ~PluginHandle() {
+        Destroy();
+    }
+
+    protected void FreeRustArcPtr() {
+        _UniffiHelpers.RustCall((ref UniffiRustCallStatus status) => {
+            _UniFFILib.uniffi_xcelerate_fn_free_pluginhandle(this.pointer, ref status);
+        });
+    }
+
+    protected ulong CloneRustArcPtr() {
+        return _UniffiHelpers.RustCall((ref UniffiRustCallStatus status) => {
+            return _UniFFILib.uniffi_xcelerate_fn_clone_pluginhandle(this.pointer, ref status);
+        });
+    }
+
+    public void Destroy()
+    {
+        // Only allow a single call to this method.
+        if (Interlocked.CompareExchange(ref _wasDestroyed, 1, 0) == 0)
+        {
+            // This decrement always matches the initial count of 1 given at creation time.
+            if (Interlocked.Decrement(ref _callCounter) == 0)
+            {
+                FreeRustArcPtr();
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        Destroy();
+        GC.SuppressFinalize(this); // Suppress finalization to avoid unnecessary GC overhead.
+    }
+
+    private void IncrementCallCounter() 
+    {
+        // Check and increment the call counter, to keep the object alive.
+        // This needs a compare-and-set retry loop in case of concurrent updates.
+        long count;
+        do
+        {
+            count = Interlocked.Read(ref _callCounter);
+            if (count == 0L) throw new System.ObjectDisposedException(String.Format("'{0}' object has already been destroyed", this.GetType().Name));
+            if (count == long.MaxValue) throw new System.OverflowException(String.Format("'{0}' call counter would overflow", this.GetType().Name));
+
+        } while (Interlocked.CompareExchange(ref _callCounter, count + 1, count) != count);
+    }
+
+    private void DecrementCallCounter() 
+    {
+        // This decrement always matches the increment we performed above.
+        if (Interlocked.Decrement(ref _callCounter) == 0) {
+            FreeRustArcPtr();
+        }
+    }
+
+    internal void CallWithPointer(Action<ulong> action)
+    {
+        IncrementCallCounter();
+        try {
+            action(CloneRustArcPtr());
+        }
+        finally {
+            DecrementCallCounter();
+        }
+    }
+
+    internal T CallWithPointer<T>(Func<ulong, T> func)
+    {   
+        IncrementCallCounter();
+        try {
+            return func(CloneRustArcPtr());
+        }
+        finally {
+            DecrementCallCounter();
+        }
+    }
+
+    
+    /// <summary>
+    /// Invoke an op with a JSON-encoded argument object; returns JSON.
+    /// </summary>
+    /// <exception cref="XcelerateException"></exception>
+    public async Task<string> Invoke(string @op, string @argsJson) {
+    return await _UniFFIAsync.UniffiRustCallAsync(
+        // Get rust future
+        CallWithPointer(thisPtr => {
+            return _UniFFILib.uniffi_xcelerate_fn_method_pluginhandle_invoke(thisPtr, FfiConverterString.INSTANCE.Lower(@op), FfiConverterString.INSTANCE.Lower(@argsJson));
+        }),
+        // Poll
+        (ulong future, IntPtr continuation, ulong data) => _UniFFILib.ffi_xcelerate_rust_future_poll_rust_buffer(future, continuation, data),
+        // Complete
+        (ulong future, ref UniffiRustCallStatus status) => {
+            return _UniFFILib.ffi_xcelerate_rust_future_complete_rust_buffer(future, ref status);
+        },
+        // Free
+        (ulong future) => _UniFFILib.ffi_xcelerate_rust_future_free_rust_buffer(future),
+        // Lift
+        (result) => FfiConverterString.INSTANCE.Lift(result),
+        // Error
+        FfiConverterTypeXcelerateError.INSTANCE
+    );
+    }
+    
+    /// <summary>
+    /// The ops this plugin exposes.
+    /// </summary>
+    public string[] Ops() {
+        return CallWithPointer(thisPtr => FfiConverterSequenceString.INSTANCE.Lift(
+    _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_xcelerate_fn_method_pluginhandle_ops(thisPtr,  ref _status)
+)));
+    }
+    
+    
+    /// <summary>
+    /// The plugin's name.
+    /// </summary>
+    public string PluginName() {
+        return CallWithPointer(thisPtr => FfiConverterString.INSTANCE.Lift(
+    _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_xcelerate_fn_method_pluginhandle_plugin_name(thisPtr,  ref _status)
+)));
+    }
+    
+    
+
+    
+}
+public class FfiConverterTypePluginHandle: FfiConverter<PluginHandle, ulong> {
+    public static FfiConverterTypePluginHandle INSTANCE = new FfiConverterTypePluginHandle();
+
+
+    public override ulong Lower(PluginHandle value) {
+        return value.CallWithPointer(thisPtr => thisPtr);
+    }
+
+    public override PluginHandle Lift(ulong value) {
+        return new PluginHandle(value);
+    }
+
+    public override PluginHandle Read(BigEndianStream stream) {
+        return Lift(stream.ReadULong());
+    }
+
+    public override int AllocationSize(PluginHandle value) {
+        return 8;
+    }
+
+    public override void Write(PluginHandle value, BigEndianStream stream) {
+        stream.WriteULong(Lower(value));
+    }
+}
+
+
+
+/// <summary>
 /// Configuration for the Browser instance.
 /// </summary>
 /// <param name="Headless">
 /// Whether to run the browser in headless mode.
 /// </param>
 /// <param name="Stealth">
-/// Whether to apply stealth patches to the binary.
+/// Deprecated: enable the first-party `stealth` plugin. Prefer `plugins`.
+/// 
+/// This is sugar for adding `"stealth"` to [`BrowserConfig::plugins`] and
+/// will be removed in a future major release.
 /// </param>
 /// <param name="Detached">
 /// Whether to run the browser as a detached process.
@@ -12096,15 +12746,23 @@ public class FfiConverterTypePage: FfiConverter<Page, ulong> {
 /// <param name="ExecutablePath">
 /// Optional path to the browser executable.
 /// </param>
+/// <param name="Plugins">
+/// First-party plugins to enable for this browser (for example
+/// `["stealth"]`). Default-deny: no plugin does anything unless listed
+/// here (or enabled afterwards with `Browser::use_plugin`).
+/// </param>
 public record BrowserConfig (
     /// <summary>
     /// Whether to run the browser in headless mode.
     /// </summary>
     bool Headless = true,
     /// <summary>
-    /// Whether to apply stealth patches to the binary.
+    /// Deprecated: enable the first-party `stealth` plugin. Prefer `plugins`.
+    ///
+    /// This is sugar for adding `"stealth"` to [`BrowserConfig::plugins`] and
+    /// will be removed in a future major release.
     /// </summary>
-    bool Stealth = true,
+    bool Stealth = false,
     /// <summary>
     /// Whether to run the browser as a detached process.
     /// </summary>
@@ -12112,7 +12770,13 @@ public record BrowserConfig (
     /// <summary>
     /// Optional path to the browser executable.
     /// </summary>
-    string? ExecutablePath = null
+    string? ExecutablePath = null,
+    /// <summary>
+    /// First-party plugins to enable for this browser (for example
+    /// `["stealth"]`). Default-deny: no plugin does anything unless listed
+    /// here (or enabled afterwards with `Browser::use_plugin`).
+    /// </summary>
+    string[]? Plugins = null
 ) {
 }
 
@@ -12124,7 +12788,8 @@ public class FfiConverterTypeBrowserConfig: FfiConverterRustBuffer<BrowserConfig
             Headless: FfiConverterBoolean.INSTANCE.Read(stream),
             Stealth: FfiConverterBoolean.INSTANCE.Read(stream),
             Detached: FfiConverterBoolean.INSTANCE.Read(stream),
-            ExecutablePath: FfiConverterOptionalString.INSTANCE.Read(stream)
+            ExecutablePath: FfiConverterOptionalString.INSTANCE.Read(stream),
+            Plugins: FfiConverterOptionalSequenceString.INSTANCE.Read(stream)
         );
     }
 
@@ -12133,7 +12798,8 @@ public class FfiConverterTypeBrowserConfig: FfiConverterRustBuffer<BrowserConfig
             + FfiConverterBoolean.INSTANCE.AllocationSize(value.Headless)
             + FfiConverterBoolean.INSTANCE.AllocationSize(value.Stealth)
             + FfiConverterBoolean.INSTANCE.AllocationSize(value.Detached)
-            + FfiConverterOptionalString.INSTANCE.AllocationSize(value.ExecutablePath);
+            + FfiConverterOptionalString.INSTANCE.AllocationSize(value.ExecutablePath)
+            + FfiConverterOptionalSequenceString.INSTANCE.AllocationSize(value.Plugins);
     }
 
     public override void Write(BrowserConfig value, BigEndianStream stream) {
@@ -12141,6 +12807,7 @@ public class FfiConverterTypeBrowserConfig: FfiConverterRustBuffer<BrowserConfig
             FfiConverterBoolean.INSTANCE.Write(value.Stealth, stream);
             FfiConverterBoolean.INSTANCE.Write(value.Detached, stream);
             FfiConverterOptionalString.INSTANCE.Write(value.ExecutablePath, stream);
+            FfiConverterOptionalSequenceString.INSTANCE.Write(value.Plugins, stream);
     }
 }
 
@@ -12262,6 +12929,37 @@ public class FfiConverterOptionalString: FfiConverterRustBuffer<string?> {
         } else {
             stream.WriteByte(1);
             FfiConverterString.INSTANCE.Write((string)value, stream);
+        }
+    }
+}
+
+
+
+
+public class FfiConverterOptionalSequenceString: FfiConverterRustBuffer<string[]?> {
+    public static FfiConverterOptionalSequenceString INSTANCE = new FfiConverterOptionalSequenceString();
+
+    public override string[]? Read(BigEndianStream stream) {
+        if (stream.ReadByte() == 0) {
+            return null;
+        }
+        return FfiConverterSequenceString.INSTANCE.Read(stream);
+    }
+
+    public override int AllocationSize(string[]? value) {
+        if (value == null) {
+            return 1;
+        } else {
+            return 1 + FfiConverterSequenceString.INSTANCE.AllocationSize((string[])value);
+        }
+    }
+
+    public override void Write(string[]? value, BigEndianStream stream) {
+        if (value == null) {
+            stream.WriteByte(0);
+        } else {
+            stream.WriteByte(1);
+            FfiConverterSequenceString.INSTANCE.Write((string[])value, stream);
         }
     }
 }

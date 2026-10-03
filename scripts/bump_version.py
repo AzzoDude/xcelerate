@@ -50,7 +50,7 @@ def main():
         f'version = "{version}"',
     )
     # Internal crate pins in [workspace.dependencies].
-    for internal in ("xcelerate-core", "xcelerate-stealth"):
+    for internal in ("xcelerate-core", "xcelerate-plugin-api", "xcelerate-plugins"):
         update_file(
             os.path.join(ROOT, "Cargo.toml"),
             rf'({internal} = \{{ path = "crates/{internal}", version = )"[^"]+"',

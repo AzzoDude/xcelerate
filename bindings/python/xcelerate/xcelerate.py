@@ -481,6 +481,12 @@ def _uniffi_check_contract_api_version(lib):
 def _uniffi_check_api_checksums(lib):
     if lib.uniffi_xcelerate_checksum_constructor_browser_launch() != 45323:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_xcelerate_checksum_method_browser_audit_log() != 37952:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_xcelerate_checksum_method_browser_audit_verify() != 5412:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_xcelerate_checksum_method_browser_available_plugins() != 9431:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_browser_browser_contexts() != 50137:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_browser_capabilities() != 7431:
@@ -499,6 +505,8 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_browser_listens_to() != 12245:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_xcelerate_checksum_method_browser_load_plugin() != 5693:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_browser_new_context() != 28184:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_browser_new_page() != 31633:
@@ -506,6 +514,10 @@ def _uniffi_check_api_checksums(lib):
     if lib.uniffi_xcelerate_checksum_method_browser_on() != 2255:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_browser_once() != 22376:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_xcelerate_checksum_method_browser_plugin() != 11907:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_xcelerate_checksum_method_browser_plugin_names() != 58296:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_browser_remove_all_listeners() != 51158:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -522,6 +534,8 @@ def _uniffi_check_api_checksums(lib):
     if lib.uniffi_xcelerate_checksum_method_browser_stop_tracing() != 57049:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_browser_targets() != 28936:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_xcelerate_checksum_method_browser_use_plugin() != 20462:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_browser_user_agent() != 20558:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -829,6 +843,12 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_window_size() != 35222:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_xcelerate_checksum_method_pluginhandle_invoke() != 29371:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_xcelerate_checksum_method_pluginhandle_ops() != 11713:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_xcelerate_checksum_method_pluginhandle_plugin_name() != 61258:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
 
 # A ctypes library to expose the extern-C FFI definitions.
 # This is an implementation detail which will be called internally by the public API.
@@ -1122,10 +1142,35 @@ _UniffiLib.uniffi_xcelerate_fn_free_page.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_xcelerate_fn_free_page.restype = None
+_UniffiLib.uniffi_xcelerate_fn_clone_pluginhandle.argtypes = (
+    ctypes.c_uint64,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_xcelerate_fn_clone_pluginhandle.restype = ctypes.c_uint64
+_UniffiLib.uniffi_xcelerate_fn_free_pluginhandle.argtypes = (
+    ctypes.c_uint64,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_xcelerate_fn_free_pluginhandle.restype = None
 _UniffiLib.uniffi_xcelerate_fn_constructor_browser_launch.argtypes = (
     _UniffiRustBuffer,
 )
 _UniffiLib.uniffi_xcelerate_fn_constructor_browser_launch.restype = ctypes.c_uint64
+_UniffiLib.uniffi_xcelerate_fn_method_browser_audit_log.argtypes = (
+    ctypes.c_uint64,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_xcelerate_fn_method_browser_audit_log.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_xcelerate_fn_method_browser_audit_verify.argtypes = (
+    ctypes.c_uint64,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_xcelerate_fn_method_browser_audit_verify.restype = ctypes.c_int8
+_UniffiLib.uniffi_xcelerate_fn_method_browser_available_plugins.argtypes = (
+    ctypes.c_uint64,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_xcelerate_fn_method_browser_available_plugins.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_xcelerate_fn_method_browser_browser_contexts.argtypes = (
     ctypes.c_uint64,
 )
@@ -1166,6 +1211,12 @@ _UniffiLib.uniffi_xcelerate_fn_method_browser_listens_to.argtypes = (
     _UniffiRustBuffer,
 )
 _UniffiLib.uniffi_xcelerate_fn_method_browser_listens_to.restype = ctypes.c_uint64
+_UniffiLib.uniffi_xcelerate_fn_method_browser_load_plugin.argtypes = (
+    ctypes.c_uint64,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_xcelerate_fn_method_browser_load_plugin.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_xcelerate_fn_method_browser_new_context.argtypes = (
     ctypes.c_uint64,
 )
@@ -1185,6 +1236,17 @@ _UniffiLib.uniffi_xcelerate_fn_method_browser_once.argtypes = (
     _UniffiRustBuffer,
 )
 _UniffiLib.uniffi_xcelerate_fn_method_browser_once.restype = ctypes.c_uint64
+_UniffiLib.uniffi_xcelerate_fn_method_browser_plugin.argtypes = (
+    ctypes.c_uint64,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_xcelerate_fn_method_browser_plugin.restype = ctypes.c_uint64
+_UniffiLib.uniffi_xcelerate_fn_method_browser_plugin_names.argtypes = (
+    ctypes.c_uint64,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_xcelerate_fn_method_browser_plugin_names.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_xcelerate_fn_method_browser_remove_all_listeners.argtypes = (
     ctypes.c_uint64,
 )
@@ -1220,6 +1282,11 @@ _UniffiLib.uniffi_xcelerate_fn_method_browser_targets.argtypes = (
     ctypes.c_uint64,
 )
 _UniffiLib.uniffi_xcelerate_fn_method_browser_targets.restype = ctypes.c_uint64
+_UniffiLib.uniffi_xcelerate_fn_method_browser_use_plugin.argtypes = (
+    ctypes.c_uint64,
+    _UniffiRustBuffer,
+)
+_UniffiLib.uniffi_xcelerate_fn_method_browser_use_plugin.restype = ctypes.c_uint64
 _UniffiLib.uniffi_xcelerate_fn_method_browser_user_agent.argtypes = (
     ctypes.c_uint64,
 )
@@ -1968,12 +2035,37 @@ _UniffiLib.uniffi_xcelerate_fn_method_page_window_size.argtypes = (
     ctypes.c_uint64,
 )
 _UniffiLib.uniffi_xcelerate_fn_method_page_window_size.restype = ctypes.c_uint64
+_UniffiLib.uniffi_xcelerate_fn_method_pluginhandle_invoke.argtypes = (
+    ctypes.c_uint64,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+)
+_UniffiLib.uniffi_xcelerate_fn_method_pluginhandle_invoke.restype = ctypes.c_uint64
+_UniffiLib.uniffi_xcelerate_fn_method_pluginhandle_ops.argtypes = (
+    ctypes.c_uint64,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_xcelerate_fn_method_pluginhandle_ops.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_xcelerate_fn_method_pluginhandle_plugin_name.argtypes = (
+    ctypes.c_uint64,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_xcelerate_fn_method_pluginhandle_plugin_name.restype = _UniffiRustBuffer
 _UniffiLib.ffi_xcelerate_uniffi_contract_version.argtypes = (
 )
 _UniffiLib.ffi_xcelerate_uniffi_contract_version.restype = ctypes.c_uint32
 _UniffiLib.uniffi_xcelerate_checksum_constructor_browser_launch.argtypes = (
 )
 _UniffiLib.uniffi_xcelerate_checksum_constructor_browser_launch.restype = ctypes.c_uint16
+_UniffiLib.uniffi_xcelerate_checksum_method_browser_audit_log.argtypes = (
+)
+_UniffiLib.uniffi_xcelerate_checksum_method_browser_audit_log.restype = ctypes.c_uint16
+_UniffiLib.uniffi_xcelerate_checksum_method_browser_audit_verify.argtypes = (
+)
+_UniffiLib.uniffi_xcelerate_checksum_method_browser_audit_verify.restype = ctypes.c_uint16
+_UniffiLib.uniffi_xcelerate_checksum_method_browser_available_plugins.argtypes = (
+)
+_UniffiLib.uniffi_xcelerate_checksum_method_browser_available_plugins.restype = ctypes.c_uint16
 _UniffiLib.uniffi_xcelerate_checksum_method_browser_browser_contexts.argtypes = (
 )
 _UniffiLib.uniffi_xcelerate_checksum_method_browser_browser_contexts.restype = ctypes.c_uint16
@@ -2001,6 +2093,9 @@ _UniffiLib.uniffi_xcelerate_checksum_method_browser_is_connected.restype = ctype
 _UniffiLib.uniffi_xcelerate_checksum_method_browser_listens_to.argtypes = (
 )
 _UniffiLib.uniffi_xcelerate_checksum_method_browser_listens_to.restype = ctypes.c_uint16
+_UniffiLib.uniffi_xcelerate_checksum_method_browser_load_plugin.argtypes = (
+)
+_UniffiLib.uniffi_xcelerate_checksum_method_browser_load_plugin.restype = ctypes.c_uint16
 _UniffiLib.uniffi_xcelerate_checksum_method_browser_new_context.argtypes = (
 )
 _UniffiLib.uniffi_xcelerate_checksum_method_browser_new_context.restype = ctypes.c_uint16
@@ -2013,6 +2108,12 @@ _UniffiLib.uniffi_xcelerate_checksum_method_browser_on.restype = ctypes.c_uint16
 _UniffiLib.uniffi_xcelerate_checksum_method_browser_once.argtypes = (
 )
 _UniffiLib.uniffi_xcelerate_checksum_method_browser_once.restype = ctypes.c_uint16
+_UniffiLib.uniffi_xcelerate_checksum_method_browser_plugin.argtypes = (
+)
+_UniffiLib.uniffi_xcelerate_checksum_method_browser_plugin.restype = ctypes.c_uint16
+_UniffiLib.uniffi_xcelerate_checksum_method_browser_plugin_names.argtypes = (
+)
+_UniffiLib.uniffi_xcelerate_checksum_method_browser_plugin_names.restype = ctypes.c_uint16
 _UniffiLib.uniffi_xcelerate_checksum_method_browser_remove_all_listeners.argtypes = (
 )
 _UniffiLib.uniffi_xcelerate_checksum_method_browser_remove_all_listeners.restype = ctypes.c_uint16
@@ -2037,6 +2138,9 @@ _UniffiLib.uniffi_xcelerate_checksum_method_browser_stop_tracing.restype = ctype
 _UniffiLib.uniffi_xcelerate_checksum_method_browser_targets.argtypes = (
 )
 _UniffiLib.uniffi_xcelerate_checksum_method_browser_targets.restype = ctypes.c_uint16
+_UniffiLib.uniffi_xcelerate_checksum_method_browser_use_plugin.argtypes = (
+)
+_UniffiLib.uniffi_xcelerate_checksum_method_browser_use_plugin.restype = ctypes.c_uint16
 _UniffiLib.uniffi_xcelerate_checksum_method_browser_user_agent.argtypes = (
 )
 _UniffiLib.uniffi_xcelerate_checksum_method_browser_user_agent.restype = ctypes.c_uint16
@@ -2496,6 +2600,15 @@ _UniffiLib.uniffi_xcelerate_checksum_method_page_window_rect.restype = ctypes.c_
 _UniffiLib.uniffi_xcelerate_checksum_method_page_window_size.argtypes = (
 )
 _UniffiLib.uniffi_xcelerate_checksum_method_page_window_size.restype = ctypes.c_uint16
+_UniffiLib.uniffi_xcelerate_checksum_method_pluginhandle_invoke.argtypes = (
+)
+_UniffiLib.uniffi_xcelerate_checksum_method_pluginhandle_invoke.restype = ctypes.c_uint16
+_UniffiLib.uniffi_xcelerate_checksum_method_pluginhandle_ops.argtypes = (
+)
+_UniffiLib.uniffi_xcelerate_checksum_method_pluginhandle_ops.restype = ctypes.c_uint16
+_UniffiLib.uniffi_xcelerate_checksum_method_pluginhandle_plugin_name.argtypes = (
+)
+_UniffiLib.uniffi_xcelerate_checksum_method_pluginhandle_plugin_name.restype = ctypes.c_uint16
 
 _uniffi_check_contract_api_version(_UniffiLib)
 # _uniffi_check_api_checksums(_UniffiLib)
@@ -2645,22 +2758,71 @@ class _UniffiFfiConverterOptionalString(_UniffiConverterRustBuffer):
         else:
             raise InternalError("Unexpected flag byte for optional type")
 
+class _UniffiFfiConverterSequenceString(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        for item in value:
+            _UniffiFfiConverterString.check_lower(item)
+
+    @classmethod
+    def write(cls, value, buf):
+        items = len(value)
+        buf.write_i32(items)
+        for item in value:
+            _UniffiFfiConverterString.write(item, buf)
+
+    @classmethod
+    def read(cls, buf):
+        count = buf.read_i32()
+        if count < 0:
+            raise InternalError("Unexpected negative sequence length")
+
+        return [
+            _UniffiFfiConverterString.read(buf) for i in range(count)
+        ]
+
+class _UniffiFfiConverterOptionalSequenceString(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        if value is not None:
+            _UniffiFfiConverterSequenceString.check_lower(value)
+
+    @classmethod
+    def write(cls, value, buf):
+        if value is None:
+            buf.write_u8(0)
+            return
+
+        buf.write_u8(1)
+        _UniffiFfiConverterSequenceString.write(value, buf)
+
+    @classmethod
+    def read(cls, buf):
+        flag = buf.read_u8()
+        if flag == 0:
+            return None
+        elif flag == 1:
+            return _UniffiFfiConverterSequenceString.read(buf)
+        else:
+            raise InternalError("Unexpected flag byte for optional type")
+
 @dataclass
 class BrowserConfig:
     """
     Configuration for the Browser instance.
 """
-    def __init__(self, *, headless: bool = True, stealth: bool = True, detached: bool = True, executable_path: typing.Optional[str] = None):
+    def __init__(self, *, headless: bool = True, stealth: bool = False, detached: bool = True, executable_path: typing.Optional[str] = None, plugins: typing.Optional[typing.List[str]] = None):
         self.headless = headless
         self.stealth = stealth
         self.detached = detached
         self.executable_path = executable_path
+        self.plugins = plugins
         
         
 
     
     def __str__(self):
-        return "BrowserConfig(headless={}, stealth={}, detached={}, executable_path={})".format(self.headless, self.stealth, self.detached, self.executable_path)
+        return "BrowserConfig(headless={}, stealth={}, detached={}, executable_path={}, plugins={})".format(self.headless, self.stealth, self.detached, self.executable_path, self.plugins)
     def __eq__(self, other):
         if self.headless != other.headless:
             return False
@@ -2669,6 +2831,8 @@ class BrowserConfig:
         if self.detached != other.detached:
             return False
         if self.executable_path != other.executable_path:
+            return False
+        if self.plugins != other.plugins:
             return False
         return True
 
@@ -2680,6 +2844,7 @@ class _UniffiFfiConverterTypeBrowserConfig(_UniffiConverterRustBuffer):
             stealth=_UniffiFfiConverterBoolean.read(buf),
             detached=_UniffiFfiConverterBoolean.read(buf),
             executable_path=_UniffiFfiConverterOptionalString.read(buf),
+            plugins=_UniffiFfiConverterOptionalSequenceString.read(buf),
         )
 
     @staticmethod
@@ -2688,6 +2853,7 @@ class _UniffiFfiConverterTypeBrowserConfig(_UniffiConverterRustBuffer):
         _UniffiFfiConverterBoolean.check_lower(value.stealth)
         _UniffiFfiConverterBoolean.check_lower(value.detached)
         _UniffiFfiConverterOptionalString.check_lower(value.executable_path)
+        _UniffiFfiConverterOptionalSequenceString.check_lower(value.plugins)
 
     @staticmethod
     def write(value, buf):
@@ -2695,6 +2861,7 @@ class _UniffiFfiConverterTypeBrowserConfig(_UniffiConverterRustBuffer):
         _UniffiFfiConverterBoolean.write(value.stealth, buf)
         _UniffiFfiConverterBoolean.write(value.detached, buf)
         _UniffiFfiConverterOptionalString.write(value.executable_path, buf)
+        _UniffiFfiConverterOptionalSequenceString.write(value.plugins, buf)
 
 
 
@@ -2811,29 +2978,6 @@ class _UniffiFfiConverterTypeXcelerateError(_UniffiConverterRustBuffer):
             buf.write_i32(6)
         if isinstance(value, XcelerateError.Unsupported):
             buf.write_i32(7)
-
-class _UniffiFfiConverterSequenceString(_UniffiConverterRustBuffer):
-    @classmethod
-    def check_lower(cls, value):
-        for item in value:
-            _UniffiFfiConverterString.check_lower(item)
-
-    @classmethod
-    def write(cls, value, buf):
-        items = len(value)
-        buf.write_i32(items)
-        for item in value:
-            _UniffiFfiConverterString.write(item, buf)
-
-    @classmethod
-    def read(cls, buf):
-        count = buf.read_i32()
-        if count < 0:
-            raise InternalError("Unexpected negative sequence length")
-
-        return [
-            _UniffiFfiConverterString.read(buf) for i in range(count)
-        ]
 
 class _UniffiFfiConverterFloat64(_UniffiConverterPrimitiveFloat):
     @staticmethod
@@ -6654,11 +6798,158 @@ class _UniffiFfiConverterTypePage:
         buf.write_u64(cls.lower(value))
 
 
+class PluginHandleProtocol(typing.Protocol):
+    """
+    A handle to an enabled plugin, exposed to every language.
+"""
+    
+    async def invoke(self, op: str,args_json: str) -> str:
+        """
+        Invoke an op with a JSON-encoded argument object; returns JSON.
+"""
+        raise NotImplementedError
+    def ops(self, ) -> typing.List[str]:
+        """
+        The ops this plugin exposes.
+"""
+        raise NotImplementedError
+    def plugin_name(self, ) -> str:
+        """
+        The plugin's name.
+"""
+        raise NotImplementedError
+
+class PluginHandle(PluginHandleProtocol):
+    """
+    A handle to an enabled plugin, exposed to every language.
+"""
+    
+    _handle: ctypes.c_uint64
+    
+    def __init__(self, *args, **kwargs):
+        raise ValueError("This class has no default constructor")
+
+    def __del__(self):
+        # In case of partial initialization of instances.
+        handle = getattr(self, "_handle", None)
+        if handle is not None:
+            _uniffi_rust_call(_UniffiLib.uniffi_xcelerate_fn_free_pluginhandle, handle)
+
+    def _uniffi_clone_handle(self):
+        return _uniffi_rust_call(_UniffiLib.uniffi_xcelerate_fn_clone_pluginhandle, self._handle)
+
+    # Used by alternative constructors or any methods which return this type.
+    @classmethod
+    def _uniffi_make_instance(cls, handle):
+        # Lightly yucky way to bypass the usual __init__ logic
+        # and just create a new instance with the required handle.
+        inst = cls.__new__(cls)
+        inst._handle = handle
+        return inst
+    async def invoke(self, op: str,args_json: str) -> str:
+        """
+        Invoke an op with a JSON-encoded argument object; returns JSON.
+"""
+        
+        _UniffiFfiConverterString.check_lower(op)
+
+        _UniffiFfiConverterString.check_lower(args_json)
+        _uniffi_lowered_args = (
+            self._uniffi_clone_handle(),
+            _UniffiFfiConverterString.lower(op),
+            _UniffiFfiConverterString.lower(args_json),
+        )
+        _uniffi_lift_return = _UniffiFfiConverterString.lift
+        _uniffi_error_converter = _UniffiFfiConverterTypeXcelerateError
+        return await _uniffi_rust_call_async(
+            _UniffiLib.uniffi_xcelerate_fn_method_pluginhandle_invoke(*_uniffi_lowered_args),
+            _UniffiLib.ffi_xcelerate_rust_future_poll_rust_buffer,
+            _UniffiLib.ffi_xcelerate_rust_future_complete_rust_buffer,
+            _UniffiLib.ffi_xcelerate_rust_future_free_rust_buffer,
+            _uniffi_lift_return,
+            _uniffi_error_converter,
+        )
+    def ops(self, ) -> typing.List[str]:
+        """
+        The ops this plugin exposes.
+"""
+        _uniffi_lowered_args = (
+            self._uniffi_clone_handle(),
+        )
+        _uniffi_lift_return = _UniffiFfiConverterSequenceString.lift
+        _uniffi_error_converter = None
+        _uniffi_ffi_result = _uniffi_rust_call_with_error(
+            _uniffi_error_converter,
+            _UniffiLib.uniffi_xcelerate_fn_method_pluginhandle_ops,
+            *_uniffi_lowered_args,
+        )
+        return _uniffi_lift_return(_uniffi_ffi_result)
+    def plugin_name(self, ) -> str:
+        """
+        The plugin's name.
+"""
+        _uniffi_lowered_args = (
+            self._uniffi_clone_handle(),
+        )
+        _uniffi_lift_return = _UniffiFfiConverterString.lift
+        _uniffi_error_converter = None
+        _uniffi_ffi_result = _uniffi_rust_call_with_error(
+            _uniffi_error_converter,
+            _UniffiLib.uniffi_xcelerate_fn_method_pluginhandle_plugin_name,
+            *_uniffi_lowered_args,
+        )
+        return _uniffi_lift_return(_uniffi_ffi_result)
+
+
+
+
+
+class _UniffiFfiConverterTypePluginHandle:
+    @staticmethod
+    def lift(value: int) -> PluginHandle:
+        return PluginHandle._uniffi_make_instance(value)
+
+    @staticmethod
+    def check_lower(value: PluginHandle):
+        if not isinstance(value, PluginHandle):
+            raise TypeError("Expected PluginHandle instance, {} found".format(type(value).__name__))
+
+    @staticmethod
+    def lower(value: PluginHandle) -> ctypes.c_uint64:
+        return value._uniffi_clone_handle()
+
+    @classmethod
+    def read(cls, buf: _UniffiRustBuffer) -> PluginHandle:
+        ptr = buf.read_u64()
+        if ptr == 0:
+            raise InternalError("Raw handle value was null")
+        return cls.lift(ptr)
+
+    @classmethod
+    def write(cls, value: PluginHandle, buf: _UniffiRustBuffer):
+        buf.write_u64(cls.lower(value))
+
+
 class BrowserProtocol(typing.Protocol):
     """
     Represents a browser instance (e.g., Chrome or Edge).
 """
     
+    def audit_log(self, ) -> str:
+        """
+        Returns the plugin audit log as a JSON array (no secrets are recorded).
+"""
+        raise NotImplementedError
+    def audit_verify(self, ) -> bool:
+        """
+        Verifies the integrity of the append-only plugin audit log.
+"""
+        raise NotImplementedError
+    def available_plugins(self, ) -> typing.List[str]:
+        """
+        Names of all compiled-in first-party plugins (the catalog).
+"""
+        raise NotImplementedError
     async def browser_contexts(self, ) -> str:
         """
         Returns the browser context ids as a JSON array.
@@ -6704,6 +6995,14 @@ class BrowserProtocol(typing.Protocol):
         Whether an event name is registered.
 """
         raise NotImplementedError
+    def load_plugin(self, path: str) -> str:
+        """
+        Loads a third-party plugin. Not supported in this phase.
+
+        The sandboxed, out-of-process runner required for untrusted plugins does
+        not exist yet, so this always refuses rather than executing unknown code.
+"""
+        raise NotImplementedError
     async def new_context(self, ) -> str:
         """
         Creates a new (incognito) browser context and returns its id.
@@ -6719,6 +7018,16 @@ class BrowserProtocol(typing.Protocol):
     async def once(self, event_name: str) -> None:
         """
         Alias for [`Browser::on`].
+"""
+        raise NotImplementedError
+    def plugin(self, name: str) -> PluginHandle:
+        """
+        Returns a handle to an enabled plugin so its ops can be invoked.
+"""
+        raise NotImplementedError
+    def plugin_names(self, ) -> typing.List[str]:
+        """
+        Names of the plugins currently enabled on this browser.
 """
         raise NotImplementedError
     async def remove_all_listeners(self, ) -> None:
@@ -6759,6 +7068,16 @@ class BrowserProtocol(typing.Protocol):
     async def targets(self, ) -> str:
         """
         Returns the current targets as a JSON array (`Target.getTargets`).
+"""
+        raise NotImplementedError
+    async def use_plugin(self, name: str) -> None:
+        """
+        Enables a compiled-in first-party plugin at runtime.
+
+        Launch-time contributions (such as binary patching) only take effect if
+        the plugin was enabled before the browser launched; enabling a plugin
+        afterwards applies its runtime hooks to pages created from now on. This
+        is audited as a runtime enable. Unknown or third-party names are refused.
 """
         raise NotImplementedError
     async def user_agent(self, ) -> str:
@@ -6831,6 +7150,51 @@ class Browser(BrowserProtocol):
         inst = cls.__new__(cls)
         inst._handle = handle
         return inst
+    def audit_log(self, ) -> str:
+        """
+        Returns the plugin audit log as a JSON array (no secrets are recorded).
+"""
+        _uniffi_lowered_args = (
+            self._uniffi_clone_handle(),
+        )
+        _uniffi_lift_return = _UniffiFfiConverterString.lift
+        _uniffi_error_converter = None
+        _uniffi_ffi_result = _uniffi_rust_call_with_error(
+            _uniffi_error_converter,
+            _UniffiLib.uniffi_xcelerate_fn_method_browser_audit_log,
+            *_uniffi_lowered_args,
+        )
+        return _uniffi_lift_return(_uniffi_ffi_result)
+    def audit_verify(self, ) -> bool:
+        """
+        Verifies the integrity of the append-only plugin audit log.
+"""
+        _uniffi_lowered_args = (
+            self._uniffi_clone_handle(),
+        )
+        _uniffi_lift_return = _UniffiFfiConverterBoolean.lift
+        _uniffi_error_converter = None
+        _uniffi_ffi_result = _uniffi_rust_call_with_error(
+            _uniffi_error_converter,
+            _UniffiLib.uniffi_xcelerate_fn_method_browser_audit_verify,
+            *_uniffi_lowered_args,
+        )
+        return _uniffi_lift_return(_uniffi_ffi_result)
+    def available_plugins(self, ) -> typing.List[str]:
+        """
+        Names of all compiled-in first-party plugins (the catalog).
+"""
+        _uniffi_lowered_args = (
+            self._uniffi_clone_handle(),
+        )
+        _uniffi_lift_return = _UniffiFfiConverterSequenceString.lift
+        _uniffi_error_converter = None
+        _uniffi_ffi_result = _uniffi_rust_call_with_error(
+            _uniffi_error_converter,
+            _UniffiLib.uniffi_xcelerate_fn_method_browser_available_plugins,
+            *_uniffi_lowered_args,
+        )
+        return _uniffi_lift_return(_uniffi_ffi_result)
     async def browser_contexts(self, ) -> str:
         """
         Returns the browser context ids as a JSON array.
@@ -6996,6 +7360,27 @@ class Browser(BrowserProtocol):
             _uniffi_lift_return,
             _uniffi_error_converter,
         )
+    def load_plugin(self, path: str) -> str:
+        """
+        Loads a third-party plugin. Not supported in this phase.
+
+        The sandboxed, out-of-process runner required for untrusted plugins does
+        not exist yet, so this always refuses rather than executing unknown code.
+"""
+        
+        _UniffiFfiConverterString.check_lower(path)
+        _uniffi_lowered_args = (
+            self._uniffi_clone_handle(),
+            _UniffiFfiConverterString.lower(path),
+        )
+        _uniffi_lift_return = _UniffiFfiConverterString.lift
+        _uniffi_error_converter = _UniffiFfiConverterTypeXcelerateError
+        _uniffi_ffi_result = _uniffi_rust_call_with_error(
+            _uniffi_error_converter,
+            _UniffiLib.uniffi_xcelerate_fn_method_browser_load_plugin,
+            *_uniffi_lowered_args,
+        )
+        return _uniffi_lift_return(_uniffi_ffi_result)
     async def new_context(self, ) -> str:
         """
         Creates a new (incognito) browser context and returns its id.
@@ -7070,6 +7455,39 @@ class Browser(BrowserProtocol):
             _uniffi_lift_return,
             _uniffi_error_converter,
         )
+    def plugin(self, name: str) -> PluginHandle:
+        """
+        Returns a handle to an enabled plugin so its ops can be invoked.
+"""
+        
+        _UniffiFfiConverterString.check_lower(name)
+        _uniffi_lowered_args = (
+            self._uniffi_clone_handle(),
+            _UniffiFfiConverterString.lower(name),
+        )
+        _uniffi_lift_return = _UniffiFfiConverterTypePluginHandle.lift
+        _uniffi_error_converter = _UniffiFfiConverterTypeXcelerateError
+        _uniffi_ffi_result = _uniffi_rust_call_with_error(
+            _uniffi_error_converter,
+            _UniffiLib.uniffi_xcelerate_fn_method_browser_plugin,
+            *_uniffi_lowered_args,
+        )
+        return _uniffi_lift_return(_uniffi_ffi_result)
+    def plugin_names(self, ) -> typing.List[str]:
+        """
+        Names of the plugins currently enabled on this browser.
+"""
+        _uniffi_lowered_args = (
+            self._uniffi_clone_handle(),
+        )
+        _uniffi_lift_return = _UniffiFfiConverterSequenceString.lift
+        _uniffi_error_converter = None
+        _uniffi_ffi_result = _uniffi_rust_call_with_error(
+            _uniffi_error_converter,
+            _UniffiLib.uniffi_xcelerate_fn_method_browser_plugin_names,
+            *_uniffi_lowered_args,
+        )
+        return _uniffi_lift_return(_uniffi_ffi_result)
     async def remove_all_listeners(self, ) -> None:
         """
         Removes every registered listener.
@@ -7212,6 +7630,31 @@ class Browser(BrowserProtocol):
             _UniffiLib.ffi_xcelerate_rust_future_poll_rust_buffer,
             _UniffiLib.ffi_xcelerate_rust_future_complete_rust_buffer,
             _UniffiLib.ffi_xcelerate_rust_future_free_rust_buffer,
+            _uniffi_lift_return,
+            _uniffi_error_converter,
+        )
+    async def use_plugin(self, name: str) -> None:
+        """
+        Enables a compiled-in first-party plugin at runtime.
+
+        Launch-time contributions (such as binary patching) only take effect if
+        the plugin was enabled before the browser launched; enabling a plugin
+        afterwards applies its runtime hooks to pages created from now on. This
+        is audited as a runtime enable. Unknown or third-party names are refused.
+"""
+        
+        _UniffiFfiConverterString.check_lower(name)
+        _uniffi_lowered_args = (
+            self._uniffi_clone_handle(),
+            _UniffiFfiConverterString.lower(name),
+        )
+        _uniffi_lift_return = lambda val: None
+        _uniffi_error_converter = _UniffiFfiConverterTypeXcelerateError
+        return await _uniffi_rust_call_async(
+            _UniffiLib.uniffi_xcelerate_fn_method_browser_use_plugin(*_uniffi_lowered_args),
+            _UniffiLib.ffi_xcelerate_rust_future_poll_void,
+            _UniffiLib.ffi_xcelerate_rust_future_complete_void,
+            _UniffiLib.ffi_xcelerate_rust_future_free_void,
             _uniffi_lift_return,
             _uniffi_error_converter,
         )
@@ -7358,6 +7801,8 @@ __all__ = [
     "ElementProtocol",
     "Page",
     "PageProtocol",
+    "PluginHandle",
+    "PluginHandleProtocol",
     "Browser",
     "BrowserProtocol",
 ]

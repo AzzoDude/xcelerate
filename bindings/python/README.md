@@ -5,7 +5,7 @@ A high-performance, lightweight Chrome DevTools Protocol (CDP) client for Python
 ## Features
 
 - **Blazing Fast**: Direct CDP communication over WebSockets.
-- **Stealth by Design**: Built-in anti-bot protection and binary patching.
+- **Security-first plugins**: Default-deny; `stealth` is a first-party plugin you opt into.
 - **Universal**: Native bindings for high performance.
 - **Async/Await**: Full support for Python's asyncio.
 
@@ -22,9 +22,10 @@ import asyncio
 from xcelerate import Browser, BrowserConfig
 
 async def main():
-    # Launch browser with intelligent defaults
-    # (Optional: headless=True, stealth=True, detached=True, executable_path=None)
-    config = BrowserConfig()
+    # Launch with intelligent defaults (headless=True, stealth=False,
+    # detached=True, executable_path=None). Plugins are opt-in:
+    # (Optional: plugins=["stealth", "human"])
+    config = BrowserConfig(plugins=["stealth"])
     browser = await Browser.launch(config)
     
     # Create a new page
@@ -54,10 +55,30 @@ if __name__ == "__main__":
 
 The `BrowserConfig` object allows you to fine-tune the browser behavior:
 
-- **stealth (default: True)**: Applies binary patches and JS masking to bypass bot detection.
+- **plugins (default: None)**: First-party plugins to enable, e.g.
+  `["stealth", "human"]`. Nothing runs unless it is listed here (default-deny).
+  `stealth` masks automation fingerprints; `human` makes input behave like a
+  person (`info`, `move`, `click`, `type`, `scroll`, `delay`).
+- **stealth (default: False)**: Deprecated sugar for `plugins=["stealth"]`. Applies
+  binary patches and JS masking to reduce bot detection.
 - **detached (default: True)**: Spawns the browser as an independent process that stays open even if your script finishes.
 - **headless (default: True)**: Runs the browser without a visible window.
 - **executable_path (default: None)**: Manually specify the location of Chrome or Edge.
+
+### Plugins
+
+Inspect and drive plugins at runtime with the cross-language bridge:
+
+```python
+print(browser.plugin_names())       # ['stealth']
+print(browser.available_plugins())  # ['stealth', 'human']
+stealth = browser.plugin("stealth")
+print(await stealth.invoke("info", "{}"))
+```
+
+Third-party plugins are **not** supported yet: `load_plugin` refuses rather than
+executing unknown code. See the [top-level README](../../README.md#plugins) for
+the trust tiers, capabilities, and the append-only audit log.
 
 ## License
 

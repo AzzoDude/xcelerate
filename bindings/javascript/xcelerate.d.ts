@@ -25,7 +25,10 @@ export interface BrowserConfig {
    */
   "headless": boolean;
   /**
-   * Whether to apply stealth patches to the binary.
+   * Deprecated: enable the first-party `stealth` plugin. Prefer `plugins`.
+   *
+   * This is sugar for adding `"stealth"` to [`BrowserConfig::plugins`] and
+   * will be removed in a future major release.
    */
   "stealth": boolean;
   /**
@@ -36,6 +39,12 @@ export interface BrowserConfig {
    * Optional path to the browser executable.
    */
   "executable_path": string | undefined;
+  /**
+   * First-party plugins to enable for this browser (for example
+   * `["stealth"]`). Default-deny: no plugin does anything unless listed
+   * here (or enabled afterwards with `Browser::use_plugin`).
+   */
+  "plugins": Array<string> | undefined;
 }
 
 export declare class XcelerateError extends globalThis.Error {
@@ -85,6 +94,18 @@ export declare class Browser extends UniffiObjectBase {
   protected constructor();
   static launch(config: BrowserConfig): Promise<Browser>;
   /**
+   * Returns the plugin audit log as a JSON array (no secrets are recorded).
+   */
+  audit_log(): string;
+  /**
+   * Verifies the integrity of the append-only plugin audit log.
+   */
+  audit_verify(): boolean;
+  /**
+   * Names of all compiled-in first-party plugins (the catalog).
+   */
+  available_plugins(): Array<string>;
+  /**
    * Returns the browser context ids as a JSON array.
    */
   browser_contexts(): Promise<string>;
@@ -121,6 +142,13 @@ export declare class Browser extends UniffiObjectBase {
    */
   listens_to(event_name: string): Promise<boolean>;
   /**
+   * Loads a third-party plugin. Not supported in this phase.
+   *
+   * The sandboxed, out-of-process runner required for untrusted plugins does
+   * not exist yet, so this always refuses rather than executing unknown code.
+   */
+  load_plugin(path: string): string;
+  /**
    * Creates a new (incognito) browser context and returns its id.
    */
   new_context(): Promise<string>;
@@ -133,6 +161,14 @@ export declare class Browser extends UniffiObjectBase {
    * Alias for [`Browser::on`].
    */
   once(event_name: string): Promise<void>;
+  /**
+   * Returns a handle to an enabled plugin so its ops can be invoked.
+   */
+  plugin(name: string): PluginHandle;
+  /**
+   * Names of the plugins currently enabled on this browser.
+   */
+  plugin_names(): Array<string>;
   /**
    * Removes every registered listener.
    */
@@ -165,6 +201,15 @@ export declare class Browser extends UniffiObjectBase {
    * Returns the current targets as a JSON array (`Target.getTargets`).
    */
   targets(): Promise<string>;
+  /**
+   * Enables a compiled-in first-party plugin at runtime.
+   *
+   * Launch-time contributions (such as binary patching) only take effect if
+   * the plugin was enabled before the browser launched; enabling a plugin
+   * afterwards applies its runtime hooks to pages created from now on. This
+   * is audited as a runtime enable. Unknown or third-party names are refused.
+   */
+  use_plugin(name: string): Promise<void>;
   /**
    * Returns the browser's user agent.
    */
@@ -776,4 +821,23 @@ export declare class Page extends UniffiObjectBase {
    * Returns the window size as JSON (`{width,height}`).
    */
   window_size(): Promise<string>;
+}
+
+/**
+ * A handle to an enabled plugin, exposed to every language.
+ */
+export declare class PluginHandle extends UniffiObjectBase {
+  protected constructor();
+  /**
+   * Invoke an op with a JSON-encoded argument object; returns JSON.
+   */
+  invoke(op: string, args_json: string): Promise<string>;
+  /**
+   * The ops this plugin exposes.
+   */
+  ops(): Array<string>;
+  /**
+   * The plugin's name.
+   */
+  plugin_name(): string;
 }

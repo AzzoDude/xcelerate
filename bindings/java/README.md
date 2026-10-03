@@ -37,8 +37,10 @@ import uniffi.xcelerate.Page;
 
 public class Demo {
     public static void main(String[] args) throws Exception {
-        // headless, stealth, detached, executablePath
-        Browser browser = Browser.launch(new BrowserConfig(true, true, true, null)).get();
+        // headless, stealth, detached, executablePath, plugins
+        // (stealth is deprecated sugar; plugins is the opt-in list)
+        Browser browser = Browser.launch(
+                new BrowserConfig(true, false, true, null, java.util.List.of("stealth"))).get();
         Page page = browser.newPage("https://example.com").get();
         System.out.println(page.title().get());
         byte[] png = page.screenshotFull().get();
@@ -59,6 +61,22 @@ java --enable-native-access=ALL-UNNAMED \
 `libraryOverride` may be an absolute path (loaded with `System.load`) or a bare
 name (resolved via `java.library.path`). Without it the generated code calls
 `System.loadLibrary("xcelerate")`.
+
+## Plugins
+
+Plugins are default-deny. Enable the first-party `stealth` plugin with the fifth
+`BrowserConfig` argument (`java.util.List.of("stealth")`) before launch. The same
+fixed bridge is available in Java:
+
+```java
+System.out.println(browser.pluginNames());       // ["stealth"]
+System.out.println(browser.availablePlugins());  // ["stealth", "human"]
+var stealth = browser.plugin("stealth");
+System.out.println(stealth.invoke("info", "{}").get());
+```
+
+`loadPlugin` refuses third-party plugins until the sandboxed runner ships; see the
+[top-level README](../../README.md#plugins) for trust tiers and the audit log.
 
 ## License
 

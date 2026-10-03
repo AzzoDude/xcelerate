@@ -10,7 +10,8 @@ public enum FfiConverterTypeBrowserConfig implements FfiConverterRustBuffer<Brow
       FfiConverterBoolean.INSTANCE.read(buf),
       FfiConverterBoolean.INSTANCE.read(buf),
       FfiConverterBoolean.INSTANCE.read(buf),
-      FfiConverterOptionalString.INSTANCE.read(buf)
+      FfiConverterOptionalString.INSTANCE.read(buf),
+      FfiConverterOptionalSequenceString.INSTANCE.read(buf)
     );
   }
 
@@ -20,7 +21,8 @@ public enum FfiConverterTypeBrowserConfig implements FfiConverterRustBuffer<Brow
             FfiConverterBoolean.INSTANCE.allocationSize(value.headless()) +
             FfiConverterBoolean.INSTANCE.allocationSize(value.stealth()) +
             FfiConverterBoolean.INSTANCE.allocationSize(value.detached()) +
-            FfiConverterOptionalString.INSTANCE.allocationSize(value.executablePath())
+            FfiConverterOptionalString.INSTANCE.allocationSize(value.executablePath()) +
+            FfiConverterOptionalSequenceString.INSTANCE.allocationSize(value.plugins())
       );
   }
 
@@ -30,6 +32,7 @@ public enum FfiConverterTypeBrowserConfig implements FfiConverterRustBuffer<Brow
       FfiConverterBoolean.INSTANCE.write(value.stealth(), buf);
       FfiConverterBoolean.INSTANCE.write(value.detached(), buf);
       FfiConverterOptionalString.INSTANCE.write(value.executablePath(), buf);
+      FfiConverterOptionalSequenceString.INSTANCE.write(value.plugins(), buf);
   }
 }
 

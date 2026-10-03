@@ -1,0 +1,11 @@
+{
+  "name": "example.echo",
+  "version": "0.1.0",
+  "tier": "third-party",
+  "host_api": ">=1.0 <2.0",
+  "entrypoint": "example-echo.wasm",
+  "abi": "wasm32-wasi+rpc/1",
+  "ops": ["echo"],
+  "capabilities": ["query", "get_text"],
+  "limits": { "max_invoke_millis": 5000, "max_response_bytes": 65536 }
+}

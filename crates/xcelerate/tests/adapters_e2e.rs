@@ -22,6 +22,7 @@ fn config() -> BrowserConfig {
         stealth: false,
         detached: false,
         executable_path: std::env::var("XCELERATE_CHROME").ok(),
+        plugins: None,
     }
 }
 

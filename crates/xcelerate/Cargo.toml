@@ -18,7 +18,8 @@ crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 xcelerate-core = { workspace = true }
-xcelerate-stealth = { workspace = true }
+xcelerate-plugin-api = { workspace = true }
+xcelerate-plugins = { workspace = true }
 browser-protocol = { workspace = true }
 js-protocol = { workspace = true }
 uniffi = { workspace = true }

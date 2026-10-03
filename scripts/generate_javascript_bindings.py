@@ -77,9 +77,10 @@ def main():
             "static async launch(config = {}) {\n"
             "    const finalConfig = {\n"
             "      headless: true,\n"
-            "      stealth: true,\n"
+            "      stealth: false,\n"
             "      detached: true,\n"
             "      executable_path: null,\n"
+            "      plugins: null,\n"
             "      ...config\n"
             "    };\n"
             "    config = finalConfig;",
@@ -95,6 +96,13 @@ def main():
             ("async wait_for_selector(", "async waitForSelector("),
             ("async type_text(", "async typeText("),
             ("async add_script_to_evaluate_on_new_document(", "async addScriptToEvaluateOnNewDocument("),
+            ("async use_plugin(", "async usePlugin("),
+            ("load_plugin(", "loadPlugin("),
+            ("plugin_names(", "pluginNames("),
+            ("available_plugins(", "availablePlugins("),
+            ("plugin_name(", "pluginName("),
+            ("audit_verify(", "auditVerify("),
+            ("audit_log(", "auditLog("),
         ):
             content = content.replace(old, new)
 

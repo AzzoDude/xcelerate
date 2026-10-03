@@ -779,6 +779,17 @@ local.properties
 !bindings/**/*.js
 !bindings/**/*.py
 !bindings/**/*.d.ts
+!bindings/**/*.swift
+!bindings/**/*.rb
+!bindings/**/*.dart
+!bindings/**/*.h
+!bindings/**/*.modulemap
+
+# Binding build artifacts
+bindings/swift/.build/
+bindings/dart/.dart_tool/
+bindings/dart/pubspec.lock
+bindings/ruby/pkg/
 
 # Global binary ignores
 *.dll

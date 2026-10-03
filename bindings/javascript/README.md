@@ -11,21 +11,27 @@ npm install xcelerate
 ## Quick Start
 
 ```javascript
-const { Browser, BrowserConfig } = require('xcelerate');
+const { Browser } = require('xcelerate');
 
 async function main() {
-    // Launch browser with intelligent defaults
-    const config = new BrowserConfig(); 
-    const browser = await Browser.launch(config);
-    
+    // Stealth is opt-in: nothing runs unless a plugin is enabled.
+    const browser = await Browser.launch({ plugins: ['stealth'] });
+
     const page = await browser.newPage("https://www.google.com");
     console.log("Title:", await page.title());
-    
+
     await browser.close();
 }
 
 main().catch(console.error);
 ```
+
+`Browser.launch()` accepts a plain config object. The defaults are
+`{ headless: true, stealth: false, detached: true, executable_path: null,
+plugins: null }`; pass `plugins: ['stealth', 'human']` (or the deprecated
+`stealth: true`) to enable the first-party plugins. `availablePlugins()` returns
+`['stealth', 'human']`; use `pluginNames()` and `plugin(name)` to inspect and
+drive them at runtime.
 
 ## Requirements
 

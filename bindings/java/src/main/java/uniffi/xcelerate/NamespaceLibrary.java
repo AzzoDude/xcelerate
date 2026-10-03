@@ -31,6 +31,15 @@ final class NamespaceLibrary {
         }
     }
     static void uniffiCheckApiChecksums() {
+        if (UniffiLib.uniffi_xcelerate_checksum_method_browser_audit_log() != ((short) 37952)) {
+            throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
+        }
+        if (UniffiLib.uniffi_xcelerate_checksum_method_browser_audit_verify() != ((short) 5412)) {
+            throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
+        }
+        if (UniffiLib.uniffi_xcelerate_checksum_method_browser_available_plugins() != ((short) 9431)) {
+            throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
+        }
         if (UniffiLib.uniffi_xcelerate_checksum_method_browser_browser_contexts() != ((short) 50137)) {
             throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
         }
@@ -58,6 +67,9 @@ final class NamespaceLibrary {
         if (UniffiLib.uniffi_xcelerate_checksum_method_browser_listens_to() != ((short) 12245)) {
             throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
         }
+        if (UniffiLib.uniffi_xcelerate_checksum_method_browser_load_plugin() != ((short) 5693)) {
+            throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
+        }
         if (UniffiLib.uniffi_xcelerate_checksum_method_browser_new_context() != ((short) 28184)) {
             throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
         }
@@ -68,6 +80,12 @@ final class NamespaceLibrary {
             throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
         }
         if (UniffiLib.uniffi_xcelerate_checksum_method_browser_once() != ((short) 22376)) {
+            throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
+        }
+        if (UniffiLib.uniffi_xcelerate_checksum_method_browser_plugin() != ((short) 11907)) {
+            throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
+        }
+        if (UniffiLib.uniffi_xcelerate_checksum_method_browser_plugin_names() != ((short) 58296)) {
             throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
         }
         if (UniffiLib.uniffi_xcelerate_checksum_method_browser_remove_all_listeners() != ((short) 51158)) {
@@ -92,6 +110,9 @@ final class NamespaceLibrary {
             throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
         }
         if (UniffiLib.uniffi_xcelerate_checksum_method_browser_targets() != ((short) 28936)) {
+            throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
+        }
+        if (UniffiLib.uniffi_xcelerate_checksum_method_browser_use_plugin() != ((short) 20462)) {
             throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
         }
         if (UniffiLib.uniffi_xcelerate_checksum_method_browser_user_agent() != ((short) 20558)) {
@@ -551,6 +572,15 @@ final class NamespaceLibrary {
             throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
         }
         if (UniffiLib.uniffi_xcelerate_checksum_method_page_window_size() != ((short) 35222)) {
+            throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
+        }
+        if (UniffiLib.uniffi_xcelerate_checksum_method_pluginhandle_invoke() != ((short) 29371)) {
+            throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
+        }
+        if (UniffiLib.uniffi_xcelerate_checksum_method_pluginhandle_ops() != ((short) 11713)) {
+            throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
+        }
+        if (UniffiLib.uniffi_xcelerate_checksum_method_pluginhandle_plugin_name() != ((short) 61258)) {
             throw new RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project");
         }
         if (UniffiLib.uniffi_xcelerate_checksum_constructor_browser_launch() != ((short) 45323)) {
