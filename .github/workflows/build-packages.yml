@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['src/**', 'bindings/**', 'scripts/**', 'Cargo.*']
+    paths: ['crates/**', 'bindings/**', 'scripts/**', 'Cargo.*']
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -19,11 +19,11 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
         include:
           - os: windows-latest
-            lib_path: target/release/xcelerate_core.dll
+            lib_path: target/release/xcelerate.dll
           - os: ubuntu-latest
-            lib_path: target/release/libxcelerate_core.so
+            lib_path: target/release/libxcelerate.so
           - os: macos-latest
-            lib_path: target/release/libxcelerate_core.dylib
+            lib_path: target/release/libxcelerate.dylib
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -33,7 +33,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ matrix.lib_path }}
-          key: ${{ runner.os }}-native-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'src/**', 'build.rs') }}
+          key: ${{ runner.os }}-native-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'crates/**', 'build.rs') }}
       - name: Build Core
         if: steps.cache-native.outputs.cache-hit != 'true'
         run: cargo build --release
@@ -95,9 +95,9 @@ jobs:
         shell: bash
         run: |
           mkdir -p target/release
-          cp native-libs/native-lib-windows-latest/xcelerate_core.dll target/release/
-          cp native-libs/native-lib-ubuntu-latest/libxcelerate_core.so target/release/
-          cp native-libs/native-lib-macos-latest/libxcelerate_core.dylib target/release/
+          cp native-libs/native-lib-windows-latest/xcelerate.dll target/release/
+          cp native-libs/native-lib-ubuntu-latest/libxcelerate.so target/release/
+          cp native-libs/native-lib-macos-latest/libxcelerate.dylib target/release/
           mkdir -p bindings/csharp
           cp target/release/*.dll target/release/*.so target/release/*.dylib bindings/csharp/
 

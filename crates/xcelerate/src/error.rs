@@ -1,0 +1,62 @@
+use thiserror::Error;
+
+#[derive(Debug, Error, uniffi::Error)]
+#[uniffi(flat_error)]
+pub enum XcelerateError {
+    #[error("WebSocket error: {0}")]
+    WsError(String),
+
+    #[error("JSON error: {0}")]
+    SerdeError(String),
+
+    #[error("CDP Error {code}: {message}")]
+    CdpResponseError { code: i32, message: String },
+
+    #[error("HTTP error: {0}")]
+    HttpError(String),
+
+    #[error("Target not found: {0}")]
+    NotFound(String),
+
+    #[error("Internal channel error")]
+    InternalError,
+
+    #[error("unsupported: {0}")]
+    Unsupported(String),
+}
+
+impl From<xcelerate_core::Error> for XcelerateError {
+    fn from(e: xcelerate_core::Error) -> Self {
+        use xcelerate_core::Error as CoreError;
+        match e {
+            CoreError::Ws(message) => Self::WsError(message),
+            CoreError::Serde(message) => Self::SerdeError(message),
+            CoreError::Cdp { code, message } => Self::CdpResponseError { code, message },
+            CoreError::Internal => Self::InternalError,
+        }
+    }
+}
+
+impl From<xcelerate_stealth::Error> for XcelerateError {
+    fn from(e: xcelerate_stealth::Error) -> Self {
+        use xcelerate_stealth::Error as StealthError;
+        match e {
+            StealthError::NotFound(message) => Self::NotFound(message),
+            StealthError::Internal => Self::InternalError,
+        }
+    }
+}
+
+impl From<reqwest::Error> for XcelerateError {
+    fn from(e: reqwest::Error) -> Self {
+        Self::HttpError(e.to_string())
+    }
+}
+
+impl From<serde_json::Error> for XcelerateError {
+    fn from(e: serde_json::Error) -> Self {
+        Self::SerdeError(e.to_string())
+    }
+}
+
+pub type XcelerateResult<T> = Result<T, XcelerateError>;

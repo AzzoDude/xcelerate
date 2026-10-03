@@ -1,0 +1,34 @@
+[package]
+name = "xcelerate"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "A high-performance, lightweight Chrome DevTools Protocol (CDP) client for Rust."
+documentation = "https://docs.rs/xcelerate"
+keywords = ["automation", "cdp", "chrome", "headless", "stealth"]
+categories = ["web-programming", "development-tools"]
+readme = "../../README.md"
+
+[lib]
+name = "xcelerate"
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+xcelerate-core = { workspace = true }
+xcelerate-stealth = { workspace = true }
+browser-protocol = { workspace = true }
+js-protocol = { workspace = true }
+uniffi = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+base64 = { workspace = true }
+thiserror = { workspace = true }
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

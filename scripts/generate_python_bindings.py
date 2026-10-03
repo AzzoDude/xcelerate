@@ -1,95 +1,99 @@
-import subprocess
+#!/usr/bin/env python3
+"""Generate the Python bindings (uniffi) and build the wheel."""
+
+from __future__ import annotations
+
 import os
+import re
 import shutil
 import sys
-import re
 
-def run_command(cmd, cwd=None):
-    print(f"[EXECUTING] {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=cwd, shell=True)
-    if result.returncode != 0:
-        print(f"[ERROR] Command failed with code {result.returncode}")
-        return False
-    return True
+from common import ROOT, find_tool, log, run_checked, workspace_version
+
+
+def bindgen_tool():
+    """Prefer a pre-built ``uniffi-bindgen`` binary over ``cargo run``."""
+    for candidate in (
+        os.path.join(ROOT, "target", "debug", "uniffi-bindgen.exe"),
+        os.path.join(ROOT, "target", "release", "uniffi-bindgen.exe"),
+    ):
+        if os.path.exists(candidate):
+            log("INFO", f"using pre-built bindgen: {candidate}")
+            return [candidate]
+    found = find_tool("uniffi-bindgen")
+    if os.path.exists(found):
+        return [found]
+    return ["cargo", "run", "-p", "xcelerate-bindgen", "--"]
+
 
 def main():
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    rust_dir = root_dir
     dll_name = "xcelerate.dll"
-    built_dll = os.path.join(rust_dir, "target", "release", dll_name)
-    python_dir = os.path.join(root_dir, "bindings", "python")
-    
+    built_dll = os.path.join(ROOT, "target", "release", dll_name)
+    python_dir = os.path.join(ROOT, "bindings", "python")
+
     print("--- Phase: Generating Python Bindings ---")
     os.makedirs(python_dir, exist_ok=True)
-    
-    # 0. Build Rust (if not skipping)
-    print("--- 0. Building Rust Library (cdylib) ---")
+
+    print("--- 0. Building Rust library (cdylib) ---")
     if os.environ.get("SKIP_RUST_BUILD") == "true" and os.path.exists(built_dll):
-        print(f"[SKIP] Rust build skipped, using existing: {built_dll}")
+        log("SKIP", f"Rust build skipped, using existing: {built_dll}")
     else:
-        run_command(["cargo", "build", "--release"], cwd=rust_dir)
-    
-    # 1. Generate Python code using UniFFI
-    # Search for the pre-built uniffi-bindgen tool
-    tool_cmd = ["cargo", "run", "--features=uniffi/cli", "--bin", "uniffi-bindgen", "--"]
-    
-    # Check common locations to avoid 'cargo run' overhead
-    possible_bins = [
-        os.path.join(root_dir, "target", "debug", "uniffi-bindgen.exe"),
-        os.path.join(root_dir, "target", "release", "uniffi-bindgen.exe"),
-        shutil.which("uniffi-bindgen")
-    ]
-    
-    for b in possible_bins:
-        if b and os.path.exists(b):
-            tool_cmd = [b]
-            print(f"[INFO] Using pre-built bindgen: {b}")
-            break
+        run_checked(["cargo", "build", "--release"], cwd=ROOT)
 
-    success = run_command(tool_cmd + [
-        "generate", "--library", built_dll,
-        "--language", "python",
-        "--out-dir", python_dir
-    ], cwd=rust_dir)
-    
-    if success:
-        # Move the native libraries to the python package folder
-        package_dir = os.path.join(python_dir, "xcelerate")
-        os.makedirs(package_dir, exist_ok=True)
-        
-        # Look for all platform binaries in target/release
-        native_libs = ["xcelerate.dll", "libxcelerate.so", "libxcelerate.dylib"]
-        for lib in native_libs:
-            src = os.path.join(rust_dir, "target", "release", lib)
-            if os.path.exists(src):
-                shutil.copy2(src, os.path.join(package_dir, lib))
-                print(f"[COPY] {lib} -> {package_dir}")
-        
-        # Ensure __init__.py exists with version
-        init_file = os.path.join(package_dir, "__init__.py")
-        with open(init_file, "w") as f:
-            f.write("__version__ = \"0.1.6\"\n")
-            f.write("from .xcelerate import Browser, BrowserConfig, Page, Element, XcelerateError\n")
-            f.write("__all__ = [\"Browser\", \"BrowserConfig\", \"Page\", \"Element\", \"XcelerateError\"]\n")
+    print("--- 1. Generating Python code with UniFFI ---")
+    run_checked(
+        bindgen_tool()
+        + ["generate", "--library", built_dll, "--language", "python", "--out-dir", python_dir],
+        cwd=ROOT,
+    )
 
-        # Move the generated py file to the package folder
-        generated_py = os.path.join(python_dir, "xcelerate.py")
-        if os.path.exists(generated_py):
-            # POST-PROCESS: Make BrowserConfig arguments optional
-            with open(generated_py, "r") as f:
-                content = f.read()
-            
-            pattern = r"def __init__\(self, \*, headless: \"bool\", stealth: \"bool\", detached: \"bool\", executable_path: \"typing\.Optional\[str\]\"\):"
-            replacement = r'def __init__(self, *, headless: "bool" = True, stealth: "bool" = True, detached: "bool" = True, executable_path: "typing.Optional[str]" = None):'
-            content = re.sub(pattern, replacement, content)
-            
-            with open(os.path.join(package_dir, "xcelerate.py"), "w") as f:
-                f.write(content)
-            os.remove(generated_py)
+    # Move the native libraries into the package folder.
+    package_dir = os.path.join(python_dir, "xcelerate")
+    os.makedirs(package_dir, exist_ok=True)
+    for lib in ("xcelerate.dll", "libxcelerate.so", "libxcelerate.dylib"):
+        src = os.path.join(ROOT, "target", "release", lib)
+        if os.path.exists(src):
+            shutil.copy2(src, os.path.join(package_dir, lib))
+            log("COPY", f"{lib} -> {package_dir}")
 
-        print(f"[PACKAGING] Building Python wheel...")
-        run_command(["python", "-m", "build"], cwd=python_dir)
-        print(f"[SUCCESS] Python package ready in {os.path.join(python_dir, 'dist')}")
+    # Ensure __init__.py exists with the workspace version and adapter surface.
+    with open(os.path.join(package_dir, "__init__.py"), "w", encoding="utf-8") as handle:
+        handle.write(f'__version__ = "{workspace_version()}"\n')
+        handle.write("from .xcelerate import Browser, BrowserConfig, Page, Element, XcelerateError\n")
+        handle.write("\n# API-style adapters (Selenium / Playwright / Puppeteer profiles).\n")
+        handle.write("try:\n")
+        handle.write("    from . import adapters\n")
+        handle.write("    from .adapters import use, playwright, puppeteer, selenium\n")
+        handle.write("except Exception:\n")
+        handle.write("    pass\n")
+        handle.write(
+            "\n__all__ = [\"Browser\", \"BrowserConfig\", \"Page\", \"Element\", "
+            "\"XcelerateError\", \"adapters\", \"use\", \"playwright\", \"puppeteer\", \"selenium\"]\n"
+        )
+
+    # Move the generated module into the package, making BrowserConfig args optional.
+    generated_py = os.path.join(python_dir, "xcelerate.py")
+    if os.path.exists(generated_py):
+        with open(generated_py, "r", encoding="utf-8") as handle:
+            content = handle.read()
+        pattern = (
+            r"def __init__\(self, \*, headless: \"bool\", stealth: \"bool\", detached: \"bool\", "
+            r"executable_path: \"typing\.Optional\[str\]\"\):"
+        )
+        replacement = (
+            r'def __init__(self, *, headless: "bool" = True, stealth: "bool" = True, '
+            r'detached: "bool" = True, executable_path: "typing.Optional[str]" = None):'
+        )
+        content = re.sub(pattern, replacement, content)
+        with open(os.path.join(package_dir, "xcelerate.py"), "w", encoding="utf-8") as handle:
+            handle.write(content)
+        os.remove(generated_py)
+
+    print("[PACKAGING] Building Python wheel...")
+    run_checked([sys.executable, "-m", "build"], cwd=python_dir)
+    log("SUCCESS", f"Python package ready in {os.path.join(python_dir, 'dist')}")
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

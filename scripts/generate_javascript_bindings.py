@@ -1,145 +1,110 @@
-import subprocess
-import os
-import shutil
-import sys
-import re
+#!/usr/bin/env python3
+"""Generate the JavaScript/TypeScript bindings (uniffi) and pack the npm module."""
 
-def run_command(cmd, cwd=None):
-    print(f"[EXECUTING] {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=cwd, shell=True)
-    if result.returncode != 0:
-        print(f"[ERROR] Command failed with code {result.returncode}")
-        return False
-    return True
+from __future__ import annotations
+
+import json
+import os
+import re
+import shutil
+
+from common import ROOT, find_tool, log, run_checked, workspace_version
+
 
 def main():
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    rust_dir = root_dir
     dll_name = "xcelerate.dll"
-    built_dll = os.path.join(rust_dir, "target", "release", dll_name)
-    js_dir = os.path.join(root_dir, "bindings", "javascript") # Updated name
-    
+    built_dll = os.path.join(ROOT, "target", "release", dll_name)
+    js_dir = os.path.join(ROOT, "bindings", "javascript")
+
     print("--- Phase: Generating JavaScript Bindings ---")
-    
-    # 0. Build Rust (if not skipping)
-    print("--- 0. Building Rust Library (cdylib) ---")
+
+    print("--- 0. Building Rust library (cdylib) ---")
     if os.environ.get("SKIP_RUST_BUILD") == "true" and os.path.exists(built_dll):
-        print(f"[SKIP] Rust build skipped, using existing: {built_dll}")
+        log("SKIP", f"Rust build skipped, using existing: {built_dll}")
     else:
-        run_command(["cargo", "build", "--release"], cwd=rust_dir)
-    
-    # Clean up stale files
+        run_checked(["cargo", "build", "--release"], cwd=ROOT)
+
+    # Remove stale generated files (but never package.json).
     if os.path.exists(js_dir):
-        for f in os.listdir(js_dir):
-            if f.endswith(".ts") or f.endswith(".js") or f.endswith(".d.ts"):
-                try:
-                    path = os.path.join(js_dir, f)
-                    if os.path.isfile(path) and not f == "package.json": # don't delete package.json
-                        os.remove(path)
-                except:
-                    pass
+        for name in os.listdir(js_dir):
+            if name == "package.json":
+                continue
+            if name.endswith((".ts", ".js", ".d.ts")):
+                os.remove(os.path.join(js_dir, name))
     os.makedirs(js_dir, exist_ok=True)
-    
-    # Get version from Cargo.toml
-    version = "0.0.0"
-    cargo_toml = os.path.join(root_dir, "Cargo.toml")
-    if os.path.exists(cargo_toml):
-        with open(cargo_toml, "r") as f:
-            for line in f:
-                if line.startswith("version ="):
-                    version = line.split("=")[1].strip().strip('"')
-                    break
 
-    # Find uniffi-bindgen-node-js
-    tool_cmd = "uniffi-bindgen-node-js"
-    if shutil.which(tool_cmd) is None:
-        possible_paths = [
-            os.path.join(os.path.expanduser("~"), ".cargo", "bin"),
-            os.path.join(os.environ.get("USERPROFILE", ""), ".cargo", "bin"),
-        ]
-        for dp in possible_paths:
-            if os.path.exists(dp):
-                for f in os.listdir(dp):
-                    if "uniffi-bindgen-node-js" in f.lower() and f.endswith(".exe"):
-                        tool_cmd = os.path.join(dp, f)
-                        break
-                if tool_cmd != "uniffi-bindgen-node-js": break
+    version = workspace_version()
+    tool_cmd = find_tool("uniffi-bindgen-node-js")
+    run_checked(
+        [tool_cmd, "generate", "--out-dir", js_dir, "--package-name", "xcelerate", built_dll],
+        cwd=ROOT,
+    )
 
-    # Use uniffi-bindgen-node-js
-    success = run_command([
-        tool_cmd,
-        "generate",
-        "--out-dir", js_dir,
-        "--package-name", "xcelerate",
-        built_dll,
-    ], cwd=root_dir)
-    
-    if success:
-        # Patch package.json with the correct version and metadata
-        package_json_path = os.path.join(js_dir, "package.json")
-        if os.path.exists(package_json_path):
-            import json
-            with open(package_json_path, "r") as f:
-                pj = json.load(f)
-            
-            pj["version"] = version
-            pj["description"] = "A high-performance, lightweight Chrome DevTools Protocol (CDP) client for Node.js"
-            pj["author"] = "AzzoDude"
-            pj["license"] = "MIT"
-            pj["engines"] = { "node": ">=12" }
-            pj["repository"] = {
-                "type": "git",
-                "url": "git+https://github.com/AzzoDude/xcelerate.git"
+    # Patch package.json with version and metadata.
+    package_json = os.path.join(js_dir, "package.json")
+    if os.path.exists(package_json):
+        with open(package_json, "r", encoding="utf-8") as handle:
+            pj = json.load(handle)
+        pj.update(
+            {
+                "version": version,
+                "description": "A high-performance, lightweight Chrome DevTools Protocol (CDP) client for Node.js",
+                "author": "AzzoDude",
+                "license": "MIT",
+                "engines": {"node": ">=12"},
+                "repository": {"type": "git", "url": "git+https://github.com/AzzoDude/xcelerate.git"},
             }
-            
-            with open(package_json_path, "w") as f:
-                json.dump(pj, f, indent=2)
-            print(f"[PATCH] Updated package.json to version {version}")
+        )
+        with open(package_json, "w", encoding="utf-8") as handle:
+            json.dump(pj, handle, indent=2)
+        log("PATCH", f"updated package.json to version {version}")
 
-        # Copy all native libraries to the JS folder
-        native_libs = ["xcelerate.dll", "libxcelerate.so", "libxcelerate.dylib"]
-        for lib in native_libs:
-            src = os.path.join(rust_dir, "target", "release", lib)
-            if os.path.exists(src):
-                shutil.copy2(src, os.path.join(js_dir, lib))
-                print(f"[COPY] {lib} -> {js_dir}")
-        
-        # POST-PROCESS: Optional args and camelCase renames
-        js_file = os.path.join(js_dir, "xcelerate.js")
-        if os.path.exists(js_file):
-            with open(js_file, "r") as f:
-                content = f.read()
-            
-            # Inject defaults into Browser.launch
-            pattern = r"static async launch\(config\) \{"
-            replacement = """static async launch(config = {}) {
-    const finalConfig = {
-      headless: true,
-      stealth: true,
-      detached: true,
-      executable_path: null,
-      ...config
-    };
-    config = finalConfig;"""
-            content = re.sub(pattern, replacement, content)
-            
-            # Renames
-            content = content.replace("async new_page(", "async newPage(")
-            content = content.replace("async inner_html(", "async innerHtml(")
-            content = content.replace("async screenshot_full(", "async screenshotFull(")
-            content = content.replace("async find_element(", "async findElement(")
-            content = content.replace("async wait_for_navigation(", "async waitForNavigation(")
-            content = content.replace("async wait_for_selector(", "async waitForSelector(")
-            content = content.replace("async type_text(", "async typeText(")
-            content = content.replace("async add_script_to_evaluate_on_new_document(", "async addScriptToEvaluateOnNewDocument(")
+    for lib in ("xcelerate.dll", "libxcelerate.so", "libxcelerate.dylib"):
+        src = os.path.join(ROOT, "target", "release", lib)
+        if os.path.exists(src):
+            shutil.copy2(src, os.path.join(js_dir, lib))
+            log("COPY", f"{lib} -> {js_dir}")
 
-            with open(js_file, "w") as f:
-                f.write(content)
+    # POST-PROCESS: optional args and camelCase renames.
+    js_file = os.path.join(js_dir, "xcelerate.js")
+    if os.path.exists(js_file):
+        with open(js_file, "r", encoding="utf-8") as handle:
+            content = handle.read()
 
-        print(f"[SUCCESS] JavaScript bindings ready in {js_dir}")
-        
-        # Create the .tgz package for artifacts
-        run_command(["npm", "pack"], cwd=js_dir)
+        content = re.sub(
+            r"static async launch\(config\) \{",
+            "static async launch(config = {}) {\n"
+            "    const finalConfig = {\n"
+            "      headless: true,\n"
+            "      stealth: true,\n"
+            "      detached: true,\n"
+            "      executable_path: null,\n"
+            "      ...config\n"
+            "    };\n"
+            "    config = finalConfig;",
+            content,
+        )
+
+        for old, new in (
+            ("async new_page(", "async newPage("),
+            ("async inner_html(", "async innerHtml("),
+            ("async screenshot_full(", "async screenshotFull("),
+            ("async find_element(", "async findElement("),
+            ("async wait_for_navigation(", "async waitForNavigation("),
+            ("async wait_for_selector(", "async waitForSelector("),
+            ("async type_text(", "async typeText("),
+            ("async add_script_to_evaluate_on_new_document(", "async addScriptToEvaluateOnNewDocument("),
+        ):
+            content = content.replace(old, new)
+
+        with open(js_file, "w", encoding="utf-8") as handle:
+            handle.write(content)
+
+    log("SUCCESS", f"JavaScript bindings ready in {js_dir}")
+
+    run_checked(["npm", "pack"], cwd=js_dir)
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -1,0 +1,9 @@
+# Clippy configuration for the xcelerate workspace.
+
+# Minimum supported Rust version (matches [workspace.package].rust-version).
+msrv = "1.99"
+
+# The fluent/uniffi-exported API legitimately takes many arguments in a few
+# places; raise the threshold above Clippy's default of 7 so genuinely long
+# signatures are still reported.
+too-many-arguments-threshold = 16

@@ -1,0 +1,742 @@
+{
+  "name": "selenium",
+  "title": "Selenium WebDriver",
+  "doc": "Selenium-style adapter over xcelerate (Python, snake_case). Complete WebDriver + WebElement surface; methods xcelerate cannot express yet are emitted as explicit NotImplementedError stubs.",
+  "helpers": [
+    {
+      "name": "launch",
+      "op": "selenium_launch",
+      "params": [
+        {
+          "name": "config",
+          "default": "None"
+        }
+      ],
+      "returns": "WebDriver"
+    }
+  ],
+  "classes": {
+    "WebDriver": {
+      "doc": "Selenium-style driver. Owns navigation, element lookup, cookies and window management.",
+      "methods": [
+        {
+          "name": "get",
+          "op": "selenium_get",
+          "params": [
+            "url"
+          ],
+          "returns": null
+        },
+        {
+          "name": "find_element",
+          "op": "selenium_find",
+          "params": [
+            {
+              "name": "by",
+              "default": "\"css selector\""
+            },
+            {
+              "name": "value",
+              "default": "None"
+            }
+          ],
+          "returns": "WebElement"
+        },
+        {
+          "name": "title",
+          "op": "selenium_title",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "page_source",
+          "op": "selenium_page_source",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "refresh",
+          "op": "selenium_refresh",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "back",
+          "op": "selenium_back",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "close",
+          "op": "selenium_close",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "quit",
+          "op": "selenium_quit",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "save_screenshot",
+          "op": "selenium_screenshot",
+          "params": [
+            {
+              "name": "path",
+              "default": "None"
+            },
+            {
+              "name": "full_page",
+              "default": "False"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "get_screenshot_as_file",
+          "op": "selenium_screenshot",
+          "params": [
+            {
+              "name": "filename",
+              "default": "None"
+            },
+            {
+              "name": "full_page",
+              "default": "False"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "get_screenshot_as_png",
+          "op": "selenium_screenshot_png",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "get_screenshot_as_base64",
+          "op": "selenium_screenshot_base64",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "find_elements",
+          "params": [
+            {
+              "name": "by",
+              "type": "String"
+            },
+            {
+              "name": "value",
+              "type": "Option<String>"
+            }
+          ],
+          "op": "selenium_find_all",
+          "returns": "WebElement",
+          "list": true
+        },
+        {
+          "name": "execute_script",
+          "params": [
+            {
+              "name": "script",
+              "type": "String"
+            }
+          ],
+          "op": "selenium_execute_script",
+          "returns": null
+        },
+        {
+          "name": "execute_async_script",
+          "params": [
+            {
+              "name": "script",
+              "type": "String"
+            }
+          ],
+          "op": "selenium_execute_async_script",
+          "returns": null
+        },
+        {
+          "name": "execute",
+          "params": [
+            {
+              "name": "script",
+              "type": "String"
+            }
+          ],
+          "op": "selenium_execute_script",
+          "returns": null
+        },
+        {
+          "name": "forward",
+          "op": "selenium_forward",
+          "returns": null
+        },
+        {
+          "name": "get_window_size",
+          "op": "selenium_window_size",
+          "returns": null
+        },
+        {
+          "name": "set_window_size",
+          "params": [
+            {
+              "name": "width",
+              "type": "i64"
+            },
+            {
+              "name": "height",
+              "type": "i64"
+            }
+          ],
+          "op": "selenium_set_window_size",
+          "returns": null
+        },
+        {
+          "name": "get_window_position",
+          "op": "selenium_window_position",
+          "returns": null
+        },
+        {
+          "name": "set_window_position",
+          "params": [
+            {
+              "name": "x",
+              "type": "i64"
+            },
+            {
+              "name": "y",
+              "type": "i64"
+            }
+          ],
+          "op": "selenium_set_window_position",
+          "returns": null
+        },
+        {
+          "name": "get_window_rect",
+          "op": "selenium_window_rect",
+          "returns": null
+        },
+        {
+          "name": "set_window_rect",
+          "params": [
+            {
+              "name": "x",
+              "type": "i64"
+            },
+            {
+              "name": "y",
+              "type": "i64"
+            },
+            {
+              "name": "width",
+              "type": "i64"
+            },
+            {
+              "name": "height",
+              "type": "i64"
+            }
+          ],
+          "op": "selenium_set_window_rect",
+          "returns": null
+        },
+        {
+          "name": "maximize_window",
+          "op": "selenium_maximize_window",
+          "returns": null
+        },
+        {
+          "name": "minimize_window",
+          "op": "selenium_minimize_window",
+          "returns": null
+        },
+        {
+          "name": "fullscreen_window",
+          "op": "selenium_fullscreen_window",
+          "returns": null
+        },
+        {
+          "name": "get_cookies",
+          "op": "selenium_get_cookies",
+          "returns": null
+        },
+        {
+          "name": "get_cookie",
+          "params": [
+            {
+              "name": "name",
+              "type": "String"
+            }
+          ],
+          "op": "selenium_get_cookie",
+          "returns": null
+        },
+        {
+          "name": "add_cookie",
+          "params": [
+            {
+              "name": "cookie_json",
+              "type": "String"
+            }
+          ],
+          "op": "selenium_add_cookie",
+          "returns": null
+        },
+        {
+          "name": "delete_cookie",
+          "params": [
+            {
+              "name": "name",
+              "type": "String"
+            }
+          ],
+          "op": "selenium_delete_cookie",
+          "returns": null
+        },
+        {
+          "name": "delete_all_cookies",
+          "op": "selenium_delete_all_cookies",
+          "returns": null
+        },
+        {
+          "name": "implicitly_wait",
+          "params": [
+            {
+              "name": "seconds",
+              "type": "f64"
+            }
+          ],
+          "op": "selenium_implicitly_wait",
+          "returns": null
+        },
+        {
+          "name": "set_page_load_timeout",
+          "params": [
+            {
+              "name": "seconds",
+              "type": "f64"
+            }
+          ],
+          "op": "selenium_set_page_load_timeout",
+          "returns": null
+        },
+        {
+          "name": "set_script_timeout",
+          "params": [
+            {
+              "name": "seconds",
+              "type": "f64"
+            }
+          ],
+          "op": "selenium_set_script_timeout",
+          "returns": null
+        },
+        {
+          "name": "set_page_load_strategy",
+          "params": [
+            {
+              "name": "strategy",
+              "type": "String"
+            }
+          ],
+          "op": "selenium_set_page_load_strategy",
+          "returns": null
+        },
+        {
+          "name": "print_page",
+          "op": "selenium_print_page",
+          "returns": null
+        },
+        {
+          "name": "current_url",
+          "op": "selenium_current_url",
+          "returns": null
+        },
+        {
+          "name": "window_handles",
+          "op": "selenium_window_handles",
+          "returns": null
+        },
+        {
+          "name": "current_window_handle",
+          "op": "selenium_current_window_handle",
+          "returns": null
+        },
+        {
+          "name": "switch_to",
+          "op": "driver_new_switch_to",
+          "returns": "SwitchTo"
+        },
+        {
+          "name": "capabilities",
+          "op": "selenium_capabilities",
+          "returns": null
+        },
+        {
+          "name": "desired_capabilities",
+          "op": "selenium_capabilities",
+          "returns": null
+        },
+        {
+          "name": "active_element",
+          "op": "selenium_active_element",
+          "returns": "WebElement"
+        },
+        {
+          "name": "dialog",
+          "op": "driver_new_dialog",
+          "returns": "Dialog"
+        },
+        {
+          "name": "execute_cdp_cmd",
+          "params": [
+            {
+              "name": "method",
+              "type": "String"
+            },
+            {
+              "name": "params_json",
+              "type": "String"
+            }
+          ],
+          "op": "selenium_execute_cdp_cmd",
+          "returns": null
+        },
+        {
+          "name": "timeouts",
+          "op": "driver_new_timeouts",
+          "returns": "Timeouts"
+        }
+      ]
+    },
+    "WebElement": {
+      "doc": "Selenium-style element.",
+      "methods": [
+        {
+          "name": "click",
+          "op": "element_click",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "send_keys",
+          "op": "element_send_keys",
+          "params": [
+            "value"
+          ],
+          "returns": null
+        },
+        {
+          "name": "clear",
+          "op": "element_clear",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "text",
+          "op": "element_text",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "get_attribute",
+          "op": "element_attribute",
+          "params": [
+            "name"
+          ],
+          "returns": null
+        },
+        {
+          "name": "get_dom_attribute",
+          "op": "element_attribute",
+          "params": [
+            "name"
+          ],
+          "returns": null
+        },
+        {
+          "name": "inner_html",
+          "op": "element_inner_html",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "submit",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){if(this.form){this.form.submit();}else if(this.tagName===\"FORM\"){this.submit();}}"
+          }
+        },
+        {
+          "name": "get_property",
+          "params": [
+            {
+              "name": "name",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "element",
+            "returns": "string",
+            "js": "function(n){const v=this[n];return v==null?\"\":String(v);}"
+          }
+        },
+        {
+          "name": "is_selected",
+          "impl": {
+            "scope": "element",
+            "returns": "bool",
+            "js": "function(){return this.selected===true||this.checked===true;}"
+          }
+        },
+        {
+          "name": "is_enabled",
+          "impl": {
+            "scope": "element",
+            "returns": "bool",
+            "js": "function(){return !(this.disabled===true||this.hasAttribute(\"disabled\"));}"
+          }
+        },
+        {
+          "name": "is_displayed",
+          "impl": {
+            "scope": "element",
+            "returns": "bool",
+            "js": "function(){const s=getComputedStyle(this);const r=this.getBoundingClientRect();return !!(r.width||r.height)&&s.visibility!==\"hidden\"&&s.display!==\"none\"&&s.opacity!==\"0\";}"
+          }
+        },
+        {
+          "name": "find_element",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "element_find",
+          "returns": "WebElement"
+        },
+        {
+          "name": "find_elements",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "element_find_all",
+          "returns": "WebElement",
+          "list": true
+        },
+        {
+          "name": "value_of_css_property",
+          "params": [
+            {
+              "name": "property_name",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "element",
+            "returns": "string",
+            "js": "function(p){return getComputedStyle(this).getPropertyValue(p);}"
+          }
+        },
+        {
+          "name": "screenshot",
+          "op": "element_screenshot",
+          "returns": null
+        },
+        {
+          "name": "screenshot_as_png",
+          "op": "element_screenshot",
+          "returns": null
+        },
+        {
+          "name": "screenshot_as_base64",
+          "op": "element_screenshot_base64",
+          "returns": null
+        },
+        {
+          "name": "tag_name",
+          "impl": {
+            "scope": "element",
+            "returns": "string",
+            "js": "function(){return this.tagName?this.tagName.toLowerCase():\"unknown\";}"
+          }
+        },
+        {
+          "name": "location",
+          "impl": {
+            "scope": "element",
+            "returns": "json",
+            "js": "function(){const r=this.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};}"
+          }
+        },
+        {
+          "name": "location_once_scrolled_into_view",
+          "impl": {
+            "scope": "element",
+            "returns": "json",
+            "js": "function(){this.scrollIntoView({block:\"center\",inline:\"center\"});const r=this.getBoundingClientRect();return {x:r.x,y:r.y};}"
+          }
+        },
+        {
+          "name": "size",
+          "impl": {
+            "scope": "element",
+            "returns": "json",
+            "js": "function(){const r=this.getBoundingClientRect();return {width:r.width,height:r.height};}"
+          }
+        },
+        {
+          "name": "rect",
+          "impl": {
+            "scope": "element",
+            "returns": "json",
+            "js": "function(){const r=this.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};}"
+          }
+        },
+        {
+          "name": "parent",
+          "op": "element_parent",
+          "returns": "WebElement"
+        },
+        {
+          "name": "id",
+          "impl": {
+            "scope": "element",
+            "returns": "string",
+            "js": "function(){return this.id||'';}"
+          }
+        },
+        {
+          "name": "shadow_root",
+          "impl": {
+            "scope": "element",
+            "returns": "string",
+            "js": "function(){return this.shadowRoot?this.shadowRoot.innerHTML:\"\";}"
+          }
+        },
+        {
+          "name": "aria_role",
+          "impl": {
+            "scope": "element",
+            "returns": "string",
+            "js": "function(){return this.getAttribute(\"role\")||this.tagName.toLowerCase();}"
+          }
+        },
+        {
+          "name": "accessible_name",
+          "impl": {
+            "scope": "element",
+            "returns": "string",
+            "js": "function(){return (this.getAttribute(\"aria-label\")||this.textContent||\"\").trim();}"
+          }
+        }
+      ]
+    },
+    "SwitchTo": {
+      "doc": "Selenium-style target switching (thin wrapper over the driver).",
+      "methods": [
+        {
+          "name": "window",
+          "op": "driver_activate_target",
+          "params": [
+            {
+              "name": "handle",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "default_content",
+          "op": "driver_switch_default_content",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "new_window",
+          "op": "driver_switch_new_window",
+          "params": [
+            {
+              "name": "window_type",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        }
+      ]
+    },
+    "Timeouts": {
+      "doc": "Selenium-style timeouts (thin wrapper over the driver).",
+      "methods": [
+        {
+          "name": "implicitly_wait",
+          "op": "selenium_implicitly_wait",
+          "params": [
+            {
+              "name": "seconds",
+              "type": "f64"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "set_script_timeout",
+          "op": "selenium_set_script_timeout",
+          "params": [
+            {
+              "name": "seconds",
+              "type": "f64"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "page_load_timeout",
+          "op": "selenium_set_page_load_timeout",
+          "params": [
+            {
+              "name": "seconds",
+              "type": "f64"
+            }
+          ],
+          "returns": null
+        }
+      ]
+    },
+    "Dialog": {
+      "doc": "JavaScript dialog (thin wrapper over the driver).",
+      "methods": [
+        {
+          "name": "accept",
+          "op": "driver_dialog_accept",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "dismiss",
+          "op": "driver_dialog_dismiss",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "send_keys",
+          "op": "driver_dialog_send_keys",
+          "params": [
+            {
+              "name": "text",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        }
+      ]
+    }
+  }
+}

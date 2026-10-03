@@ -1,0 +1,2101 @@
+{
+  "name": "playwright",
+  "title": "Playwright (async API)",
+  "doc": "Playwright-style adapter over xcelerate (Python, snake_case). Methods xcelerate cannot express are emitted as explicit NotImplementedError stubs so the adapter keeps the full Playwright shape.",
+  "helpers": [
+    {
+      "name": "launch",
+      "op": "browser_launch",
+      "params": [
+        {
+          "name": "config",
+          "default": "None"
+        }
+      ],
+      "returns": "Browser"
+    }
+  ],
+  "classes": {
+    "Browser": {
+      "doc": "Playwright-style browser.",
+      "methods": [
+        {
+          "name": "new_page",
+          "op": "browser_new_page",
+          "params": [
+            {
+              "name": "url",
+              "default": "\"about:blank\""
+            }
+          ],
+          "returns": "Page"
+        },
+        {
+          "name": "new_context",
+          "op": "browser_new_context",
+          "params": [],
+          "returns": "BrowserContext"
+        },
+        {
+          "name": "version",
+          "op": "browser_version",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "close",
+          "op": "browser_close",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "is_connected",
+          "op": "browser_is_connected",
+          "returns": null
+        },
+        {
+          "name": "contexts",
+          "op": "browser_contexts",
+          "returns": null
+        },
+        {
+          "name": "start_tracing",
+          "op": "browser_start_tracing",
+          "returns": null
+        },
+        {
+          "name": "stop_tracing",
+          "op": "browser_stop_tracing",
+          "returns": null
+        },
+        {
+          "name": "bind",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "browser_on",
+          "returns": null
+        },
+        {
+          "name": "on",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "browser_on",
+          "returns": null
+        },
+        {
+          "name": "once",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "browser_once",
+          "returns": null
+        },
+        {
+          "name": "remove_listener",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "browser_remove_listener",
+          "returns": null
+        },
+        {
+          "name": "unbind",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "browser_remove_listener",
+          "returns": null
+        }
+      ]
+    },
+    "BrowserContext": {
+      "doc": "Playwright-style browser context (modelled as browser + init scripts).",
+      "methods": [
+        {
+          "name": "new_page",
+          "op": "context_new_page",
+          "params": [
+            {
+              "name": "url",
+              "default": "\"about:blank\""
+            }
+          ],
+          "returns": "Page"
+        },
+        {
+          "name": "add_init_script",
+          "op": "context_add_init_script",
+          "params": [
+            "script"
+          ],
+          "returns": null
+        },
+        {
+          "name": "close",
+          "op": "context_close",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "pages",
+          "op": "context_pages",
+          "returns": null
+        },
+        {
+          "name": "add_cookies",
+          "params": [
+            {
+              "name": "cookies_json",
+              "type": "String"
+            }
+          ],
+          "op": "context_add_cookies",
+          "returns": null
+        },
+        {
+          "name": "clear_cookies",
+          "op": "context_clear_cookies",
+          "returns": null
+        },
+        {
+          "name": "cookies",
+          "op": "context_cookies",
+          "returns": null
+        },
+        {
+          "name": "grant_permissions",
+          "params": [
+            {
+              "name": "origin",
+              "type": "String"
+            },
+            {
+              "name": "permissions_json",
+              "type": "String"
+            }
+          ],
+          "op": "context_grant_permissions",
+          "returns": null
+        },
+        {
+          "name": "clear_permissions",
+          "op": "context_clear_permissions",
+          "returns": null
+        },
+        {
+          "name": "route",
+          "params": [
+            {
+              "name": "pattern",
+              "type": "String"
+            },
+            {
+              "name": "action",
+              "type": "String",
+              "default": "\"continue\""
+            }
+          ],
+          "op": "context_route",
+          "returns": null
+        },
+        {
+          "name": "unroute",
+          "params": [
+            {
+              "name": "pattern",
+              "type": "String"
+            }
+          ],
+          "op": "context_unroute",
+          "returns": null
+        },
+        {
+          "name": "route_from_har",
+          "params": [
+            {
+              "name": "path",
+              "type": "String"
+            }
+          ],
+          "op": "page_route_from_har",
+          "returns": null
+        },
+        {
+          "name": "set_default_navigation_timeout",
+          "params": [
+            {
+              "name": "milliseconds",
+              "type": "f64"
+            }
+          ],
+          "op": "context_set_default_timeout",
+          "returns": null
+        },
+        {
+          "name": "set_default_timeout",
+          "params": [
+            {
+              "name": "milliseconds",
+              "type": "f64"
+            }
+          ],
+          "op": "context_set_default_timeout",
+          "returns": null
+        },
+        {
+          "name": "set_extra_http_headers",
+          "params": [
+            {
+              "name": "headers_json",
+              "type": "String"
+            }
+          ],
+          "op": "context_set_extra_http_headers",
+          "returns": null
+        },
+        {
+          "name": "expect_page",
+          "op": "context_expect_page",
+          "returns": null
+        },
+        {
+          "name": "expect_event",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "context_wait_for_event",
+          "returns": null
+        },
+        {
+          "name": "wait_for_event",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "context_wait_for_event",
+          "returns": null
+        },
+        {
+          "name": "storage_state",
+          "op": "context_storage_state",
+          "returns": null
+        },
+        {
+          "name": "background_pages",
+          "op": "context_background_pages",
+          "returns": null
+        },
+        {
+          "name": "expect_console_message",
+          "op": "context_expect_console_message",
+          "returns": null
+        },
+        {
+          "name": "is_closed",
+          "op": "context_is_closed",
+          "returns": null
+        },
+        {
+          "name": "new_cdp_session",
+          "op": "context_new_cdp_session",
+          "returns": "CDPSession"
+        },
+        {
+          "name": "on",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "context_on",
+          "returns": null
+        },
+        {
+          "name": "once",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "context_once",
+          "returns": null
+        },
+        {
+          "name": "remove_listener",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "context_remove_listener",
+          "returns": null
+        },
+        {
+          "name": "set_geolocation",
+          "params": [
+            {
+              "name": "latitude",
+              "type": "f64"
+            },
+            {
+              "name": "longitude",
+              "type": "f64"
+            },
+            {
+              "name": "accuracy",
+              "type": "f64"
+            }
+          ],
+          "op": "context_set_geolocation",
+          "returns": null
+        },
+        {
+          "name": "set_offline",
+          "params": [
+            {
+              "name": "offline",
+              "type": "bool"
+            }
+          ],
+          "op": "context_set_offline",
+          "returns": null
+        },
+        {
+          "name": "set_storage_state",
+          "params": [
+            {
+              "name": "state_json",
+              "type": "String"
+            }
+          ],
+          "op": "context_set_storage_state",
+          "returns": null
+        },
+        {
+          "name": "unroute_all",
+          "op": "context_unroute_all",
+          "returns": null
+        }
+      ]
+    },
+    "Page": {
+      "doc": "Playwright-style page.",
+      "methods": [
+        {
+          "name": "goto",
+          "op": "page_goto",
+          "params": [
+            "url"
+          ],
+          "returns": null
+        },
+        {
+          "name": "reload",
+          "op": "page_reload",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "go_back",
+          "op": "page_go_back",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "title",
+          "op": "page_title",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "content",
+          "op": "page_content",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "pdf",
+          "op": "page_pdf",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "screenshot",
+          "op": "page_screenshot",
+          "params": [
+            {
+              "name": "full_page",
+              "default": "False"
+            },
+            {
+              "name": "path",
+              "default": "None"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "wait_for_selector",
+          "op": "page_wait_for_selector",
+          "params": [
+            "selector"
+          ],
+          "returns": "Locator"
+        },
+        {
+          "name": "wait_for_load_state",
+          "op": "page_wait_for_load_state",
+          "params": [
+            {
+              "name": "state",
+              "default": "\"load\""
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "wait_for_timeout",
+          "op": "page_wait_for_timeout",
+          "params": [
+            "milliseconds"
+          ],
+          "returns": null
+        },
+        {
+          "name": "locator",
+          "op": "page_find",
+          "params": [
+            "selector"
+          ],
+          "returns": "Locator"
+        },
+        {
+          "name": "query_selector",
+          "op": "page_find",
+          "params": [
+            "selector"
+          ],
+          "returns": "Locator"
+        },
+        {
+          "name": "get_by_test_id",
+          "op": "page_get_by_test_id",
+          "params": [
+            "test_id"
+          ],
+          "returns": "Locator"
+        },
+        {
+          "name": "get_by_placeholder",
+          "op": "page_get_by_placeholder",
+          "params": [
+            "text"
+          ],
+          "returns": "Locator"
+        },
+        {
+          "name": "get_by_alt_text",
+          "op": "page_get_by_alt_text",
+          "params": [
+            "text"
+          ],
+          "returns": "Locator"
+        },
+        {
+          "name": "get_by_title",
+          "op": "page_get_by_title",
+          "params": [
+            "text"
+          ],
+          "returns": "Locator"
+        },
+        {
+          "name": "click",
+          "op": "page_click",
+          "params": [
+            "selector"
+          ],
+          "returns": null
+        },
+        {
+          "name": "dblclick",
+          "op": "page_dblclick",
+          "params": [
+            "selector"
+          ],
+          "returns": null
+        },
+        {
+          "name": "fill",
+          "op": "page_fill",
+          "params": [
+            "selector",
+            "value"
+          ],
+          "returns": null
+        },
+        {
+          "name": "type",
+          "op": "page_type",
+          "params": [
+            "selector",
+            "value"
+          ],
+          "returns": null
+        },
+        {
+          "name": "hover",
+          "op": "page_hover",
+          "params": [
+            "selector"
+          ],
+          "returns": null
+        },
+        {
+          "name": "focus",
+          "op": "page_focus",
+          "params": [
+            "selector"
+          ],
+          "returns": null
+        },
+        {
+          "name": "inner_text",
+          "op": "page_inner_text",
+          "params": [
+            "selector"
+          ],
+          "returns": null
+        },
+        {
+          "name": "text_content",
+          "op": "page_inner_text",
+          "params": [
+            "selector"
+          ],
+          "returns": null
+        },
+        {
+          "name": "inner_html",
+          "op": "page_inner_html",
+          "params": [
+            "selector"
+          ],
+          "returns": null
+        },
+        {
+          "name": "get_attribute",
+          "op": "page_get_attribute",
+          "params": [
+            "selector",
+            "name"
+          ],
+          "returns": null
+        },
+        {
+          "name": "add_script_tag",
+          "op": "page_add_script",
+          "params": [
+            "content"
+          ],
+          "returns": null
+        },
+        {
+          "name": "go_forward",
+          "op": "page_go_forward",
+          "returns": null
+        },
+        {
+          "name": "close",
+          "op": "page_close",
+          "returns": null
+        },
+        {
+          "name": "set_content",
+          "params": [
+            {
+              "name": "html",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "js": "function(h){document.open();document.write(h);document.close();}"
+          }
+        },
+        {
+          "name": "url",
+          "impl": {
+            "scope": "page",
+            "returns": "string",
+            "js": "function(){return location.href;}"
+          }
+        },
+        {
+          "name": "get_by_role",
+          "params": [
+            {
+              "name": "role",
+              "type": "String"
+            }
+          ],
+          "op": "page_get_by_role",
+          "returns": "Locator"
+        },
+        {
+          "name": "get_by_text",
+          "params": [
+            {
+              "name": "text",
+              "type": "String"
+            }
+          ],
+          "op": "page_get_by_text",
+          "returns": "Locator"
+        },
+        {
+          "name": "get_by_label",
+          "params": [
+            {
+              "name": "label",
+              "type": "String"
+            }
+          ],
+          "op": "page_get_by_label",
+          "returns": "Locator"
+        },
+        {
+          "name": "press",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "key",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "js": "function(sel,key){const e=document.querySelector(sel);if(!e)return;e.focus();e.dispatchEvent(new KeyboardEvent(\"keydown\",{key:key,bubbles:true}));e.dispatchEvent(new KeyboardEvent(\"keyup\",{key:key,bubbles:true}));}"
+          }
+        },
+        {
+          "name": "check",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "js": "function(sel){const e=document.querySelector(sel);if(e&&e.checked!==true)e.click();}"
+          }
+        },
+        {
+          "name": "uncheck",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "js": "function(sel){const e=document.querySelector(sel);if(e&&e.checked===true)e.click();}"
+          }
+        },
+        {
+          "name": "set_checked",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "checked",
+              "type": "bool"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "js": "function(sel,v){const e=document.querySelector(sel);if(e&&e.checked!==!!v)e.click();}"
+          }
+        },
+        {
+          "name": "set_input_files",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "files_json",
+              "type": "String"
+            }
+          ],
+          "op": "page_set_input_files",
+          "returns": null
+        },
+        {
+          "name": "select_option",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "values_json",
+              "type": "String"
+            }
+          ],
+          "op": "page_select_option",
+          "returns": null
+        },
+        {
+          "name": "tap",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "js": "function(sel){const e=document.querySelector(sel);if(e)e.click();}"
+          }
+        },
+        {
+          "name": "dispatch_event",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "event_type",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "js": "function(sel,t){const e=document.querySelector(sel);if(e)e.dispatchEvent(new Event(t,{bubbles:true,cancelable:true}));}"
+          }
+        },
+        {
+          "name": "drag_and_drop",
+          "params": [
+            {
+              "name": "source",
+              "type": "String"
+            },
+            {
+              "name": "target",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "js": "function(src,dst){const s=document.querySelector(src),t=document.querySelector(dst);if(!s||!t)return;const dt=new DataTransfer();s.dispatchEvent(new DragEvent(\"dragstart\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"dragenter\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"dragover\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"drop\",{bubbles:true,dataTransfer:dt}));s.dispatchEvent(new DragEvent(\"dragend\",{bubbles:true,dataTransfer:dt}));}"
+          }
+        },
+        {
+          "name": "input_value",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "string",
+            "js": "function(sel){const e=document.querySelector(sel);return e&&e.value!=null?String(e.value):\"\";}"
+          }
+        },
+        {
+          "name": "is_visible",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "bool",
+            "js": "function(sel){const e=document.querySelector(sel);if(!e)return false;const s=getComputedStyle(e);const r=e.getBoundingClientRect();return !!(r.width||r.height)&&s.visibility!==\"hidden\"&&s.display!==\"none\";}"
+          }
+        },
+        {
+          "name": "is_hidden",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "bool",
+            "js": "function(sel){const e=document.querySelector(sel);if(!e)return true;const s=getComputedStyle(e);const r=e.getBoundingClientRect();return !(!!(r.width||r.height)&&s.visibility!==\"hidden\"&&s.display!==\"none\");}"
+          }
+        },
+        {
+          "name": "is_enabled",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "bool",
+            "js": "function(sel){const e=document.querySelector(sel);return !!e&&!(e.disabled===true||e.hasAttribute(\"disabled\"));}"
+          }
+        },
+        {
+          "name": "is_disabled",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "bool",
+            "js": "function(sel){const e=document.querySelector(sel);return !!e&&(e.disabled===true||e.hasAttribute(\"disabled\"));}"
+          }
+        },
+        {
+          "name": "is_checked",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "bool",
+            "js": "function(sel){const e=document.querySelector(sel);return !!e&&e.checked===true;}"
+          }
+        },
+        {
+          "name": "is_editable",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "bool",
+            "js": "function(sel){const e=document.querySelector(sel);return !!e&&!(e.disabled===true||e.readOnly===true||e.hasAttribute(\"readonly\"));}"
+          }
+        },
+        {
+          "name": "wait_for_url",
+          "params": [
+            {
+              "name": "url",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "js": "function(u){return new Promise(res=>{const check=()=>{if(location.href===u||location.href.indexOf(u)===0){res(true);}else{setTimeout(check,50);}};check();});}"
+          }
+        },
+        {
+          "name": "wait_for_event",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "page_wait_for_event",
+          "returns": null
+        },
+        {
+          "name": "wait_for_function",
+          "params": [
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "page_wait_for_function",
+          "returns": null
+        },
+        {
+          "name": "add_style_tag",
+          "params": [
+            {
+              "name": "content",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "string",
+            "js": "function(c){const s=document.createElement('style');s.textContent=c;document.head.appendChild(s);return s.textContent;}"
+          }
+        },
+        {
+          "name": "evaluate",
+          "params": [
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "json",
+            "js": "function(src){return (new Function(\"return (\"+src+\")\"))();}"
+          }
+        },
+        {
+          "name": "eval_on_selector",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "page_eval_on_selector",
+          "returns": null
+        },
+        {
+          "name": "eval_on_selector_all",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "page_eval_on_selector_all",
+          "returns": null
+        },
+        {
+          "name": "route",
+          "params": [
+            {
+              "name": "pattern",
+              "type": "String"
+            },
+            {
+              "name": "action",
+              "type": "String",
+              "default": "\"continue\""
+            }
+          ],
+          "op": "page_route",
+          "returns": null
+        },
+        {
+          "name": "unroute",
+          "params": [
+            {
+              "name": "pattern",
+              "type": "String"
+            }
+          ],
+          "op": "page_unroute",
+          "returns": null
+        },
+        {
+          "name": "emulate_media",
+          "params": [
+            {
+              "name": "media",
+              "type": "Option<String>"
+            },
+            {
+              "name": "color_scheme",
+              "type": "Option<String>"
+            }
+          ],
+          "op": "page_emulate_media",
+          "returns": null
+        },
+        {
+          "name": "set_viewport_size",
+          "params": [
+            {
+              "name": "width",
+              "type": "u64"
+            },
+            {
+              "name": "height",
+              "type": "i64"
+            }
+          ],
+          "op": "page_set_viewport_size",
+          "returns": null
+        },
+        {
+          "name": "set_extra_http_headers",
+          "params": [
+            {
+              "name": "headers_json",
+              "type": "String"
+            }
+          ],
+          "op": "page_set_extra_http_headers",
+          "returns": null
+        },
+        {
+          "name": "bring_to_front",
+          "op": "page_bring_to_front",
+          "returns": null
+        },
+        {
+          "name": "keyboard",
+          "op": "page_new_keyboard",
+          "returns": "Keyboard"
+        },
+        {
+          "name": "mouse",
+          "op": "page_new_mouse",
+          "returns": "Mouse"
+        },
+        {
+          "name": "touchscreen",
+          "op": "page_new_touchscreen",
+          "returns": "Touchscreen"
+        },
+        {
+          "name": "frames",
+          "op": "page_frames",
+          "returns": null
+        },
+        {
+          "name": "main_frame",
+          "op": "page_main_frame",
+          "returns": null
+        },
+        {
+          "name": "on",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "page_on",
+          "returns": null
+        },
+        {
+          "name": "once",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "page_once",
+          "returns": null
+        },
+        {
+          "name": "remove_listener",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "page_remove_listener",
+          "returns": null
+        },
+        {
+          "name": "expect_popup",
+          "op": "page_expect_popup",
+          "returns": null
+        },
+        {
+          "name": "expect_download",
+          "op": "page_expect_download",
+          "returns": null
+        },
+        {
+          "name": "expect_request",
+          "op": "page_expect_request",
+          "returns": null
+        },
+        {
+          "name": "expect_response",
+          "op": "page_expect_response",
+          "returns": null
+        },
+        {
+          "name": "expect_console_message",
+          "op": "page_expect_console_message",
+          "returns": null
+        },
+        {
+          "name": "expect_file_chooser",
+          "op": "page_expect_file_chooser",
+          "returns": null
+        },
+        {
+          "name": "expect_event",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "page_wait_for_event",
+          "returns": null
+        },
+        {
+          "name": "add_init_script",
+          "op": "page_add_script",
+          "params": [
+            "script"
+          ],
+          "returns": null
+        },
+        {
+          "name": "aria_snapshot",
+          "params": [],
+          "impl": {
+            "scope": "page",
+            "returns": "json",
+            "cdp": {
+              "method": "Accessibility.getFullAXTree",
+              "params": {}
+            }
+          }
+        },
+        {
+          "name": "clear_console_messages",
+          "params": [],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "cdp": {
+              "method": "Runtime.discardConsoleEntries",
+              "params": {}
+            }
+          }
+        },
+        {
+          "name": "clear_page_errors",
+          "params": [],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "cdp": {
+              "method": "Runtime.discardConsoleEntries",
+              "params": {}
+            }
+          }
+        },
+        {
+          "name": "evaluate_handle",
+          "params": [
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "page_evaluate_handle",
+          "returns": "Locator"
+        },
+        {
+          "name": "expect_navigation",
+          "op": "page_expect_navigation",
+          "returns": null
+        },
+        {
+          "name": "expect_request_finished",
+          "op": "page_expect_request_finished",
+          "returns": null
+        },
+        {
+          "name": "expect_websocket",
+          "op": "page_expect_websocket",
+          "returns": null
+        },
+        {
+          "name": "expect_worker",
+          "op": "page_expect_worker",
+          "returns": null
+        },
+        {
+          "name": "frame",
+          "params": [
+            {
+              "name": "frame_id",
+              "type": "String"
+            }
+          ],
+          "op": "page_frame",
+          "returns": null
+        },
+        {
+          "name": "hide_highlight",
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "js": "function(){document.querySelectorAll(\"*\").forEach(function(e){e.style.outline=\"\";});}"
+          }
+        },
+        {
+          "name": "is_closed",
+          "op": "page_is_closed",
+          "returns": null
+        },
+        {
+          "name": "local_storage",
+          "impl": {
+            "scope": "page",
+            "returns": "json",
+            "js": "function(){return Object.fromEntries(Object.entries(localStorage));}"
+          }
+        },
+        {
+          "name": "query_selector_all",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "page_find_all",
+          "returns": "Locator",
+          "list": true
+        },
+        {
+          "name": "request",
+          "op": "page_request",
+          "returns": null
+        },
+        {
+          "name": "request_gc",
+          "params": [],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "cdp": {
+              "method": "HeapProfiler.collectGarbage",
+              "params": {}
+            }
+          }
+        },
+        {
+          "name": "requests",
+          "op": "page_requests",
+          "returns": null
+        },
+        {
+          "name": "route_from_har",
+          "params": [
+            {
+              "name": "path",
+              "type": "String"
+            }
+          ],
+          "op": "page_route_from_har",
+          "returns": null
+        },
+        {
+          "name": "screencast",
+          "op": "page_new_screencast",
+          "returns": "Screencast"
+        },
+        {
+          "name": "session_storage",
+          "impl": {
+            "scope": "page",
+            "returns": "json",
+            "js": "function(){return Object.fromEntries(Object.entries(sessionStorage));}"
+          }
+        },
+        {
+          "name": "set_default_navigation_timeout",
+          "params": [
+            {
+              "name": "milliseconds",
+              "type": "f64"
+            }
+          ],
+          "op": "page_set_default_timeout",
+          "returns": null
+        },
+        {
+          "name": "set_default_timeout",
+          "params": [
+            {
+              "name": "milliseconds",
+              "type": "f64"
+            }
+          ],
+          "op": "page_set_default_timeout",
+          "returns": null
+        },
+        {
+          "name": "unroute_all",
+          "op": "page_unroute_all",
+          "returns": null
+        },
+        {
+          "name": "viewport_size",
+          "impl": {
+            "scope": "page",
+            "returns": "json",
+            "js": "function(){return {width:window.innerWidth,height:window.innerHeight};}"
+          }
+        }
+      ]
+    },
+    "Locator": {
+      "doc": "Playwright-style locator (wraps an element handle).",
+      "methods": [
+        {
+          "name": "click",
+          "op": "element_click",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "dblclick",
+          "op": "element_dblclick",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "fill",
+          "op": "element_type",
+          "params": [
+            "value"
+          ],
+          "returns": null
+        },
+        {
+          "name": "type",
+          "op": "element_type",
+          "params": [
+            "value"
+          ],
+          "returns": null
+        },
+        {
+          "name": "hover",
+          "op": "element_hover",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "focus",
+          "op": "element_focus",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "inner_text",
+          "op": "element_text",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "text_content",
+          "op": "element_text",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "get_attribute",
+          "op": "element_attribute",
+          "params": [
+            "name"
+          ],
+          "returns": null
+        },
+        {
+          "name": "inner_html",
+          "op": "element_inner_html",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "press",
+          "params": [
+            {
+              "name": "key",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(key){this.focus();this.dispatchEvent(new KeyboardEvent(\"keydown\",{key:key,bubbles:true}));this.dispatchEvent(new KeyboardEvent(\"keyup\",{key:key,bubbles:true}));}"
+          }
+        },
+        {
+          "name": "check",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){if(this.checked!==true&&this.type!==undefined){this.click();}}"
+          }
+        },
+        {
+          "name": "uncheck",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){if(this.checked===true){this.click();}}"
+          }
+        },
+        {
+          "name": "set_checked",
+          "params": [
+            {
+              "name": "checked",
+              "type": "bool"
+            }
+          ],
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(v){if(this.checked!==!!v){this.click();}}"
+          }
+        },
+        {
+          "name": "select_option",
+          "params": [
+            {
+              "name": "values_json",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(valuesRaw){const w=JSON.parse(valuesRaw).map(String);for(const o of this.options){o.selected=w.includes(o.value)||w.includes(o.text);}this.dispatchEvent(new Event('change',{bubbles:true}));}"
+          }
+        },
+        {
+          "name": "input_value",
+          "impl": {
+            "scope": "element",
+            "returns": "string",
+            "js": "function(){return this.value!=null?String(this.value):\"\";}"
+          }
+        },
+        {
+          "name": "is_visible",
+          "impl": {
+            "scope": "element",
+            "returns": "bool",
+            "js": "function(){const s=getComputedStyle(this);const r=this.getBoundingClientRect();return !!(r.width||r.height)&&s.visibility!==\"hidden\"&&s.display!==\"none\"&&s.opacity!==\"0\";}"
+          }
+        },
+        {
+          "name": "is_hidden",
+          "impl": {
+            "scope": "element",
+            "returns": "bool",
+            "js": "function(){const s=getComputedStyle(this);const r=this.getBoundingClientRect();return !(!!(r.width||r.height)&&s.visibility!==\"hidden\"&&s.display!==\"none\");}"
+          }
+        },
+        {
+          "name": "is_enabled",
+          "impl": {
+            "scope": "element",
+            "returns": "bool",
+            "js": "function(){return !(this.disabled===true||this.hasAttribute(\"disabled\"));}"
+          }
+        },
+        {
+          "name": "is_disabled",
+          "impl": {
+            "scope": "element",
+            "returns": "bool",
+            "js": "function(){return this.disabled===true||this.hasAttribute(\"disabled\");}"
+          }
+        },
+        {
+          "name": "is_checked",
+          "impl": {
+            "scope": "element",
+            "returns": "bool",
+            "js": "function(){return this.checked===true;}"
+          }
+        },
+        {
+          "name": "is_editable",
+          "impl": {
+            "scope": "element",
+            "returns": "bool",
+            "js": "function(){return !(this.disabled===true||this.readOnly===true||this.hasAttribute(\"readonly\"));}"
+          }
+        },
+        {
+          "name": "is_empty",
+          "impl": {
+            "scope": "element",
+            "returns": "bool",
+            "js": "function(){return !this.value&&!this.textContent&&!this.innerHTML;}"
+          }
+        },
+        {
+          "name": "count",
+          "op": "element_count",
+          "returns": null
+        },
+        {
+          "name": "all",
+          "op": "element_all",
+          "returns": "Locator",
+          "list": true
+        },
+        {
+          "name": "all_inner_texts",
+          "impl": {
+            "scope": "element",
+            "returns": "json",
+            "js": "function(){return [this.innerText];}"
+          }
+        },
+        {
+          "name": "all_text_contents",
+          "impl": {
+            "scope": "element",
+            "returns": "json",
+            "js": "function(){return [this.textContent];}"
+          }
+        },
+        {
+          "name": "first",
+          "op": "element_self",
+          "returns": "Locator"
+        },
+        {
+          "name": "last",
+          "op": "element_self",
+          "returns": "Locator"
+        },
+        {
+          "name": "nth",
+          "params": [
+            {
+              "name": "index",
+              "type": "i64"
+            }
+          ],
+          "op": "element_nth",
+          "returns": "Locator"
+        },
+        {
+          "name": "get_by_role",
+          "params": [
+            {
+              "name": "role",
+              "type": "String"
+            }
+          ],
+          "op": "element_get_by_role",
+          "returns": "Locator"
+        },
+        {
+          "name": "get_by_text",
+          "params": [
+            {
+              "name": "text",
+              "type": "String"
+            }
+          ],
+          "op": "element_get_by_text",
+          "returns": "Locator"
+        },
+        {
+          "name": "get_by_label",
+          "params": [
+            {
+              "name": "label",
+              "type": "String"
+            }
+          ],
+          "op": "element_get_by_label",
+          "returns": "Locator"
+        },
+        {
+          "name": "get_by_placeholder",
+          "params": [
+            {
+              "name": "text",
+              "type": "String"
+            }
+          ],
+          "op": "element_get_by_placeholder",
+          "returns": "Locator"
+        },
+        {
+          "name": "get_by_alt_text",
+          "params": [
+            {
+              "name": "text",
+              "type": "String"
+            }
+          ],
+          "op": "element_get_by_alt_text",
+          "returns": "Locator"
+        },
+        {
+          "name": "get_by_title",
+          "params": [
+            {
+              "name": "text",
+              "type": "String"
+            }
+          ],
+          "op": "element_get_by_title",
+          "returns": "Locator"
+        },
+        {
+          "name": "get_by_test_id",
+          "params": [
+            {
+              "name": "test_id",
+              "type": "String"
+            }
+          ],
+          "op": "element_get_by_test_id",
+          "returns": "Locator"
+        },
+        {
+          "name": "evaluate",
+          "params": [
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "element",
+            "returns": "json",
+            "js": "function(src){return (new Function('el','return ('+src+')(el);'))(this);}"
+          }
+        },
+        {
+          "name": "screenshot",
+          "op": "element_screenshot",
+          "returns": null
+        },
+        {
+          "name": "set_input_files",
+          "params": [
+            {
+              "name": "files_json",
+              "type": "String"
+            }
+          ],
+          "op": "element_set_input_files",
+          "returns": null
+        },
+        {
+          "name": "drag_to",
+          "params": [
+            {
+              "name": "target",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(sel){const t=document.querySelector(sel);if(!t)return;const dt=new DataTransfer();this.dispatchEvent(new DragEvent(\"dragstart\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"dragenter\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"dragover\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"drop\",{bubbles:true,dataTransfer:dt}));this.dispatchEvent(new DragEvent(\"dragend\",{bubbles:true,dataTransfer:dt}));}"
+          }
+        },
+        {
+          "name": "blur",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){this.blur();}"
+          }
+        },
+        {
+          "name": "bounding_box",
+          "impl": {
+            "scope": "element",
+            "returns": "json",
+            "js": "function(){const r=this.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};}"
+          }
+        },
+        {
+          "name": "clear",
+          "op": "element_clear",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "describe",
+          "impl": {
+            "scope": "element",
+            "returns": "string",
+            "js": "function(){return this.outerHTML.slice(0,120);}"
+          }
+        },
+        {
+          "name": "description",
+          "impl": {
+            "scope": "element",
+            "returns": "string",
+            "js": "function(){return this.outerHTML;}"
+          }
+        },
+        {
+          "name": "dispatch_event",
+          "params": [
+            {
+              "name": "event_type",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(t){this.dispatchEvent(new Event(t,{bubbles:true,cancelable:true}));}"
+          }
+        },
+        {
+          "name": "drop",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){this.dispatchEvent(new DragEvent(\"drop\",{bubbles:true}));}"
+          }
+        },
+        {
+          "name": "element_handle",
+          "op": "element_self",
+          "returns": "Locator"
+        },
+        {
+          "name": "element_handles",
+          "op": "element_all",
+          "returns": "Locator",
+          "list": true
+        },
+        {
+          "name": "evaluate_handle",
+          "params": [
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "element_evaluate_handle",
+          "returns": "Locator"
+        },
+        {
+          "name": "hide_highlight",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){this.style.outline=\"\";}"
+          }
+        },
+        {
+          "name": "highlight",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){this.style.outline=\"2px solid red\";}"
+          }
+        },
+        {
+          "name": "press_sequentially",
+          "params": [
+            {
+              "name": "text",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(text){this.focus();this.value=(this.value||\"\")+text;this.dispatchEvent(new Event(\"input\",{bubbles:true}));}"
+          }
+        },
+        {
+          "name": "scroll_into_view_if_needed",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){this.scrollIntoView({block:\"center\",inline:\"center\"});}"
+          }
+        },
+        {
+          "name": "select_text",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){const r=document.createRange();r.selectNodeContents(this);const s=getSelection();s.removeAllRanges();s.addRange(r);}"
+          }
+        },
+        {
+          "name": "tap",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){this.click();}"
+          }
+        },
+        {
+          "name": "visible",
+          "impl": {
+            "scope": "element",
+            "returns": "bool",
+            "js": "function(){const s=getComputedStyle(this);const r=this.getBoundingClientRect();return !!(r.width||r.height)&&s.visibility!==\"hidden\"&&s.display!==\"none\"&&s.opacity!==\"0\";}"
+          }
+        }
+      ]
+    },
+    "CDPSession": {
+      "doc": "A CDP session (thin wrapper over the page connection).",
+      "methods": [
+        {
+          "name": "send",
+          "op": "page_execute_cdp_cmd",
+          "params": [
+            {
+              "name": "method",
+              "type": "String"
+            },
+            {
+              "name": "params_json",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "detach",
+          "op": "page_detach_cdp_session",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "on",
+          "op": "page_on",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "off",
+          "op": "page_remove_listener",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        }
+      ]
+    },
+    "Keyboard": {
+      "doc": "Keyboard input (thin wrapper over the page).",
+      "methods": [
+        {
+          "name": "press",
+          "op": "page_keyboard_press",
+          "params": [
+            {
+              "name": "key",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "down",
+          "op": "page_keyboard_down",
+          "params": [
+            {
+              "name": "key",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "up",
+          "op": "page_keyboard_up",
+          "params": [
+            {
+              "name": "key",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "type",
+          "op": "page_keyboard_type",
+          "params": [
+            {
+              "name": "text",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        }
+      ]
+    },
+    "Mouse": {
+      "doc": "Mouse input (thin wrapper over the page).",
+      "methods": [
+        {
+          "name": "move",
+          "op": "page_mouse_move",
+          "params": [
+            {
+              "name": "x",
+              "type": "f64"
+            },
+            {
+              "name": "y",
+              "type": "f64"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "click",
+          "op": "page_mouse_click",
+          "params": [
+            {
+              "name": "x",
+              "type": "f64"
+            },
+            {
+              "name": "y",
+              "type": "f64"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "down",
+          "op": "page_mouse_down",
+          "params": [
+            {
+              "name": "button",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "up",
+          "op": "page_mouse_up",
+          "params": [
+            {
+              "name": "button",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        }
+      ]
+    },
+    "Touchscreen": {
+      "doc": "Touchscreen input (thin wrapper over the page).",
+      "methods": [
+        {
+          "name": "tap",
+          "op": "page_touch_tap",
+          "params": [
+            {
+              "name": "x",
+              "type": "f64"
+            },
+            {
+              "name": "y",
+              "type": "f64"
+            }
+          ],
+          "returns": null
+        }
+      ]
+    },
+    "Screencast": {
+      "doc": "Screencast (thin wrapper over the page).",
+      "methods": [
+        {
+          "name": "start",
+          "op": "page_start_screencast",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "stop",
+          "op": "page_stop_screencast",
+          "params": [],
+          "returns": null
+        }
+      ]
+    }
+  }
+}

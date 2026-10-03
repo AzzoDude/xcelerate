@@ -1,47 +1,54 @@
-[package]
-name = "xcelerate"
+[workspace]
+members = [
+    "crates/xcelerate",
+    "crates/xcelerate-core",
+    "crates/xcelerate-stealth",
+    "crates/xcelerate-bindgen",
+]
+resolver = "3"
+
+[workspace.package]
 version = "0.1.6"
 edition = "2024"
+rust-version = "1.99.0"
 authors = ["AzzoDude"]
-description = "A high-performance, lightweight Chrome DevTools Protocol (CDP) client for Rust."
 license = "MIT"
 repository = "https://github.com/AzzoDude/xcelerate"
-documentation = "https://docs.rs/xcelerate"
-keywords = ["automation", "cdp", "chrome", "headless", "stealth"]
-categories = ["web-programming", "development-tools"]
-readme = "README.md"
-include = [
-    "src/**/*",
-    "Cargo.toml",
-    "README.md",
-    "LICENSE",
-]
 
-[lib]
-name = "xcelerate"
-crate-type = ["rlib", "cdylib"]
+# Shared lint policy for every crate in the workspace.
+[workspace.lints.rust]
+# `unsafe` is used deliberately in the stealth layer for platform syscalls
+# (setsid/pre_exec, libc::kill), so it is allowed rather than forbidden.
+unsafe_code = "allow"
 
-[[bin]]
-name = "uniffi-bindgen"
-path = "src/bin/uniffi-bindgen.rs"
-required-features = ["uniffi/cli"]
+[workspace.lints.clippy]
+# Allow lints that are not actionable for generated/hand-written glue.
+empty_line_after_doc_comments = "allow"
+doc_lazy_continuation = "allow"
 
-[dependencies]
-uniffi = { version = "0.29", features = ["tokio"] }
-browser-protocol = "0.1.2"
-js-protocol = "0.1.2"
-futures = "0.3.32"
-reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-tokio = { version = "1.52.1", features = ["full"] }
-tokio-tungstenite = { version = "0.26.2", default-features = false, features = ["connect", "rustls-tls-native-roots"] }
-thiserror = "2.0"
-tempfile = "3.10"
-base64 = "0.22"
-once_cell = "1.19"
-regex = "1.10"
-libc = "0.2"
+# Every dependency version lives here so the whole workspace can be bumped to
+# the latest release from a single place.
+[workspace.dependencies]
+# Internal crates.
+xcelerate-core = { path = "crates/xcelerate-core", version = "0.1.6" }
+xcelerate-stealth = { path = "crates/xcelerate-stealth", version = "0.1.6" }
+
+# Third-party crates.
+js-protocol = "0.1.6"
+browser-protocol = "0.1.6"
+uniffi = { version = "0.32.2", features = ["tokio"] }
+futures = "0.3.34"
+reqwest = { version = "0.13.5", features = ["json", "rustls"], default-features = false }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+tokio = { version = "1.53.1", features = ["full"] }
+tokio-tungstenite = { version = "0.30.0", default-features = false, features = ["connect", "rustls-tls-native-roots"] }
+thiserror = "2.0.21"
+tempfile = "3.27.0"
+base64 = "0.23.1"
+once_cell = "1.21.4"
+regex = "1.13.1"
+libc = "0.2.190"
 
 [profile.release]
 opt-level = 3

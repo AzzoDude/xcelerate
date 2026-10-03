@@ -1,0 +1,448 @@
+{
+  "classes": {
+    "WebDriver": [
+      {
+        "name": "add_cookie",
+        "property": false
+      },
+      {
+        "name": "add_credential",
+        "property": false
+      },
+      {
+        "name": "add_virtual_authenticator",
+        "property": false
+      },
+      {
+        "name": "back",
+        "property": false
+      },
+      {
+        "name": "bidi_connection",
+        "property": false
+      },
+      {
+        "name": "browser",
+        "property": true
+      },
+      {
+        "name": "browsing_context",
+        "property": true
+      },
+      {
+        "name": "capabilities",
+        "property": true
+      },
+      {
+        "name": "close",
+        "property": false
+      },
+      {
+        "name": "create_web_element",
+        "property": false
+      },
+      {
+        "name": "current_url",
+        "property": true
+      },
+      {
+        "name": "current_window_handle",
+        "property": true
+      },
+      {
+        "name": "delete_all_cookies",
+        "property": false
+      },
+      {
+        "name": "delete_cookie",
+        "property": false
+      },
+      {
+        "name": "delete_downloadable_files",
+        "property": false
+      },
+      {
+        "name": "dialog",
+        "property": true
+      },
+      {
+        "name": "download_file",
+        "property": false
+      },
+      {
+        "name": "emulation",
+        "property": true
+      },
+      {
+        "name": "execute",
+        "property": false
+      },
+      {
+        "name": "execute_async_script",
+        "property": false
+      },
+      {
+        "name": "execute_cdp_cmd",
+        "property": false
+      },
+      {
+        "name": "execute_script",
+        "property": false
+      },
+      {
+        "name": "fedcm",
+        "property": true
+      },
+      {
+        "name": "fedcm_dialog",
+        "property": false
+      },
+      {
+        "name": "file_detector",
+        "property": true
+      },
+      {
+        "name": "file_detector_context",
+        "property": false
+      },
+      {
+        "name": "find_element",
+        "property": false
+      },
+      {
+        "name": "find_elements",
+        "property": false
+      },
+      {
+        "name": "fire_session_event",
+        "property": false
+      },
+      {
+        "name": "forward",
+        "property": false
+      },
+      {
+        "name": "fullscreen_window",
+        "property": false
+      },
+      {
+        "name": "get",
+        "property": false
+      },
+      {
+        "name": "get_cookie",
+        "property": false
+      },
+      {
+        "name": "get_cookies",
+        "property": false
+      },
+      {
+        "name": "get_credentials",
+        "property": false
+      },
+      {
+        "name": "get_downloadable_files",
+        "property": false
+      },
+      {
+        "name": "get_pinned_scripts",
+        "property": false
+      },
+      {
+        "name": "get_screenshot_as_base64",
+        "property": false
+      },
+      {
+        "name": "get_screenshot_as_file",
+        "property": false
+      },
+      {
+        "name": "get_screenshot_as_png",
+        "property": false
+      },
+      {
+        "name": "get_window_position",
+        "property": false
+      },
+      {
+        "name": "get_window_rect",
+        "property": false
+      },
+      {
+        "name": "get_window_size",
+        "property": false
+      },
+      {
+        "name": "implicitly_wait",
+        "property": false
+      },
+      {
+        "name": "input",
+        "property": true
+      },
+      {
+        "name": "maximize_window",
+        "property": false
+      },
+      {
+        "name": "minimize_window",
+        "property": false
+      },
+      {
+        "name": "mobile",
+        "property": true
+      },
+      {
+        "name": "name",
+        "property": true
+      },
+      {
+        "name": "network",
+        "property": true
+      },
+      {
+        "name": "orientation",
+        "property": true
+      },
+      {
+        "name": "page_source",
+        "property": true
+      },
+      {
+        "name": "permissions",
+        "property": true
+      },
+      {
+        "name": "pin_script",
+        "property": false
+      },
+      {
+        "name": "print_page",
+        "property": false
+      },
+      {
+        "name": "quit",
+        "property": false
+      },
+      {
+        "name": "refresh",
+        "property": false
+      },
+      {
+        "name": "remove_all_credentials",
+        "property": false
+      },
+      {
+        "name": "remove_credential",
+        "property": false
+      },
+      {
+        "name": "remove_virtual_authenticator",
+        "property": false
+      },
+      {
+        "name": "request",
+        "property": true
+      },
+      {
+        "name": "save_screenshot",
+        "property": false
+      },
+      {
+        "name": "script",
+        "property": true
+      },
+      {
+        "name": "set_page_load_timeout",
+        "property": false
+      },
+      {
+        "name": "set_script_timeout",
+        "property": false
+      },
+      {
+        "name": "set_user_verified",
+        "property": false
+      },
+      {
+        "name": "set_window_position",
+        "property": false
+      },
+      {
+        "name": "set_window_rect",
+        "property": false
+      },
+      {
+        "name": "set_window_size",
+        "property": false
+      },
+      {
+        "name": "start_client",
+        "property": false
+      },
+      {
+        "name": "start_devtools",
+        "property": false
+      },
+      {
+        "name": "start_session",
+        "property": false
+      },
+      {
+        "name": "stop_client",
+        "property": false
+      },
+      {
+        "name": "storage",
+        "property": true
+      },
+      {
+        "name": "supports_fedcm",
+        "property": true
+      },
+      {
+        "name": "switch_to",
+        "property": true
+      },
+      {
+        "name": "timeouts",
+        "property": true
+      },
+      {
+        "name": "title",
+        "property": true
+      },
+      {
+        "name": "unpin",
+        "property": false
+      },
+      {
+        "name": "virtual_authenticator_id",
+        "property": true
+      },
+      {
+        "name": "webextension",
+        "property": true
+      },
+      {
+        "name": "window_handles",
+        "property": true
+      }
+    ],
+    "WebElement": [
+      {
+        "name": "accessible_name",
+        "property": true
+      },
+      {
+        "name": "aria_role",
+        "property": true
+      },
+      {
+        "name": "clear",
+        "property": false
+      },
+      {
+        "name": "click",
+        "property": false
+      },
+      {
+        "name": "find_element",
+        "property": false
+      },
+      {
+        "name": "find_elements",
+        "property": false
+      },
+      {
+        "name": "get_attribute",
+        "property": false
+      },
+      {
+        "name": "get_dom_attribute",
+        "property": false
+      },
+      {
+        "name": "get_property",
+        "property": false
+      },
+      {
+        "name": "id",
+        "property": true
+      },
+      {
+        "name": "is_displayed",
+        "property": false
+      },
+      {
+        "name": "is_enabled",
+        "property": false
+      },
+      {
+        "name": "is_selected",
+        "property": false
+      },
+      {
+        "name": "location",
+        "property": true
+      },
+      {
+        "name": "location_once_scrolled_into_view",
+        "property": true
+      },
+      {
+        "name": "parent",
+        "property": true
+      },
+      {
+        "name": "rect",
+        "property": true
+      },
+      {
+        "name": "screenshot",
+        "property": false
+      },
+      {
+        "name": "screenshot_as_base64",
+        "property": true
+      },
+      {
+        "name": "screenshot_as_png",
+        "property": true
+      },
+      {
+        "name": "send_keys",
+        "property": false
+      },
+      {
+        "name": "session_id",
+        "property": true
+      },
+      {
+        "name": "shadow_root",
+        "property": true
+      },
+      {
+        "name": "size",
+        "property": true
+      },
+      {
+        "name": "submit",
+        "property": false
+      },
+      {
+        "name": "tag_name",
+        "property": true
+      },
+      {
+        "name": "text",
+        "property": true
+      },
+      {
+        "name": "value_of_css_property",
+        "property": false
+      }
+    ]
+  }
+}

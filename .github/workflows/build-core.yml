@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['src/**', 'Cargo.*', 'build.rs']
+    paths: ['crates/**', 'Cargo.*', 'build.rs']
 
 env:
   CARGO_TERM_COLOR: always
@@ -19,27 +19,27 @@ jobs:
           - os: windows-latest
             arch: amd64
             target: x86_64-pc-windows-msvc
-            lib_name: xcelerate_core.dll
+            lib_name: xcelerate.dll
           - os: windows-latest
             arch: arm64
             target: aarch64-pc-windows-msvc
-            lib_name: xcelerate_core.dll
+            lib_name: xcelerate.dll
           - os: ubuntu-latest
             arch: amd64
             target: x86_64-unknown-linux-gnu
-            lib_name: libxcelerate_core.so
+            lib_name: libxcelerate.so
           - os: ubuntu-latest
             arch: arm64
             target: aarch64-unknown-linux-gnu
-            lib_name: libxcelerate_core.so
+            lib_name: libxcelerate.so
           - os: macos-latest
             arch: amd64
             target: x86_64-apple-darwin
-            lib_name: libxcelerate_core.dylib
+            lib_name: libxcelerate.dylib
           - os: macos-latest
             arch: arm64
             target: aarch64-apple-darwin
-            lib_name: libxcelerate_core.dylib
+            lib_name: libxcelerate.dylib
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable

@@ -1,133 +1,86 @@
-import subprocess
-import os
-import shutil
-import sys
+#!/usr/bin/env python3
+"""Generate the C# bindings (uniffi) and package the NuGet SDK."""
 
-def run_command(cmd, cwd=None):
-    print(f"[EXECUTING] {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=cwd, shell=True, capture_output=True, text=True)
-    if result.stdout:
-        print(result.stdout)
-    if result.stderr:
-        print(f"[STDERR] {result.stderr}")
-    if result.returncode != 0:
-        print(f"[ERROR] Command failed with code {result.returncode}")
-        sys.exit(result.returncode)
+from __future__ import annotations
+
+import os
+import re
+import shutil
+
+from common import ROOT, find_tool, log, run_checked
+
 
 def main():
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    rust_dir = root_dir
-    csharp_dir = os.path.join(root_dir, "bindings", "csharp")
-    
     dll_name = "xcelerate.dll"
-    built_dll = os.path.join(rust_dir, "target", "release", dll_name)
+    built_dll = os.path.join(ROOT, "target", "release", dll_name)
+    csharp_dir = os.path.join(ROOT, "bindings", "csharp")
 
-    print("--- 1. Building Rust Library (cdylib) ---")
+    print("--- 1. Building Rust library (cdylib) ---")
     if os.environ.get("SKIP_RUST_BUILD") == "true" and os.path.exists(built_dll):
-        print(f"[SKIP] Rust build skipped, using existing: {built_dll}")
+        log("SKIP", f"Rust build skipped, using existing: {built_dll}")
     else:
-        run_command(["cargo", "build", "--release"], cwd=rust_dir)
-    
-    print("\n--- 2. Generating UniFFI C# Bindings ---")
-    
-    # Find uniffi-bindgen-cs (with fallback to default install paths)
-    tool_cmd = "uniffi-bindgen-cs"
-    
-    print(f"[DEBUG] Current PATH: {os.environ.get('PATH')}")
-    
-    if shutil.which(tool_cmd) is None:
-        print(f"[DEBUG] Tool '{tool_cmd}' not found in PATH.")
-        possible_paths = [
-            os.path.join(os.path.expanduser("~"), ".cargo", "bin"),
-            os.path.join(os.environ.get("USERPROFILE", ""), ".cargo", "bin"),
-            os.path.join(os.path.expanduser("~"), ".dotnet", "tools"),
-            "C:\\Users\\runneradmin\\.dotnet\\tools"
-        ]
-        for dp in possible_paths:
-            if os.path.exists(dp):
-                print(f"[DEBUG] Checking directory: {dp}")
-                # Check for things like uniffi-bindgen-cs.exe
-                for f in os.listdir(dp):
-                    if "uniffi-bindgen-cs" in f.lower() and f.endswith(".exe"):
-                        tool_cmd = os.path.join(dp, f)
-                        print(f"[INFO] Found potential tool at fallback path: {tool_cmd}")
-                        break
-                if tool_cmd != "uniffi-bindgen-cs": break
+        run_checked(["cargo", "build", "--release"], cwd=ROOT)
 
-    # Run bindgen
-    run_command([
-        tool_cmd, 
-        "--library", 
-        "--out-dir", csharp_dir, 
-        built_dll
-    ], cwd=rust_dir)
-    
-    print("\n--- 3. Fixing Visibility (Internal -> Public) ---")
-    # UniFFI C# generator often defaults to internal. We make it public for easier consumption.
+    print("\n--- 2. Generating UniFFI C# bindings ---")
+    tool_cmd = find_tool("uniffi-bindgen-cs")
+    log("DEBUG", f"using bindgen: {tool_cmd}")
+    run_checked([tool_cmd, "--library", "--out-dir", csharp_dir, built_dll], cwd=ROOT)
+
+    print("\n--- 3. Fixing visibility (internal -> public) ---")
+    # UniFFI's C# generator defaults to internal; make it public for consumers.
     generated_cs = os.path.join(csharp_dir, "xcelerate.cs")
-    
-    with open(generated_cs, "r") as f:
-        cs_content = f.read()
+    with open(generated_cs, "r", encoding="utf-8") as handle:
+        content = handle.read()
 
-    # Replacements list
-    replacements = [
-        ('internal class', 'public class'),
-        ('internal interface', 'public interface'),
-        ('internal record', 'public record'),
-        ('internal enum', 'public enum'),
-        ('internal struct', 'public struct'),
-        ('internal abstract class', 'public abstract class'),
-    ]
-    
-    for old, new in replacements:
-        cs_content = cs_content.replace(old, new)
-    
-    # Handle start of line replacements for classes/structs/etc without modifiers
-    import re
-    cs_content = re.sub(r'^class ', 'public class ', cs_content, flags=re.MULTILINE)
-    cs_content = re.sub(r'^struct ', 'public struct ', cs_content, flags=re.MULTILINE)
-    cs_content = re.sub(r'^interface ', 'public interface ', cs_content, flags=re.MULTILINE)
-    cs_content = re.sub(r'^enum ', 'public enum ', cs_content, flags=re.MULTILINE)
+    for old, new in (
+        ("internal class", "public class"),
+        ("internal interface", "public interface"),
+        ("internal record", "public record"),
+        ("internal enum", "public enum"),
+        ("internal struct", "public struct"),
+        ("internal abstract class", "public abstract class"),
+    ):
+        content = content.replace(old, new)
 
-    with open(generated_cs, "w") as f:
-        f.write(cs_content)
+    for keyword in ("class", "struct", "interface", "enum"):
+        content = re.sub(rf"^{keyword} ", f"public {keyword} ", content, flags=re.MULTILINE)
 
-
-    # POST-PROCESS: Make BrowserConfig arguments optional in C#
-    with open(generated_cs, "r") as f:
-        content = f.read()
-    
-    import re
-    # We match the specific Record definition and add defaults
-    pattern = r"public record BrowserConfig \(\n    bool @headless, \n    bool @stealth, \n    bool @detached, \n    string\? @executablePath\n\)"
-    replacement = r"public record BrowserConfig (\n    bool @headless = true, \n    bool @stealth = true, \n    bool @detached = true, \n    string? @executablePath = null\n)"
+    # Make BrowserConfig arguments optional.
+    pattern = (
+        r"public record BrowserConfig \(\n    bool @headless, \n    bool @stealth, \n"
+        r"    bool @detached, \n    string\? @executablePath\n\)"
+    )
+    replacement = (
+        r"public record BrowserConfig (\n    bool @headless = true, \n    bool @stealth = true, \n"
+        r"    bool @detached = true, \n    string? @executablePath = null\n)"
+    )
     content = re.sub(pattern, replacement, content)
-    
-    with open(generated_cs, "w") as f:
-        f.write(content)
 
-    print("\n--- 4. Distributing Native Libraries ---")
-    native_libs = ["xcelerate.dll", "libxcelerate.so", "libxcelerate.dylib"]
-    for lib in native_libs:
-        src = os.path.join(rust_dir, "target", "release", lib)
+    with open(generated_cs, "w", encoding="utf-8") as handle:
+        handle.write(content)
+
+    print("\n--- 4. Distributing native libraries ---")
+    for lib in ("xcelerate.dll", "libxcelerate.so", "libxcelerate.dylib"):
+        src = os.path.join(ROOT, "target", "release", lib)
         if os.path.exists(src):
             shutil.copy2(src, os.path.join(csharp_dir, lib))
-            print(f"[COPY] {lib} -> {csharp_dir}")
-    
-    # Also copy to TestApp bin directory for immediate testing (windows only usually)
+            log("COPY", f"{lib} -> {csharp_dir}")
+
     test_app_bin = os.path.join(csharp_dir, "Xcelerate.TestApp", "bin", "Debug", "net10.0")
     if os.path.exists(test_app_bin):
         shutil.copy2(built_dll, os.path.join(test_app_bin, dll_name))
-        print(f"[COPY] {dll_name} -> {test_app_bin}")
+        log("COPY", f"{dll_name} -> {test_app_bin}")
 
-    print("\n--- 5. Building C# Wrapper ---")
-    run_command(["dotnet", "build", "-c", "Release"], cwd=csharp_dir)
-    
+    print("\n--- 5. Building C# wrapper ---")
+    run_checked(["dotnet", "build", "-c", "Release"], cwd=csharp_dir)
+
     print("\n--- 6. Packaging NuGet (.nupkg) ---")
-    run_command(["dotnet", "pack", "-c", "Release"], cwd=csharp_dir)
-    
+    run_checked(["dotnet", "pack", "-c", "Release"], cwd=csharp_dir)
+
     print("\n--- DONE ---")
-    print(f"Xcelerate UniFFI SDK is ready in {os.path.join(csharp_dir, 'bin', 'Release')}")
+    log("SUCCESS", f"C# SDK ready in {os.path.join(csharp_dir, 'bin', 'Release')}")
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

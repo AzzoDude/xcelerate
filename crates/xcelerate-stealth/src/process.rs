@@ -1,7 +1,9 @@
 use std::process::Command;
 use std::sync::Mutex;
+
 use once_cell::sync::Lazy;
-use crate::error::{XcelerateResult, XcelerateError};
+
+use crate::{Error, Result};
 
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
@@ -13,9 +15,9 @@ use std::os::unix::process::CommandExt;
 pub static REGISTERED_PIDS: Lazy<Mutex<Vec<u32>>> = Lazy::new(|| Mutex::new(Vec::new()));
 
 /// Spawns a detached process that can outlive the parent.
-/// 
+///
 /// Returns the PID of the spawned process.
-pub fn spawn_detached(mut cmd: Command) -> XcelerateResult<u32> {
+pub fn spawn_detached(mut cmd: Command) -> Result<u32> {
     #[cfg(windows)]
     {
         // CREATE_NEW_PROCESS_GROUP = 0x00000200
@@ -36,9 +38,11 @@ pub fn spawn_detached(mut cmd: Command) -> XcelerateResult<u32> {
         }
     }
 
-    let child = cmd.spawn().map_err(|e| XcelerateError::NotFound(format!("Failed to spawn detached process: {}", e)))?;
+    let child = cmd
+        .spawn()
+        .map_err(|e| Error::NotFound(format!("Failed to spawn detached process: {}", e)))?;
     let pid = child.id();
-    
+
     // Register the PID for global cleanup
     ProcessRegistry::register(pid);
 
@@ -57,7 +61,7 @@ impl Drop for ProcessGuard {
         if self.auto_kill {
             kill_pid(self.pid);
         }
-        
+
         // Remove from global registry as it's already handled
         ProcessRegistry::unregister(self.pid);
     }
@@ -73,7 +77,7 @@ pub fn kill_pid(pid: u32) {
             .stderr(std::process::Stdio::null())
             .status();
     }
-    
+
     #[cfg(unix)]
     {
         unsafe {

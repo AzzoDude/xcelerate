@@ -1,0 +1,992 @@
+{
+  "classes": {
+    "Browser": [
+      {
+        "name": "bind",
+        "property": false
+      },
+      {
+        "name": "browser_type",
+        "property": true
+      },
+      {
+        "name": "close",
+        "property": false
+      },
+      {
+        "name": "contexts",
+        "property": true
+      },
+      {
+        "name": "is_connected",
+        "property": false
+      },
+      {
+        "name": "new_browser_cdp_session",
+        "property": false
+      },
+      {
+        "name": "new_context",
+        "property": false
+      },
+      {
+        "name": "new_page",
+        "property": false
+      },
+      {
+        "name": "on",
+        "property": false
+      },
+      {
+        "name": "once",
+        "property": false
+      },
+      {
+        "name": "remove_listener",
+        "property": false
+      },
+      {
+        "name": "start_tracing",
+        "property": false
+      },
+      {
+        "name": "stop_tracing",
+        "property": false
+      },
+      {
+        "name": "unbind",
+        "property": false
+      },
+      {
+        "name": "version",
+        "property": true
+      }
+    ],
+    "BrowserContext": [
+      {
+        "name": "add_cookies",
+        "property": false
+      },
+      {
+        "name": "add_init_script",
+        "property": false
+      },
+      {
+        "name": "background_pages",
+        "property": true
+      },
+      {
+        "name": "browser",
+        "property": true
+      },
+      {
+        "name": "clear_cookies",
+        "property": false
+      },
+      {
+        "name": "clear_permissions",
+        "property": false
+      },
+      {
+        "name": "clock",
+        "property": true
+      },
+      {
+        "name": "close",
+        "property": false
+      },
+      {
+        "name": "cookies",
+        "property": false
+      },
+      {
+        "name": "credentials",
+        "property": true
+      },
+      {
+        "name": "debugger",
+        "property": true
+      },
+      {
+        "name": "expect_console_message",
+        "property": false
+      },
+      {
+        "name": "expect_event",
+        "property": false
+      },
+      {
+        "name": "expect_page",
+        "property": false
+      },
+      {
+        "name": "expose_binding",
+        "property": false
+      },
+      {
+        "name": "expose_function",
+        "property": false
+      },
+      {
+        "name": "grant_permissions",
+        "property": false
+      },
+      {
+        "name": "is_closed",
+        "property": false
+      },
+      {
+        "name": "new_cdp_session",
+        "property": false
+      },
+      {
+        "name": "new_page",
+        "property": false
+      },
+      {
+        "name": "on",
+        "property": false
+      },
+      {
+        "name": "once",
+        "property": false
+      },
+      {
+        "name": "pages",
+        "property": true
+      },
+      {
+        "name": "remove_listener",
+        "property": false
+      },
+      {
+        "name": "request",
+        "property": true
+      },
+      {
+        "name": "route",
+        "property": false
+      },
+      {
+        "name": "route_from_har",
+        "property": false
+      },
+      {
+        "name": "route_web_socket",
+        "property": false
+      },
+      {
+        "name": "service_workers",
+        "property": true
+      },
+      {
+        "name": "set_default_navigation_timeout",
+        "property": false
+      },
+      {
+        "name": "set_default_timeout",
+        "property": false
+      },
+      {
+        "name": "set_extra_http_headers",
+        "property": false
+      },
+      {
+        "name": "set_geolocation",
+        "property": false
+      },
+      {
+        "name": "set_offline",
+        "property": false
+      },
+      {
+        "name": "set_storage_state",
+        "property": false
+      },
+      {
+        "name": "storage_state",
+        "property": false
+      },
+      {
+        "name": "tracing",
+        "property": true
+      },
+      {
+        "name": "unroute",
+        "property": false
+      },
+      {
+        "name": "unroute_all",
+        "property": false
+      },
+      {
+        "name": "wait_for_event",
+        "property": false
+      }
+    ],
+    "Locator": [
+      {
+        "name": "all",
+        "property": false
+      },
+      {
+        "name": "all_inner_texts",
+        "property": false
+      },
+      {
+        "name": "all_text_contents",
+        "property": false
+      },
+      {
+        "name": "and_",
+        "property": false
+      },
+      {
+        "name": "aria_snapshot",
+        "property": false
+      },
+      {
+        "name": "blur",
+        "property": false
+      },
+      {
+        "name": "bounding_box",
+        "property": false
+      },
+      {
+        "name": "check",
+        "property": false
+      },
+      {
+        "name": "clear",
+        "property": false
+      },
+      {
+        "name": "click",
+        "property": false
+      },
+      {
+        "name": "content_frame",
+        "property": true
+      },
+      {
+        "name": "count",
+        "property": false
+      },
+      {
+        "name": "dblclick",
+        "property": false
+      },
+      {
+        "name": "describe",
+        "property": false
+      },
+      {
+        "name": "description",
+        "property": true
+      },
+      {
+        "name": "dispatch_event",
+        "property": false
+      },
+      {
+        "name": "drag_to",
+        "property": false
+      },
+      {
+        "name": "drop",
+        "property": false
+      },
+      {
+        "name": "element_handle",
+        "property": false
+      },
+      {
+        "name": "element_handles",
+        "property": false
+      },
+      {
+        "name": "evaluate",
+        "property": false
+      },
+      {
+        "name": "evaluate_all",
+        "property": false
+      },
+      {
+        "name": "evaluate_handle",
+        "property": false
+      },
+      {
+        "name": "fill",
+        "property": false
+      },
+      {
+        "name": "filter",
+        "property": false
+      },
+      {
+        "name": "first",
+        "property": true
+      },
+      {
+        "name": "focus",
+        "property": false
+      },
+      {
+        "name": "frame_locator",
+        "property": false
+      },
+      {
+        "name": "get_attribute",
+        "property": false
+      },
+      {
+        "name": "get_by_alt_text",
+        "property": false
+      },
+      {
+        "name": "get_by_label",
+        "property": false
+      },
+      {
+        "name": "get_by_placeholder",
+        "property": false
+      },
+      {
+        "name": "get_by_role",
+        "property": false
+      },
+      {
+        "name": "get_by_test_id",
+        "property": false
+      },
+      {
+        "name": "get_by_text",
+        "property": false
+      },
+      {
+        "name": "get_by_title",
+        "property": false
+      },
+      {
+        "name": "hide_highlight",
+        "property": false
+      },
+      {
+        "name": "highlight",
+        "property": false
+      },
+      {
+        "name": "hover",
+        "property": false
+      },
+      {
+        "name": "inner_html",
+        "property": false
+      },
+      {
+        "name": "inner_text",
+        "property": false
+      },
+      {
+        "name": "input_value",
+        "property": false
+      },
+      {
+        "name": "is_checked",
+        "property": false
+      },
+      {
+        "name": "is_disabled",
+        "property": false
+      },
+      {
+        "name": "is_editable",
+        "property": false
+      },
+      {
+        "name": "is_enabled",
+        "property": false
+      },
+      {
+        "name": "is_hidden",
+        "property": false
+      },
+      {
+        "name": "is_visible",
+        "property": false
+      },
+      {
+        "name": "last",
+        "property": true
+      },
+      {
+        "name": "locator",
+        "property": false
+      },
+      {
+        "name": "normalize",
+        "property": false
+      },
+      {
+        "name": "nth",
+        "property": false
+      },
+      {
+        "name": "on",
+        "property": false
+      },
+      {
+        "name": "once",
+        "property": false
+      },
+      {
+        "name": "or_",
+        "property": false
+      },
+      {
+        "name": "page",
+        "property": true
+      },
+      {
+        "name": "press",
+        "property": false
+      },
+      {
+        "name": "press_sequentially",
+        "property": false
+      },
+      {
+        "name": "remove_listener",
+        "property": false
+      },
+      {
+        "name": "screenshot",
+        "property": false
+      },
+      {
+        "name": "scroll_into_view_if_needed",
+        "property": false
+      },
+      {
+        "name": "select_option",
+        "property": false
+      },
+      {
+        "name": "select_text",
+        "property": false
+      },
+      {
+        "name": "set_checked",
+        "property": false
+      },
+      {
+        "name": "set_input_files",
+        "property": false
+      },
+      {
+        "name": "tap",
+        "property": false
+      },
+      {
+        "name": "text_content",
+        "property": false
+      },
+      {
+        "name": "type",
+        "property": false
+      },
+      {
+        "name": "uncheck",
+        "property": false
+      },
+      {
+        "name": "visible",
+        "property": true
+      },
+      {
+        "name": "wait_for",
+        "property": false
+      },
+      {
+        "name": "wait_for_function",
+        "property": false
+      }
+    ],
+    "Page": [
+      {
+        "name": "add_init_script",
+        "property": false
+      },
+      {
+        "name": "add_locator_handler",
+        "property": false
+      },
+      {
+        "name": "add_script_tag",
+        "property": false
+      },
+      {
+        "name": "add_style_tag",
+        "property": false
+      },
+      {
+        "name": "aria_snapshot",
+        "property": false
+      },
+      {
+        "name": "bring_to_front",
+        "property": false
+      },
+      {
+        "name": "cancel_pick_locator",
+        "property": false
+      },
+      {
+        "name": "check",
+        "property": false
+      },
+      {
+        "name": "clear_console_messages",
+        "property": false
+      },
+      {
+        "name": "clear_page_errors",
+        "property": false
+      },
+      {
+        "name": "click",
+        "property": false
+      },
+      {
+        "name": "clock",
+        "property": true
+      },
+      {
+        "name": "close",
+        "property": false
+      },
+      {
+        "name": "console_messages",
+        "property": false
+      },
+      {
+        "name": "content",
+        "property": false
+      },
+      {
+        "name": "context",
+        "property": true
+      },
+      {
+        "name": "dblclick",
+        "property": false
+      },
+      {
+        "name": "dispatch_event",
+        "property": false
+      },
+      {
+        "name": "drag_and_drop",
+        "property": false
+      },
+      {
+        "name": "emulate_media",
+        "property": false
+      },
+      {
+        "name": "eval_on_selector",
+        "property": false
+      },
+      {
+        "name": "eval_on_selector_all",
+        "property": false
+      },
+      {
+        "name": "evaluate",
+        "property": false
+      },
+      {
+        "name": "evaluate_handle",
+        "property": false
+      },
+      {
+        "name": "expect_console_message",
+        "property": false
+      },
+      {
+        "name": "expect_download",
+        "property": false
+      },
+      {
+        "name": "expect_event",
+        "property": false
+      },
+      {
+        "name": "expect_file_chooser",
+        "property": false
+      },
+      {
+        "name": "expect_navigation",
+        "property": false
+      },
+      {
+        "name": "expect_popup",
+        "property": false
+      },
+      {
+        "name": "expect_request",
+        "property": false
+      },
+      {
+        "name": "expect_request_finished",
+        "property": false
+      },
+      {
+        "name": "expect_response",
+        "property": false
+      },
+      {
+        "name": "expect_websocket",
+        "property": false
+      },
+      {
+        "name": "expect_worker",
+        "property": false
+      },
+      {
+        "name": "expose_binding",
+        "property": false
+      },
+      {
+        "name": "expose_function",
+        "property": false
+      },
+      {
+        "name": "fill",
+        "property": false
+      },
+      {
+        "name": "focus",
+        "property": false
+      },
+      {
+        "name": "frame",
+        "property": false
+      },
+      {
+        "name": "frame_locator",
+        "property": false
+      },
+      {
+        "name": "frames",
+        "property": true
+      },
+      {
+        "name": "get_attribute",
+        "property": false
+      },
+      {
+        "name": "get_by_alt_text",
+        "property": false
+      },
+      {
+        "name": "get_by_label",
+        "property": false
+      },
+      {
+        "name": "get_by_placeholder",
+        "property": false
+      },
+      {
+        "name": "get_by_role",
+        "property": false
+      },
+      {
+        "name": "get_by_test_id",
+        "property": false
+      },
+      {
+        "name": "get_by_text",
+        "property": false
+      },
+      {
+        "name": "get_by_title",
+        "property": false
+      },
+      {
+        "name": "go_back",
+        "property": false
+      },
+      {
+        "name": "go_forward",
+        "property": false
+      },
+      {
+        "name": "goto",
+        "property": false
+      },
+      {
+        "name": "hide_highlight",
+        "property": false
+      },
+      {
+        "name": "hover",
+        "property": false
+      },
+      {
+        "name": "inner_html",
+        "property": false
+      },
+      {
+        "name": "inner_text",
+        "property": false
+      },
+      {
+        "name": "input_value",
+        "property": false
+      },
+      {
+        "name": "is_checked",
+        "property": false
+      },
+      {
+        "name": "is_closed",
+        "property": false
+      },
+      {
+        "name": "is_disabled",
+        "property": false
+      },
+      {
+        "name": "is_editable",
+        "property": false
+      },
+      {
+        "name": "is_enabled",
+        "property": false
+      },
+      {
+        "name": "is_hidden",
+        "property": false
+      },
+      {
+        "name": "is_visible",
+        "property": false
+      },
+      {
+        "name": "keyboard",
+        "property": true
+      },
+      {
+        "name": "local_storage",
+        "property": true
+      },
+      {
+        "name": "locator",
+        "property": false
+      },
+      {
+        "name": "main_frame",
+        "property": true
+      },
+      {
+        "name": "mouse",
+        "property": true
+      },
+      {
+        "name": "on",
+        "property": false
+      },
+      {
+        "name": "once",
+        "property": false
+      },
+      {
+        "name": "opener",
+        "property": false
+      },
+      {
+        "name": "page_errors",
+        "property": false
+      },
+      {
+        "name": "pause",
+        "property": false
+      },
+      {
+        "name": "pdf",
+        "property": false
+      },
+      {
+        "name": "pick_locator",
+        "property": false
+      },
+      {
+        "name": "press",
+        "property": false
+      },
+      {
+        "name": "query_selector",
+        "property": false
+      },
+      {
+        "name": "query_selector_all",
+        "property": false
+      },
+      {
+        "name": "reload",
+        "property": false
+      },
+      {
+        "name": "remove_listener",
+        "property": false
+      },
+      {
+        "name": "remove_locator_handler",
+        "property": false
+      },
+      {
+        "name": "request",
+        "property": true
+      },
+      {
+        "name": "request_gc",
+        "property": false
+      },
+      {
+        "name": "requests",
+        "property": false
+      },
+      {
+        "name": "route",
+        "property": false
+      },
+      {
+        "name": "route_from_har",
+        "property": false
+      },
+      {
+        "name": "route_web_socket",
+        "property": false
+      },
+      {
+        "name": "screencast",
+        "property": true
+      },
+      {
+        "name": "screenshot",
+        "property": false
+      },
+      {
+        "name": "select_option",
+        "property": false
+      },
+      {
+        "name": "session_storage",
+        "property": true
+      },
+      {
+        "name": "set_checked",
+        "property": false
+      },
+      {
+        "name": "set_content",
+        "property": false
+      },
+      {
+        "name": "set_default_navigation_timeout",
+        "property": false
+      },
+      {
+        "name": "set_default_timeout",
+        "property": false
+      },
+      {
+        "name": "set_extra_http_headers",
+        "property": false
+      },
+      {
+        "name": "set_input_files",
+        "property": false
+      },
+      {
+        "name": "set_viewport_size",
+        "property": false
+      },
+      {
+        "name": "tap",
+        "property": false
+      },
+      {
+        "name": "text_content",
+        "property": false
+      },
+      {
+        "name": "title",
+        "property": false
+      },
+      {
+        "name": "touchscreen",
+        "property": true
+      },
+      {
+        "name": "type",
+        "property": false
+      },
+      {
+        "name": "uncheck",
+        "property": false
+      },
+      {
+        "name": "unroute",
+        "property": false
+      },
+      {
+        "name": "unroute_all",
+        "property": false
+      },
+      {
+        "name": "url",
+        "property": true
+      },
+      {
+        "name": "video",
+        "property": true
+      },
+      {
+        "name": "viewport_size",
+        "property": true
+      },
+      {
+        "name": "wait_for_event",
+        "property": false
+      },
+      {
+        "name": "wait_for_function",
+        "property": false
+      },
+      {
+        "name": "wait_for_load_state",
+        "property": false
+      },
+      {
+        "name": "wait_for_selector",
+        "property": false
+      },
+      {
+        "name": "wait_for_timeout",
+        "property": false
+      },
+      {
+        "name": "wait_for_url",
+        "property": false
+      },
+      {
+        "name": "workers",
+        "property": true
+      }
+    ]
+  }
+}

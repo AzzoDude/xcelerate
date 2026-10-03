@@ -1,0 +1,1051 @@
+{
+  "name": "puppeteer",
+  "classes": {
+    "Browser": [
+      {
+        "name": "addScreen",
+        "property": false
+      },
+      {
+        "name": "browserContexts",
+        "property": false
+      },
+      {
+        "name": "close",
+        "property": false
+      },
+      {
+        "name": "connected",
+        "property": true
+      },
+      {
+        "name": "cookies",
+        "property": false
+      },
+      {
+        "name": "createBrowserContext",
+        "property": false
+      },
+      {
+        "name": "debugInfo",
+        "property": true
+      },
+      {
+        "name": "defaultBrowserContext",
+        "property": false
+      },
+      {
+        "name": "deleteCookie",
+        "property": false
+      },
+      {
+        "name": "deleteMatchingCookies",
+        "property": false
+      },
+      {
+        "name": "disconnect",
+        "property": false
+      },
+      {
+        "name": "extensions",
+        "property": false
+      },
+      {
+        "name": "getPWAState",
+        "property": false
+      },
+      {
+        "name": "getWindowBounds",
+        "property": false
+      },
+      {
+        "name": "installExtension",
+        "property": false
+      },
+      {
+        "name": "installPWA",
+        "property": false
+      },
+      {
+        "name": "isIssuesEnabled",
+        "property": false
+      },
+      {
+        "name": "isNetworkEnabled",
+        "property": false
+      },
+      {
+        "name": "launchPWA",
+        "property": false
+      },
+      {
+        "name": "logger",
+        "property": true
+      },
+      {
+        "name": "newPage",
+        "property": false
+      },
+      {
+        "name": "pages",
+        "property": false
+      },
+      {
+        "name": "process",
+        "property": false
+      },
+      {
+        "name": "removeScreen",
+        "property": false
+      },
+      {
+        "name": "screens",
+        "property": false
+      },
+      {
+        "name": "setCookie",
+        "property": false
+      },
+      {
+        "name": "setPermission",
+        "property": false
+      },
+      {
+        "name": "setWindowBounds",
+        "property": false
+      },
+      {
+        "name": "target",
+        "property": false
+      },
+      {
+        "name": "targets",
+        "property": false
+      },
+      {
+        "name": "uninstallExtension",
+        "property": false
+      },
+      {
+        "name": "uninstallPWA",
+        "property": false
+      },
+      {
+        "name": "userAgent",
+        "property": false
+      },
+      {
+        "name": "version",
+        "property": false
+      },
+      {
+        "name": "waitForTarget",
+        "property": false
+      },
+      {
+        "name": "wsEndpoint",
+        "property": false
+      }
+    ],
+    "BrowserContext": [
+      {
+        "name": "browser",
+        "property": false
+      },
+      {
+        "name": "clearPermissionOverrides",
+        "property": false
+      },
+      {
+        "name": "close",
+        "property": false
+      },
+      {
+        "name": "closed",
+        "property": true
+      },
+      {
+        "name": "cookies",
+        "property": false
+      },
+      {
+        "name": "deleteCookie",
+        "property": false
+      },
+      {
+        "name": "deleteMatchingCookies",
+        "property": false
+      },
+      {
+        "name": "id",
+        "property": true
+      },
+      {
+        "name": "logger",
+        "property": true
+      },
+      {
+        "name": "newPage",
+        "property": false
+      },
+      {
+        "name": "overridePermissions",
+        "property": false
+      },
+      {
+        "name": "pages",
+        "property": false
+      },
+      {
+        "name": "setCookie",
+        "property": false
+      },
+      {
+        "name": "setDownloadBehavior",
+        "property": false
+      },
+      {
+        "name": "setPermission",
+        "property": false
+      },
+      {
+        "name": "startScreenshot",
+        "property": false
+      },
+      {
+        "name": "targets",
+        "property": false
+      },
+      {
+        "name": "waitForScreenshotOperations",
+        "property": false
+      },
+      {
+        "name": "waitForTarget",
+        "property": false
+      }
+    ],
+    "Page": [
+      {
+        "name": "$",
+        "property": false
+      },
+      {
+        "name": "$$",
+        "property": false
+      },
+      {
+        "name": "$$eval",
+        "property": false
+      },
+      {
+        "name": "$eval",
+        "property": false
+      },
+      {
+        "name": "accessibility",
+        "property": true
+      },
+      {
+        "name": "addScriptTag",
+        "property": false
+      },
+      {
+        "name": "addStyleTag",
+        "property": false
+      },
+      {
+        "name": "authenticate",
+        "property": false
+      },
+      {
+        "name": "bluetooth",
+        "property": true
+      },
+      {
+        "name": "bringToFront",
+        "property": false
+      },
+      {
+        "name": "browser",
+        "property": false
+      },
+      {
+        "name": "browserContext",
+        "property": false
+      },
+      {
+        "name": "captureHeapSnapshot",
+        "property": false
+      },
+      {
+        "name": "click",
+        "property": false
+      },
+      {
+        "name": "close",
+        "property": false
+      },
+      {
+        "name": "content",
+        "property": false
+      },
+      {
+        "name": "cookies",
+        "property": false
+      },
+      {
+        "name": "coverage",
+        "property": true
+      },
+      {
+        "name": "createCDPSession",
+        "property": false
+      },
+      {
+        "name": "createPDFStream",
+        "property": false
+      },
+      {
+        "name": "createScreenRecording",
+        "property": false
+      },
+      {
+        "name": "deleteCookie",
+        "property": false
+      },
+      {
+        "name": "emulate",
+        "property": false
+      },
+      {
+        "name": "emulateCPUThrottling",
+        "property": false
+      },
+      {
+        "name": "emulateFocusedPage",
+        "property": false
+      },
+      {
+        "name": "emulateIdleState",
+        "property": false
+      },
+      {
+        "name": "emulateLocale",
+        "property": false
+      },
+      {
+        "name": "emulateMediaFeatures",
+        "property": false
+      },
+      {
+        "name": "emulateMediaType",
+        "property": false
+      },
+      {
+        "name": "emulateNetworkConditions",
+        "property": false
+      },
+      {
+        "name": "emulateTimezone",
+        "property": false
+      },
+      {
+        "name": "emulateVisionDeficiency",
+        "property": false
+      },
+      {
+        "name": "evaluate",
+        "property": false
+      },
+      {
+        "name": "evaluateHandle",
+        "property": false
+      },
+      {
+        "name": "evaluateOnNewDocument",
+        "property": false
+      },
+      {
+        "name": "exposeFunction",
+        "property": false
+      },
+      {
+        "name": "extensionRealms",
+        "property": false
+      },
+      {
+        "name": "focus",
+        "property": false
+      },
+      {
+        "name": "frames",
+        "property": false
+      },
+      {
+        "name": "getDefaultNavigationTimeout",
+        "property": false
+      },
+      {
+        "name": "getDefaultTimeout",
+        "property": false
+      },
+      {
+        "name": "goBack",
+        "property": false
+      },
+      {
+        "name": "goForward",
+        "property": false
+      },
+      {
+        "name": "goto",
+        "property": false
+      },
+      {
+        "name": "hasDevTools",
+        "property": false
+      },
+      {
+        "name": "hover",
+        "property": false
+      },
+      {
+        "name": "isClosed",
+        "property": false
+      },
+      {
+        "name": "isDragInterceptionEnabled",
+        "property": false
+      },
+      {
+        "name": "isJavaScriptEnabled",
+        "property": false
+      },
+      {
+        "name": "isServiceWorkerBypassed",
+        "property": false
+      },
+      {
+        "name": "keyboard",
+        "property": true
+      },
+      {
+        "name": "locator",
+        "property": false
+      },
+      {
+        "name": "locatorRace",
+        "property": false
+      },
+      {
+        "name": "mainFrame",
+        "property": false
+      },
+      {
+        "name": "metrics",
+        "property": false
+      },
+      {
+        "name": "mouse",
+        "property": true
+      },
+      {
+        "name": "off",
+        "property": false
+      },
+      {
+        "name": "on",
+        "property": false
+      },
+      {
+        "name": "openDevTools",
+        "property": false
+      },
+      {
+        "name": "pdf",
+        "property": false
+      },
+      {
+        "name": "queryObjects",
+        "property": false
+      },
+      {
+        "name": "record",
+        "property": false
+      },
+      {
+        "name": "reload",
+        "property": false
+      },
+      {
+        "name": "removeExposedFunction",
+        "property": false
+      },
+      {
+        "name": "removeScriptToEvaluateOnNewDocument",
+        "property": false
+      },
+      {
+        "name": "resize",
+        "property": false
+      },
+      {
+        "name": "screencast",
+        "property": false
+      },
+      {
+        "name": "screenshot",
+        "property": false
+      },
+      {
+        "name": "select",
+        "property": false
+      },
+      {
+        "name": "setBypassCSP",
+        "property": false
+      },
+      {
+        "name": "setBypassServiceWorker",
+        "property": false
+      },
+      {
+        "name": "setCacheEnabled",
+        "property": false
+      },
+      {
+        "name": "setContent",
+        "property": false
+      },
+      {
+        "name": "setCookie",
+        "property": false
+      },
+      {
+        "name": "setDefaultNavigationTimeout",
+        "property": false
+      },
+      {
+        "name": "setDefaultTimeout",
+        "property": false
+      },
+      {
+        "name": "setDragInterception",
+        "property": false
+      },
+      {
+        "name": "setExtraHTTPHeaders",
+        "property": false
+      },
+      {
+        "name": "setGeolocation",
+        "property": false
+      },
+      {
+        "name": "setJavaScriptEnabled",
+        "property": false
+      },
+      {
+        "name": "setOfflineMode",
+        "property": false
+      },
+      {
+        "name": "setRequestInterception",
+        "property": false
+      },
+      {
+        "name": "setUserAgent",
+        "property": false
+      },
+      {
+        "name": "setViewport",
+        "property": false
+      },
+      {
+        "name": "tap",
+        "property": false
+      },
+      {
+        "name": "target",
+        "property": false
+      },
+      {
+        "name": "title",
+        "property": false
+      },
+      {
+        "name": "touchscreen",
+        "property": true
+      },
+      {
+        "name": "tracing",
+        "property": true
+      },
+      {
+        "name": "triggerExtensionAction",
+        "property": false
+      },
+      {
+        "name": "type",
+        "property": false
+      },
+      {
+        "name": "url",
+        "property": false
+      },
+      {
+        "name": "viewport",
+        "property": false
+      },
+      {
+        "name": "waitForDevicePrompt",
+        "property": false
+      },
+      {
+        "name": "waitForFileChooser",
+        "property": false
+      },
+      {
+        "name": "waitForFrame",
+        "property": false
+      },
+      {
+        "name": "waitForFunction",
+        "property": false
+      },
+      {
+        "name": "waitForNavigation",
+        "property": false
+      },
+      {
+        "name": "waitForNetworkIdle",
+        "property": false
+      },
+      {
+        "name": "waitForNetworkIdle$",
+        "property": false
+      },
+      {
+        "name": "waitForRequest",
+        "property": false
+      },
+      {
+        "name": "waitForResponse",
+        "property": false
+      },
+      {
+        "name": "waitForSelector",
+        "property": false
+      },
+      {
+        "name": "webmcp",
+        "property": true
+      },
+      {
+        "name": "windowId",
+        "property": false
+      },
+      {
+        "name": "workers",
+        "property": false
+      }
+    ],
+    "ElementHandle": [
+      {
+        "name": "$",
+        "property": false
+      },
+      {
+        "name": "$$",
+        "property": false
+      },
+      {
+        "name": "$$eval",
+        "property": false
+      },
+      {
+        "name": "$eval",
+        "property": false
+      },
+      {
+        "name": "asElement",
+        "property": false
+      },
+      {
+        "name": "asLocator",
+        "property": false
+      },
+      {
+        "name": "assertConnectedElement",
+        "property": false
+      },
+      {
+        "name": "autofill",
+        "property": false
+      },
+      {
+        "name": "backendNodeId",
+        "property": false
+      },
+      {
+        "name": "boundingBox",
+        "property": false
+      },
+      {
+        "name": "boxModel",
+        "property": false
+      },
+      {
+        "name": "click",
+        "property": false
+      },
+      {
+        "name": "clickablePoint",
+        "property": false
+      },
+      {
+        "name": "client",
+        "property": true
+      },
+      {
+        "name": "contentFrame",
+        "property": false
+      },
+      {
+        "name": "dispose",
+        "property": false
+      },
+      {
+        "name": "disposed",
+        "property": true
+      },
+      {
+        "name": "drag",
+        "property": false
+      },
+      {
+        "name": "dragAndDrop",
+        "property": false
+      },
+      {
+        "name": "dragEnter",
+        "property": false
+      },
+      {
+        "name": "dragOver",
+        "property": false
+      },
+      {
+        "name": "drop",
+        "property": false
+      },
+      {
+        "name": "evaluate",
+        "property": false
+      },
+      {
+        "name": "evaluateHandle",
+        "property": false
+      },
+      {
+        "name": "focus",
+        "property": false
+      },
+      {
+        "name": "frame",
+        "property": true
+      },
+      {
+        "name": "getProperties",
+        "property": false
+      },
+      {
+        "name": "getProperty",
+        "property": false
+      },
+      {
+        "name": "hover",
+        "property": false
+      },
+      {
+        "name": "id",
+        "property": true
+      },
+      {
+        "name": "isHidden",
+        "property": false
+      },
+      {
+        "name": "isIntersectingViewport",
+        "property": false
+      },
+      {
+        "name": "isVisible",
+        "property": false
+      },
+      {
+        "name": "jsonValue",
+        "property": false
+      },
+      {
+        "name": "logger",
+        "property": true
+      },
+      {
+        "name": "move",
+        "property": false
+      },
+      {
+        "name": "press",
+        "property": false
+      },
+      {
+        "name": "queryAXTree",
+        "property": false
+      },
+      {
+        "name": "realm",
+        "property": true
+      },
+      {
+        "name": "remoteObject",
+        "property": false
+      },
+      {
+        "name": "screenshot",
+        "property": false
+      },
+      {
+        "name": "scrollIntoView",
+        "property": false
+      },
+      {
+        "name": "scrollIntoViewIfNeeded",
+        "property": false
+      },
+      {
+        "name": "select",
+        "property": false
+      },
+      {
+        "name": "tap",
+        "property": false
+      },
+      {
+        "name": "toElement",
+        "property": false
+      },
+      {
+        "name": "toString",
+        "property": false
+      },
+      {
+        "name": "touchEnd",
+        "property": false
+      },
+      {
+        "name": "touchMove",
+        "property": false
+      },
+      {
+        "name": "touchStart",
+        "property": false
+      },
+      {
+        "name": "type",
+        "property": false
+      },
+      {
+        "name": "uploadFile",
+        "property": false
+      },
+      {
+        "name": "waitForSelector",
+        "property": false
+      }
+    ],
+    "Frame": [
+      {
+        "name": "$",
+        "property": false
+      },
+      {
+        "name": "$$",
+        "property": false
+      },
+      {
+        "name": "$$eval",
+        "property": false
+      },
+      {
+        "name": "$eval",
+        "property": false
+      },
+      {
+        "name": "addExposedFunctionBinding",
+        "property": false
+      },
+      {
+        "name": "addPreloadScript",
+        "property": false
+      },
+      {
+        "name": "addScriptTag",
+        "property": false
+      },
+      {
+        "name": "addStyleTag",
+        "property": false
+      },
+      {
+        "name": "childFrames",
+        "property": false
+      },
+      {
+        "name": "clearDocumentHandle",
+        "property": false
+      },
+      {
+        "name": "click",
+        "property": false
+      },
+      {
+        "name": "client",
+        "property": true
+      },
+      {
+        "name": "content",
+        "property": false
+      },
+      {
+        "name": "detached",
+        "property": true
+      },
+      {
+        "name": "disposed",
+        "property": true
+      },
+      {
+        "name": "evaluate",
+        "property": false
+      },
+      {
+        "name": "evaluateHandle",
+        "property": false
+      },
+      {
+        "name": "exposeFunction",
+        "property": false
+      },
+      {
+        "name": "extensionRealms",
+        "property": false
+      },
+      {
+        "name": "focus",
+        "property": false
+      },
+      {
+        "name": "frameElement",
+        "property": false
+      },
+      {
+        "name": "goto",
+        "property": false
+      },
+      {
+        "name": "hover",
+        "property": false
+      },
+      {
+        "name": "isDetached",
+        "property": false
+      },
+      {
+        "name": "isolatedRealm",
+        "property": false
+      },
+      {
+        "name": "locator",
+        "property": false
+      },
+      {
+        "name": "mainRealm",
+        "property": false
+      },
+      {
+        "name": "name",
+        "property": false
+      },
+      {
+        "name": "page",
+        "property": false
+      },
+      {
+        "name": "parentFrame",
+        "property": false
+      },
+      {
+        "name": "registerWorldListeners",
+        "property": false
+      },
+      {
+        "name": "removeExposedFunctionBinding",
+        "property": false
+      },
+      {
+        "name": "select",
+        "property": false
+      },
+      {
+        "name": "setContent",
+        "property": false
+      },
+      {
+        "name": "setFrameContent",
+        "property": false
+      },
+      {
+        "name": "tap",
+        "property": false
+      },
+      {
+        "name": "title",
+        "property": false
+      },
+      {
+        "name": "type",
+        "property": false
+      },
+      {
+        "name": "updateClient",
+        "property": false
+      },
+      {
+        "name": "updateId",
+        "property": false
+      },
+      {
+        "name": "url",
+        "property": false
+      },
+      {
+        "name": "waitForDevicePrompt",
+        "property": false
+      },
+      {
+        "name": "waitForFunction",
+        "property": false
+      },
+      {
+        "name": "waitForNavigation",
+        "property": false
+      },
+      {
+        "name": "waitForSelector",
+        "property": false
+      }
+    ]
+  }
+}

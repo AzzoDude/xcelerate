@@ -1,0 +1,2595 @@
+{
+  "name": "puppeteer",
+  "title": "Puppeteer (promise API)",
+  "doc": "Puppeteer-style adapter over xcelerate (camelCase, promise-based). Complete Browser + BrowserContext + Page + ElementHandle surface; methods xcelerate cannot express yet are emitted as explicit NotImplementedError stubs. Reserved identifiers ($, $$, $eval, $$eval, $x) are exposed under Python-safe names.",
+  "helpers": [
+    {
+      "name": "launch",
+      "op": "browser_launch",
+      "params": [
+        {
+          "name": "config",
+          "default": "None"
+        }
+      ],
+      "returns": "Browser"
+    }
+  ],
+  "classes": {
+    "Browser": {
+      "doc": "Puppeteer-style browser.",
+      "methods": [
+        {
+          "name": "newPage",
+          "op": "browser_new_page",
+          "params": [
+            {
+              "name": "url",
+              "default": "\"about:blank\""
+            }
+          ],
+          "returns": "Page"
+        },
+        {
+          "name": "createBrowserContext",
+          "op": "browser_new_context",
+          "params": [],
+          "returns": "BrowserContext"
+        },
+        {
+          "name": "version",
+          "op": "browser_version",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "close",
+          "op": "browser_close",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "newIncognitoBrowserContext",
+          "op": "browser_new_context_id",
+          "returns": null
+        },
+        {
+          "name": "browserContexts",
+          "op": "browser_contexts",
+          "returns": null
+        },
+        {
+          "name": "pages",
+          "op": "browser_pages",
+          "returns": null
+        },
+        {
+          "name": "targets",
+          "op": "browser_targets",
+          "returns": null
+        },
+        {
+          "name": "waitForTarget",
+          "op": "browser_wait_for_target",
+          "returns": null
+        },
+        {
+          "name": "userAgent",
+          "op": "browser_user_agent",
+          "returns": null
+        },
+        {
+          "name": "wsEndpoint",
+          "op": "browser_ws_endpoint",
+          "returns": null
+        },
+        {
+          "name": "isConnected",
+          "op": "browser_is_connected",
+          "returns": null
+        },
+        {
+          "name": "startTracing",
+          "op": "browser_start_tracing",
+          "returns": null
+        },
+        {
+          "name": "stopTracing",
+          "op": "browser_stop_tracing",
+          "returns": null
+        },
+        {
+          "name": "add_listener",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "browser_on",
+          "returns": null
+        },
+        {
+          "name": "createIncogniteBrowserContext",
+          "op": "browser_new_context_id",
+          "returns": null
+        },
+        {
+          "name": "createIncognitoBrowserContext",
+          "op": "browser_new_context_id",
+          "returns": null
+        },
+        {
+          "name": "event_names",
+          "op": "browser_event_names",
+          "returns": null
+        },
+        {
+          "name": "listeners",
+          "op": "browser_event_names",
+          "returns": null
+        },
+        {
+          "name": "listens_to",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "browser_listens_to",
+          "returns": null
+        },
+        {
+          "name": "on",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "browser_on",
+          "returns": null
+        },
+        {
+          "name": "once",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "browser_once",
+          "returns": null
+        },
+        {
+          "name": "remove_all_listeners",
+          "op": "browser_remove_all_listeners",
+          "returns": null
+        },
+        {
+          "name": "remove_listener",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "browser_remove_listener",
+          "returns": null
+        },
+        {
+          "name": "connected",
+          "op": "browser_is_connected",
+          "returns": null
+        },
+        {
+          "name": "cookies",
+          "op": "browser_cookies",
+          "returns": null
+        },
+        {
+          "name": "deleteCookie",
+          "params": [
+            {
+              "name": "name",
+              "type": "String"
+            }
+          ],
+          "op": "browser_delete_cookie",
+          "returns": null
+        },
+        {
+          "name": "deleteMatchingCookies",
+          "params": [
+            {
+              "name": "name",
+              "type": "String"
+            }
+          ],
+          "op": "browser_delete_cookie",
+          "returns": null
+        },
+        {
+          "name": "setCookie",
+          "params": [
+            {
+              "name": "cookie_json",
+              "type": "String"
+            }
+          ],
+          "op": "browser_set_cookie",
+          "returns": null
+        },
+        {
+          "name": "setPermission",
+          "params": [
+            {
+              "name": "origin",
+              "type": "String"
+            },
+            {
+              "name": "permissions_json",
+              "type": "String"
+            }
+          ],
+          "op": "browser_grant_permissions",
+          "returns": null
+        }
+      ]
+    },
+    "BrowserContext": {
+      "doc": "Puppeteer-style browser context (modelled as browser + init scripts).",
+      "methods": [
+        {
+          "name": "newPage",
+          "op": "context_new_page",
+          "params": [
+            {
+              "name": "url",
+              "default": "\"about:blank\""
+            }
+          ],
+          "returns": "Page"
+        },
+        {
+          "name": "close",
+          "op": "context_close",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "pages",
+          "op": "context_pages",
+          "returns": null
+        },
+        {
+          "name": "targets",
+          "op": "context_targets",
+          "returns": null
+        },
+        {
+          "name": "newCDPSession",
+          "op": "context_new_cdp_session",
+          "returns": "CDPSession"
+        },
+        {
+          "name": "overridePermissions",
+          "params": [
+            {
+              "name": "origin",
+              "type": "String"
+            },
+            {
+              "name": "permissions_json",
+              "type": "String"
+            }
+          ],
+          "op": "context_grant_permissions",
+          "returns": null
+        },
+        {
+          "name": "clearPermissionOverrides",
+          "op": "context_clear_permissions",
+          "returns": null
+        },
+        {
+          "name": "setCookie",
+          "params": [
+            {
+              "name": "cookie_json",
+              "type": "String"
+            }
+          ],
+          "op": "context_set_cookie",
+          "returns": null
+        },
+        {
+          "name": "deleteCookie",
+          "params": [
+            {
+              "name": "name",
+              "type": "String"
+            }
+          ],
+          "op": "context_delete_cookie",
+          "returns": null
+        },
+        {
+          "name": "cookies",
+          "op": "context_cookies",
+          "returns": null
+        },
+        {
+          "name": "waitForTarget",
+          "op": "context_wait_for_target",
+          "returns": null
+        },
+        {
+          "name": "addInitScript",
+          "op": "context_add_init_script",
+          "params": [
+            "script"
+          ],
+          "returns": null
+        },
+        {
+          "name": "deleteMatchingCookies",
+          "params": [
+            {
+              "name": "name",
+              "type": "String"
+            }
+          ],
+          "op": "context_delete_cookie",
+          "returns": null
+        },
+        {
+          "name": "setDownloadBehavior",
+          "params": [
+            {
+              "name": "path",
+              "type": "String"
+            }
+          ],
+          "op": "context_set_download_behavior",
+          "returns": null
+        },
+        {
+          "name": "setPermission",
+          "params": [
+            {
+              "name": "origin",
+              "type": "String"
+            },
+            {
+              "name": "permissions_json",
+              "type": "String"
+            }
+          ],
+          "op": "context_grant_permissions",
+          "returns": null
+        }
+      ]
+    },
+    "Page": {
+      "doc": "Puppeteer-style page.",
+      "methods": [
+        {
+          "name": "goto",
+          "op": "page_goto",
+          "params": [
+            "url"
+          ],
+          "returns": null
+        },
+        {
+          "name": "goBack",
+          "op": "page_go_back",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "reload",
+          "op": "page_reload",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "title",
+          "op": "page_title",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "content",
+          "op": "page_content",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "pdf",
+          "op": "page_pdf",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "screenshot",
+          "op": "page_screenshot",
+          "params": [
+            {
+              "name": "full_page",
+              "default": "False"
+            },
+            {
+              "name": "path",
+              "default": "None"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "$",
+          "as": "query_selector",
+          "op": "page_find",
+          "params": [
+            "selector"
+          ],
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "click",
+          "op": "page_click",
+          "params": [
+            "selector"
+          ],
+          "returns": null
+        },
+        {
+          "name": "type",
+          "op": "page_type",
+          "params": [
+            "selector",
+            "value"
+          ],
+          "returns": null
+        },
+        {
+          "name": "hover",
+          "op": "page_hover",
+          "params": [
+            "selector"
+          ],
+          "returns": null
+        },
+        {
+          "name": "focus",
+          "op": "page_focus",
+          "params": [
+            "selector"
+          ],
+          "returns": null
+        },
+        {
+          "name": "waitForSelector",
+          "op": "page_wait_for_selector",
+          "params": [
+            "selector"
+          ],
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "waitForNavigation",
+          "op": "page_wait_for_navigation",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "waitForTimeout",
+          "op": "page_wait_for_timeout",
+          "params": [
+            "milliseconds"
+          ],
+          "returns": null
+        },
+        {
+          "name": "evaluateOnNewDocument",
+          "op": "page_add_script",
+          "params": [
+            "script"
+          ],
+          "returns": null
+        },
+        {
+          "name": "addScriptTag",
+          "op": "page_add_script",
+          "params": [
+            "content"
+          ],
+          "returns": null
+        },
+        {
+          "name": "goForward",
+          "op": "page_go_forward",
+          "returns": null
+        },
+        {
+          "name": "close",
+          "op": "page_close",
+          "returns": null
+        },
+        {
+          "name": "setContent",
+          "params": [
+            {
+              "name": "html",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "js": "function(h){document.open();document.write(h);document.close();}"
+          }
+        },
+        {
+          "name": "url",
+          "impl": {
+            "scope": "page",
+            "returns": "string",
+            "js": "function(){return location.href;}"
+          }
+        },
+        {
+          "name": "$$",
+          "as": "query_selector_all",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "page_find_all",
+          "returns": "ElementHandle",
+          "list": true
+        },
+        {
+          "name": "$eval",
+          "as": "eval_on_selector",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "page_eval_on_selector",
+          "returns": null
+        },
+        {
+          "name": "$$eval",
+          "as": "eval_on_selector_all",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "page_eval_on_selector_all",
+          "returns": null
+        },
+        {
+          "name": "$x",
+          "as": "query_selector_xpath",
+          "params": [
+            {
+              "name": "xpath",
+              "type": "String"
+            }
+          ],
+          "op": "page_query_selector_xpath",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "waitForXPath",
+          "params": [
+            {
+              "name": "xpath",
+              "type": "String"
+            }
+          ],
+          "op": "page_wait_for_xpath",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "waitForFunction",
+          "params": [
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "page_wait_for_function",
+          "returns": null
+        },
+        {
+          "name": "waitForRequest",
+          "op": "page_wait_for_request",
+          "returns": null
+        },
+        {
+          "name": "waitForResponse",
+          "op": "page_wait_for_response",
+          "returns": null
+        },
+        {
+          "name": "waitForNetworkIdle",
+          "op": "page_wait_for_network_idle",
+          "returns": null
+        },
+        {
+          "name": "waitForFrame",
+          "op": "page_wait_for_frame",
+          "returns": null
+        },
+        {
+          "name": "tap",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "js": "function(sel){const e=document.querySelector(sel);if(e)e.click();}"
+          }
+        },
+        {
+          "name": "select",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "values_json",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "js": "function(sel,valuesRaw){const e=document.querySelector(sel);if(!e)return;const w=JSON.parse(valuesRaw).map(String);for(const o of e.options){o.selected=w.includes(o.value)||w.includes(o.text);}e.dispatchEvent(new Event('change',{bubbles:true}));}"
+          }
+        },
+        {
+          "name": "setInputFiles",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "files_json",
+              "type": "String"
+            }
+          ],
+          "op": "page_set_input_files",
+          "returns": null
+        },
+        {
+          "name": "uploadFile",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "files_json",
+              "type": "String"
+            }
+          ],
+          "op": "page_set_input_files",
+          "returns": null
+        },
+        {
+          "name": "keyboard",
+          "op": "page_new_keyboard",
+          "returns": "Keyboard"
+        },
+        {
+          "name": "mouse",
+          "op": "page_new_mouse",
+          "returns": "Mouse"
+        },
+        {
+          "name": "touchscreen",
+          "op": "page_new_touchscreen",
+          "returns": "Touchscreen"
+        },
+        {
+          "name": "evaluate",
+          "params": [
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "json",
+            "js": "function(src){return (new Function(\"return (\"+src+\")\"))();}"
+          }
+        },
+        {
+          "name": "evaluateHandle",
+          "params": [
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "page_evaluate_handle",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "addStyleTag",
+          "params": [
+            {
+              "name": "content",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "string",
+            "js": "function(c){const s=document.createElement('style');s.textContent=c;document.head.appendChild(s);return s.textContent;}"
+          }
+        },
+        {
+          "name": "setViewport",
+          "params": [
+            {
+              "name": "width",
+              "type": "u64"
+            },
+            {
+              "name": "height",
+              "type": "i64"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "cdp": {
+              "method": "Emulation.setDeviceMetricsOverride",
+              "params": {
+                "width": "${width}",
+                "height": "${height}",
+                "deviceScaleFactor": 1,
+                "mobile": false
+              }
+            }
+          }
+        },
+        {
+          "name": "setUserAgent",
+          "params": [
+            {
+              "name": "user_agent",
+              "type": "String"
+            },
+            {
+              "name": "accept_language",
+              "type": "Option<String>"
+            }
+          ],
+          "op": "page_set_user_agent",
+          "returns": null
+        },
+        {
+          "name": "setExtraHTTPHeaders",
+          "params": [
+            {
+              "name": "headers_json",
+              "type": "String"
+            }
+          ],
+          "op": "page_set_extra_http_headers",
+          "returns": null
+        },
+        {
+          "name": "setBypassCSP",
+          "params": [
+            {
+              "name": "enabled",
+              "type": "bool"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "cdp": {
+              "method": "Page.setBypassCSP",
+              "params": {
+                "enabled": "${enabled}"
+              }
+            }
+          }
+        },
+        {
+          "name": "setCacheEnabled",
+          "params": [
+            {
+              "name": "enabled",
+              "type": "bool"
+            }
+          ],
+          "op": "page_set_cache_enabled",
+          "returns": null
+        },
+        {
+          "name": "setJavaScriptEnabled",
+          "params": [
+            {
+              "name": "enabled",
+              "type": "bool"
+            }
+          ],
+          "op": "page_set_javascript_enabled",
+          "returns": null
+        },
+        {
+          "name": "setOfflineMode",
+          "params": [
+            {
+              "name": "offline",
+              "type": "bool"
+            }
+          ],
+          "op": "page_set_offline",
+          "returns": null
+        },
+        {
+          "name": "emulateNetworkConditions",
+          "params": [
+            {
+              "name": "offline",
+              "type": "bool"
+            },
+            {
+              "name": "latency",
+              "type": "f64"
+            },
+            {
+              "name": "download",
+              "type": "f64"
+            },
+            {
+              "name": "upload",
+              "type": "f64"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "cdp": {
+              "method": "Network.emulateNetworkConditions",
+              "params": {
+                "offline": "${offline}",
+                "latency": "${latency}",
+                "downloadThroughput": "${download}",
+                "uploadThroughput": "${upload}"
+              }
+            }
+          }
+        },
+        {
+          "name": "emulateCPUThrottling",
+          "params": [
+            {
+              "name": "rate",
+              "type": "f64"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "cdp": {
+              "method": "Emulation.setCPUThrottlingRate",
+              "params": {
+                "rate": "${rate}"
+              }
+            }
+          }
+        },
+        {
+          "name": "emulateIdleState",
+          "params": [
+            {
+              "name": "is_user_active",
+              "type": "bool"
+            },
+            {
+              "name": "is_screen_unlocked",
+              "type": "bool"
+            }
+          ],
+          "op": "page_emulate_idle_state",
+          "returns": null
+        },
+        {
+          "name": "emulateMediaFeatures",
+          "params": [
+            {
+              "name": "features_json",
+              "type": "String"
+            }
+          ],
+          "op": "page_set_emulated_media_features",
+          "returns": null
+        },
+        {
+          "name": "emulateTimezone",
+          "params": [
+            {
+              "name": "timezone_id",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "cdp": {
+              "method": "Emulation.setTimezoneOverride",
+              "params": {
+                "timezoneId": "${timezone_id}"
+              }
+            }
+          }
+        },
+        {
+          "name": "emulateVisionDeficiency",
+          "params": [
+            {
+              "name": "kind",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "cdp": {
+              "method": "Emulation.setEmulatedVisionDeficiency",
+              "params": {
+                "type": "${kind}"
+              }
+            }
+          }
+        },
+        {
+          "name": "setGeolocation",
+          "params": [
+            {
+              "name": "latitude",
+              "type": "f64"
+            },
+            {
+              "name": "longitude",
+              "type": "f64"
+            },
+            {
+              "name": "accuracy",
+              "type": "f64"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "cdp": {
+              "method": "Emulation.setGeolocationOverride",
+              "params": {
+                "latitude": "${latitude}",
+                "longitude": "${longitude}",
+                "accuracy": "${accuracy}"
+              }
+            }
+          }
+        },
+        {
+          "name": "setRequestInterception",
+          "params": [
+            {
+              "name": "enabled",
+              "type": "bool"
+            }
+          ],
+          "op": "page_set_request_interception",
+          "returns": null
+        },
+        {
+          "name": "setDragInterception",
+          "params": [
+            {
+              "name": "enabled",
+              "type": "bool"
+            }
+          ],
+          "op": "page_set_drag_interception",
+          "returns": null
+        },
+        {
+          "name": "isDragInterceptionEnabled",
+          "op": "page_is_drag_interception_enabled",
+          "returns": null
+        },
+        {
+          "name": "authenticate",
+          "params": [
+            {
+              "name": "username",
+              "type": "String"
+            },
+            {
+              "name": "password",
+              "type": "String"
+            }
+          ],
+          "op": "page_authenticate",
+          "returns": null
+        },
+        {
+          "name": "setCookie",
+          "params": [
+            {
+              "name": "name",
+              "type": "String"
+            },
+            {
+              "name": "value",
+              "type": "String"
+            },
+            {
+              "name": "url",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "cdp": {
+              "method": "Network.setCookie",
+              "params": {
+                "name": "${name}",
+                "value": "${value}",
+                "url": "${url}"
+              }
+            }
+          }
+        },
+        {
+          "name": "deleteCookie",
+          "params": [
+            {
+              "name": "name",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "cdp": {
+              "method": "Network.deleteCookies",
+              "params": {
+                "name": "${name}"
+              }
+            }
+          }
+        },
+        {
+          "name": "cookies",
+          "op": "page_cookies",
+          "returns": null
+        },
+        {
+          "name": "metrics",
+          "op": "page_metrics",
+          "returns": null
+        },
+        {
+          "name": "bringToFront",
+          "op": "page_bring_to_front",
+          "returns": null
+        },
+        {
+          "name": "mainFrame",
+          "op": "page_main_frame",
+          "returns": null
+        },
+        {
+          "name": "frames",
+          "op": "page_frames",
+          "returns": null
+        },
+        {
+          "name": "J",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "page_find",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "JJ",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "page_find_all",
+          "returns": "ElementHandle",
+          "list": true
+        },
+        {
+          "name": "JJeval",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "page_eval_on_selector_all",
+          "returns": null
+        },
+        {
+          "name": "Jeval",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "page_eval_on_selector",
+          "returns": null
+        },
+        {
+          "name": "Jx",
+          "params": [
+            {
+              "name": "xpath",
+              "type": "String"
+            }
+          ],
+          "op": "page_query_selector_xpath",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "add_listener",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "page_on",
+          "returns": null
+        },
+        {
+          "name": "coverage",
+          "op": "page_new_coverage",
+          "returns": "Coverage"
+        },
+        {
+          "name": "emulateMedia",
+          "params": [
+            {
+              "name": "media",
+              "type": "Option<String>"
+            },
+            {
+              "name": "color_scheme",
+              "type": "Option<String>"
+            }
+          ],
+          "op": "page_emulate_media",
+          "returns": null
+        },
+        {
+          "name": "event_names",
+          "op": "page_event_names",
+          "returns": null
+        },
+        {
+          "name": "injectFile",
+          "params": [
+            {
+              "name": "path",
+              "type": "String"
+            }
+          ],
+          "op": "page_inject_file",
+          "returns": null
+        },
+        {
+          "name": "isClosed",
+          "op": "page_is_closed",
+          "returns": null
+        },
+        {
+          "name": "listeners",
+          "op": "page_event_names",
+          "returns": null
+        },
+        {
+          "name": "listens_to",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "page_listens_to",
+          "returns": null
+        },
+        {
+          "name": "on",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "page_on",
+          "returns": null
+        },
+        {
+          "name": "once",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "page_once",
+          "returns": null
+        },
+        {
+          "name": "plainText",
+          "impl": {
+            "scope": "page",
+            "returns": "string",
+            "js": "function(){return document.body?document.body.innerText:'';}"
+          }
+        },
+        {
+          "name": "querySelector",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "page_find",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "querySelectorAll",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "page_find_all",
+          "returns": "ElementHandle",
+          "list": true
+        },
+        {
+          "name": "querySelectorAllEval",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "page_eval_on_selector_all",
+          "returns": null
+        },
+        {
+          "name": "querySelectorEval",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "page_eval_on_selector",
+          "returns": null
+        },
+        {
+          "name": "remove_all_listeners",
+          "op": "page_remove_all_listeners",
+          "returns": null
+        },
+        {
+          "name": "remove_listener",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "page_remove_listener",
+          "returns": null
+        },
+        {
+          "name": "setDefaultNavigationTimeout",
+          "params": [
+            {
+              "name": "milliseconds",
+              "type": "f64"
+            }
+          ],
+          "op": "page_set_default_timeout",
+          "returns": null
+        },
+        {
+          "name": "tracing",
+          "op": "page_new_tracing",
+          "returns": "Tracing"
+        },
+        {
+          "name": "viewport",
+          "impl": {
+            "scope": "page",
+            "returns": "json",
+            "js": "function(){return {width:window.innerWidth,height:window.innerHeight};}"
+          }
+        },
+        {
+          "name": "xpath",
+          "params": [
+            {
+              "name": "xpath",
+              "type": "String"
+            }
+          ],
+          "op": "page_query_selector_xpath",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "accessibility",
+          "params": [],
+          "impl": {
+            "scope": "page",
+            "returns": "json",
+            "cdp": {
+              "method": "Accessibility.getFullAXTree",
+              "params": {}
+            }
+          }
+        },
+        {
+          "name": "createCDPSession",
+          "op": "page_new_cdp_session",
+          "returns": "CDPSession"
+        },
+        {
+          "name": "createPDFStream",
+          "op": "page_create_pdf_stream",
+          "returns": null
+        },
+        {
+          "name": "emulateFocusedPage",
+          "params": [
+            {
+              "name": "enabled",
+              "type": "bool"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "cdp": {
+              "method": "Emulation.setFocusEmulationEnabled",
+              "params": {
+                "enabled": "${enabled}"
+              }
+            }
+          }
+        },
+        {
+          "name": "emulateLocale",
+          "params": [
+            {
+              "name": "locale",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "cdp": {
+              "method": "Emulation.setLocaleOverride",
+              "params": {
+                "locale": "${locale}"
+              }
+            }
+          }
+        },
+        {
+          "name": "emulateMediaType",
+          "params": [
+            {
+              "name": "media",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "cdp": {
+              "method": "Emulation.setEmulatedMedia",
+              "params": {
+                "media": "${media}"
+              }
+            }
+          }
+        },
+        {
+          "name": "getDefaultNavigationTimeout",
+          "op": "page_get_default_timeout",
+          "returns": null
+        },
+        {
+          "name": "getDefaultTimeout",
+          "op": "page_get_default_timeout",
+          "returns": null
+        },
+        {
+          "name": "off",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "op": "page_remove_listener",
+          "returns": null
+        },
+        {
+          "name": "removeScriptToEvaluateOnNewDocument",
+          "params": [
+            {
+              "name": "identifier",
+              "type": "String"
+            }
+          ],
+          "op": "page_remove_script",
+          "returns": null
+        },
+        {
+          "name": "screencast",
+          "op": "page_new_screencast",
+          "returns": "Screencast"
+        },
+        {
+          "name": "setBypassServiceWorker",
+          "params": [
+            {
+              "name": "bypass",
+              "type": "bool"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "cdp": {
+              "method": "Network.setBypassServiceWorker",
+              "params": {
+                "bypass": "${bypass}"
+              }
+            }
+          }
+        },
+        {
+          "name": "setDefaultTimeout",
+          "params": [
+            {
+              "name": "milliseconds",
+              "type": "f64"
+            }
+          ],
+          "op": "page_set_default_timeout",
+          "returns": null
+        },
+        {
+          "name": "waitForDevicePrompt",
+          "op": "page_wait_for_device_prompt",
+          "returns": null
+        },
+        {
+          "name": "waitForFileChooser",
+          "op": "page_wait_for_file_chooser",
+          "returns": null
+        },
+        {
+          "name": "waitForNetworkIdle$",
+          "as": "waitForNetworkIdle_",
+          "op": "page_wait_for_network_idle",
+          "returns": null
+        }
+      ]
+    },
+    "ElementHandle": {
+      "doc": "Puppeteer-style element handle.",
+      "methods": [
+        {
+          "name": "click",
+          "op": "element_click",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "type",
+          "op": "element_type",
+          "params": [
+            "value"
+          ],
+          "returns": null
+        },
+        {
+          "name": "hover",
+          "op": "element_hover",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "focus",
+          "op": "element_focus",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "evaluate",
+          "params": [
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "element",
+            "returns": "json",
+            "js": "function(src){return (new Function('el','return ('+src+')(el);'))(this);}"
+          }
+        },
+        {
+          "name": "evaluateHandle",
+          "params": [
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "element_evaluate_handle",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "$",
+          "as": "query_selector",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "element_find",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "$$",
+          "as": "query_selector_all",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "element_find_all",
+          "returns": "ElementHandle",
+          "list": true
+        },
+        {
+          "name": "$eval",
+          "as": "eval_on_selector",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "element_eval_on_selector",
+          "returns": null
+        },
+        {
+          "name": "$$eval",
+          "as": "eval_on_selector_all",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "element_eval_on_selector_all",
+          "returns": null
+        },
+        {
+          "name": "$x",
+          "as": "query_selector_xpath",
+          "params": [
+            {
+              "name": "xpath",
+              "type": "String"
+            }
+          ],
+          "op": "element_query_selector_xpath",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "screenshot",
+          "op": "element_screenshot",
+          "returns": null
+        },
+        {
+          "name": "boundingBox",
+          "impl": {
+            "scope": "element",
+            "returns": "json",
+            "js": "function(){const r=this.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};}"
+          }
+        },
+        {
+          "name": "boxModel",
+          "impl": {
+            "scope": "element",
+            "returns": "json",
+            "js": "function(){const r=this.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};}"
+          }
+        },
+        {
+          "name": "clickablePoint",
+          "impl": {
+            "scope": "element",
+            "returns": "json",
+            "js": "function(){const r=this.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};}"
+          }
+        },
+        {
+          "name": "isIntersectingViewport",
+          "impl": {
+            "scope": "element",
+            "returns": "bool",
+            "js": "function(){const r=this.getBoundingClientRect();return r.top>=0&&r.left>=0&&r.bottom<=(window.innerHeight||document.documentElement.clientHeight)&&r.right<=(window.innerWidth||document.documentElement.clientWidth);}"
+          }
+        },
+        {
+          "name": "scrollIntoViewIfNeeded",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){this.scrollIntoView({block:\"center\",inline:\"center\"});}"
+          }
+        },
+        {
+          "name": "press",
+          "params": [
+            {
+              "name": "key",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(key){this.focus();this.dispatchEvent(new KeyboardEvent(\"keydown\",{key:key,bubbles:true}));this.dispatchEvent(new KeyboardEvent(\"keyup\",{key:key,bubbles:true}));}"
+          }
+        },
+        {
+          "name": "tap",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){this.click();}"
+          }
+        },
+        {
+          "name": "select",
+          "params": [
+            {
+              "name": "values_json",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(valuesRaw){const w=JSON.parse(valuesRaw).map(String);for(const o of this.options){o.selected=w.includes(o.value)||w.includes(o.text);}this.dispatchEvent(new Event('change',{bubbles:true}));}"
+          }
+        },
+        {
+          "name": "uploadFile",
+          "params": [
+            {
+              "name": "files_json",
+              "type": "String"
+            }
+          ],
+          "op": "element_set_input_files",
+          "returns": null
+        },
+        {
+          "name": "setInputFiles",
+          "params": [
+            {
+              "name": "files_json",
+              "type": "String"
+            }
+          ],
+          "op": "element_set_input_files",
+          "returns": null
+        },
+        {
+          "name": "drag",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){this.dispatchEvent(new DragEvent(\"dragstart\",{bubbles:true}));this.dispatchEvent(new DragEvent(\"dragend\",{bubbles:true}));}"
+          }
+        },
+        {
+          "name": "dragAndDrop",
+          "params": [
+            {
+              "name": "target",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(sel){const t=document.querySelector(sel);if(!t)return;this.dispatchEvent(new DragEvent(\"dragstart\",{bubbles:true}));t.dispatchEvent(new DragEvent(\"drop\",{bubbles:true}));this.dispatchEvent(new DragEvent(\"dragend\",{bubbles:true}));}"
+          }
+        },
+        {
+          "name": "dragEnter",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){this.dispatchEvent(new DragEvent(\"dragenter\",{bubbles:true}));}"
+          }
+        },
+        {
+          "name": "dragOver",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){this.dispatchEvent(new DragEvent(\"dragover\",{bubbles:true}));}"
+          }
+        },
+        {
+          "name": "drop",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){this.dispatchEvent(new DragEvent(\"drop\",{bubbles:true}));}"
+          }
+        },
+        {
+          "name": "waitForSelector",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "element_wait_for_selector",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "asElement",
+          "op": "element_self",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "getProperty",
+          "params": [
+            {
+              "name": "name",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "element",
+            "returns": "string",
+            "js": "function(n){const v=this[n];return v==null?\"\":String(v);}"
+          }
+        },
+        {
+          "name": "dispose",
+          "op": "element_dispose",
+          "returns": null
+        },
+        {
+          "name": "J",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "element_find",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "JJ",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "element_find_all",
+          "returns": "ElementHandle",
+          "list": true
+        },
+        {
+          "name": "JJeval",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "element_eval_on_selector_all",
+          "returns": null
+        },
+        {
+          "name": "Jeval",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "element_eval_on_selector",
+          "returns": null
+        },
+        {
+          "name": "getProperties",
+          "op": "element_get_properties",
+          "returns": null
+        },
+        {
+          "name": "querySelector",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "element_find",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "querySelectorAll",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "element_find_all",
+          "returns": "ElementHandle",
+          "list": true
+        },
+        {
+          "name": "querySelectorAllEval",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "element_eval_on_selector_all",
+          "returns": null
+        },
+        {
+          "name": "querySelectorEval",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "element_eval_on_selector",
+          "returns": null
+        },
+        {
+          "name": "toString",
+          "impl": {
+            "scope": "element",
+            "returns": "string",
+            "js": "function(){return this.outerHTML;}"
+          }
+        },
+        {
+          "name": "xpath",
+          "params": [
+            {
+              "name": "xpath",
+              "type": "String"
+            }
+          ],
+          "op": "element_query_selector_xpath",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "id",
+          "impl": {
+            "scope": "element",
+            "returns": "string",
+            "js": "function(){return this.id||'';}"
+          }
+        },
+        {
+          "name": "isHidden",
+          "impl": {
+            "scope": "element",
+            "returns": "bool",
+            "js": "function(){const s=getComputedStyle(this);const r=this.getBoundingClientRect();return !(!!(r.width||r.height)&&s.visibility!==\"hidden\"&&s.display!==\"none\");}"
+          }
+        },
+        {
+          "name": "isVisible",
+          "impl": {
+            "scope": "element",
+            "returns": "bool",
+            "js": "function(){const s=getComputedStyle(this);const r=this.getBoundingClientRect();return !!(r.width||r.height)&&s.visibility!==\"hidden\"&&s.display!==\"none\"&&s.opacity!==\"0\";}"
+          }
+        },
+        {
+          "name": "scrollIntoView",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){this.scrollIntoView();}"
+          }
+        },
+        {
+          "name": "toElement",
+          "op": "element_self",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "touchEnd",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){this.dispatchEvent(new Event(\"touchend\",{bubbles:true}));}"
+          }
+        },
+        {
+          "name": "touchMove",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){this.dispatchEvent(new Event(\"touchmove\",{bubbles:true}));}"
+          }
+        },
+        {
+          "name": "touchStart",
+          "impl": {
+            "scope": "element",
+            "returns": "void",
+            "js": "function(){this.dispatchEvent(new Event(\"touchstart\",{bubbles:true}));}"
+          }
+        }
+      ]
+    },
+    "Frame": {
+      "doc": "Frame adapter (surface only; not obtainable from this runtime yet).",
+      "methods": [
+        {
+          "name": "$",
+          "as": "query_selector",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "page_find",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "$$",
+          "as": "query_selector_all",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "page_find_all",
+          "returns": "ElementHandle",
+          "list": true
+        },
+        {
+          "name": "$$eval",
+          "as": "__eval",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "page_eval_on_selector_all",
+          "returns": null
+        },
+        {
+          "name": "$eval",
+          "as": "_eval",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "page_eval_on_selector",
+          "returns": null
+        },
+        {
+          "name": "addPreloadScript",
+          "params": [
+            {
+              "name": "content",
+              "type": "String"
+            }
+          ],
+          "op": "page_add_script",
+          "returns": null
+        },
+        {
+          "name": "addScriptTag",
+          "params": [
+            {
+              "name": "content",
+              "type": "String"
+            }
+          ],
+          "op": "page_add_script",
+          "returns": null
+        },
+        {
+          "name": "addStyleTag",
+          "params": [
+            {
+              "name": "content",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "string",
+            "js": "function(c){const s=document.createElement('style');s.textContent=c;document.head.appendChild(s);return s.textContent;}"
+          }
+        },
+        {
+          "name": "childFrames",
+          "op": "page_frames",
+          "returns": null
+        },
+        {
+          "name": "click",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "page_click",
+          "returns": null
+        },
+        {
+          "name": "content",
+          "op": "page_content",
+          "returns": null
+        },
+        {
+          "name": "evaluate",
+          "params": [
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "json",
+            "js": "function(src){return (new Function(\"return (\"+src+\")\"))();}"
+          }
+        },
+        {
+          "name": "evaluateHandle",
+          "params": [
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "page_evaluate_handle",
+          "returns": "ElementHandle"
+        },
+        {
+          "name": "focus",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "page_focus",
+          "returns": null
+        },
+        {
+          "name": "goto",
+          "params": [
+            {
+              "name": "url",
+              "type": "String"
+            }
+          ],
+          "op": "page_goto",
+          "returns": null
+        },
+        {
+          "name": "hover",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "page_hover",
+          "returns": null
+        },
+        {
+          "name": "name",
+          "op": "page_frame_name",
+          "returns": null
+        },
+        {
+          "name": "parentFrame",
+          "op": "page_main_frame",
+          "returns": null
+        },
+        {
+          "name": "select",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "values_json",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "js": "function(sel,valuesRaw){const e=document.querySelector(sel);if(!e)return;const w=JSON.parse(valuesRaw).map(String);for(const o of e.options){o.selected=w.includes(o.value)||w.includes(o.text);}e.dispatchEvent(new Event('change',{bubbles:true}));}"
+          }
+        },
+        {
+          "name": "setContent",
+          "params": [
+            {
+              "name": "html",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "js": "function(h){document.open();document.write(h);document.close();}"
+          }
+        },
+        {
+          "name": "setFrameContent",
+          "params": [
+            {
+              "name": "html",
+              "type": "String"
+            }
+          ],
+          "op": "page_set_content",
+          "returns": null
+        },
+        {
+          "name": "tap",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "impl": {
+            "scope": "page",
+            "returns": "void",
+            "js": "function(sel){const e=document.querySelector(sel);if(e)e.click();}"
+          }
+        },
+        {
+          "name": "title",
+          "op": "page_title",
+          "returns": null
+        },
+        {
+          "name": "type",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            },
+            {
+              "name": "value",
+              "type": "String"
+            }
+          ],
+          "op": "page_type",
+          "returns": null
+        },
+        {
+          "name": "url",
+          "impl": {
+            "scope": "page",
+            "returns": "string",
+            "js": "function(){return location.href;}"
+          }
+        },
+        {
+          "name": "waitForDevicePrompt",
+          "op": "page_wait_for_device_prompt",
+          "returns": null
+        },
+        {
+          "name": "waitForFunction",
+          "params": [
+            {
+              "name": "expression",
+              "type": "String"
+            }
+          ],
+          "op": "page_wait_for_function",
+          "returns": null
+        },
+        {
+          "name": "waitForNavigation",
+          "op": "page_wait_for_navigation",
+          "returns": null
+        },
+        {
+          "name": "waitForSelector",
+          "params": [
+            {
+              "name": "selector",
+              "type": "String"
+            }
+          ],
+          "op": "page_wait_for_selector",
+          "returns": "ElementHandle"
+        }
+      ]
+    },
+    "CDPSession": {
+      "doc": "A CDP session (thin wrapper over the page connection).",
+      "methods": [
+        {
+          "name": "send",
+          "op": "page_execute_cdp_cmd",
+          "params": [
+            {
+              "name": "method",
+              "type": "String"
+            },
+            {
+              "name": "params_json",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "detach",
+          "op": "page_detach_cdp_session",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "on",
+          "op": "page_on",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "off",
+          "op": "page_remove_listener",
+          "params": [
+            {
+              "name": "event_name",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        }
+      ]
+    },
+    "Coverage": {
+      "doc": "Coverage collector (thin wrapper over the page).",
+      "methods": [
+        {
+          "name": "startJSCoverage",
+          "op": "page_coverage_start_js",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "stopJSCoverage",
+          "op": "page_coverage_stop_js",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "startCSSCoverage",
+          "op": "page_coverage_start_css",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "stopCSSCoverage",
+          "op": "page_coverage_stop_css",
+          "params": [],
+          "returns": null
+        }
+      ]
+    },
+    "Keyboard": {
+      "doc": "Keyboard input (thin wrapper over the page).",
+      "methods": [
+        {
+          "name": "press",
+          "op": "page_keyboard_press",
+          "params": [
+            {
+              "name": "key",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "down",
+          "op": "page_keyboard_down",
+          "params": [
+            {
+              "name": "key",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "up",
+          "op": "page_keyboard_up",
+          "params": [
+            {
+              "name": "key",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "type",
+          "op": "page_keyboard_type",
+          "params": [
+            {
+              "name": "text",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        }
+      ]
+    },
+    "Mouse": {
+      "doc": "Mouse input (thin wrapper over the page).",
+      "methods": [
+        {
+          "name": "move",
+          "op": "page_mouse_move",
+          "params": [
+            {
+              "name": "x",
+              "type": "f64"
+            },
+            {
+              "name": "y",
+              "type": "f64"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "click",
+          "op": "page_mouse_click",
+          "params": [
+            {
+              "name": "x",
+              "type": "f64"
+            },
+            {
+              "name": "y",
+              "type": "f64"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "down",
+          "op": "page_mouse_down",
+          "params": [
+            {
+              "name": "button",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        },
+        {
+          "name": "up",
+          "op": "page_mouse_up",
+          "params": [
+            {
+              "name": "button",
+              "type": "String"
+            }
+          ],
+          "returns": null
+        }
+      ]
+    },
+    "Touchscreen": {
+      "doc": "Touchscreen input (thin wrapper over the page).",
+      "methods": [
+        {
+          "name": "tap",
+          "op": "page_touch_tap",
+          "params": [
+            {
+              "name": "x",
+              "type": "f64"
+            },
+            {
+              "name": "y",
+              "type": "f64"
+            }
+          ],
+          "returns": null
+        }
+      ]
+    },
+    "Tracing": {
+      "doc": "Tracing (thin wrapper over the page session).",
+      "methods": [
+        {
+          "name": "start",
+          "op": "page_tracing_start",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "stop",
+          "op": "page_tracing_stop",
+          "params": [],
+          "returns": null
+        }
+      ]
+    },
+    "Screencast": {
+      "doc": "Screencast (thin wrapper over the page).",
+      "methods": [
+        {
+          "name": "start",
+          "op": "page_start_screencast",
+          "params": [],
+          "returns": null
+        },
+        {
+          "name": "stop",
+          "op": "page_stop_screencast",
+          "params": [],
+          "returns": null
+        }
+      ]
+    }
+  }
+}

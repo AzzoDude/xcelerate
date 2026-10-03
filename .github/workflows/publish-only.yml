@@ -104,24 +104,30 @@ jobs:
 
       - name: Publish to crates.io
         run: |
-          CRATE_NAME=$(grep '^name' Cargo.toml | head -n 1 | sed 's/name = //;s/"//g')
-          CRATE_VERSION=$(ls dist-packages/*.tgz | head -n 1 | grep -oP '\d+\.\d+\.\d+' | head -n 1)
+          CRATE_VERSION=$(grep -oP '^version = "\K[^"]+' Cargo.toml | head -n 1)
 
-          if cargo search "$CRATE_NAME" --limit 1 | grep -q "$CRATE_VERSION"; then
-            echo "Version $CRATE_VERSION of $CRATE_NAME already exists. Skipping."
-          else
-            # Retry loop to handle 503 Service Unavailable errors
-            for i in {1..3}; do
-              echo "Attempt $i: Publishing to crates.io..."
-              if cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }} --no-verify --allow-dirty; then
-                exit 0
+          # Publish in dependency order: the facade depends on stealth + core.
+          for CRATE in xcelerate-stealth xcelerate-core xcelerate; do
+            if cargo search "$CRATE" --limit 1 | grep -q "\"$CRATE_VERSION\""; then
+              echo "$CRATE $CRATE_VERSION already published. Skipping."
+              continue
+            fi
+
+            for attempt in 1 2 3; do
+              echo "Attempt $attempt: publishing $CRATE $CRATE_VERSION..."
+              if cargo publish -p "$CRATE" --token ${{ secrets.CARGO_REGISTRY_TOKEN }} --allow-dirty; then
+                break
               fi
-              echo "Crates.io server error (503). Retrying in 15 seconds..."
+              echo "crates.io error, retrying in 15s..."
               sleep 15
             done
-            echo "Failed to publish to crates.io after 3 attempts."
-            exit 1
-          fi
+
+            # Wait for the crate to appear in the index before the next one.
+            for i in $(seq 1 30); do
+              if cargo search "$CRATE" --limit 1 | grep -q "\"$CRATE_VERSION\""; then break; fi
+              sleep 5
+            done
+          done
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

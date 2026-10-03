@@ -1,42 +1,49 @@
-import subprocess
+#!/usr/bin/env python3
+"""Orchestrate the full xcelerate bindgen pipeline.
+
+Runs, in order:
+
+1. (optional) release build of the Rust core,
+2. API-style adapters (Python + Rust) from the profiles,
+3. C# / Python / JavaScript uniffi bindings.
+
+Set ``SKIP_RUST_BUILD=true`` to reuse pre-built native libraries (as CI does).
+"""
+
+from __future__ import annotations
+
 import os
 import sys
 
-def run_command(cmd, cwd=None):
-    print(f"\n[PHASE] Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=cwd, shell=True)
-    if result.returncode != 0:
-        print(f"[ERROR] Command failed with code {result.returncode}")
-        return False
-    return True
+from common import ROOT, run_checked
+
+SCRIPTS = os.path.dirname(os.path.abspath(__file__))
+
+
+def phase(label, script, *extra):
+    print(f"\n[PHASE] {label}")
+    cmd = [sys.executable, os.path.join(SCRIPTS, script), *extra]
+    run_checked(cmd, cwd=ROOT)
+
 
 def main():
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    scripts_dir = os.path.join(root_dir, "scripts")
-
     print("=== Xcelerate Universal Bindgen Pipeline ===")
 
-    # 1. Build Rust
     if os.environ.get("SKIP_RUST_BUILD") == "true":
-        print("\n--- Phase 1: Skipping Rust Build (using pre-built binaries) ---")
+        print("\n--- Phase 1: Skipping Rust build (using pre-built binaries) ---")
     else:
-        print("\n--- Phase 1: Building Rust Core (Release) ---")
-        if not run_command(["cargo", "build", "--release"], cwd=root_dir):
-            sys.exit(1)
+        print("\n--- Phase 1: Building Rust core (release) ---")
+        run_checked(["cargo", "build", "--release"], cwd=ROOT)
 
-    # 2. C#
-    if not run_command(["python", os.path.join(scripts_dir, "generate_csharp_bindings.py")]):
-        sys.exit(1)
-
-    # 3. Python
-    if not run_command(["python", os.path.join(scripts_dir, "generate_python_bindings.py")]):
-        sys.exit(1)
-
-    # 4. JavaScript
-    if not run_command(["python", os.path.join(scripts_dir, "generate_javascript_bindings.py")]):
-        sys.exit(1)
+    phase("Populate + prune adapter profiles", "backfill_impls.py", "--prune")
+    phase("API-style adapters (Python + Rust)", "generate_adapters.py")
+    phase("C# bindings", "generate_csharp_bindings.py")
+    phase("Python bindings", "generate_python_bindings.py")
+    phase("JavaScript bindings", "generate_javascript_bindings.py")
 
     print("\n=== Universal Pipeline Finished Successfully ===")
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
