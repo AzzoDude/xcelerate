@@ -44,7 +44,7 @@ xcelerate-plugins = { path = "crates/xcelerate-plugins", version = "1.0.9" }
 # Third-party crates.
 js-protocol = "0.1.6"
 browser-protocol = "0.1.6"
-uniffi = { version = "0.31", features = ["tokio"] }
+uniffi = { version = "0.32", features = ["tokio"] }
 futures = "0.3.34"
 reqwest = { version = "0.13.5", features = ["json", "rustls"], default-features = false }
 serde = { version = "1.0.229", features = ["derive"] }
