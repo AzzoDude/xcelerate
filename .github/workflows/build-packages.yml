@@ -3,7 +3,7 @@ name: Build Packages (Core + Bindings)
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, master]
     paths: ['crates/**', 'bindings/**', 'scripts/**', 'Cargo.*']
 
 env:
@@ -65,6 +65,10 @@ jobs:
             9.0.x
             10.0.x
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
       - name: Cache Cargo Binaries
         id: cache-tools
         uses: actions/cache@v4
@@ -121,6 +125,8 @@ jobs:
           Get-ChildItem -Path bindings -Filter *.tgz -Recurse | Copy-Item -Destination dist-final/
           Get-ChildItem -Path bindings -Filter *.nupkg -Recurse | Copy-Item -Destination dist-final/
           Get-ChildItem -Path bindings -Filter *.jar -Recurse | Copy-Item -Destination dist-final/
+          # Ruby / Dart / Go / Swift publish from the checked-out sources in the
+          # publish workflow, so they are not collected as artifacts here.
 
       - name: Upload Package Artifacts
         uses: actions/upload-artifact@v4

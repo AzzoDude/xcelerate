@@ -20,6 +20,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Read Workspace Version
+        id: version
+        run: echo "version=$(grep -oP '^version = \"\K[^\"]+' Cargo.toml | head -n 1)" >> $GITHUB_OUTPUT
+
       - name: Find Latest Build Run ID
         id: find-run
         run: |
@@ -169,8 +173,52 @@ jobs:
             done
           done
 
+      - name: Publish to RubyGems
+        # Best-effort: skip cleanly when the key is absent or the push fails.
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        run: |
+          if [ -z "$GEM_HOST_API_KEY" ]; then
+            echo "::warning::RUBYGEMS_API_KEY not set; skipping RubyGems."
+            exit 0
+          fi
+          cd bindings/ruby
+          gem build xcelerate.gemspec
+          gem push xcelerate-*.gem || echo "::warning::RubyGems push failed; skipping."
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Publish to pub.dev
+        env:
+          PUB_TOKEN: ${{ secrets.PUB_TOKEN }}
+        run: |
+          if [ -z "$PUB_TOKEN" ]; then
+            echo "::warning::PUB_TOKEN not set; skipping pub.dev."
+            exit 0
+          fi
+          cd bindings/dart
+          dart pub publish --force || echo "::warning::pub.dev publish failed; skipping."
+
+      - name: Tag Go Module
+        # Go modules are served from git tags: bindings/go/vX.Y.Z.
+        run: |
+          TAG="bindings/go/v${{ steps.version.outputs.version }}"
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "$TAG already exists; skipping."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "xcelerate Go bindings v${{ steps.version.outputs.version }}"
+          git push origin "$TAG" || echo "::warning::Could not push $TAG; skipping."
+
+      # SwiftPM publishes via a dedicated repository (Package.swift at its root).
+      # Add a step that runs `python scripts/publish_swift.py --push --remote <repo>`
+      # once such a repository and a push token are configured.
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v${{ github.run_number }}"
+          tag_name: "v${{ steps.version.outputs.version }}"
           files: dist-packages/*

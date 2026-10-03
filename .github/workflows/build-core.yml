@@ -3,7 +3,7 @@ name: Build Core (Native Only)
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, master]
     paths: ['crates/**', 'Cargo.*', 'build.rs']
 
 env:

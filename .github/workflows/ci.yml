@@ -2,10 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
     paths: ['crates/**', 'Cargo.toml', 'Cargo.lock', 'clippy.toml', '.github/workflows/ci.yml']
   pull_request:
-    branches: [main]
+    branches: [main, master]
 
 env:
   CARGO_TERM_COLOR: always
@@ -27,3 +27,6 @@ jobs:
 
       - name: Run Clippy (warnings are errors)
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Run Unit Tests
+        run: cargo test --workspace --lib
