@@ -92,6 +92,22 @@ def main():
         r'^version: .+$',
         f'version: {version}',
     )
+    # Install snippets in the READMEs carry the version too.
+    update_file(
+        os.path.join(ROOT, "README.md"),
+        r"(io\.github\.azzodude:xcelerate(?:-java)?:)[0-9]+\.[0-9]+\.[0-9]+",
+        rf"\g<1>{version}",
+    )
+    update_file(
+        os.path.join(ROOT, "bindings", "swift", "README.md"),
+        r'(from: ")[0-9]+\.[0-9]+\.[0-9]+(")',
+        rf"\g<1>{version}\g<2>",
+    )
+    update_file(
+        os.path.join(ROOT, "bindings", "go", "README.md"),
+        r"v[0-9]+\.[0-9]+\.[0-9]+",
+        f"v{version}",
+    )
 
     print("=== Done ===")
     return 0

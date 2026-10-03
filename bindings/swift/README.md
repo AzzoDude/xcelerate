@@ -69,7 +69,7 @@ python scripts/publish_swift.py --push --remote swift
 Consumers then depend on that repository:
 
 ```swift
-.package(url: "https://github.com/AzzoDude/xcelerate-swift", from: "1.0.8")
+.package(url: "https://github.com/AzzoDude/xcelerate-swift", from: "1.0.9")
 ```
 
 For binary distribution, publish an XCFramework and reference it with
