@@ -1,0 +1,60 @@
+# CodeQL analysis (Advanced setup).
+#
+# This repo is Rust-first, and Rust is not a CodeQL language, so this workflow
+# only covers the non-Rust code that actually exists:
+#
+#   * java-kotlin - the generated UniFFI bindings under bindings/{java,kotlin}.
+#     These are Gradle projects *without* a wrapper and Gradle is not installed
+#     on the runner, so we use `build-mode: none` (extract only) instead of the
+#     default `autobuild`, which had nothing to build and failed.
+#   * python      - scripts/ and adapters/runtime.py (real source).
+#
+# C/C++ is intentionally NOT analyzed: there are no translation units to build
+# (only generated headers), and CodeQL does not support `build-mode: none` for
+# C/C++, so it can only ever autobuild-fail here.
+#
+# Requires switching the repository from CodeQL **Default setup** to
+# **Advanced** (Settings -> Code security -> Code scanning). Default setup and a
+# workflow cannot both be enabled.
+
+name: CodeQL
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    - cron: '27 3 * * 1'
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: java-kotlin
+            build-mode: none
+          - language: python
+            build-mode: none
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
