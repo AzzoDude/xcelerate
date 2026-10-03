@@ -15,9 +15,11 @@ script skips with a hint if it is missing.
 from __future__ import annotations
 
 import os
+import re
 import shutil
+import subprocess
 
-from common import ROOT, find_tool, log, run, run_checked, workspace_version
+from common import ROOT, find_tool, log, run_checked, workspace_version
 
 # (source name in target/release, destination name for Dart FFI)
 NATIVE_LIBS = (
@@ -45,6 +47,63 @@ dependencies:
 def bindgen_tool() -> str | None:
     found = find_tool("uniffi-bindgen-dart")
     return found if os.path.exists(found) else None
+
+
+def dart_exe() -> str:
+    """Locate `dart`, normalising an uppercase `.EXE` suffix.
+
+    `dartdev` appends `.exe` to the running executable to spawn its analysis
+    server, but its suffix check is case-sensitive, so `dart.EXE` becomes
+    `dart.EXE.exe` and the process fails. Lower-casing the suffix avoids it.
+    """
+    found = find_tool("dart")
+    if found.lower().endswith(".exe"):
+        return found[:-4] + ".exe"
+    return found
+
+
+# ---------------------------------------------------------------------------
+# Post-processing for known uniffi-bindgen-dart 0.1.x codegen bugs
+# ---------------------------------------------------------------------------
+#
+# The early generator emits invalid Dart for this API in three ways. Each fix is
+# a narrowly-scoped rewrite of the generated file; regenerate to reproduce.
+#
+#   1. `Future<bool>` methods that call an `i8` future-complete return the raw
+#      `int`, not a `bool`.
+#   2. The async constructor `Browser::launch` is emitted as a synchronous
+#      return, but declared `Future<Browser>`.
+#   3. `Browser::close` / `Page::close` collide with the generator's synthetic
+#      `close()` disposer, so they are renamed `closeBrowser` / `closePage`
+#      (matching the Kotlin binding).
+
+_BOOL_RETURN = re.compile(
+    r"(Future<bool> \w+\([^)]*\) async \{.*?)return resultValue;", re.DOTALL
+)
+_LAUNCH = re.compile(r"static Future<Browser> launch\(BrowserConfig config\) \{")
+_CLOSE = re.compile(
+    r"Future<void> close\(\)(?=.{0,400}?\b(?P<call>browserInvokeClose|pageInvokeClose)\b)",
+    re.DOTALL,
+)
+
+
+def _patch(content: str) -> tuple[str, dict[str, int]]:
+    counts: dict[str, int] = {}
+
+    content, counts["bool futures"] = _BOOL_RETURN.subn(
+        r"\1return resultValue != 0;", content
+    )
+    content, counts["launch async"] = _LAUNCH.subn(
+        "static Future<Browser> launch(BrowserConfig config) async {", content
+    )
+
+    def rename_close(match: re.Match) -> str:
+        if match.group("call") == "browserInvokeClose":
+            return "Future<void> closeBrowser()"
+        return "Future<void> closePage()"
+
+    content, counts["close rename"] = _CLOSE.subn(rename_close, content)
+    return content, counts
 
 
 def main():
@@ -77,6 +136,17 @@ def main():
         cwd=ROOT,
     )
 
+    print("--- 1b. Patching known generator bugs ---")
+    generated = os.path.join(lib_dir, "xcelerate.dart")
+    with open(generated, "r", encoding="utf-8") as handle:
+        content = handle.read()
+    content, fixes = _patch(content)
+    with open(generated, "w", encoding="utf-8", newline="") as handle:
+        handle.write(content)
+    for fix, count in fixes.items():
+        level = "PATCH" if count else "WARNING"
+        log(level, f"{fix}: {count}")
+
     _write(os.path.join(dart_dir, "pubspec.yaml"), pubspec(workspace_version()))
     log("WRITE", "pubspec.yaml")
 
@@ -88,18 +158,23 @@ def main():
             log("COPY", f"{source} -> src/{destination}")
 
     print("--- 3. Fetching deps and analyzing ---")
-    dart = find_tool("dart")
+    dart = dart_exe()
     if not os.path.exists(dart):
         log("WARNING", "dart not found; sources generated only")
         log("HINT", "install the Dart SDK or Flutter (dart.dev)")
         return 0
-    run_checked([dart, "pub", "get"], cwd=dart_dir)
-    # uniffi-bindgen-dart is early (0.1.x) and can emit invalid Dart for async
-    # methods and `close`; keep analysis advisory so generation still succeeds.
-    result = run([dart, "analyze"], cwd=dart_dir, capture=True)
-    if result.returncode != 0:
-        log("WARNING", "`dart analyze` reported issues; the Dart binding is EXPERIMENTAL")
-        log("HINT", "see bindings/dart/README.md; check upstream uniffi-bindgen-dart")
+    # Run dart directly (not through a shell); shell=True breaks `dart analyze`
+    # on Windows.
+    get = subprocess.run([dart, "pub", "get"], cwd=dart_dir, capture_output=True, text=True)
+    if get.returncode != 0:
+        log("WARNING", "`dart pub get` failed; skipping analysis")
+        return 0
+    analyze = subprocess.run([dart, "analyze"], cwd=dart_dir, capture_output=True, text=True)
+    output = (analyze.stdout or "") + (analyze.stderr or "")
+    if analyze.returncode == 0 or "No issues found" in output:
+        log("OK", "dart analyze: no issues")
+    else:
+        log("WARNING", "`dart analyze` reported issues; check bindings/dart")
     log("SUCCESS", f"Dart bindings ready in {dart_dir}")
     return 0
 

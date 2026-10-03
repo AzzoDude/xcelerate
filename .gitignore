@@ -785,6 +785,11 @@ local.properties
 !bindings/**/*.h
 !bindings/**/*.modulemap
 
+# Generated sources under a `lib/` directory (Ruby gem, Dart package) must not
+# be hidden by the Python `lib/` rule earlier in this file.
+!bindings/**/lib/
+!bindings/**/lib/**
+
 # Binding build artifacts
 bindings/swift/.build/
 bindings/dart/.dart_tool/

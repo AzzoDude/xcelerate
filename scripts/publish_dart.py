@@ -11,17 +11,26 @@ or a token in ``PUB_TOKEN`` for CI.
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 
 from common import ROOT, find_tool, log, run_checked
+
+
+def dart_exe() -> str:
+    """Locate `dart`, normalising an uppercase `.EXE` suffix (see the generator)."""
+    found = find_tool("dart")
+    if found.lower().endswith(".exe"):
+        return found[:-4] + ".exe"
+    return found
 
 
 def main():
     push = "--push" in sys.argv
     dart_dir = os.path.join(ROOT, "bindings", "dart")
 
-    dart = find_tool("dart")
-    if not os.path.exists(dart):
+    dart_path = dart_exe()
+    if not os.path.exists(dart_path):
         log("WARNING", "dart not found; install the Dart SDK or Flutter (dart.dev)")
         return 0
 
@@ -32,14 +41,16 @@ def main():
     )
 
     print("--- Validating the package ---")
-    run_checked([dart, "pub", "publish", "--dry-run"], cwd=dart_dir)
+    if subprocess.run([dart_path, "pub", "publish", "--dry-run"], cwd=dart_dir, text=True).returncode != 0:
+        log("WARNING", "`dart pub publish --dry-run` reported issues; not publishing")
+        return 1
 
     if not push:
         log("INFO", "dry run - pass --push to publish to pub.dev")
         return 0
 
     print("--- Publishing to pub.dev ---")
-    run_checked([dart, "pub", "publish", "--force"], cwd=dart_dir)
+    run_checked([dart_path, "pub", "publish", "--force"], cwd=dart_dir)
     log("SUCCESS", "published to pub.dev")
     return 0
 
