@@ -44,7 +44,11 @@ def run(cmd, cwd=None, capture=False, env=None):
     """Run a command (list or str). Returns the CompletedProcess."""
     printable = cmd if isinstance(cmd, str) else " ".join(cmd)
     print(f"[EXEC] {printable}")
-    result = subprocess.run(cmd, cwd=cwd, shell=True, capture_output=capture, text=True, env=env)
+    # Only a string command needs a shell (it may contain pipes/redirects); a
+    # list is executed directly, which also avoids `shell=True` injection.
+    result = subprocess.run(
+        cmd, cwd=cwd, shell=isinstance(cmd, str), capture_output=capture, text=True, env=env
+    )
     if capture:
         if result.stdout:
             print(result.stdout)

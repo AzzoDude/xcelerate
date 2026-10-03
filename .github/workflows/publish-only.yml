@@ -8,6 +8,9 @@ on:
         required: false
         default: ''
 
+permissions:
+  contents: read
+
 jobs:
   publish:
     name: Publish to Registries
@@ -16,9 +19,10 @@ jobs:
       id-token: write
       contents: write
       attestations: write
+      actions: read
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Read Workspace Version
         id: version
@@ -26,9 +30,12 @@ jobs:
 
       - name: Find Latest Build Run ID
         id: find-run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_RUN_ID: ${{ github.event.inputs.run_id }}
         run: |
-          if [ "${{ github.event.inputs.run_id }}" != "" ]; then
-            echo "run_id=${{ github.event.inputs.run_id }}" >> $GITHUB_OUTPUT
+          if [ "$INPUT_RUN_ID" != "" ]; then
+            echo "run_id=$INPUT_RUN_ID" >> $GITHUB_OUTPUT
           else
             RUN_ID=$(gh run list --workflow "Build Packages (Core + Bindings)" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
             if [ -z "$RUN_ID" ]; then
@@ -42,17 +49,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: language-packages
           path: dist-packages
           run-id: ${{ steps.find-run.outputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 'latest'
           registry-url: 'https://registry.npmjs.org'
@@ -118,7 +125,7 @@ jobs:
       - name: Publish to PyPI
         if: steps.pypi-prep.outputs.has_artifacts == 'true'
         continue-on-error: true
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
         with:
           packages-dir: dist-pypi/
           skip-existing: true
@@ -187,7 +194,7 @@ jobs:
           gem push xcelerate-*.gem || echo "::warning::RubyGems push failed; skipping."
 
       - name: Setup Dart
-        uses: dart-lang/setup-dart@v1
+        uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
 
       - name: Publish to pub.dev
         env:
@@ -218,7 +225,7 @@ jobs:
       # once such a repository and a push token are configured.
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: "v${{ steps.version.outputs.version }}"
           files: dist-packages/*

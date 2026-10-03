@@ -44,7 +44,14 @@ xcelerate-plugins = { path = "crates/xcelerate-plugins", version = "1.0.9" }
 # Third-party crates.
 js-protocol = "0.1.6"
 browser-protocol = "0.1.6"
-uniffi = { version = "0.31", features = ["tokio"] }
+# Held at the latest 0.31.x (0.31.2) on purpose: uniffi 0.32 changed its metadata
+# encoding, and the third-party generators this workspace depends on for
+# C#/Go/Dart/Node (`uniffi-bindgen-cs`, `-go`, `-dart`, `-node-js`) still vendor
+# uniffi 0.31, so they cannot read a 0.32-built library. One cdylib carries one
+# metadata version, so the whole workspace must stay in step. 0.31.x patch
+# releases are still allowed; move to 0.32 only once every one of those
+# generators ships 0.32 support (Dependabot is set to ignore >= 0.32).
+uniffi = { version = "0.31.2", features = ["tokio"] }
 futures = "0.3.34"
 reqwest = { version = "0.13.5", features = ["json", "rustls"], default-features = false }
 serde = { version = "1.0.229", features = ["derive"] }

@@ -86,7 +86,8 @@ def harvest():
         found = {}
         for module_name, class_names in modules:
             try:
-                module = importlib.import_module(module_name)
+                # module_name is from the fixed TARGETS table, not user input.
+                module = importlib.import_module(module_name)  # nosemgrep: python.lang.security.audit.non-literal-import.non-literal-import
             except ImportError:
                 log("HARVEST", f"{profile_name}: '{module_name}' not installed, skipping")
                 continue

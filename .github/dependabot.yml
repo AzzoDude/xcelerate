@@ -10,6 +10,13 @@ updates:
     groups:
       cargo:
         patterns: ["*"]
+    ignore:
+      # uniffi 0.32 changed its metadata encoding. The third-party generators
+      # needed for C#/Go/Dart/Node still vendor uniffi 0.31 and cannot read a
+      # 0.32-built cdylib, so the whole workspace is held at 0.31. Remove this
+      # once all of uniffi-bindgen-cs / -go / -dart / -node-js support 0.32.
+      - dependency-name: "uniffi"
+        versions: [">= 0.32"]
 
   - package-ecosystem: github-actions
     directory: "/"
