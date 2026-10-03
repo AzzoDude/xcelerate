@@ -59,4 +59,5 @@ java -Duniffi.component.xcelerate.libraryOverride=/abs/path/libxcelerate.so ...
 
 ## License
 
-MIT
+Licensed under either of [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) or
+[MIT](https://opensource.org/licenses/MIT), at your option.

@@ -5,6 +5,12 @@ members = [
     "crates/xcelerate-stealth",
     "crates/xcelerate-bindgen",
 ]
+
+# Keep non-Rust artifact directories out of the workspace so they are never
+# treated as members (generated bindings, downloaded toolchains, generator
+# inputs). Harmless with an explicit member list, but defensive if a Cargo.toml
+# ever appears under one of them.
+exclude = ["bindings", "tools", "adapters", "scripts"]
 resolver = "3"
 
 [workspace.package]
@@ -12,7 +18,7 @@ version = "1.0.7"
 edition = "2024"
 rust-version = "1.99.0"
 authors = ["AzzoDude"]
-license = "MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/AzzoDude/xcelerate"
 
 # Shared lint policy for every crate in the workspace.

@@ -12,7 +12,7 @@
     <Copyright>Copyright (c) 2026 AzzoDude</Copyright>
     <Description>C# wrapper for the xcelerate Rust CDP library.</Description>
     <DefaultItemExcludes>$(DefaultItemExcludes);Xcelerate.TestApp\**</DefaultItemExcludes>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/AzzoDude/xcelerate</RepositoryUrl>
     <PackageTags>cdp;browser;automation;chrome;headless;rust;ffi;aot;nativeaot;dotnet;csharp;managed;selenium-alternative;playwright-alternative</PackageTags>
     <IsPackable>true</IsPackable>
@@ -36,7 +36,8 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
-    <None Include="..\..\LICENSE-MIT" Pack="true" PackagePath="\LICENSE" />
+    <None Include="..\..\LICENSE-MIT" Pack="true" PackagePath="\LICENSE-MIT" />
+    <None Include="..\..\LICENSE-APACHE" Pack="true" PackagePath="\LICENSE-APACHE" />
   </ItemGroup>
 
 </Project>

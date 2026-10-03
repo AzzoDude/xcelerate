@@ -51,7 +51,7 @@ def main():
                 "version": version,
                 "description": "A high-performance, lightweight Chrome DevTools Protocol (CDP) client for Node.js",
                 "author": "AzzoDude",
-                "license": "MIT",
+                "license": "MIT OR Apache-2.0",
                 "engines": {"node": ">=12"},
                 "repository": {"type": "git", "url": "git+https://github.com/AzzoDude/xcelerate.git"},
             }

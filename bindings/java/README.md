@@ -62,4 +62,5 @@ name (resolved via `java.library.path`). Without it the generated code calls
 
 ## License
 
-MIT
+Licensed under either of [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) or
+[MIT](https://opensource.org/licenses/MIT), at your option.
