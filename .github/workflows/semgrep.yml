@@ -38,6 +38,18 @@ jobs:
             --exclude bindings --exclude docs --exclude tools \
             --sarif --output semgrep.sarif --quiet || true
 
+      - name: Drop suppressed findings from SARIF
+        # Semgrep records `# nosemgrep` hits in SARIF as results that carry a
+        # `suppressions` property. GitHub code scanning ignores that property
+        # (it is not in GitHub's supported SARIF subset), so it would otherwise
+        # open an alert for every suppressed finding. Strip them before upload.
+        run: |
+          if [ -s semgrep.sarif ]; then
+            jq '.runs |= map(.results = [.results[]? | select((.suppressions // []) | length == 0)])' \
+              semgrep.sarif > semgrep.filtered.sarif
+            mv semgrep.filtered.sarif semgrep.sarif
+          fi
+
       - name: Upload SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@1190a975f95ce23525efb6a3fc21ea29567c1b52 # v3

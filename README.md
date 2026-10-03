@@ -28,6 +28,7 @@ Playwright, and Puppeteer scripts run against the same engine.
 | Ruby | `xcelerate` | built from source ([readme](bindings/ruby/README.md)) |
 | Dart / Flutter | `xcelerate` | built from source ([readme](bindings/dart/README.md)) |
 | Go | `xcelerate` | built from source ([readme](bindings/go/README.md)) |
+| PowerShell | `Xcelerate` | built from source ([readme](bindings/powershell/README.md)) |
 
 ## Features
 
@@ -45,7 +46,7 @@ Playwright, and Puppeteer scripts run against the same engine.
   top of the native engine, generated from declarative profiles.
 - **Multi-language bindings** - one core, generated bindings for Rust, Python,
   JavaScript (Node.js), .NET, Kotlin, Java, Swift, Ruby, Dart/Flutter, and Go via
-  `uniffi`.
+  `uniffi`, plus a PowerShell module over the .NET SDK.
 
 ## Installation
 
@@ -114,6 +115,18 @@ python scripts/generate_dart_bindings.py     # Dart sources + pubspec
 go install github.com/NordSecurity/uniffi-bindgen-go/v2/uniffi-bindgen-go@latest
 python scripts/generate_go_bindings.py       # Go sources + go.mod
 ```
+
+### PowerShell
+
+PowerShell has no UniFFI generator, so it drives the .NET SDK through a small
+module. Stage the payload, then import it:
+
+```powershell
+python scripts/generate_powershell_bindings.py   # build + stage the module payload
+Import-Module ./bindings/powershell/Xcelerate.psd1
+```
+
+See [`bindings/powershell/README.md`](bindings/powershell/README.md) for usage.
 
 See [`bindings/`](bindings/) for each package's README.
 
@@ -357,7 +370,7 @@ xcelerate/
     xcelerate/             # high-level facade: Browser, Page, Element, adapters
     xcelerate-bindgen/     # uniffi bindgen helper binary
   adapters/             # adapter profiles, runtime, and generator inputs
-  bindings/             # generated Python, JavaScript, C#, Kotlin, Java, Swift, Ruby, Dart, and Go packages
+  bindings/             # generated Python, JavaScript, C#, Kotlin, Java, Swift, Ruby, Dart, and Go packages (plus the PowerShell module)
   docs/plugins/         # third-party plugin authoring guide, JSON schema, examples
   scripts/              # code generation, harvesting, and release tooling
 ```

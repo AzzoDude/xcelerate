@@ -46,6 +46,7 @@ def main():
     phase("Ruby bindings", "generate_ruby_bindings.py")
     phase("Dart bindings", "generate_dart_bindings.py")
     phase("Go bindings", "generate_go_bindings.py")
+    phase("PowerShell module", "generate_powershell_bindings.py")
 
     print("\n=== Universal Pipeline Finished Successfully ===")
     return 0

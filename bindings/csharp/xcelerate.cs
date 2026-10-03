@@ -1121,6 +1121,8 @@ static class _UniFFILib {
     
     
     
+    
+    
 
     static _UniFFILib() {
         _UniFFILib.uniffiCheckContractApiVersion();
@@ -2193,6 +2195,17 @@ static class _UniFFILib {
     public static extern
 #endif
      RustBuffer uniffi_xcelerate_fn_method_page_decode_base64(ulong @ptr,RustBuffer @data,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ulong uniffi_xcelerate_fn_method_page_default_timeout(ulong @ptr,ref UniffiRustCallStatus _uniffi_out_err
     );
 
     #if NET8_0_OR_GREATER
@@ -4821,6 +4834,17 @@ static class _UniFFILib {
     [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
     public static extern
 #endif
+     ushort uniffi_xcelerate_checksum_method_page_default_timeout(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
      ushort uniffi_xcelerate_checksum_method_page_emulate_idle_state(
     );
 
@@ -6419,6 +6443,12 @@ static class _UniFFILib {
             }
         }
         {
+            var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_page_default_timeout();
+            if (checksum != 18710) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_default_timeout` checksum `18710`, library returned `{checksum}`");
+            }
+        }
+        {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_page_emulate_idle_state();
             if (checksum != 53017) {
                 throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_emulate_idle_state` checksum `53017`, library returned `{checksum}`");
@@ -6750,8 +6780,8 @@ static class _UniFFILib {
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_page_set_default_timeout();
-            if (checksum != 58523) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_set_default_timeout` checksum `58523`, library returned `{checksum}`");
+            if (checksum != 7299) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_set_default_timeout` checksum `7299`, library returned `{checksum}`");
             }
         }
         {
@@ -6912,8 +6942,8 @@ static class _UniFFILib {
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_page_wait_for_event_default();
-            if (checksum != 30417) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_wait_for_event_default` checksum `30417`, library returned `{checksum}`");
+            if (checksum != 7458) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_wait_for_event_default` checksum `7458`, library returned `{checksum}`");
             }
         }
         {
@@ -9405,6 +9435,11 @@ public interface IPage {
     /// <exception cref="XcelerateException"></exception>
     byte[] DecodeBase64(string @data);
     /// <summary>
+    /// The default timeout (ms) used by the waiting helpers. A stored value of
+    /// `0` means "no timeout" and is mapped to the largest representable wait.
+    /// </summary>
+    ulong DefaultTimeout();
+    /// <summary>
     /// Overrides the idle state.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
@@ -9660,7 +9695,9 @@ public interface IPage {
     /// <exception cref="XcelerateException"></exception>
     Task SetContent(string @html);
     /// <summary>
-    /// Stores a default timeout (ms) for adapter compatibility.
+    /// Sets the default timeout (ms) applied by [`Page::wait_for_selector`],
+    /// [`Page::wait_for_navigation`], and [`Page::wait_for_event_default`].
+    /// As in Playwright, `0` disables the timeout.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task SetDefaultTimeout(double @milliseconds);
@@ -9797,7 +9834,7 @@ public interface IPage {
     /// <exception cref="XcelerateException"></exception>
     Task<string> WaitForEvent(string @eventName, ulong @timeoutMs);
     /// <summary>
-    /// [`Page::wait_for_event`] with the default 30s timeout.
+    /// [`Page::wait_for_event`] with the page's default timeout.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<string> WaitForEventDefault(string @eventName);
@@ -10454,6 +10491,18 @@ public class Page : IPage, IDisposable {
         return CallWithPointer(thisPtr => FfiConverterByteArray.INSTANCE.Lift(
     _UniffiHelpers.RustCallWithError(FfiConverterTypeXcelerateError.INSTANCE, (ref UniffiRustCallStatus _status) =>
     _UniFFILib.uniffi_xcelerate_fn_method_page_decode_base64(thisPtr, FfiConverterString.INSTANCE.Lower(@data), ref _status)
+)));
+    }
+    
+    
+    /// <summary>
+    /// The default timeout (ms) used by the waiting helpers. A stored value of
+    /// `0` means "no timeout" and is mapped to the largest representable wait.
+    /// </summary>
+    public ulong DefaultTimeout() {
+        return CallWithPointer(thisPtr => FfiConverterUInt64.INSTANCE.Lift(
+    _UniffiHelpers.RustCall( (ref UniffiRustCallStatus _status) =>
+    _UniFFILib.uniffi_xcelerate_fn_method_page_default_timeout(thisPtr,  ref _status)
 )));
     }
     
@@ -11722,7 +11771,9 @@ public class Page : IPage, IDisposable {
     }
     
     /// <summary>
-    /// Stores a default timeout (ms) for adapter compatibility.
+    /// Sets the default timeout (ms) applied by [`Page::wait_for_selector`],
+    /// [`Page::wait_for_navigation`], and [`Page::wait_for_event_default`].
+    /// As in Playwright, `0` disables the timeout.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task SetDefaultTimeout(double @milliseconds) {await _UniFFIAsync.UniffiRustCallAsync(
@@ -12298,7 +12349,7 @@ public class Page : IPage, IDisposable {
     }
     
     /// <summary>
-    /// [`Page::wait_for_event`] with the default 30s timeout.
+    /// [`Page::wait_for_event`] with the page's default timeout.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<string> WaitForEventDefault(string @eventName) {
@@ -12833,6 +12884,10 @@ public class XcelerateException: UniffiException {
         public Unsupported(string message): base(message) {}
     }
     
+    public class Plugin: XcelerateException {
+        public Plugin(string message): base(message) {}
+    }
+    
 }
 
 public class FfiConverterTypeXcelerateError : FfiConverterRustBuffer<XcelerateException>, CallStatusErrorHandler<XcelerateException> {
@@ -12848,6 +12903,7 @@ public class FfiConverterTypeXcelerateError : FfiConverterRustBuffer<XcelerateEx
             case 5: return new XcelerateException.NotFound(FfiConverterString.INSTANCE.Read(stream));
             case 6: return new XcelerateException.InternalException(FfiConverterString.INSTANCE.Read(stream));
             case 7: return new XcelerateException.Unsupported(FfiConverterString.INSTANCE.Read(stream));
+            case 8: return new XcelerateException.Plugin(FfiConverterString.INSTANCE.Read(stream));
             default:
                 throw new InternalException(String.Format("invalid error value '{0}' in FfiConverterTypeXcelerateError.Read()", value));
         }
@@ -12879,6 +12935,9 @@ public class FfiConverterTypeXcelerateError : FfiConverterRustBuffer<XcelerateEx
                 break;
             case XcelerateException.Unsupported:
                 stream.WriteInt(7);
+                break;
+            case XcelerateException.Plugin:
+                stream.WriteInt(8);
                 break;
             default:
                 throw new InternalException(String.Format("invalid error value '{0}' in FfiConverterTypeXcelerateError.Write()", value));
