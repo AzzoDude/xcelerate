@@ -40,11 +40,11 @@ def log(prefix, message):
     print(f"[{prefix}] {message}")
 
 
-def run(cmd, cwd=None, capture=False):
+def run(cmd, cwd=None, capture=False, env=None):
     """Run a command (list or str). Returns the CompletedProcess."""
     printable = cmd if isinstance(cmd, str) else " ".join(cmd)
     print(f"[EXEC] {printable}")
-    result = subprocess.run(cmd, cwd=cwd, shell=True, capture_output=capture, text=True)
+    result = subprocess.run(cmd, cwd=cwd, shell=True, capture_output=capture, text=True, env=env)
     if capture:
         if result.stdout:
             print(result.stdout)
@@ -53,8 +53,8 @@ def run(cmd, cwd=None, capture=False):
     return result
 
 
-def run_checked(cmd, cwd=None, capture=False):
-    result = run(cmd, cwd=cwd, capture=capture)
+def run_checked(cmd, cwd=None, capture=False, env=None):
+    result = run(cmd, cwd=cwd, capture=capture, env=env)
     if result.returncode != 0:
         log("ERROR", f"command failed ({result.returncode}): {cmd if isinstance(cmd, str) else ' '.join(cmd)}")
         sys.exit(result.returncode)
@@ -141,3 +141,100 @@ def workspace_version():
             if line.startswith("version ="):
                 return line.split("=", 1)[1].strip().strip('"')
     return "0.0.0"
+
+
+def uniffi_bindgen():
+    """Command prefix for the bundled Rust uniffi-bindgen helper.
+
+    Prefers a pre-built binary over ``cargo run`` so CI (and local runs) do not
+    recompile the helper on every invocation.
+    """
+    for candidate in (
+        os.path.join(ROOT, "target", "debug", "uniffi-bindgen.exe"),
+        os.path.join(ROOT, "target", "release", "uniffi-bindgen.exe"),
+        os.path.join(ROOT, "target", "debug", "uniffi-bindgen"),
+        os.path.join(ROOT, "target", "release", "uniffi-bindgen"),
+    ):
+        if os.path.exists(candidate):
+            return [candidate]
+    found = find_tool("uniffi-bindgen")
+    if os.path.exists(found):
+        return [found]
+    return ["cargo", "run", "-p", "xcelerate-bindgen", "--"]
+
+
+def jdk_major(path):
+    """Major version of a JDK install (from its ``release`` file), or None."""
+    if not path:
+        return None
+    release = os.path.join(path, "release")
+    try:
+        with open(release, "r", encoding="utf-8") as handle:
+            for line in handle:
+                if line.startswith("JAVA_VERSION="):
+                    value = line.split("=", 1)[1].strip().strip('"')
+                    return int(value.split(".")[0])
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def java_home():
+    """Locate a JDK home, preferring a Gradle-compatible 22-24 build.
+
+    The Java bindings need Java 22+ (Project Panama), but Gradle 8.10 only runs
+    on JDK 24 or lower, so a 22-24 JDK is preferred when several are installed.
+    """
+    def _is_jdk(path):
+        return path and (
+            os.path.exists(os.path.join(path, "bin", "javac.exe"))
+            or os.path.exists(os.path.join(path, "bin", "javac"))
+        )
+
+    candidates = []
+    if os.environ.get("JAVA_HOME"):
+        candidates.append(os.environ["JAVA_HOME"])
+    javac = shutil.which("javac") or shutil.which("java")
+    if javac:
+        candidates.append(os.path.dirname(os.path.dirname(os.path.abspath(javac))))
+    program_files = os.environ.get("ProgramFiles", r"C:\Program Files")
+    for base in (
+        os.path.join(program_files, "Microsoft"),
+        os.path.join(program_files, "Eclipse Adoptium"),
+        os.path.join(program_files, "Java"),
+        os.path.join(program_files, "Amazon Corretto"),
+    ):
+        if os.path.isdir(base):
+            for entry in sorted(os.listdir(base), reverse=True):
+                candidates.append(os.path.join(base, entry))
+    jdks = [candidate for candidate in candidates if _is_jdk(candidate)]
+    for preferred in (22, 23, 24):
+        for candidate in jdks:
+            if jdk_major(candidate) == preferred:
+                return candidate
+    return jdks[0] if jdks else None
+
+
+def gradle_tool():
+    """Locate the Gradle launcher (PATH or ``tools/gradle/**/bin``)."""
+    found = shutil.which("gradle")
+    if found:
+        return found
+    tools = os.path.join(ROOT, "tools", "gradle")
+    if os.path.isdir(tools):
+        for entry in sorted(os.listdir(tools), reverse=True):
+            for name in ("gradle.bat", "gradle"):
+                candidate = os.path.join(tools, entry, "bin", name)
+                if os.path.exists(candidate):
+                    return candidate
+    return None
+
+
+def jvm_env():
+    """A copy of the environment with JAVA_HOME/PATH pointed at the JDK."""
+    env = dict(os.environ)
+    home = java_home()
+    if home:
+        env["JAVA_HOME"] = home
+        env["PATH"] = os.path.join(home, "bin") + os.pathsep + env.get("PATH", "")
+    return env

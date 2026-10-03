@@ -1,0 +1,65 @@
+# Xcelerate Java SDK
+
+Java/JVM bindings for the xcelerate Rust CDP engine. Java is not a built-in
+UniFFI target, so the sources are generated with the third-party
+[`uniffi-bindgen-java`](https://github.com/IronCoreLabs/uniffi-bindgen-java)
+generator (pinned to the release that targets UniFFI 0.31).
+
+## Requirements
+
+- **JDK 22+** - the generated code uses the Foreign Function & Memory API
+  (Project Panama), so there are no third-party runtime dependencies.
+- `gradle` on `PATH`, or installed under `tools/gradle/` by
+  `python ../../scripts/install_toolchains.py`
+
+## Generate / build
+
+```bash
+# from the repository root
+python scripts/install_toolchains.py        # JDK 22+, Gradle, uniffi-bindgen-java
+python scripts/generate_java_bindings.py    # sources + native libs + Gradle build
+```
+
+or, once generated, inside this directory:
+
+```bash
+gradle build
+```
+
+The generated sources live in `src/main/java/uniffi/xcelerate/`.
+
+## Usage
+
+```java
+import uniffi.xcelerate.Browser;
+import uniffi.xcelerate.BrowserConfig;
+import uniffi.xcelerate.Page;
+
+public class Demo {
+    public static void main(String[] args) throws Exception {
+        // headless, stealth, detached, executablePath
+        Browser browser = Browser.launch(new BrowserConfig(true, true, true, null)).get();
+        Page page = browser.newPage("https://example.com").get();
+        System.out.println(page.title().get());
+        byte[] png = page.screenshotFull().get();
+        browser.closeBrowser().get();
+    }
+}
+```
+
+Every call returns a `CompletableFuture`, so `get()` (or `thenApply(...)`) is
+required. Run with the native access flag:
+
+```bash
+java --enable-native-access=ALL-UNNAMED \
+     -Duniffi.component.xcelerate.libraryOverride=/abs/path/xcelerate.dll \
+     Demo
+```
+
+`libraryOverride` may be an absolute path (loaded with `System.load`) or a bare
+name (resolved via `java.library.path`). Without it the generated code calls
+`System.loadLibrary("xcelerate")`.
+
+## License
+
+MIT

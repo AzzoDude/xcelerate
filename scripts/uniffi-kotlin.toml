@@ -1,0 +1,9 @@
+# Configuration for the built-in uniffi Kotlin generator.
+#
+# Rust's `Browser::close` / `Page::close` collide with the `close()` the
+# generator adds to every exported object (it implements `AutoCloseable` and the
+# `Disposable` helper). Rename the asynchronous ones so the Kotlin surface
+# compiles; the inherited `close()` remains the synchronous handle cleanup.
+[bindings.kotlin.rename]
+"Browser.close" = "closeBrowser"
+"Page.close" = "closePage"

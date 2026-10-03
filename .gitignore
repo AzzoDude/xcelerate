@@ -748,6 +748,27 @@ bindings/python/dist/
 bindings/python/build/
 bindings/python/*.egg-info/
 
+# JVM bindings (Kotlin / Java, Gradle)
+.gradle/
+**/.gradle/
+.kotlin/
+**/.kotlin/
+bindings/kotlin/build/
+bindings/java/build/
+tools/
+local.properties
+
+# Secrets and signing material (never commit)
+.env
+.env.*
+*.asc
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+*.gpg
+
 # Ignore test screenshots or logs
 *.png
 !README_assets/*.png  # Allow assets for documentation if any

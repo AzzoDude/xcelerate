@@ -101,6 +101,12 @@ jobs:
           mkdir -p bindings/csharp
           cp target/release/*.dll target/release/*.so target/release/*.dylib bindings/csharp/
 
+      - name: Install JVM toolchains (Kotlin / Java)
+        # Best effort: JDK 22-24 via winget, Gradle + uniffi-bindgen-java otherwise.
+        # If it fails, the generator scripts still emit sources and skip packaging.
+        continue-on-error: true
+        run: python scripts/install_toolchains.py
+
       - name: Run Bindgen Scripts
         run: python scripts/generate_all.py
         env:
@@ -114,6 +120,7 @@ jobs:
           Get-ChildItem -Path bindings -Filter *.tar.gz -Recurse | Copy-Item -Destination dist-final/
           Get-ChildItem -Path bindings -Filter *.tgz -Recurse | Copy-Item -Destination dist-final/
           Get-ChildItem -Path bindings -Filter *.nupkg -Recurse | Copy-Item -Destination dist-final/
+          Get-ChildItem -Path bindings -Filter *.jar -Recurse | Copy-Item -Destination dist-final/
 
       - name: Upload Package Artifacts
         uses: actions/upload-artifact@v4

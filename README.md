@@ -6,9 +6,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Xcelerate is a high-performance, lightweight Chrome DevTools Protocol (CDP) client
-with idiomatic bindings for Rust, .NET, Python, and JavaScript (Node.js). It pairs a
-fast Rust core with an async-first API and a data-driven adapter layer that lets
-existing Selenium, Playwright, and Puppeteer scripts run against the same engine.
+with idiomatic bindings for Rust, .NET, Python, JavaScript (Node.js), Kotlin, and
+Java. It pairs a fast Rust core with an async-first API and a data-driven adapter
+layer that lets existing Selenium, Playwright, and Puppeteer scripts run against
+the same engine.
 
 ## Features
 
@@ -20,7 +21,7 @@ existing Selenium, Playwright, and Puppeteer scripts run against the same engine
 - **API-style adapters** - expose Selenium, Playwright, and Puppeteer method names on
   top of the native engine, generated from declarative profiles.
 - **Multi-language bindings** - one core, generated bindings for Rust, Python, Node.js,
-  and .NET via `uniffi`.
+  .NET, Kotlin, and Java via `uniffi`.
 
 ## Installation
 
@@ -49,6 +50,19 @@ npm install xcelerate
 ```powershell
 dotnet add package Xcelerate
 ```
+
+### Kotlin / Java
+
+The JVM bindings are built from source (they are not on Maven Central yet):
+
+```bash
+python scripts/install_toolchains.py        # JDK 22+ via winget, Gradle, uniffi-bindgen-java
+python scripts/generate_kotlin_bindings.py  # Kotlin sources + Gradle build
+python scripts/generate_java_bindings.py    # Java sources + Gradle build
+```
+
+See [`bindings/kotlin/README.md`](bindings/kotlin/README.md) and
+[`bindings/java/README.md`](bindings/java/README.md) for usage.
 
 ## Quick start (Rust)
 
@@ -165,7 +179,7 @@ xcelerate/
     xcelerate/          # high-level facade: Browser, Page, Element, adapters
     xcelerate-bindgen/  # uniffi bindgen helper binary
   adapters/             # adapter profiles, runtime, and generator inputs
-  bindings/             # generated Python, JavaScript, and C# packages
+  bindings/             # generated Python, JavaScript, C#, Kotlin, and Java packages
   scripts/              # code generation, harvesting, and release tooling
 ```
 
@@ -181,6 +195,9 @@ python scripts/harvest_adapters.py --check
 # Build, lint, and test.
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test -p xcelerate --test adapters_e2e -- --nocapture
+
+# JVM bindings (JDK 22+, Gradle, uniffi-bindgen-java).
+python scripts/install_toolchains.py
 ```
 
 The end-to-end tests launch a real browser and require Chrome or Edge. Point them at a

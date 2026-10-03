@@ -76,6 +76,12 @@ def main():
         r"<Version>[^<]+</Version>",
         f"<Version>{version}</Version>",
     )
+    for jvm_binding in ("kotlin", "java"):
+        update_file(
+            os.path.join(ROOT, "bindings", jvm_binding, "build.gradle.kts"),
+            r'^version = "[^"]+"',
+            f'version = "{version}"',
+        )
 
     print("=== Done ===")
     return 0

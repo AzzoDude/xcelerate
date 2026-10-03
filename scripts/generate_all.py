@@ -5,7 +5,7 @@ Runs, in order:
 
 1. (optional) release build of the Rust core,
 2. API-style adapters (Python + Rust) from the profiles,
-3. C# / Python / JavaScript uniffi bindings.
+3. C# / Python / JavaScript / Kotlin / Java uniffi bindings.
 
 Set ``SKIP_RUST_BUILD=true`` to reuse pre-built native libraries (as CI does).
 """
@@ -40,6 +40,8 @@ def main():
     phase("C# bindings", "generate_csharp_bindings.py")
     phase("Python bindings", "generate_python_bindings.py")
     phase("JavaScript bindings", "generate_javascript_bindings.py")
+    phase("Kotlin bindings", "generate_kotlin_bindings.py")
+    phase("Java bindings", "generate_java_bindings.py")
 
     print("\n=== Universal Pipeline Finished Successfully ===")
     return 0
