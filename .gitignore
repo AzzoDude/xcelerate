@@ -493,6 +493,10 @@ coverage*.info
 *.coverage
 *.coveragexml
 
+# cargo-llvm-cov (Rust workspace coverage)
+/lcov.info
+/cobertura.xml
+
 # NCrunch
 _NCrunch_*
 .*crunch*.local.xml

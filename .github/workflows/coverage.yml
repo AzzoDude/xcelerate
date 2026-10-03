@@ -30,9 +30,30 @@ jobs:
       - uses: taiki-e/install-action@cargo-llvm-cov
 
       - name: Run tests with coverage
-        run: cargo llvm-cov --workspace --lib --lcov --output-path lcov.info
+        run: cargo llvm-cov --workspace --lib --cobertura --output-path cobertura.xml
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload coverage artifact
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-artifact@v4
         with:
-          name: lcov
-          path: lcov.info
+          name: coverage-report-rust
+          path: cobertura.xml
+
+  upload-coverage-rust:
+    needs: coverage
+    if: ${{ !cancelled() && needs.coverage.result == 'success' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      code-quality: write
+    steps:
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report-rust
+
+      - uses: actions/upload-code-coverage@v1
+        with:
+          file: cobertura.xml
+          language: Rust
+          label: code-coverage-agent
