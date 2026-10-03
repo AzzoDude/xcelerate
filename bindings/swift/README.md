@@ -42,7 +42,6 @@ import Xcelerate
 
 let config = BrowserConfig(
     headless: true,
-    stealth: false,                     // deprecated sugar; prefer `plugins`
     detached: true,
     executablePath: nil,                // auto-discover Chrome/Edge
     plugins: ["stealth", "human"]       // opt into first-party plugins

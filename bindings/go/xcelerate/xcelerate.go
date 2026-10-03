@@ -8994,24 +8994,18 @@ func (_ FfiDestroyerPluginHandle) Destroy(value *PluginHandle) {
 type BrowserConfig struct {
 	// Whether to run the browser in headless mode.
 	Headless bool
-	// Deprecated: enable the first-party `stealth` plugin. Prefer `plugins`.
-	//
-	// This is sugar for adding `"stealth"` to [`BrowserConfig::plugins`] and
-	// will be removed in a future major release.
-	Stealth bool
 	// Whether to run the browser as a detached process.
 	Detached bool
 	// Optional path to the browser executable.
 	ExecutablePath *string
 	// First-party plugins to enable for this browser (for example
-	// `["stealth"]`). Default-deny: no plugin does anything unless listed
-	// here (or enabled afterwards with `Browser::use_plugin`).
+	// `["stealth", "human"]`). Default-deny: no plugin does anything unless
+	// listed here (or enabled afterwards with `Browser::use_plugin`).
 	Plugins *[]string
 }
 
 func (r *BrowserConfig) Destroy() {
 		FfiDestroyerBool{}.Destroy(r.Headless);
-		FfiDestroyerBool{}.Destroy(r.Stealth);
 		FfiDestroyerBool{}.Destroy(r.Detached);
 		FfiDestroyerOptionalString{}.Destroy(r.ExecutablePath);
 		FfiDestroyerOptionalSequenceString{}.Destroy(r.Plugins);
@@ -9029,7 +9023,6 @@ func (c FfiConverterBrowserConfig) Read(reader io.Reader) BrowserConfig {
 	return BrowserConfig {
 			FfiConverterBoolINSTANCE.Read(reader),
 			FfiConverterBoolINSTANCE.Read(reader),
-			FfiConverterBoolINSTANCE.Read(reader),
 			FfiConverterOptionalStringINSTANCE.Read(reader),
 			FfiConverterOptionalSequenceStringINSTANCE.Read(reader),
 	}
@@ -9045,7 +9038,6 @@ func (c FfiConverterBrowserConfig) LowerExternal(value BrowserConfig) ExternalCR
 
 func (c FfiConverterBrowserConfig) Write(writer io.Writer, value BrowserConfig) {
 		FfiConverterBoolINSTANCE.Write(writer, value.Headless);
-		FfiConverterBoolINSTANCE.Write(writer, value.Stealth);
 		FfiConverterBoolINSTANCE.Write(writer, value.Detached);
 		FfiConverterOptionalStringINSTANCE.Write(writer, value.ExecutablePath);
 		FfiConverterOptionalSequenceStringINSTANCE.Write(writer, value.Plugins);

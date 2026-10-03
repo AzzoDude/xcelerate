@@ -8735,14 +8735,6 @@ data class BrowserConfig (
     var `headless`: kotlin.Boolean = true
     , 
     /**
-     * Deprecated: enable the first-party `stealth` plugin. Prefer `plugins`.
-     *
-     * This is sugar for adding `"stealth"` to [`BrowserConfig::plugins`] and
-     * will be removed in a future major release.
-     */
-    var `stealth`: kotlin.Boolean = false
-    , 
-    /**
      * Whether to run the browser as a detached process.
      */
     var `detached`: kotlin.Boolean = true
@@ -8754,8 +8746,8 @@ data class BrowserConfig (
     , 
     /**
      * First-party plugins to enable for this browser (for example
-     * `["stealth"]`). Default-deny: no plugin does anything unless listed
-     * here (or enabled afterwards with `Browser::use_plugin`).
+     * `["stealth", "human"]`). Default-deny: no plugin does anything unless
+     * listed here (or enabled afterwards with `Browser::use_plugin`).
      */
     var `plugins`: List<kotlin.String>? = null
     
@@ -8776,7 +8768,6 @@ public object FfiConverterTypeBrowserConfig: FfiConverterRustBuffer<BrowserConfi
         return BrowserConfig(
             FfiConverterBoolean.read(buf),
             FfiConverterBoolean.read(buf),
-            FfiConverterBoolean.read(buf),
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalSequenceString.read(buf),
         )
@@ -8784,7 +8775,6 @@ public object FfiConverterTypeBrowserConfig: FfiConverterRustBuffer<BrowserConfi
 
     override fun allocationSize(value: BrowserConfig) = (
             FfiConverterBoolean.allocationSize(value.`headless`) +
-            FfiConverterBoolean.allocationSize(value.`stealth`) +
             FfiConverterBoolean.allocationSize(value.`detached`) +
             FfiConverterOptionalString.allocationSize(value.`executablePath`) +
             FfiConverterOptionalSequenceString.allocationSize(value.`plugins`)
@@ -8792,7 +8782,6 @@ public object FfiConverterTypeBrowserConfig: FfiConverterRustBuffer<BrowserConfi
 
     override fun write(value: BrowserConfig, buf: ByteBuffer) {
             FfiConverterBoolean.write(value.`headless`, buf)
-            FfiConverterBoolean.write(value.`stealth`, buf)
             FfiConverterBoolean.write(value.`detached`, buf)
             FfiConverterOptionalString.write(value.`executablePath`, buf)
             FfiConverterOptionalSequenceString.write(value.`plugins`, buf)

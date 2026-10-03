@@ -37,10 +37,9 @@ import uniffi.xcelerate.Page;
 
 public class Demo {
     public static void main(String[] args) throws Exception {
-        // headless, stealth, detached, executablePath, plugins
-        // (stealth is deprecated sugar; plugins is the opt-in list)
+        // headless, detached, executablePath, plugins
         Browser browser = Browser.launch(
-                new BrowserConfig(true, false, true, null, java.util.List.of("stealth"))).get();
+                new BrowserConfig(true, false, null, java.util.List.of("stealth"))).get();
         Page page = browser.newPage("https://example.com").get();
         System.out.println(page.title().get());
         byte[] png = page.screenshotFull().get();

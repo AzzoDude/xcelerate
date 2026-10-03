@@ -43,8 +43,9 @@ Playwright, and Puppeteer scripts run against the same engine.
 - **Async-first** - built on `tokio` in Rust and `async`/`await` in every binding.
 - **API-style adapters** - expose Selenium, Playwright, and Puppeteer method names on
   top of the native engine, generated from declarative profiles.
-- **Multi-language bindings** - one core, generated bindings for Rust, Python, Node.js,
-  .NET, Kotlin, and Java via `uniffi`.
+- **Multi-language bindings** - one core, generated bindings for Rust, Python,
+  JavaScript (Node.js), .NET, Kotlin, Java, Swift, Ruby, Dart/Flutter, and Go via
+  `uniffi`.
 
 ## Installation
 
@@ -82,8 +83,8 @@ Published to Maven Central as `io.github.azzodude:xcelerate` (Kotlin) and
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("io.github.azzodude:xcelerate:1.0.8")        // Kotlin
-    implementation("io.github.azzodude:xcelerate-java:1.0.8")   // Java
+    implementation("io.github.azzodude:xcelerate:1.0.9")        // Kotlin
+    implementation("io.github.azzodude:xcelerate-java:1.0.9")   // Java
 }
 ```
 
@@ -150,10 +151,6 @@ let config = BrowserConfig {
     ..Default::default()
 };
 ```
-
-> The `stealth: bool` field still exists as **deprecated sugar**: `stealth: true`
-> is equivalent to adding `"stealth"` to `plugins`, and it will be removed in a
-> future major release.
 
 ## Plugins
 

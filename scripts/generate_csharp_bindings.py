@@ -33,8 +33,7 @@ def _with_browser_config_defaults(content):
         if "=" in stripped:
             continue
         if stripped.startswith("bool "):
-            # Stealth is opt-in, matching BrowserConfig::default().
-            default = "false" if "Stealth" in stripped else "true"
+            default = "true"
         elif stripped.startswith("string[]"):
             default = "null"
         elif stripped.startswith("string? "):

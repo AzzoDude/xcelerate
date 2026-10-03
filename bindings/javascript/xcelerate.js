@@ -407,13 +407,12 @@ export class XcelerateErrorUnsupported extends XcelerateError {
 const FfiConverterBrowserConfig = new (class extends AbstractFfiConverterByteArray {
   allocationSize(value) {
     const recordValue = uniffiRequireRecordObject("BrowserConfig", value);
-    return FfiConverterBool.allocationSize(recordValue["headless"]) + FfiConverterBool.allocationSize(recordValue["stealth"]) + FfiConverterBool.allocationSize(recordValue["detached"]) + uniffiOptionalConverter(FfiConverterString).allocationSize(recordValue["executable_path"]) + uniffiOptionalConverter(uniffiArrayConverter(FfiConverterString)).allocationSize(recordValue["plugins"]);
+    return FfiConverterBool.allocationSize(recordValue["headless"]) + FfiConverterBool.allocationSize(recordValue["detached"]) + uniffiOptionalConverter(FfiConverterString).allocationSize(recordValue["executable_path"]) + uniffiOptionalConverter(uniffiArrayConverter(FfiConverterString)).allocationSize(recordValue["plugins"]);
   }
 
   write(value, writer) {
     const recordValue = uniffiRequireRecordObject("BrowserConfig", value);
     FfiConverterBool.write(recordValue["headless"], writer);
-    FfiConverterBool.write(recordValue["stealth"], writer);
     FfiConverterBool.write(recordValue["detached"], writer);
     uniffiOptionalConverter(FfiConverterString).write(recordValue["executable_path"], writer);
     uniffiOptionalConverter(uniffiArrayConverter(FfiConverterString)).write(recordValue["plugins"], writer);
@@ -422,7 +421,6 @@ const FfiConverterBrowserConfig = new (class extends AbstractFfiConverterByteArr
   read(reader) {
     return {
       "headless": FfiConverterBool.read(reader),
-      "stealth": FfiConverterBool.read(reader),
       "detached": FfiConverterBool.read(reader),
       "executable_path": uniffiOptionalConverter(FfiConverterString).read(reader),
       "plugins": uniffiOptionalConverter(uniffiArrayConverter(FfiConverterString)).read(reader),
@@ -549,7 +547,6 @@ export class Browser extends UniffiObjectBase {
   static async launch(config = {}) {
     const finalConfig = {
       headless: true,
-      stealth: false,
       detached: true,
       executable_path: null,
       plugins: null,

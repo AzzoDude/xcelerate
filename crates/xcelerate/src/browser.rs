@@ -14,18 +14,13 @@ use xcelerate_plugins::{ProcessGuard, spawn_detached};
 pub struct BrowserConfig {
     /// Whether to run the browser in headless mode.
     pub headless: bool,
-    /// Deprecated: enable the first-party `stealth` plugin. Prefer `plugins`.
-    ///
-    /// This is sugar for adding `"stealth"` to [`BrowserConfig::plugins`] and
-    /// will be removed in a future major release.
-    pub stealth: bool,
     /// Whether to run the browser as a detached process.
     pub detached: bool,
     /// Optional path to the browser executable.
     pub executable_path: Option<String>,
     /// First-party plugins to enable for this browser (for example
-    /// `["stealth"]`). Default-deny: no plugin does anything unless listed
-    /// here (or enabled afterwards with `Browser::use_plugin`).
+    /// `["stealth", "human"]`). Default-deny: no plugin does anything unless
+    /// listed here (or enabled afterwards with `Browser::use_plugin`).
     pub plugins: Option<Vec<String>>,
 }
 
@@ -33,9 +28,6 @@ impl Default for BrowserConfig {
     fn default() -> Self {
         Self {
             headless: true,
-            // Stealth is opt-in now: enable it through `plugins` (or the
-            // deprecated `stealth` flag) rather than by default.
-            stealth: false,
             detached: true,
             executable_path: None,
             plugins: None,
@@ -73,12 +65,8 @@ impl Browser {
         let user_data_dir = tempfile::tempdir().map_err(|_| XcelerateError::InternalError)?;
         let port = get_free_port().ok_or(XcelerateError::InternalError)?;
 
-        // Resolve the enabled plugins (default-deny). The `stealth` flag is kept
-        // as deprecated sugar for `plugins = ["stealth"]`.
-        let mut names = config.plugins.clone().unwrap_or_default();
-        if config.stealth && !names.iter().any(|name| name == "stealth") {
-            names.push("stealth".to_string());
-        }
+        // Resolve the enabled plugins (default-deny).
+        let names = config.plugins.clone().unwrap_or_default();
         let manager = PluginManager::new(&names, crate::plugin::catalog())?;
 
         // Let first-party plugins contribute to the launch (e.g. binary patching)

@@ -99,41 +99,30 @@ class BrowserConfig {
   const BrowserConfig({
     /// Whether to run the browser in headless mode.
     required this.headless,
-    /// Deprecated: enable the first-party `stealth` plugin. Prefer `plugins`.
-    ///
-    /// This is sugar for adding `"stealth"` to [`BrowserConfig::plugins`] and
-    /// will be removed in a future major release.
-    required this.stealth,
     /// Whether to run the browser as a detached process.
     required this.detached,
     /// Optional path to the browser executable.
     required this.executablePath,
     /// First-party plugins to enable for this browser (for example
-    /// `["stealth"]`). Default-deny: no plugin does anything unless listed
-    /// here (or enabled afterwards with `Browser::use_plugin`).
+    /// `["stealth", "human"]`). Default-deny: no plugin does anything unless
+    /// listed here (or enabled afterwards with `Browser::use_plugin`).
     required this.plugins,
   });
 
   /// Whether to run the browser in headless mode.
   final bool headless;
-  /// Deprecated: enable the first-party `stealth` plugin. Prefer `plugins`.
-  ///
-  /// This is sugar for adding `"stealth"` to [`BrowserConfig::plugins`] and
-  /// will be removed in a future major release.
-  final bool stealth;
   /// Whether to run the browser as a detached process.
   final bool detached;
   /// Optional path to the browser executable.
   final String? executablePath;
   /// First-party plugins to enable for this browser (for example
-  /// `["stealth"]`). Default-deny: no plugin does anything unless listed
-  /// here (or enabled afterwards with `Browser::use_plugin`).
+  /// `["stealth", "human"]`). Default-deny: no plugin does anything unless
+  /// listed here (or enabled afterwards with `Browser::use_plugin`).
   final List<String>? plugins;
 
   Map<String, dynamic> toJson() {
     return {
       'headless': this.headless,
-      'stealth': this.stealth,
       'detached': this.detached,
       'executablePath': this.executablePath,
       'plugins': this.plugins == null ? null : (() { final __tmp = this.plugins!; return __tmp; })(),
@@ -143,7 +132,6 @@ class BrowserConfig {
   factory BrowserConfig.fromJson(Map<String, dynamic> json) {
     return BrowserConfig(
       headless: json['headless'] as bool,
-      stealth: json['stealth'] as bool,
       detached: json['detached'] as bool,
       executablePath: json['executablePath'] == null ? null : json['executablePath'] as String,
       plugins: json['plugins'] == null ? null : (() { final __tmp = json['plugins']; return (__tmp as List).map((item) => item as String).toList(); })(),
@@ -152,14 +140,12 @@ class BrowserConfig {
 
   BrowserConfig copyWith({
     bool? headless,
-    bool? stealth,
     bool? detached,
     Object? executablePath = _sentinel,
     Object? plugins = _sentinel,
   }) {
     return BrowserConfig(
       headless: headless ?? this.headless,
-      stealth: stealth ?? this.stealth,
       detached: detached ?? this.detached,
       executablePath: executablePath == _sentinel ? this.executablePath : executablePath as String?,
       plugins: plugins == _sentinel ? this.plugins : plugins as List<String>?,
@@ -168,16 +154,16 @@ class BrowserConfig {
 
   @override
   String toString() {
-    return 'BrowserConfig(headless: $headless, stealth: $stealth, detached: $detached, executablePath: $executablePath, plugins: $plugins)';
+    return 'BrowserConfig(headless: $headless, detached: $detached, executablePath: $executablePath, plugins: $plugins)';
   }
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is BrowserConfig && headless == other.headless && stealth == other.stealth && detached == other.detached && executablePath == other.executablePath && plugins == other.plugins;
+      other is BrowserConfig && headless == other.headless && detached == other.detached && executablePath == other.executablePath && plugins == other.plugins;
 
   @override
-  int get hashCode => Object.hash(headless, stealth, detached, executablePath, plugins);
+  int get hashCode => Object.hash(headless, detached, executablePath, plugins);
 }
 
 sealed class XcelerateError {
@@ -628,7 +614,6 @@ final class _UniFfiBinaryReader {
 
 void _uniffiWriteBrowserConfig(BrowserConfig value, _UniFfiBinaryWriter writer) {
   writer.writeBool(value.headless);
-  writer.writeBool(value.stealth);
   writer.writeBool(value.detached);
   if (value.executablePath == null) {
     writer.writeI8(0);
@@ -656,7 +641,6 @@ Uint8List _uniffiEncodeBrowserConfig(BrowserConfig value) {
 BrowserConfig _uniffiReadBrowserConfig(_UniFfiBinaryReader reader) {
   return BrowserConfig(
     headless: reader.readBool(),
-    stealth: reader.readBool(),
     detached: reader.readBool(),
     executablePath: (() { final int __tag = reader.readI8(); if (__tag == 0) return null; if (__tag != 1) throw StateError('invalid optional tag: $__tag'); return reader.readString(); })(),
     plugins: (() { final int __tag = reader.readI8(); if (__tag == 0) return null; if (__tag != 1) throw StateError('invalid optional tag: $__tag'); return (() { final int __len = reader.readI32(); final out = <String>[]; for (var i = 0; i < __len; i++) { out.add(reader.readString()); } return out; })(); })(),

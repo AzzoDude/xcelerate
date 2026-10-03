@@ -77,7 +77,6 @@ def main():
             "static async launch(config = {}) {\n"
             "    const finalConfig = {\n"
             "      headless: true,\n"
-            "      stealth: false,\n"
             "      detached: true,\n"
             "      executable_path: null,\n"
             "      plugins: null,\n"

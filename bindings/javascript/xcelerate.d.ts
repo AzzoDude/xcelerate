@@ -25,13 +25,6 @@ export interface BrowserConfig {
    */
   "headless": boolean;
   /**
-   * Deprecated: enable the first-party `stealth` plugin. Prefer `plugins`.
-   *
-   * This is sugar for adding `"stealth"` to [`BrowserConfig::plugins`] and
-   * will be removed in a future major release.
-   */
-  "stealth": boolean;
-  /**
    * Whether to run the browser as a detached process.
    */
   "detached": boolean;
@@ -41,8 +34,8 @@ export interface BrowserConfig {
   "executable_path": string | undefined;
   /**
    * First-party plugins to enable for this browser (for example
-   * `["stealth"]`). Default-deny: no plugin does anything unless listed
-   * here (or enabled afterwards with `Browser::use_plugin`).
+   * `["stealth", "human"]`). Default-deny: no plugin does anything unless
+   * listed here (or enabled afterwards with `Browser::use_plugin`).
    */
   "plugins": Array<string> | undefined;
 }

@@ -5525,13 +5525,6 @@ public struct BrowserConfig: Equatable, Hashable {
      */
     public var headless: Bool
     /**
-     * Deprecated: enable the first-party `stealth` plugin. Prefer `plugins`.
-     *
-     * This is sugar for adding `"stealth"` to [`BrowserConfig::plugins`] and
-     * will be removed in a future major release.
-     */
-    public var stealth: Bool
-    /**
      * Whether to run the browser as a detached process.
      */
     public var detached: Bool
@@ -5541,8 +5534,8 @@ public struct BrowserConfig: Equatable, Hashable {
     public var executablePath: String?
     /**
      * First-party plugins to enable for this browser (for example
-     * `["stealth"]`). Default-deny: no plugin does anything unless listed
-     * here (or enabled afterwards with `Browser::use_plugin`).
+     * `["stealth", "human"]`). Default-deny: no plugin does anything unless
+     * listed here (or enabled afterwards with `Browser::use_plugin`).
      */
     public var plugins: [String]?
 
@@ -5553,12 +5546,6 @@ public struct BrowserConfig: Equatable, Hashable {
          * Whether to run the browser in headless mode.
          */headless: Bool, 
         /**
-         * Deprecated: enable the first-party `stealth` plugin. Prefer `plugins`.
-         *
-         * This is sugar for adding `"stealth"` to [`BrowserConfig::plugins`] and
-         * will be removed in a future major release.
-         */stealth: Bool, 
-        /**
          * Whether to run the browser as a detached process.
          */detached: Bool, 
         /**
@@ -5566,11 +5553,10 @@ public struct BrowserConfig: Equatable, Hashable {
          */executablePath: String?, 
         /**
          * First-party plugins to enable for this browser (for example
-         * `["stealth"]`). Default-deny: no plugin does anything unless listed
-         * here (or enabled afterwards with `Browser::use_plugin`).
+         * `["stealth", "human"]`). Default-deny: no plugin does anything unless
+         * listed here (or enabled afterwards with `Browser::use_plugin`).
          */plugins: [String]?) {
         self.headless = headless
-        self.stealth = stealth
         self.detached = detached
         self.executablePath = executablePath
         self.plugins = plugins
@@ -5593,7 +5579,6 @@ public struct FfiConverterTypeBrowserConfig: FfiConverterRustBuffer {
         return
             try BrowserConfig(
                 headless: FfiConverterBool.read(from: &buf), 
-                stealth: FfiConverterBool.read(from: &buf), 
                 detached: FfiConverterBool.read(from: &buf), 
                 executablePath: FfiConverterOptionString.read(from: &buf), 
                 plugins: FfiConverterOptionSequenceString.read(from: &buf)
@@ -5602,7 +5587,6 @@ public struct FfiConverterTypeBrowserConfig: FfiConverterRustBuffer {
 
     public static func write(_ value: BrowserConfig, into buf: inout [UInt8]) {
         FfiConverterBool.write(value.headless, into: &buf)
-        FfiConverterBool.write(value.stealth, into: &buf)
         FfiConverterBool.write(value.detached, into: &buf)
         FfiConverterOptionString.write(value.executablePath, into: &buf)
         FfiConverterOptionSequenceString.write(value.plugins, into: &buf)

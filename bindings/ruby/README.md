@@ -39,7 +39,6 @@ require "xcelerate"
 
 config = Xcelerate::BrowserConfig.new(
   headless: true,
-  stealth: false,                    # deprecated sugar; prefer `plugins`
   detached: true,
   executable_path: nil,              # auto-discover Chrome/Edge
   plugins: ["stealth", "human"]      # opt into first-party plugins

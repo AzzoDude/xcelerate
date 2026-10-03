@@ -131,7 +131,6 @@ end
   def self.check_lower_TypeBrowserConfig(v)
     
     
-    
     RustBuffer.check_lower_Optionalstring(v.executable_path)
     RustBuffer.check_lower_OptionalSequencestring(v.plugins)
   end
@@ -351,7 +350,6 @@ class RustBufferStream
   def readTypeBrowserConfig
     BrowserConfig.new(
       headless: readBool,
-      stealth: readBool,
       detached: readBool,
       executable_path: readOptionalstring,
       plugins: readOptionalSequencestring
@@ -575,7 +573,6 @@ class RustBufferBuilder
 
   def write_TypeBrowserConfig(v)
     self.write_Bool(v.headless)
-    self.write_Bool(v.stealth)
     self.write_Bool(v.detached)
     self.write_Optionalstring(v.executable_path)
     self.write_OptionalSequencestring(v.plugins)
@@ -1916,11 +1913,10 @@ end
   
   # Record type BrowserConfig
 class BrowserConfig
-  attr_reader :headless, :stealth, :detached, :executable_path, :plugins
+  attr_reader :headless, :detached, :executable_path, :plugins
 
-  def initialize(headless:, stealth:, detached:, executable_path:, plugins:)
+  def initialize(headless:, detached:, executable_path:, plugins:)
     @headless = headless
-    @stealth = stealth
     @detached = detached
     @executable_path = executable_path
     @plugins = plugins
@@ -1928,9 +1924,6 @@ class BrowserConfig
 
   def ==(other)
     if @headless != other.headless
-      return false
-    end
-    if @stealth != other.stealth
       return false
     end
     if @detached != other.detached

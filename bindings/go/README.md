@@ -55,7 +55,6 @@ func main() {
     plugins := []string{"stealth", "human"} // opt into first-party plugins
     browser, err := xcelerate.BrowserLaunch(xcelerate.BrowserConfig{
         Headless: true,
-        Stealth:  false, // deprecated sugar; prefer Plugins
         Detached: true,
         Plugins:  &plugins,
     })

@@ -52,7 +52,6 @@ import 'package:xcelerate/xcelerate.dart';
 
 final config = BrowserConfig(
   headless: true,
-  stealth: false,                 // deprecated sugar; prefer `plugins`
   detached: true,
   executablePath: null,           // auto-discover Chrome/Edge
   plugins: ['stealth', 'human'],  // opt into first-party plugins

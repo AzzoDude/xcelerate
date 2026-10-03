@@ -19,7 +19,6 @@ fn test_url() -> String {
 fn config() -> BrowserConfig {
     BrowserConfig {
         headless: true,
-        stealth: false,
         detached: false,
         executable_path: std::env::var("XCELERATE_CHROME").ok(),
         plugins: None,

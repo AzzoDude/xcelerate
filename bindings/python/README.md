@@ -59,8 +59,6 @@ The `BrowserConfig` object allows you to fine-tune the browser behavior:
   `["stealth", "human"]`. Nothing runs unless it is listed here (default-deny).
   `stealth` masks automation fingerprints; `human` makes input behave like a
   person (`info`, `move`, `click`, `type`, `scroll`, `delay`).
-- **stealth (default: False)**: Deprecated sugar for `plugins=["stealth"]`. Applies
-  binary patches and JS masking to reduce bot detection.
 - **detached (default: True)**: Spawns the browser as an independent process that stays open even if your script finishes.
 - **headless (default: True)**: Runs the browser without a visible window.
 - **executable_path (default: None)**: Manually specify the location of Chrome or Edge.

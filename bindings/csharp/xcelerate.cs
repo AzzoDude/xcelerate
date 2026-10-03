@@ -12734,12 +12734,6 @@ public class FfiConverterTypePluginHandle: FfiConverter<PluginHandle, ulong> {
 /// <param name="Headless">
 /// Whether to run the browser in headless mode.
 /// </param>
-/// <param name="Stealth">
-/// Deprecated: enable the first-party `stealth` plugin. Prefer `plugins`.
-/// 
-/// This is sugar for adding `"stealth"` to [`BrowserConfig::plugins`] and
-/// will be removed in a future major release.
-/// </param>
 /// <param name="Detached">
 /// Whether to run the browser as a detached process.
 /// </param>
@@ -12748,21 +12742,14 @@ public class FfiConverterTypePluginHandle: FfiConverter<PluginHandle, ulong> {
 /// </param>
 /// <param name="Plugins">
 /// First-party plugins to enable for this browser (for example
-/// `["stealth"]`). Default-deny: no plugin does anything unless listed
-/// here (or enabled afterwards with `Browser::use_plugin`).
+/// `["stealth", "human"]`). Default-deny: no plugin does anything unless
+/// listed here (or enabled afterwards with `Browser::use_plugin`).
 /// </param>
 public record BrowserConfig (
     /// <summary>
     /// Whether to run the browser in headless mode.
     /// </summary>
     bool Headless = true,
-    /// <summary>
-    /// Deprecated: enable the first-party `stealth` plugin. Prefer `plugins`.
-    ///
-    /// This is sugar for adding `"stealth"` to [`BrowserConfig::plugins`] and
-    /// will be removed in a future major release.
-    /// </summary>
-    bool Stealth = false,
     /// <summary>
     /// Whether to run the browser as a detached process.
     /// </summary>
@@ -12773,8 +12760,8 @@ public record BrowserConfig (
     string? ExecutablePath = null,
     /// <summary>
     /// First-party plugins to enable for this browser (for example
-    /// `["stealth"]`). Default-deny: no plugin does anything unless listed
-    /// here (or enabled afterwards with `Browser::use_plugin`).
+    /// `["stealth", "human"]`). Default-deny: no plugin does anything unless
+    /// listed here (or enabled afterwards with `Browser::use_plugin`).
     /// </summary>
     string[]? Plugins = null
 ) {
@@ -12786,7 +12773,6 @@ public class FfiConverterTypeBrowserConfig: FfiConverterRustBuffer<BrowserConfig
     public override BrowserConfig Read(BigEndianStream stream) {
         return new BrowserConfig(
             Headless: FfiConverterBoolean.INSTANCE.Read(stream),
-            Stealth: FfiConverterBoolean.INSTANCE.Read(stream),
             Detached: FfiConverterBoolean.INSTANCE.Read(stream),
             ExecutablePath: FfiConverterOptionalString.INSTANCE.Read(stream),
             Plugins: FfiConverterOptionalSequenceString.INSTANCE.Read(stream)
@@ -12796,7 +12782,6 @@ public class FfiConverterTypeBrowserConfig: FfiConverterRustBuffer<BrowserConfig
     public override int AllocationSize(BrowserConfig value) {
         return 0
             + FfiConverterBoolean.INSTANCE.AllocationSize(value.Headless)
-            + FfiConverterBoolean.INSTANCE.AllocationSize(value.Stealth)
             + FfiConverterBoolean.INSTANCE.AllocationSize(value.Detached)
             + FfiConverterOptionalString.INSTANCE.AllocationSize(value.ExecutablePath)
             + FfiConverterOptionalSequenceString.INSTANCE.AllocationSize(value.Plugins);
@@ -12804,7 +12789,6 @@ public class FfiConverterTypeBrowserConfig: FfiConverterRustBuffer<BrowserConfig
 
     public override void Write(BrowserConfig value, BigEndianStream stream) {
             FfiConverterBoolean.INSTANCE.Write(value.Headless, stream);
-            FfiConverterBoolean.INSTANCE.Write(value.Stealth, stream);
             FfiConverterBoolean.INSTANCE.Write(value.Detached, stream);
             FfiConverterOptionalString.INSTANCE.Write(value.ExecutablePath, stream);
             FfiConverterOptionalSequenceString.INSTANCE.Write(value.Plugins, stream);

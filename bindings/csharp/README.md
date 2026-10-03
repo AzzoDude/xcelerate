@@ -54,7 +54,6 @@ File.WriteAllBytes("capture.png", screenshot);
 The SDK supports specialized launch options for complex automation scenarios:
 
 - **Plugins**: Default-deny list of first-party plugins to enable. `new BrowserConfig(Plugins: new[] { "stealth", "human" })` opts into stealth and human-like input; nothing runs unless listed. `load_plugin` refuses third-party plugins until the sandboxed runner ships.
-- **Stealth Mode**: Deprecated sugar for the `stealth` plugin - applies binary patches and runtime JavaScript masking to reduce bot detection.
 - **Detached Mode**: Allows the browser process to persist independently of the parent .NET application.
 - **Headless=New**: Utilizes the modern Chromium headless engine for improved rendering and compatibility.
 

@@ -77,12 +77,12 @@ def main():
         with open(generated_py, "r", encoding="utf-8") as handle:
             content = handle.read()
         pattern = (
-            r"def __init__\(self, \*, headless:\s*[\"']?bool[\"']?, stealth:\s*[\"']?bool[\"']?, "
+            r"def __init__\(self, \*, headless:\s*[\"']?bool[\"']?, "
             r"detached:\s*[\"']?bool[\"']?, executable_path:\s*[\"']?typing\.Optional\[str\][\"']?, "
             r"plugins:\s*[\"']?typing\.Optional\[typing\.(?:List|Sequence)\[str\]\][\"']?\):"
         )
         replacement = (
-            r"def __init__(self, *, headless: bool = True, stealth: bool = False, "
+            r"def __init__(self, *, headless: bool = True, "
             r"detached: bool = True, executable_path: typing.Optional[str] = None, "
             r"plugins: typing.Optional[typing.List[str]] = None):"
         )

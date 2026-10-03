@@ -2811,9 +2811,8 @@ class BrowserConfig:
     """
     Configuration for the Browser instance.
 """
-    def __init__(self, *, headless: bool = True, stealth: bool = False, detached: bool = True, executable_path: typing.Optional[str] = None, plugins: typing.Optional[typing.List[str]] = None):
+    def __init__(self, *, headless: bool = True, detached: bool = True, executable_path: typing.Optional[str] = None, plugins: typing.Optional[typing.List[str]] = None):
         self.headless = headless
-        self.stealth = stealth
         self.detached = detached
         self.executable_path = executable_path
         self.plugins = plugins
@@ -2822,11 +2821,9 @@ class BrowserConfig:
 
     
     def __str__(self):
-        return "BrowserConfig(headless={}, stealth={}, detached={}, executable_path={}, plugins={})".format(self.headless, self.stealth, self.detached, self.executable_path, self.plugins)
+        return "BrowserConfig(headless={}, detached={}, executable_path={}, plugins={})".format(self.headless, self.detached, self.executable_path, self.plugins)
     def __eq__(self, other):
         if self.headless != other.headless:
-            return False
-        if self.stealth != other.stealth:
             return False
         if self.detached != other.detached:
             return False
@@ -2841,7 +2838,6 @@ class _UniffiFfiConverterTypeBrowserConfig(_UniffiConverterRustBuffer):
     def read(buf):
         return BrowserConfig(
             headless=_UniffiFfiConverterBoolean.read(buf),
-            stealth=_UniffiFfiConverterBoolean.read(buf),
             detached=_UniffiFfiConverterBoolean.read(buf),
             executable_path=_UniffiFfiConverterOptionalString.read(buf),
             plugins=_UniffiFfiConverterOptionalSequenceString.read(buf),
@@ -2850,7 +2846,6 @@ class _UniffiFfiConverterTypeBrowserConfig(_UniffiConverterRustBuffer):
     @staticmethod
     def check_lower(value):
         _UniffiFfiConverterBoolean.check_lower(value.headless)
-        _UniffiFfiConverterBoolean.check_lower(value.stealth)
         _UniffiFfiConverterBoolean.check_lower(value.detached)
         _UniffiFfiConverterOptionalString.check_lower(value.executable_path)
         _UniffiFfiConverterOptionalSequenceString.check_lower(value.plugins)
@@ -2858,7 +2853,6 @@ class _UniffiFfiConverterTypeBrowserConfig(_UniffiConverterRustBuffer):
     @staticmethod
     def write(value, buf):
         _UniffiFfiConverterBoolean.write(value.headless, buf)
-        _UniffiFfiConverterBoolean.write(value.stealth, buf)
         _UniffiFfiConverterBoolean.write(value.detached, buf)
         _UniffiFfiConverterOptionalString.write(value.executable_path, buf)
         _UniffiFfiConverterOptionalSequenceString.write(value.plugins, buf)

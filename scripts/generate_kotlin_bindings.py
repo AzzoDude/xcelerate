@@ -167,7 +167,6 @@ def _patch_defaults(content):
     """
     edits = (
         (r"var `headless`: kotlin\.Boolean(?!\s*=)", "var `headless`: kotlin.Boolean = true"),
-        (r"var `stealth`: kotlin\.Boolean(?!\s*=)", "var `stealth`: kotlin.Boolean = false"),
         (r"var `detached`: kotlin\.Boolean(?!\s*=)", "var `detached`: kotlin.Boolean = true"),
         (r"var `executablePath`: kotlin\.String\?(?!\s*=)", "var `executablePath`: kotlin.String? = null"),
         (
