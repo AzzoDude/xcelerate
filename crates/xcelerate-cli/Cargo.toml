@@ -1,0 +1,23 @@
+[package]
+name = "xcelerate-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Command-line interface for the xcelerate CDP engine."
+publish = false
+
+[[bin]]
+name = "xcelerate-cli"
+path = "src/main.rs"
+
+[dependencies]
+xcelerate = { workspace = true }
+xcelerate-mcp = { path = "../xcelerate-mcp" }
+clap = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

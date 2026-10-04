@@ -201,6 +201,18 @@ impl Page {
     }
 
     pub async fn screenshot(&self) -> XcelerateResult<Vec<u8>> {
+        // Enable the Page domain first: without it `Page.captureScreenshot`
+        // fails with "Not attached to an active page".
+        let _ = self
+            .client
+            .execute_with_session(
+                Some(&self.session_id),
+                EnableParams {
+                    ..Default::default()
+                },
+            )
+            .await?;
+
         let res = self
             .client
             .execute_with_session(

@@ -56,6 +56,8 @@ Playwright, and Puppeteer scripts run against the same engine.
 - **Multi-language bindings** - one core, generated bindings for Rust, Python,
   JavaScript (Node.js), .NET, Kotlin, Java, Swift, Ruby, Dart/Flutter, and Go via
   `uniffi`, plus a PowerShell module over the .NET SDK.
+- **CLI and MCP server** - `xcelerate-cli` for one-shot commands, and
+  `xcelerate-mcp` to drive the browser from an MCP client.
 
 ## Installation
 
@@ -375,6 +377,39 @@ async function main() {
 main();
 ```
 
+## Command-line interface
+
+The `xcelerate-cli` binary performs one browser action per invocation:
+
+```bash
+cargo run -p xcelerate-cli -- title https://example.com
+cargo run -p xcelerate-cli -- screenshot https://example.com -o shot.png --full
+cargo run -p xcelerate-cli -- query https://example.com h1 --attr href
+cargo run -p xcelerate-cli -- query-all https://example.com 'a'   # text of every match
+cargo run -p xcelerate-cli -- evaluate https://example.com 'document.title'
+cargo run -p xcelerate-cli -- plugins
+```
+
+Global flags apply to every command: `--no-headless`, `--detached`,
+`--executable-path <path>`, `--plugins stealth,human`, and `--timeout <ms>`.
+Install it with `cargo install --path crates/xcelerate-cli`.
+
+## MCP server
+
+`xcelerate-mcp` - also reachable as `xcelerate-cli mcp` - is a
+[Model Context Protocol](https://modelcontextprotocol.io) server over stdio, so
+an MCP client can drive a real browser. It exposes 21 tools covering navigation,
+titles, page content, screenshots, PDFs, clicking, typing, hovering, key presses,
+querying, JavaScript evaluation, and plugin invocation.
+
+```jsonc
+{ "mcpServers": { "xcelerate": { "command": "xcelerate-mcp" } } }
+```
+
+Configure it with the environment: `XCELERATE_CHROME` (browser path),
+`XCELERATE_HEADLESS` (`1`/`true`, default), `XCELERATE_DETACHED` (`1`/`true`), and
+`XCELERATE_PLUGINS` (comma-separated, e.g. `stealth,human`).
+
 ## Workspace layout
 
 ```
@@ -385,6 +420,8 @@ xcelerate/
     xcelerate-plugins/     # first-party plugins (stealth, human) + OS helpers
     xcelerate/             # high-level facade: Browser, Page, Element, adapters
     xcelerate-bindgen/     # uniffi bindgen helper binary
+    xcelerate-cli/         # `xcelerate-cli` command-line interface
+    xcelerate-mcp/         # `xcelerate-mcp` Model Context Protocol server
   adapters/             # adapter profiles, runtime, and generator inputs
   bindings/             # generated Python, JavaScript, C#, Kotlin, Java, Swift, Ruby, Dart, and Go packages (plus the PowerShell module)
   docs/plugins/         # third-party plugin authoring guide, JSON schema, examples
