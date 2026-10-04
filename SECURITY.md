@@ -29,8 +29,7 @@ Use GitHub's private vulnerability reporting:
 3. Include the details below.
 
 If you cannot use GitHub, email the maintainer at
-`security@example.com` *(replace with the maintainer's real address before
-publishing)* and we will open a private advisory on your behalf.
+`security@chaoswarehq.com` and we will open a private advisory on your behalf.
 
 ### What to include
 
