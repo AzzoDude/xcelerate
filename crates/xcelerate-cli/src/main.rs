@@ -41,6 +41,9 @@ struct BrowserArgs {
     /// First-party plugins to enable (comma-separated): stealth,human.
     #[arg(long, global = true, value_name = "LIST", value_delimiter = ',')]
     plugins: Vec<String>,
+    /// Upstream proxy URL(s); repeat for a pool. `http://[user:pass@]host:port`.
+    #[arg(long, global = true, value_name = "URL")]
+    proxy: Vec<String>,
     /// Default wait timeout in milliseconds (0 disables it).
     #[arg(long, global = true, default_value_t = 30000)]
     timeout: u64,
@@ -232,6 +235,9 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
 
 /// Launches a browser and opens `url`, applying the shared browser options.
 async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Browser>, Arc<Page>)> {
+    if !args.proxy.is_empty() {
+        xcelerate::configure_proxy(&args.proxy)?;
+    }
     let config = BrowserConfig {
         headless: !args.no_headless,
         detached: args.detached,

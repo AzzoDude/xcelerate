@@ -43,6 +43,7 @@ pub struct Browser {
     _process_guard: Option<ProcessGuard>,
     _user_data_dir: Option<tempfile::TempDir>,
     pub(crate) plugins: Arc<PluginManager>,
+    _proxy: Option<crate::proxy::ProxyGateway>,
     ws_url: String,
     events: tokio::sync::Mutex<Vec<String>>,
 }
@@ -78,6 +79,16 @@ impl Browser {
         // 2. Spawn process
         let mut cmd = std::process::Command::new(&plan.executable);
         setup_browser_args(&mut cmd, &user_data_dir, port, plan.headless);
+        // A configured proxy pool is served by a local gateway that Chrome points
+        // at; the gateway adds upstream credentials Chrome cannot carry.
+        let proxy_gateway = match crate::proxy::start_if_configured().await? {
+            Some(gateway) => {
+                cmd.arg(format!("--proxy-server={}", gateway.url()));
+                cmd.arg("--proxy-bypass-list=localhost;127.0.0.1");
+                Some(gateway)
+            }
+            None => None,
+        };
         for arg in &plan.extra_args {
             cmd.arg(arg);
         }
@@ -111,6 +122,7 @@ impl Browser {
             _process: tokio::sync::Mutex::new(child),
             _process_guard: guard,
             _user_data_dir: Some(user_data_dir),
+            _proxy: proxy_gateway,
             plugins: Arc::new(manager),
             ws_url: ws_url.clone(),
             events: tokio::sync::Mutex::new(Vec::new()),

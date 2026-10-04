@@ -21,6 +21,8 @@ pub mod error;
 pub mod page;
 pub mod plugin;
 
+mod proxy;
+
 pub mod adapters;
 
 pub use browser::{Browser, BrowserConfig};
@@ -29,6 +31,9 @@ pub use error::{XcelerateError, XcelerateResult};
 pub use page::Page;
 pub use page::recording::VideoOptions;
 pub use plugin::{Capability, Manifest, Plugin, PluginHandle, Tier};
+
+// Proxy configuration (Rust-only; other languages set `XCELERATE_PROXY[_POOL]`).
+pub use proxy::configure as configure_proxy;
 
 // Re-export the transport layer and the generated protocol crates so downstream
 // code can reach everything through `xcelerate`.

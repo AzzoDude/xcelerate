@@ -59,6 +59,8 @@ Playwright, and Puppeteer scripts run against the same engine.
 - **Session video recording** - capture the page to a video through the CDP
   screencast; writes Motion-JPEG AVI with no external tools, or H.264/VP9
   MP4/WebM when `ffmpeg` is on `PATH`.
+- **Proxy pool** - route the browser through one or more upstream HTTP proxies
+  (with credentials) via a built-in local gateway.
 - **CLI and MCP server** - `xcelerate-cli` for one-shot commands, and
   `xcelerate-mcp` to drive the browser from an MCP client.
 
@@ -455,6 +457,40 @@ xcelerate-cli record https://example.com -o demo.mp4 --duration 5
 
 From the MCP server: `browser_start_recording {path}` … `browser_wait
 {milliseconds}` … `browser_stop_recording`.
+
+## Proxy
+
+A configured proxy applies to every page in the browser. Chrome's
+`--proxy-server` cannot carry credentials and cannot switch proxies, so
+xcelerate runs a small local HTTP/CONNECT gateway on `127.0.0.1` and points
+Chrome at it; the gateway forwards each connection to an upstream chosen from a
+**pool** and injects `Proxy-Authorization`.
+
+```text
+Chrome --(HTTP/CONNECT)--> xcelerate gateway (127.0.0.1) --> upstream pool --> internet
+```
+
+```bash
+# environment (works from every language binding)
+XCELERATE_PROXY=http://user:pass@proxy.example:8080 xcelerate-cli title https://example.com
+XCELERATE_PROXY_POOL=http://a:8080,http://b:8080 ./your-app      # round-robin
+
+# CLI flag (repeatable)
+xcelerate-cli --proxy http://user:pass@proxy.example:8080 --proxy http://backup:8080 \
+  title https://example.com
+```
+
+```rust
+xcelerate::configure_proxy(&["http://user:pass@proxy.example:8080".to_string()])?;
+let browser = Browser::launch(BrowserConfig::default()).await?;
+```
+
+- Upstreams are `http://[user:pass@]host:port`; the pool is rotated round-robin.
+- HTTPS uses the proxy's `CONNECT` tunnel; plain HTTP uses absolute-form requests -
+  both flow through the upstream with credentials injected.
+- SOCKS upstreams are unnecessary: Chrome speaks SOCKS natively via
+  `--proxy-server`, so point Chrome at it directly.
+- `https://` upstreams (TLS to the proxy) are not supported yet.
 
 ## Workspace layout
 
