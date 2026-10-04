@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 /// Errors raised by the plugin support layer (binary patching, process control,
-/// and the first-party plugins).
+/// and the built-in plugins).
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("{0}")]

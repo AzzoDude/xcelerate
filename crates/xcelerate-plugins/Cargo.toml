@@ -6,7 +6,7 @@ rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "First-party plugins for xcelerate: stealth and human."
+description = "Built-in plugins for xcelerate: stealth and human."
 
 [dependencies]
 xcelerate-plugin-api = { workspace = true }

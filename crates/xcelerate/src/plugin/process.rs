@@ -1,11 +1,11 @@
-//! Out-of-process (third-party) plugin host.
+//! Out-of-process plugin host.
 //!
-//! A third-party plugin is **any program that speaks a line-delimited JSON-RPC
+//! A loaded plugin is **any program that speaks a line-delimited JSON-RPC
 //! protocol over stdin/stdout**. That keeps it language-agnostic: the same
 //! `plugin.json` + entrypoint works whether the entrypoint is a Python script, a
 //! Node script, a Go binary, or anything else that can read and write JSON.
 //!
-//! The host never loads third-party code in-process. It spawns the entrypoint as
+//! The host never loads plugin code in-process. It spawns the entrypoint as
 //! a child process, runs a `describe` handshake, and forwards `invoke` calls.
 //! Every privileged thing the plugin can ask the host to do (`host.get_cookies`,
 //! ...) is checked against a **default-deny** grant list and audited.
@@ -54,7 +54,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde_json::{Value, json};
 use xcelerate_plugin_api::{
-    BoxFut, Capability, Manifest, OpCall, Plugin, PluginError, PluginResult, Registry, Tier,
+    BoxFut, Capability, Manifest, OpCall, Plugin, PluginError, PluginResult, Registry,
 };
 
 use crate::{CdpClient, XcelerateError, XcelerateResult};
@@ -138,7 +138,7 @@ fn resolve_entrypoint(manifest_path: &Path, manifest: &Manifest) -> XcelerateRes
 
 /// The capabilities the host grants this plugin.
 ///
-/// First-party-only capabilities are never granted. Dangerous capabilities are
+/// Host-only capabilities are never granted. Dangerous capabilities are
 /// denied unless the host opted in, either per plugin (`<name>:<capability>`) or
 /// broadly (`<capability>`), via `XCELERATE_PLUGIN_ALLOW`.
 pub(crate) fn granted_capabilities(
@@ -149,7 +149,7 @@ pub(crate) fn granted_capabilities(
         .capabilities
         .iter()
         .copied()
-        .filter(|capability| !capability.is_first_party_only())
+        .filter(|capability| !capability.is_builtin_only())
         .filter(|capability| {
             !capability.is_dangerous()
                 || allow.contains(capability.as_str())
@@ -402,7 +402,7 @@ impl ProcessChannel {
     }
 }
 
-/// A loaded third-party plugin, driven over its child process.
+/// A loaded plugin, driven over its child process.
 pub(crate) struct OutOfProcessPlugin {
     manifest: Manifest,
     ops: Vec<String>,
@@ -413,10 +413,6 @@ pub(crate) struct OutOfProcessPlugin {
 impl Plugin for OutOfProcessPlugin {
     fn name(&self) -> &str {
         &self.manifest.name
-    }
-
-    fn tier(&self) -> Tier {
-        Tier::ThirdParty
     }
 
     fn manifest(&self) -> Manifest {
@@ -469,7 +465,7 @@ fn id_seed() -> u64 {
         | 1
 }
 
-/// Spawn a third-party plugin, run the handshake, and return it ready to install.
+/// Spawn a plugin, run the handshake, and return it ready to install.
 pub(crate) fn spawn(
     manifest: &Manifest,
     manifest_path: &Path,
@@ -732,12 +728,12 @@ mod tests {
         Manifest {
             name: "example.test".to_string(),
             version: "0.1.0".to_string(),
-            tier: Tier::ThirdParty,
             host_api: "1.x".to_string(),
             entrypoint: Some(entrypoint.to_string()),
             abi: Some(RPC_ABI.to_string()),
             ops: vec!["ping".to_string()],
             capabilities,
+            dependencies: Default::default(),
             limits: Default::default(),
         }
     }
@@ -792,16 +788,13 @@ mod tests {
     }
 
     #[test]
-    fn first_party_only_capabilities_are_never_granted() {
+    fn host_only_capabilities_are_never_granted() {
         let manifest = manifest_with(
             "x.py",
             vec![Capability::LaunchControl, Capability::BinaryPatch],
         );
         let granted = granted_capabilities(&manifest, &HashSet::new());
-        assert!(
-            granted.is_empty(),
-            "first-party-only caps must never be granted"
-        );
+        assert!(granted.is_empty(), "host-only caps must never be granted");
     }
 
     #[test]

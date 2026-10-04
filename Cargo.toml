@@ -8,7 +8,7 @@ members = [
     "crates/xcelerate-cli",
     "crates/xcelerate-mcp",
 ]
-exclude = ["bindings", "tools", "adapters", "scripts"]
+exclude = ["bindings", "tools", "adapters", "scripts", "docs"]
 resolver = "3"
 
 [workspace.package]
@@ -34,13 +34,13 @@ xcelerate-mcp = { path = "crates/xcelerate-mcp", version = "1.0.9" }
 xcelerate-plugin-api = { path = "crates/xcelerate-plugin-api", version = "1.0.9" }
 xcelerate-plugins = { path = "crates/xcelerate-plugins", version = "1.0.9" }
 
-# Third-party crates.
+# External crates.
 mimalloc = "0.1.52"
 clap = { version = "4.5.20", features = ["derive"] }
 js-protocol = "0.1.6"
 browser-protocol = "0.1.6"
 # Held at the latest 0.31.x (0.31.2) on purpose: uniffi 0.32 changed its metadata
-# encoding, and the third-party generators this workspace depends on for
+# encoding, and the external generators this workspace depends on for
 # C#/Go/Dart/Node (`uniffi-bindgen-cs`, `-go`, `-dart`, `-node-js`) still vendor
 # uniffi 0.31, so they cannot read a 0.32-built library. One cdylib carries one
 # metadata version, so the whole workspace must stay in step. 0.31.x patch

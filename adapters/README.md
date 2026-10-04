@@ -31,23 +31,22 @@ await driver.quit()
 
 ## Stealth and plugins
 
-Stealth is no longer on by default: it is a first-party **plugin** you opt into
+Stealth is no longer on by default: it is a built-in **plugin** you opt into
 through the launch config. Every adapter's `launch(config)` forwards that config
 to the core `Browser`, so enabling stealth works the same in all three styles:
 
 ```python
 from xcelerate import BrowserConfig, use
 
-config = BrowserConfig(plugins=["stealth", "human"])  # opt into first-party plugins
+config = BrowserConfig(plugins=["stealth", "human"])  # opt into built-in plugins
 pw = use("playwright")
 browser = await pw.launch(config)
 ```
 
-Nothing runs unless it is listed (default-deny). Third-party plugins load
-out-of-process with `Browser::load_plugin` and speak a line-delimited JSON-RPC
-protocol, so they can be written in any language. See the
-[plugins section](../README.md#plugins) of the top-level README for the trust
-tiers, capabilities, and the append-only audit log.
+Nothing runs unless it is listed (default-deny). Plugins load with
+`Browser::load_plugin` and run out-of-process behind the capability gate. See the
+[plugins section](../README.md#plugins) of the top-level README for the
+capabilities and the append-only audit log.
 
 ## How it works
 

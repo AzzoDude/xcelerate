@@ -18,7 +18,7 @@ pub struct BrowserConfig {
     pub detached: bool,
     /// Optional path to the browser executable.
     pub executable_path: Option<String>,
-    /// First-party plugins to enable for this browser (for example
+    /// Built-in plugins to enable for this browser (for example
     /// `["stealth", "human"]`). Default-deny: no plugin does anything unless
     /// listed here (or enabled afterwards with `Browser::use_plugin`).
     pub plugins: Option<Vec<String>>,
@@ -138,7 +138,7 @@ impl Browser {
         let names = config.plugins.clone().unwrap_or_default();
         let manager = PluginManager::new(&names, crate::plugin::catalog())?;
 
-        // Let first-party plugins contribute to the launch (e.g. binary patching)
+        // Let built-in plugins contribute to the launch (e.g. binary patching)
         // before the process is spawned.
         let mut plan = LaunchPlan::new(exe, config.headless, config.detached);
         manager.configure_launch(&mut plan)?;
@@ -244,7 +244,7 @@ impl Browser {
         Ok(page)
     }
 
-    /// Names of all compiled-in first-party plugins (the catalog).
+    /// Names of all compiled-in built-in plugins (the catalog).
     pub fn available_plugins(&self) -> Vec<String> {
         xcelerate_plugins::builtin_names()
             .iter()
@@ -257,12 +257,12 @@ impl Browser {
         self.plugins.names()
     }
 
-    /// Enables a compiled-in first-party plugin at runtime.
+    /// Enables a built-in plugin at runtime.
     ///
     /// Launch-time contributions (such as binary patching) only take effect if
     /// the plugin was enabled before the browser launched; enabling a plugin
     /// afterwards applies its runtime hooks to pages created from now on. This
-    /// is audited as a runtime enable. Unknown or third-party names are refused.
+    /// is audited as a runtime enable. Unknown names are refused.
     pub async fn use_plugin(&self, name: String) -> XcelerateResult<()> {
         self.plugins.enable(&name).map_err(XcelerateError::from)
     }
@@ -278,7 +278,7 @@ impl Browser {
         }
     }
 
-    /// Loads a third-party plugin from disk.
+    /// Loads a plugin from disk.
     ///
     /// `path` may be a plugin directory (containing `plugin.json`) or a
     /// `plugin.json` file. The manifest is validated, the entrypoint is spawned
@@ -287,19 +287,11 @@ impl Browser {
     ///
     /// Once loaded, the plugin's ops are reachable through
     /// `plugin(name).invoke(op, args_json)` in every language, exactly like a
-    /// first-party plugin.
+    /// built-in plugin.
     pub fn load_plugin(&self, path: String) -> XcelerateResult<String> {
         let manifest_path = crate::plugin::process::resolve_manifest_path(&path)?;
         let manifest = xcelerate_plugin_api::Manifest::load(&manifest_path.to_string_lossy())?;
 
-        // Only third-party plugins may be loaded from disk: the out-of-process
-        // path must not be usable to skip the third-party manifest checks.
-        if manifest.tier != xcelerate_plugin_api::Tier::ThirdParty {
-            return Err(XcelerateError::Unsupported(format!(
-                "plugin '{}' must declare tier 'third-party' to be loaded from disk",
-                manifest.name
-            )));
-        }
         manifest
             .validate_reserved(xcelerate_plugins::builtin_names())
             .map_err(|error| XcelerateError::Unsupported(error.to_string()))?;

@@ -43,9 +43,8 @@ Playwright, and Puppeteer scripts run against the same engine.
 
 - **Automated process management** - discovers and launches Chrome or Edge, and
   manages the lifecycle of the browser process.
-- **Security-first plugins** - a default-deny plugin system with explicit trust
-  tiers and an append-only audit log. First-party plugins you opt into:
-  `stealth` and `human`.
+- **Security-first plugins** - a default-deny plugin system with an append-only
+  audit log. Built-in plugins you opt into: `stealth` and `human`.
 - **Stealth and human plugins** - `stealth` applies binary patching and a runtime
   JavaScript payload that reduce automation fingerprints; `human` makes input
   behave like a person (Bezier mouse travel, paced typing, uneven scrolling).
@@ -196,7 +195,7 @@ let config = BrowserConfig {
 
 Xcelerate ships a **security-first plugin system**. A plugin is a named bundle of
 launch-time configuration, page hooks, and invokable operations, and it does
-nothing unless you enable it (**default-deny**). `stealth` is the first-party
+nothing unless you enable it (**default-deny**). `stealth` is the built-in
 plugin built on this system.
 
 ### Enabling plugins
@@ -269,11 +268,11 @@ new binding code:
 
 | Method | Purpose |
 | --- | --- |
-| `available_plugins()` | Names of the compiled-in first-party catalog |
+| `available_plugins()` | Names of the compiled-in built-in catalog |
 | `plugin_names()` | Plugins enabled on this browser |
-| `use_plugin(name)` | Enable a first-party plugin at runtime |
+| `use_plugin(name)` | Enable a built-in plugin at runtime |
 | `install_plugins([plugin])` | Install trusted plugins compiled in as a Cargo library (Rust only) |
-| `load_plugin(path)` | Load a third-party plugin out-of-process (a directory or `plugin.json`) |
+| `load_plugin(path)` | Load a sandboxed plugin (a directory or `plugin.json`) |
 | `plugin(name)` | A handle to an enabled plugin |
 | `plugin(name).ops()` | The operations the plugin exposes |
 | `plugin(name).invoke(op, args_json)` | Invoke an operation with JSON args, returning JSON |
@@ -285,22 +284,22 @@ let stealth = browser.plugin("stealth".into())?; // error if not enabled
 let info = stealth.invoke("info".into(), "{}".into()).await?;
 ```
 
-### Trust tiers and capabilities
+### Where plugins run and what they may do
 
-| Tier | Where it runs | Privileges |
+| Model | Where it runs | Privileges |
 | --- | --- | --- |
-| First-party | In-process, compiled in | Launch flags, binary patching, detached spawn, init scripts |
-| Third-party | Out-of-process, capability-gated (OS sandbox pending) | Default-deny subset, audited |
+| Built-in | In-process, compiled in | Launch flags, binary patching, detached spawn, init scripts |
+| Loaded from disk | Sandboxed, capability-gated | Default-deny subset, audited |
 
 Capabilities are classified before they can ever be granted. `LaunchControl`,
-`BinaryPatch`, and `DetachedSpawn` are **first-party only**; `Evaluate`,
+`BinaryPatch`, and `DetachedSpawn` are **built-in only**; `Evaluate`,
 `CdpProxy`, cookie access, init scripts, screenshots, and network capture are
-**dangerous** and require explicit consent. Third-party plugins run
-**out-of-process**: the host spawns their entrypoint and they speak a
-line-delimited JSON-RPC protocol (ABI `rpc/1`) on stdin/stdout, so a plugin can
-be written in any language. Dangerous callbacks are **denied by default** and
-must be opted into per host via `XCELERATE_PLUGIN_ALLOW` (per plugin, or
-broadly), under per-invocation time and response-size budgets. See
+**dangerous** and require explicit consent. A plugin loaded from disk runs
+sandboxed with **no ambient authority**: the host imports are the only way out,
+they are capability-gated, and every call is audited - so a plugin cannot reach
+the filesystem or the network on its own. Dangerous callbacks are **denied by
+default** and must be opted into per host via `XCELERATE_PLUGIN_ALLOW` (per
+plugin, or broadly), under per-invocation time and response-size budgets. See
 [`docs/plugins/`](docs/plugins/README.md).
 
 ### Audit log
@@ -314,8 +313,8 @@ assert!(browser.audit_verify()); // the hash chain is intact
 println!("{}", browser.audit_log());
 ```
 
-Third-party plugins remain the user's responsibility to trust: the engine's job
-is to make what they *can* do explicit, auditable, and impossible by default.
+Plugins loaded from disk remain the user's responsibility to trust: the engine's
+job is to make what they *can* do explicit, auditable, and impossible by default.
 
 ## API-style adapters
 
@@ -528,19 +527,19 @@ xcelerate/
   crates/
     xcelerate-core/        # WebSocket transport and typed CDP command layer
     xcelerate-plugin-api/  # plugin trait, manifest, capabilities, audit, host interface
-    xcelerate-plugins/     # first-party plugins (stealth, human) + OS helpers
+    xcelerate-plugins/     # built-in plugins (stealth, human) + OS helpers
     xcelerate/             # high-level facade: Browser, Page, Element, adapters
     xcelerate-bindgen/     # uniffi bindgen helper binary
     xcelerate-cli/         # `xcelerate-cli` command-line interface
     xcelerate-mcp/         # `xcelerate-mcp` Model Context Protocol server
   adapters/             # adapter profiles, runtime, and generator inputs
   bindings/             # generated Python, JavaScript, C#, Kotlin, Java, Swift, Ruby, Dart, and Go packages (plus the PowerShell module)
-  docs/plugins/         # third-party plugin authoring guide, JSON schema, examples
+  docs/plugins/         # plugin authoring guide, JSON schema, examples
   scripts/              # code generation, harvesting, and release tooling
 ```
 
 The plugin API - the `Plugin` trait, `Manifest`, capabilities, audit log, and the
-`PageHost` interface - lives in `crates/xcelerate-plugin-api/`. The first-party
+`PageHost` interface - lives in `crates/xcelerate-plugin-api/`. The built-in
 implementations (`stealth`, `human`) and the low-level OS helpers (binary
 patching, process management, payload) live in `crates/xcelerate-plugins/`. The
 facade owns the `PluginManager` and bridges `Page` to the plugin host interface,

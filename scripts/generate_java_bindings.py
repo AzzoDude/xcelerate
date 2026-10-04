@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Generate the Java bindings (uniffi) and assemble a Gradle JVM library.
 
-Java is not a built-in UniFFI target; it needs the third-party
+Java is not a built-in UniFFI target; it needs the external
 ``uniffi-bindgen-java`` generator (IronCoreLabs). Version ``0.4.2`` is the
 release that targets UniFFI ``0.31`` - the same metadata version as the Rust
 core - so keep the two in step.
 
 The generated code uses Java's Foreign Function & Memory API (Project Panama),
-so it has **no third-party runtime dependencies** and requires **Java 22+**.
+so it has **no external runtime dependencies** and requires **Java 22+**.
 Install the toolchain with ``python scripts/install_toolchains.py``.
 """
 

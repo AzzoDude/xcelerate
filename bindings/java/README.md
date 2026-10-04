@@ -1,14 +1,14 @@
 # Xcelerate Java SDK
 
 Java/JVM bindings for the xcelerate Rust CDP engine. Java is not a built-in
-UniFFI target, so the sources are generated with the third-party
+UniFFI target, so the sources are generated with the external
 [`uniffi-bindgen-java`](https://github.com/IronCoreLabs/uniffi-bindgen-java)
 generator (pinned to the release that targets UniFFI 0.31).
 
 ## Requirements
 
 - **JDK 22+** - the generated code uses the Foreign Function & Memory API
-  (Project Panama), so there are no third-party runtime dependencies.
+  (Project Panama), so there are no external runtime dependencies.
 - `gradle` on `PATH`, or installed under `tools/gradle/` by
   `python ../../scripts/install_toolchains.py`
 
@@ -63,7 +63,7 @@ name (resolved via `java.library.path`). Without it the generated code calls
 
 ## Plugins
 
-Plugins are default-deny. Enable the first-party `stealth` plugin with the fifth
+Plugins are default-deny. Enable the built-in `stealth` plugin with the fifth
 `BrowserConfig` argument (`java.util.List.of("stealth")`) before launch. The same
 fixed bridge is available in Java:
 
@@ -74,8 +74,9 @@ var stealth = browser.plugin("stealth");
 System.out.println(stealth.invoke("info", "{}").get());
 ```
 
-`loadPlugin` refuses third-party plugins until the sandboxed runner ships; see the
-[top-level README](../../README.md#plugins) for trust tiers and the audit log.
+`loadPlugin` loads a plugin from disk, out-of-process and capability-gated; see
+the [top-level README](../../README.md#plugins) for capabilities and the audit
+log.
 
 ## License
 

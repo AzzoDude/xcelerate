@@ -1,0 +1,57 @@
+// Typed plugin ABI for xcelerate plugins compiled to WebAssembly.
+//
+// The host implements `host`; the plugin implements the `plugin` interface.
+// Op arguments and results are a single binary `payload` (MessagePack by
+// convention) rather than JSON: compact, cheaper to (de)serialize, and the host
+// and guest structs stay typed via `serde` + `wit-bindgen` codegen.
+//
+// Build a plugin against this world with `wit-bindgen`, and run it with the
+// `wasmtime`-backed transport (`crates/xcelerate/src/plugin/wasm.rs`, off by
+// default behind the `wasm` feature).
+package xcelerate:plugin@1.0.0;
+
+interface types {
+    /// A cookie as returned by the host.
+    record cookie {
+        name: string,
+        value: string,
+        domain: string,
+        path: string,
+    }
+
+    /// A MessagePack-encoded argument/result blob.
+    type payload = list<u8>;
+}
+
+/// Capability-gated functions the host exposes to the plugin. A call whose
+/// capability was not granted returns an error instead of doing anything.
+interface host {
+    use types.{cookie};
+
+    /// Always available. Recorded in the audit log; the text is capped.
+    log: func(message: string);
+
+    /// Requires the `read_cookies` capability.
+    get-cookies: func() -> result<list<cookie>, string>;
+
+    /// Requires the `write_cookies` capability.
+    set-cookie: func(cookie: cookie) -> result<_, string>;
+}
+
+/// What every plugin exports.
+interface plugin {
+    use types.{payload};
+
+    /// Handshake: `{ name, version, ops }` encoded as `payload`, checked against
+    /// `plugin.json`.
+    describe: func() -> payload;
+
+    /// Run an op. `op` is the verb; `args` is a `payload`; the result is a
+    /// `payload`.
+    invoke: func(op: string, args: payload) -> result<payload, string>;
+}
+
+world plugin-world {
+    import host;
+    export plugin;
+}

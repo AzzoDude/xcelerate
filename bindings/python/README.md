@@ -5,7 +5,7 @@ A high-performance, lightweight Chrome DevTools Protocol (CDP) client for Python
 ## Features
 
 - **Blazing Fast**: Direct CDP communication over WebSockets.
-- **Security-first plugins**: Default-deny; `stealth` is a first-party plugin you opt into.
+- **Security-first plugins**: Default-deny; `stealth` is a built-in plugin you opt into.
 - **Universal**: Native bindings for high performance.
 - **Async/Await**: Full support for Python's asyncio.
 
@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
 The `BrowserConfig` object allows you to fine-tune the browser behavior:
 
-- **plugins (default: None)**: First-party plugins to enable, e.g.
+- **plugins (default: None)**: Built-in plugins to enable, e.g.
   `["stealth", "human"]`. Nothing runs unless it is listed here (default-deny).
   `stealth` masks automation fingerprints; `human` makes input behave like a
   person (`info`, `move`, `click`, `type`, `scroll`, `delay`).
@@ -74,9 +74,11 @@ stealth = browser.plugin("stealth")
 print(await stealth.invoke("info", "{}"))
 ```
 
-Third-party plugins are **not** supported yet: `load_plugin` refuses rather than
-executing unknown code. See the [top-level README](../../README.md#plugins) for
-the trust tiers, capabilities, and the append-only audit log.
+Plugins are loaded from disk out-of-process behind the capability gate: the
+`entrypoint` in the manifest is spawned and its ops are reachable through
+`plugin(name).invoke(op, args_json)`. See the
+[top-level README](../../README.md#plugins) for capabilities and the append-only
+audit log.
 
 ## License
 

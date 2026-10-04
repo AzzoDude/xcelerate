@@ -1,14 +1,13 @@
 # Example plugin: `example.echo`
 
-A minimal third-party plugin that demonstrates the whole authoring contract. It
+A minimal plugin that demonstrates the whole authoring contract. It
 exposes one op, `echo`, which navigates to a URL and returns the page title plus
 the text of the first matching selector - using only the two capabilities it
 declares (`query`, `get_text`).
 
-> **This will not run yet.** The manifest validates and the host accepts the
-> shape, but the sandboxed runner is not implemented, so
-> `Browser::load_plugin` refuses third-party plugins. See the
-> [third-party guide](../README.md) for status.
+> **Status.** The manifest validates and `Browser::load_plugin` runs the
+> `entrypoint` out-of-process behind the capability gate. See the
+> [plugin guide](../README.md) for status.
 
 ## Files
 
@@ -27,10 +26,9 @@ In a real package you would also ship `example-echo.wasm`, the program named by
 {
   "name": "example.echo",
   "version": "0.1.0",
-  "tier": "third-party",
   "host_api": ">=1.0 <2.0",
   "entrypoint": "example-echo.wasm",
-  "abi": "wasm32-wasi+rpc/1",
+  "abi": "wasm32-wasip2/1",
   "ops": ["echo"],
   "capabilities": ["query", "get_text"],
   "limits": { "max_invoke_millis": 5000, "max_response_bytes": 65536 }
@@ -38,7 +36,7 @@ In a real package you would also ship `example-echo.wasm`, the program named by
 ```
 
 Because the name is not reserved, an entrypoint is present, at least one op is
-declared, no first-party-only capability is requested, and the limits are within
+declared, no host-only capability is requested, and the limits are within
 the host maxima, `Manifest::from_json` returns `Ok`.
 
 ## What the plugin author writes
@@ -51,7 +49,7 @@ Pseudo-code (the real host API is a JSON RPC; the shape is the same in every
 language):
 
 ```rust
-// Compiles to wasm32-wasi, runs in the sandbox.
+// Compiles to wasm32-wasip2, runs in the sandbox.
 #[no_mangle]
 pub extern "C" fn invoke(op_ptr: *const u8, op_len: usize) -> *mut u8 {
     let op = read_request(op_ptr, op_len);
@@ -78,9 +76,9 @@ in the sandbox or require a dangerous capability that must be granted.
 ```rust
 use xcelerate::{Browser, BrowserConfig};
 
-// Third-party execution is refused today; this is the intended shape.
 let browser = Browser::launch(BrowserConfig::default()).await?;
-let handle = browser.plugin("example.echo")?;                 // once the runner ships
+browser.load_plugin("path/to/example.echo".into())?;
+let handle = browser.plugin("example.echo")?;
 let result = handle.invoke("echo".into(), r#"{"url":"https://example.com","selector":"h1"}"#.into()).await?;
 println!("{result}");
 # Ok::<(), xcelerate::XcelerateError>(())

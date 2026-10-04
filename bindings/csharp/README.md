@@ -9,7 +9,7 @@ Xcelerate is a high-performance, lightweight Chrome DevTools Protocol (CDP) clie
 
 - **Managed Lifecycle**: Fully supports `IDisposable` patterns to ensure clean browser and process termination.
 - **Async/Await First**: Standard `Task`-based asynchronous API for modern C# applications.
-- **Security-first Plugins**: Default-deny plugin system; `stealth` (binary patching + Chrome API masking) is a first-party plugin you opt into.
+- **Security-first Plugins**: Default-deny plugin system; `stealth` (binary patching + Chrome API masking) is a built-in plugin you opt into.
 - **NativeAOT Compatible**: Designed for high performance and low memory footprints.
 - **Simplified Deployment**: Bundles the required native binaries for Windows (x64), removing the need for external C++ or Rust installations on the target machine.
 
@@ -53,7 +53,7 @@ File.WriteAllBytes("capture.png", screenshot);
 
 The SDK supports specialized launch options for complex automation scenarios:
 
-- **Plugins**: Default-deny list of first-party plugins to enable. `new BrowserConfig(Plugins: new[] { "stealth", "human" })` opts into stealth and human-like input; nothing runs unless listed. `load_plugin` refuses third-party plugins until the sandboxed runner ships.
+- **Plugins**: Default-deny list of built-in plugins to enable. `new BrowserConfig(Plugins: new[] { "stealth", "human" })` opts into stealth and human-like input; nothing runs unless listed. `load_plugin` loads a plugin from disk, out-of-process and capability-gated.
 - **Detached Mode**: Allows the browser process to persist independently of the parent .NET application.
 - **Headless=New**: Utilizes the modern Chromium headless engine for improved rendering and compatibility.
 

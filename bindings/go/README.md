@@ -1,7 +1,7 @@
 # Xcelerate Go SDK
 
 Go bindings for the xcelerate Rust CDP engine. Go is not a built-in UniFFI
-target, so the sources are generated with the third-party
+target, so the sources are generated with the external
 [`uniffi-bindgen-go`](https://github.com/NordSecurity/uniffi-bindgen-go) generator
 (tag `v1.0.9+v1.0.9`, targeting UniFFI 0.31).
 
@@ -52,7 +52,7 @@ import (
 )
 
 func main() {
-    plugins := []string{"stealth", "human"} // opt into first-party plugins
+    plugins := []string{"stealth", "human"} // opt into built-in plugins
     browser, err := xcelerate.BrowserLaunch(xcelerate.BrowserConfig{
         Headless: true,
         Detached: true,
@@ -79,8 +79,8 @@ func main() {
 
 Key surface: `BrowserLaunch`, `Browser.NewPage`, `Browser.Close`, and the plugin
 bridge (`PluginNames`, `AvailablePlugins`, `UsePlugin`, `LoadPlugin`, `Plugin`,
-`PluginHandle.Invoke`). `load_plugin` refuses third-party plugins until the
-sandboxed runner ships.
+`PluginHandle.Invoke`). `LoadPlugin` loads a plugin from disk, out-of-process and
+capability-gated.
 
 ## Publishing
 

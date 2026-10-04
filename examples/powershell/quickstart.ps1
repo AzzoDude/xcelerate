@@ -19,7 +19,7 @@
     Browser binary to use. Auto-discovers Chrome or Edge when omitted.
 
 .PARAMETER Plugins
-    First-party plugins to enable (default-deny), e.g. -Plugins stealth, human.
+    Built-in plugins to enable (default-deny), e.g. -Plugins stealth, human.
 
 .PARAMETER Screenshot
     Where to write the full-page screenshot. Defaults to xcelerate-demo.png.

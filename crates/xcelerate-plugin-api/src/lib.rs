@@ -2,19 +2,18 @@
 //!
 //! This crate is the boundary between the engine and its plugins. It defines
 //! the [`Plugin`] trait, the [`Manifest`] specification, the [`Capability`] /
-//! [`Tier`] trust model, the append-only [`audit`] log, and the [`PageHost`]
+//! trust model, the append-only [`audit`] log, and the [`PageHost`]
 //! interface a plugin uses to touch a page.
 //!
 //! It deliberately depends only on `serde`/`serde_json` - never on the engine
-//! facade - so first-party plugin crates (and, later, a sandboxed runner) can
-//! implement plugins without a dependency cycle.
+//! facade - so plugin crates can implement plugins without a dependency cycle.
 //!
 //! # Security posture
 //!
 //! * **default-deny** - a plugin does nothing unless it is explicitly enabled;
 //! * plugins never see a raw page or transport handle - only [`PageHost`];
 //! * every privileged action is recorded in an append-only, hash-chained log;
-//! * third-party manifests may not request a first-party-only [`Capability`].
+//! * a manifest may not request a host-only [`Capability`].
 
 use std::collections::BTreeMap;
 use std::future::Future;
@@ -51,23 +50,12 @@ pub type PluginResult<T> = std::result::Result<T, PluginError>;
 pub type BoxFut<T> = Pin<Box<dyn Future<Output = T> + Send + 'static>>;
 
 // ---------------------------------------------------------------------------
-// Trust tiers and capabilities
+// Capabilities
 // ---------------------------------------------------------------------------
 
-/// The trust tier a plugin belongs to.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum Tier {
-    /// Compiled in, in-process, may use privileged primitives. Shipped by us.
-    FirstParty,
-    /// Untrusted; must run out-of-process, sandboxed, capability-gated.
-    ThirdParty,
-}
-
 /// A capability a plugin may request. Predicates/scoping are enforced by the
-/// capability proxy once the third-party tier lands; the enum already records
-/// the classification so first-party-only primitives can never be granted to a
-/// third-party plugin.
+/// capability proxy; the enum records the classification so sandbox-only
+/// primitives can never be granted across a sandbox boundary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Capability {
@@ -89,7 +77,7 @@ pub enum Capability {
     InitScript,
     Screenshot,
     NetworkCapture,
-    // First-party only: never granted to third-party plugins.
+    // Host-only: never granted to loaded plugins.
     LaunchControl,
     BinaryPatch,
     DetachedSpawn,
@@ -110,8 +98,8 @@ impl Capability {
         )
     }
 
-    /// Privileged capabilities reserved for the first-party tier.
-    pub fn is_first_party_only(self) -> bool {
+    /// Privileged capabilities reserved for built-in (compiled-in) plugins.
+    pub fn is_builtin_only(self) -> bool {
         matches!(
             self,
             Capability::LaunchControl | Capability::BinaryPatch | Capability::DetachedSpawn
@@ -150,25 +138,24 @@ impl Capability {
 
 /// Declarative description of what a plugin is and what it needs.
 ///
-/// First-party manifests are built in Rust by [`Plugin::manifest`]. Third-party
+/// Built-in manifests are constructed in Rust by [`Plugin::manifest`]. Loaded
 /// manifests are authored as `plugin.json` and parsed with [`Manifest::from_json`]
 /// or [`Manifest::load`]. Every manifest is validated by [`Manifest::validate`]
-/// **before** any third-party code is allowed to run.
+/// **before** any plugin code is allowed to run.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Manifest {
     /// Unique plugin name, e.g. `"example.echo"`.
     pub name: String,
     pub version: String,
-    pub tier: Tier,
     /// Host interface range this plugin targets, e.g. `">=1.0 <2.0"`.
     #[serde(default = "default_host_api")]
     pub host_api: String,
     /// Path to the plugin program, relative to the manifest. Required for
-    /// third-party plugins.
+    /// sandboxed plugins.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub entrypoint: Option<String>,
-    /// Sandboxed ABI the plugin speaks, e.g. `"wasm32-wasi+rpc/1"`.
+    /// Sandboxed ABI the plugin speaks, e.g. `"wasm32-wasip2/1"`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub abi: Option<String>,
     /// Ops the plugin exposes through `PluginHandle::invoke`.
@@ -177,6 +164,10 @@ pub struct Manifest {
     /// Capabilities the plugin requests. Default-deny; granted per the proxy.
     #[serde(default)]
     pub capabilities: Vec<Capability>,
+    /// Other plugins this one depends on: plugin name -> version range
+    /// (e.g. `{ "acme.totp": "^1.0" }`). Resolved and loaded before this one.
+    #[serde(default)]
+    pub dependencies: std::collections::BTreeMap<String, String>,
     /// Resource limits requested by the plugin (clamped to host maxima).
     #[serde(default)]
     pub limits: Budgets,
@@ -204,13 +195,13 @@ impl Manifest {
     /// Enforce the security invariants for a manifest *before* any code runs.
     ///
     /// Reserved names are host policy; use [`Manifest::validate_reserved`] to
-    /// pass the host's first-party catalog.
+    /// pass the host's built-in catalog.
     pub fn validate(&self) -> PluginResult<()> {
         self.validate_reserved(&[])
     }
 
     /// Like [`Manifest::validate`], but also rejects names in `reserved` (the
-    /// host's first-party catalog).
+    /// host's built-in catalog).
     pub fn validate_reserved(&self, reserved: &[&str]) -> PluginResult<()> {
         if self.name.trim().is_empty() {
             return Err(PluginError::Unsupported(
@@ -238,50 +229,62 @@ impl Manifest {
             ));
         }
 
-        if self.tier == Tier::ThirdParty {
-            if reserved.contains(&self.name.as_str()) {
+        for (dependency, range) in &self.dependencies {
+            if dependency.trim().is_empty() || range.trim().is_empty() {
+                return Err(PluginError::Unsupported(
+                    "plugin dependencies need a non-empty name and version range".to_string(),
+                ));
+            }
+            if dependency == &self.name {
                 return Err(PluginError::Unsupported(format!(
-                    "plugin name '{}' is reserved for a first-party plugin",
+                    "plugin '{}' cannot depend on itself",
                     self.name
                 )));
             }
-            if self.entrypoint.as_deref().unwrap_or("").trim().is_empty() {
-                return Err(PluginError::Unsupported(
-                    "third-party plugin manifest requires an 'entrypoint'".to_string(),
-                ));
-            }
-            if self.ops.is_empty() {
-                return Err(PluginError::Unsupported(
-                    "third-party plugin manifest must declare at least one op".to_string(),
-                ));
-            }
-            if let Some(capability) = self
-                .capabilities
-                .iter()
-                .find(|capability| capability.is_first_party_only())
-            {
-                return Err(PluginError::Unsupported(format!(
-                    "capability '{}' is first-party only and cannot be requested by a third-party plugin",
-                    capability.as_str()
-                )));
-            }
-            let hard = Budgets::default();
-            if self.limits.max_invoke_millis == 0
-                || self.limits.max_invoke_millis > hard.max_invoke_millis
-            {
-                return Err(PluginError::Unsupported(format!(
-                    "third-party plugin 'max_invoke_millis' must be 1..={}",
-                    hard.max_invoke_millis
-                )));
-            }
-            if self.limits.max_response_bytes == 0
-                || self.limits.max_response_bytes > hard.max_response_bytes
-            {
-                return Err(PluginError::Unsupported(format!(
-                    "third-party plugin 'max_response_bytes' must be 1..={}",
-                    hard.max_response_bytes
-                )));
-            }
+        }
+
+        if reserved.contains(&self.name.as_str()) {
+            return Err(PluginError::Unsupported(format!(
+                "plugin name '{}' is reserved for a built-in plugin",
+                self.name
+            )));
+        }
+        if self.entrypoint.as_deref().unwrap_or("").trim().is_empty() {
+            return Err(PluginError::Unsupported(
+                "sandboxed plugin manifest requires an 'entrypoint'".to_string(),
+            ));
+        }
+        if self.ops.is_empty() {
+            return Err(PluginError::Unsupported(
+                "sandboxed plugin manifest must declare at least one op".to_string(),
+            ));
+        }
+        if let Some(capability) = self
+            .capabilities
+            .iter()
+            .find(|capability| capability.is_builtin_only())
+        {
+            return Err(PluginError::Unsupported(format!(
+                "capability '{}' is host-only and cannot be requested by a loaded plugin",
+                capability.as_str()
+            )));
+        }
+        let hard = Budgets::default();
+        if self.limits.max_invoke_millis == 0
+            || self.limits.max_invoke_millis > hard.max_invoke_millis
+        {
+            return Err(PluginError::Unsupported(format!(
+                "sandboxed plugin 'max_invoke_millis' must be 1..={}",
+                hard.max_invoke_millis
+            )));
+        }
+        if self.limits.max_response_bytes == 0
+            || self.limits.max_response_bytes > hard.max_response_bytes
+        {
+            return Err(PluginError::Unsupported(format!(
+                "sandboxed plugin 'max_response_bytes' must be 1..={}",
+                hard.max_response_bytes
+            )));
         }
 
         Ok(())
@@ -389,7 +392,7 @@ impl Default for Budgets {
 // ---------------------------------------------------------------------------
 
 /// Launch-time contributions collected from enabled plugins *before* the
-/// browser process is spawned. Only first-party plugins may mutate this.
+/// browser process is spawned. Only built-in plugins may mutate this.
 #[derive(Debug, Clone)]
 pub struct LaunchPlan {
     pub executable: PathBuf,
@@ -476,16 +479,11 @@ pub type ArcPageHost = Arc<dyn PageHost>;
 // The Plugin trait
 // ---------------------------------------------------------------------------
 
-/// A plugin. First-party plugins implement this in Rust; third-party plugins
-/// will be adapted onto it by the sandboxed runner.
+/// A plugin. Built-in plugins implement this in Rust; loaded plugins are
+/// adapted onto it by the runner.
 pub trait Plugin: Send + Sync + 'static {
     /// Unique, reserved name (e.g. `"stealth"`).
     fn name(&self) -> &str;
-
-    /// Trust tier (defaults to first-party).
-    fn tier(&self) -> Tier {
-        Tier::FirstParty
-    }
 
     /// Whether the plugin must be enabled before the browser launches.
     fn requires_launch(&self) -> bool {
@@ -495,7 +493,7 @@ pub trait Plugin: Send + Sync + 'static {
     /// Declarative manifest.
     fn manifest(&self) -> Manifest;
 
-    /// Contribute to the launch plan (privileged; first-party only).
+    /// Contribute to the launch plan (privileged; built-in only).
     fn configure_launch(&self, _plan: &mut LaunchPlan) -> PluginResult<()> {
         Ok(())
     }
@@ -513,7 +511,7 @@ pub trait Plugin: Send + Sync + 'static {
 // Plugin manager
 // ---------------------------------------------------------------------------
 
-/// Resolves a plugin name to an implementation - the host's first-party catalog.
+/// Resolves a plugin name to an implementation - the host's built-in catalog.
 pub type Catalog = Arc<dyn Fn(&str) -> Option<Arc<dyn Plugin>> + Send + Sync>;
 
 /// Owns the enabled plugins and dispatches hooks/ops. Held by `Browser`.
@@ -530,8 +528,7 @@ pub struct PluginManager {
 
 impl PluginManager {
     /// Build a manager from a list of plugin names resolved through `catalog`.
-    /// Unknown / third-party names are refused (the sandboxed tier is not
-    /// implemented yet).
+    /// Unknown names are refused.
     pub fn new(names: &[String], catalog: Catalog) -> PluginResult<Self> {
         let manager = Self {
             catalog,
@@ -546,8 +543,8 @@ impl PluginManager {
         Ok(manager)
     }
 
-    /// Enable a compiled-in first-party plugin. Idempotent; unknown or
-    /// third-party names are refused so untrusted code is never executed.
+    /// Enable a built-in plugin. Idempotent; unknown names are
+    /// refused so unknown code is never executed.
     ///
     /// Enabling after launch is recorded as a runtime enable: the plugin's
     /// launch-time contribution (if any) has already been skipped.
@@ -556,10 +553,7 @@ impl PluginManager {
             return Ok(());
         }
         let plugin = (self.catalog)(name).ok_or_else(|| {
-            PluginError::Unsupported(format!(
-                "plugin '{name}' is not a known first-party plugin; \
-                 third-party plugins are not supported in this phase"
-            ))
+            PluginError::Unsupported(format!("plugin '{name}' is not a known built-in plugin"))
         })?;
 
         let mut reg = Registry::default();
@@ -589,12 +583,11 @@ impl PluginManager {
     /// This is the compile-time extension point ("a plugin is a library"): a
     /// plugin crate added as a Cargo dependency is installed here by the
     /// embedder. Such a plugin runs in-process and is therefore trusted exactly
-    /// like a first-party plugin - it may use the whole [`PageHost`] interface.
-    /// The sandboxed, capability-gated path for untrusted plugins is a separate,
-    /// not-yet-implemented tier.
+    /// like the built-in catalog - it may use the whole [`PageHost`] interface.
+    /// Plugins loaded from disk run sandboxed and capability-gated instead.
     ///
     /// Names already owned by the host catalog (for example `stealth`) are
-    /// refused, so a library plugin can never shadow a first-party one. Install
+    /// refused, so a library plugin can never shadow a built-in one. Install
     /// before creating pages so the plugin's `on_page_created` hook sees them.
     pub fn install(&self, plugin: Arc<dyn Plugin>) -> PluginResult<()> {
         let name = plugin.name().to_string();
@@ -741,20 +734,18 @@ mod tests {
     const VALID_MANIFEST: &str = r#"{
         "name": "example.echo",
         "version": "0.1.0",
-        "tier": "third-party",
         "host_api": ">=1.0 <2.0",
         "entrypoint": "example-echo.wasm",
-        "abi": "wasm32-wasi+rpc/1",
+        "abi": "wasm32-wasip2/1",
         "ops": ["echo"],
         "capabilities": ["query", "get_text"],
         "limits": { "max_invoke_millis": 5000, "max_response_bytes": 65536 }
     }"#;
 
     #[test]
-    fn parses_valid_third_party_manifest() {
+    fn parses_valid_sandboxed_manifest() {
         let manifest = Manifest::from_json(VALID_MANIFEST).unwrap();
         assert_eq!(manifest.name, "example.echo");
-        assert_eq!(manifest.tier, Tier::ThirdParty);
         assert_eq!(
             manifest.capabilities,
             vec![Capability::Query, Capability::GetText]
@@ -763,7 +754,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_first_party_only_capability() {
+    fn rejects_host_only_capability() {
         let json = VALID_MANIFEST.replace(r#""query", "get_text""#, r#""binary_patch""#);
         assert!(matches!(
             Manifest::from_json(&json).unwrap_err(),
@@ -818,6 +809,28 @@ mod tests {
     }
 
     #[test]
+    fn parses_and_validates_dependencies() {
+        let with_dep = VALID_MANIFEST.replace(
+            r#""ops": ["echo"],"#,
+            r#""ops": ["echo"], "dependencies": { "acme.totp": "^1.0" },"#,
+        );
+        let manifest = Manifest::from_json(&with_dep).unwrap();
+        assert_eq!(
+            manifest.dependencies.get("acme.totp").map(String::as_str),
+            Some("^1.0")
+        );
+
+        let self_dep = VALID_MANIFEST.replace(
+            r#""ops": ["echo"],"#,
+            r#""ops": ["echo"], "dependencies": { "example.echo": "^1.0" },"#,
+        );
+        assert!(matches!(
+            Manifest::from_json(&self_dep).unwrap_err(),
+            PluginError::Unsupported(_)
+        ));
+    }
+
+    #[test]
     fn documented_example_manifest_validates() {
         let path = concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -825,7 +838,6 @@ mod tests {
         );
         let manifest = Manifest::load(path).unwrap();
         assert_eq!(manifest.name, "example.echo");
-        assert_eq!(manifest.tier, Tier::ThirdParty);
         assert!(manifest.ops.contains(&"echo".to_string()));
     }
 
@@ -844,19 +856,16 @@ mod tests {
         fn name(&self) -> &str {
             "example.library"
         }
-        fn tier(&self) -> Tier {
-            Tier::ThirdParty
-        }
         fn manifest(&self) -> Manifest {
             Manifest {
                 name: "example.library".to_string(),
                 version: "0.1.0".to_string(),
-                tier: Tier::ThirdParty,
                 host_api: "1.x".to_string(),
                 entrypoint: None,
                 abi: None,
                 ops: vec!["ping".to_string()],
                 capabilities: vec![],
+                dependencies: Default::default(),
                 limits: Budgets::default(),
             }
         }

@@ -44,7 +44,7 @@ let config = BrowserConfig(
     headless: true,
     detached: true,
     executablePath: nil,                // auto-discover Chrome/Edge
-    plugins: ["stealth", "human"]       // opt into first-party plugins
+    plugins: ["stealth", "human"]       // opt into built-in plugins
 )
 let browser = try await Browser.launch(config: config)
 let page = try await browser.newPage(url: "https://example.com")
@@ -52,8 +52,8 @@ print(try await page.title())
 try await browser.close()
 ```
 
-Every call is `async throws`. Third-party plugins (WASM, sandboxed) are not
-executable yet - `loadPlugin` refuses rather than running unknown code.
+Every call is `async throws`. Plugins load from disk out-of-process behind the
+capability gate; `loadPlugin` runs the `entrypoint` the manifest names.
 
 ## Publishing
 

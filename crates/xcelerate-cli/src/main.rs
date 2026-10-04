@@ -38,7 +38,7 @@ struct BrowserArgs {
     /// Path to the Chrome/Edge executable.
     #[arg(long, global = true, value_name = "PATH")]
     executable_path: Option<String>,
-    /// First-party plugins to enable (comma-separated): stealth,human.
+    /// Built-in plugins to enable (comma-separated): stealth,human.
     #[arg(long, global = true, value_name = "LIST", value_delimiter = ',')]
     plugins: Vec<String>,
     /// Upstream proxy URL(s); repeat for a pool. `http://[user:pass@]host:port`.
@@ -110,7 +110,7 @@ enum Command {
         #[arg(long)]
         no_ffmpeg: bool,
     },
-    /// List the compiled-in first-party plugins.
+    /// List the compiled-in built-in plugins.
     Plugins,
     /// Run the Model Context Protocol (MCP) server on stdio.
     Mcp,

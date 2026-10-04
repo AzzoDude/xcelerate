@@ -41,7 +41,7 @@ config = Xcelerate::BrowserConfig.new(
   headless: true,
   detached: true,
   executable_path: nil,              # auto-discover Chrome/Edge
-  plugins: ["stealth", "human"]      # opt into first-party plugins
+  plugins: ["stealth", "human"]      # opt into built-in plugins
 )
 browser = Xcelerate::Browser.launch(config)
 page = browser.new_page("https://example.com")
@@ -50,7 +50,7 @@ browser.close
 ```
 
 The generated bindings are synchronous (UniFFI blocks on the async core).
-`load_plugin` refuses third-party plugins until the sandboxed runner ships.
+`load_plugin` loads a plugin from disk, out-of-process and capability-gated.
 
 ## Publishing
 

@@ -1,4 +1,4 @@
-//! First-party `stealth` plugin.
+//! Built-in `stealth` plugin.
 //!
 //! Patches the browser binary at launch and injects the anti-fingerprint payload
 //! into every new document. The OS-level implementation lives in this crate
@@ -6,7 +6,6 @@
 
 use xcelerate_plugin_api::{
     ArcPageHost, BoxFut, Budgets, Capability, LaunchPlan, Manifest, Plugin, PluginResult, Registry,
-    Tier,
 };
 
 /// Patches the browser binary at launch and injects the anti-fingerprint payload
@@ -26,7 +25,6 @@ impl Plugin for StealthPlugin {
         Manifest {
             name: "stealth".to_string(),
             version: env!("CARGO_PKG_VERSION").to_string(),
-            tier: Tier::FirstParty,
             host_api: "1.x".to_string(),
             entrypoint: None,
             abi: Some("native/1".to_string()),
@@ -37,6 +35,7 @@ impl Plugin for StealthPlugin {
                 Capability::DetachedSpawn,
                 Capability::InitScript,
             ],
+            dependencies: Default::default(),
             limits: Budgets::default(),
         }
     }
@@ -54,7 +53,6 @@ impl Plugin for StealthPlugin {
             Box::pin(async {
                 Ok(serde_json::json!({
                     "name": "stealth",
-                    "tier": "first-party",
                     "enabled": true,
                     "patched": true,
                 })

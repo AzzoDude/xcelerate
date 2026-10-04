@@ -1,7 +1,7 @@
 //! Plugin manager and UniFFI bridge for the engine.
 //!
 //! The plugin *API* - the [`Plugin`] trait, [`Manifest`], audit log, and the
-//! [`PageHost`] interface - lives in `xcelerate-plugin-api`. The first-party
+//! [`PageHost`] interface - lives in `xcelerate-plugin-api`. The built-in
 //! implementations live in `xcelerate-plugins`. This module wires them into
 //! [`crate::Browser`], implements [`PageHost`] on top of [`Page`], and exposes
 //! [`PluginHandle`] to every language binding.
@@ -13,13 +13,13 @@ use crate::page::Page;
 use xcelerate_plugin_api::{ArcPageHost, BoxFut, Catalog, PageHost, PluginError, PluginResult};
 
 pub use xcelerate_plugin_api::{
-    AuditEvent, Capability, Manifest, Plugin, PluginManager, Tier, audit_entries, audit_verify,
+    AuditEvent, Capability, Manifest, Plugin, PluginManager, audit_entries, audit_verify,
 };
 pub use xcelerate_plugins::{builtin_names, is_builtin};
 
 pub(crate) mod process;
 
-/// The host's first-party plugin catalog.
+/// The host's built-in plugin catalog.
 pub(crate) fn catalog() -> Catalog {
     Arc::new(xcelerate_plugins::builtin)
 }
@@ -173,7 +173,7 @@ mod tests {
         manager.enable("stealth").unwrap();
         assert_eq!(manager.names(), vec!["stealth".to_string()]);
         assert!(matches!(
-            manager.enable("third-party-thing").unwrap_err(),
+            manager.enable("unregistered-plugin").unwrap_err(),
             PluginError::Unsupported(_)
         ));
     }

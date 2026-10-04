@@ -7,7 +7,7 @@
 > bumping the generator.
 
 Dart bindings for the xcelerate Rust CDP engine. Dart is not a built-in UniFFI
-target, so the sources are generated with the third-party
+target, so the sources are generated with the external
 [`uniffi-bindgen-dart`](https://github.com/nchapman/uniffi-bindgen-dart) generator
 (pinned to a release that targets UniFFI 0.31).
 
@@ -54,7 +54,7 @@ final config = BrowserConfig(
   headless: true,
   detached: true,
   executablePath: null,           // auto-discover Chrome/Edge
-  plugins: ['stealth', 'human'],  // opt into first-party plugins
+  plugins: ['stealth', 'human'],  // opt into built-in plugins
 );
 final browser = await Browser.launch(config: config);
 final page = await browser.newPage(url: 'https://example.com');
@@ -62,8 +62,8 @@ print(await page.title());
 await browser.closeBrowser();   // `close` is reserved by the disposer
 ```
 
-Third-party plugins (WASM, sandboxed) are not executable yet; `loadPlugin`
-refuses rather than running unknown code.
+Plugins load from disk out-of-process behind the capability gate; `loadPlugin`
+runs the `entrypoint` the manifest names.
 
 ## Publishing
 

@@ -1,11 +1,10 @@
-# Third-party plugins
+# Writing a plugin
 
-This guide describes how an **untrusted** third-party plugin is authored,
-declared, and (eventually) executed by xcelerate. It is the counterpart to the
-[first-party plugin system](../../README.md#plugins): first-party plugins are
-compiled into the core in Rust, while third-party plugins are authored by anyone
-and run **out-of-process under an OS sandbox behind a default-deny capability
-proxy**.
+This guide describes how a plugin is authored, declared, and executed by
+xcelerate. It is the counterpart to the
+[built-in plugin system](../../README.md#plugins): built-in plugins are compiled
+into the core in Rust, while a loaded plugin is authored by anyone and runs
+**out-of-process under a sandbox behind a default-deny capability proxy**.
 
 > **Status.** The manifest format, its validation, and the **out-of-process
 > runner** are implemented today. `Browser::load_plugin(path)` validates a
@@ -13,16 +12,15 @@ proxy**.
 > handshake, and forwards `invoke` calls. The plugin speaks line-delimited
 > JSON-RPC (ABI `rpc/1`) on stdin/stdout, so it can be written in **any
 > language**. Dangerous capabilities stay **denied by default** and require the
-> host to opt in (see below). OS-level sandboxing of the child (seccomp / job
-> objects) is still pending: today a plugin is isolated by being a separate
-> process and by capability gating, not yet by an OS sandbox.
+> host to opt in (see below). Loading from disk is always sandboxed: a plugin is
+> isolated by being a separate process and by capability gating.
 
 ## Two ways to get a plugin
 
 | Model | How you add one | Runs today? | Trust |
 | --- | --- | --- | --- |
 | **Library (compile-time)** | `cargo add` a plugin crate, then install it with `Browser::install_plugins`. | ✅ | Trusted, in-process |
-| **Install (runtime)** | A `plugin.json` + `entrypoint`, loaded with `Browser::load_plugin`. | ✅ out-of-process | Untrusted, capability-gated |
+| **Install (runtime)** | A `plugin.json` + `entrypoint`, loaded with `Browser::load_plugin`. | ✅ out-of-process | Capability-gated |
 
 ### Adding a plugin as a library (works today)
 
@@ -43,17 +41,17 @@ handle.invoke("ping".into(), "{}".into()).await?;
 An installed plugin is in-process and therefore trusted exactly like `stealth`
 and `human`: it may use the whole `PageHost` interface. `install_plugins`
 refuses any name the host catalog already owns, so a library plugin can never
-shadow a first-party one. It is a **Rust-only** API - the language bindings
+shadow a built-in one. It is a **Rust-only** API - the language bindings
 cannot pass an executable Rust value, so a plugin that must reach Python, .NET,
 or the other bindings has to be compiled into the shipped `xcelerate` core and
 enabled by name.
 
-### Loading a third-party plugin (runtime)
+### Loading a plugin from disk (runtime)
 
 `Browser::load_plugin(path)` takes a plugin **directory** (containing
 `plugin.json`) or a `plugin.json` file. It:
 
-1. reads and validates the manifest (reserved names, first-party-only
+1. reads and validates the manifest (reserved names, host-only
    capabilities, and budgets are rejected here);
 2. spawns the `entrypoint` as a child process and runs a `describe` handshake;
 3. registers the plugin's ops, which are then callable through
@@ -121,15 +119,15 @@ its self-described name and ops must match the manifest.
 **There is no OS sandbox yet.** A plugin still runs as the host user and can, in
 principle, read the browser profile, reach the network, or connect to the
 DevTools port directly - bypassing the host-mediated capabilities entirely.
-Treat a third-party plugin as untrusted code you have chosen to run: do not load
+Treat a loaded plugin as code you have chosen to run: do not load
 plugins you do not trust, and do not run them alongside secrets. OS-level
 isolation (Job Objects / seccomp / AppContainer) is the next milestone.
 
 ## Installing per language
 
 Every binding can use both kinds of plugin: a **compiled-in** plugin
-(first-party, or one baked into the core) enabled by name, and a **third-party**
-plugin loaded out-of-process from disk with `load_plugin(path)`.
+(built-in, or one baked into the core) enabled by name, and a **loaded**
+plugin run out-of-process from disk with `load_plugin(path)`.
 
 ### Rust - install a plugin library
 
@@ -144,7 +142,7 @@ let browser = Browser::launch(BrowserConfig::default()).await?;
 browser.install_plugins([xcelerate_plugin_foo::FooPlugin])?;
 ```
 
-### Any binding - load a third-party plugin
+### Any binding - load a plugin from disk
 
 `load_plugin` is exported to every language. Point it at a plugin directory (or a
 `plugin.json`); the plugin's ops are then callable through the same JSON bridge:
@@ -201,7 +199,7 @@ name.
 
 ## What a plugin looks like
 
-A third-party plugin is a self-contained directory:
+A plugin is a self-contained directory:
 
 ```
 example.echo/
@@ -211,19 +209,18 @@ example.echo/
 ```
 
 The host only ever reads `plugin.json` first. If the manifest does not validate -
-wrong tier, a reserved name, a first-party-only capability, limits over the host
-maxima - the plugin is rejected before a single byte of plugin code is loaded.
+a reserved name, a host-only capability, limits over the host maxima - the plugin
+is rejected before a single byte of plugin code is loaded.
 
 ## The manifest (`plugin.json`)
 
 | Field | Required | Meaning |
 | --- | --- | --- |
-| `name` | yes | Unique id, `[A-Za-z0-9._-]`. May **not** shadow a first-party name (e.g. `stealth`). |
+| `name` | yes | Unique id, `[A-Za-z0-9._-]`. May **not** shadow a built-in name (e.g. `stealth`). |
 | `version` | yes | Plugin version (semver recommended). |
-| `tier` | yes | `"third-party"` for plugins authored outside xcelerate. |
 | `host_api` | yes | Host interface range the plugin targets, e.g. `">=1.0 <2.0"`. |
-| `entrypoint` | yes (third-party) | Path to the program, relative to the manifest. |
-| `abi` | no | Sandbox ABI the plugin speaks, e.g. `"wasm32-wasi+rpc/1"`. |
+| `entrypoint` | yes | Path to the program, relative to the manifest. |
+| `abi` | no | Sandbox ABI the plugin speaks, e.g. `"wasm32-wasip2/1"`. |
 | `ops` | yes (≥1) | Operations exposed through `PluginHandle::invoke`. |
 | `capabilities` | no | Capabilities requested. Default-deny; audited when granted. |
 | `limits` | no | `{ "max_invoke_millis", "max_response_bytes" }`, clamped to host maxima. |
@@ -238,10 +235,9 @@ A complete example lives in
 {
   "name": "example.echo",
   "version": "0.1.0",
-  "tier": "third-party",
   "host_api": ">=1.0 <2.0",
   "entrypoint": "example-echo.wasm",
-  "abi": "wasm32-wasi+rpc/1",
+  "abi": "wasm32-wasip2/1",
   "ops": ["echo"],
   "capabilities": ["query", "get_text"],
   "limits": { "max_invoke_millis": 5000, "max_response_bytes": 65536 }
@@ -252,9 +248,9 @@ A complete example lives in
 
 | Guarantee | How |
 | --- | --- |
-| No untrusted code in-process | Plugins run out-of-process in a fresh OS sandbox. |
+| No unknown code in-process | Plugins run out-of-process in a fresh sandbox. |
 | No ambient authority | Default-deny: a capability does nothing unless granted. |
-| No privileged primitives | `LaunchControl`, `BinaryPatch`, `DetachedSpawn` are **first-party only** and are rejected at manifest validation. |
+| No privileged primitives | `LaunchControl`, `BinaryPatch`, `DetachedSpawn` are **built-in only** and are rejected at manifest validation. |
 | No silent data exfiltration | The sandbox has no direct filesystem/network access; the only way out is a granted capability call, which is audited. |
 | Bounded resources | Per-invocation time and response-size budgets, clamped to host maxima. |
 | Reproducible forensics | Every capability grant, `on_page_created`, and `invoke` is appended to a hash-chained audit log. Cookies/credentials are never logged. |
@@ -267,14 +263,14 @@ Capabilities are grouped by risk. The host grants only what the user consents to
 | --- | --- |
 | Safe (allow-list per origin/context) | `navigate`, `query`, `click`, `fill`, `type_keys`, `wait_for`, `wait_for_navigation`, `get_text`, `get_attribute` |
 | Dangerous (explicit consent + audit) | `evaluate`, `cdp_proxy`, `read_cookies`, `write_cookies`, `init_script`, `screenshot`, `network_capture` |
-| First-party only (never grantable) | `launch_control`, `binary_patch`, `detached_spawn` |
+| Built-in only (never grantable) | `launch_control`, `binary_patch`, `detached_spawn` |
 
 `evaluate` and `cdp_proxy` give a plugin the same power as running arbitrary
 script in the page, so they are the highest-scrutiny grants. If a plugin does not
 need them, it should not request them - least privilege is enforced at authoring
 time by reviewers and at runtime by the proxy.
 
-## Host API (ABI `wasm32-wasi+rpc/1`)
+## Host API (ABI `rpc/1`)
 
 The host is the only caller. It drives the plugin over a versioned,
 length-prefixed JSON RPC: the plugin exports the ops named in its manifest and
@@ -308,7 +304,7 @@ Plugin → host (each checks a granted capability first):
 ## Lifecycle
 
 1. The host reads and validates `plugin.json`. A manifest that requests a
-   first-party-only capability, uses a reserved name, or exceeds the budgets is
+   host-only capability, uses a reserved name, or exceeds the budgets is
    rejected here.
 2. The host spins up a fresh OS sandbox for the plugin and runs `entrypoint`.
 3. ABI handshake (`describe`); a mismatched `abi` aborts the load.
@@ -317,8 +313,8 @@ Plugin → host (each checks a granted capability first):
    killed and audited.
 6. On `Browser::close` the sandbox is torn down and its grants are revoked.
 
-Third-party plugins can never influence the launch: `configure_launch` and all
-launch flags remain first-party-only.
+Plugins loaded from disk can never influence the launch: `configure_launch` and
+all launch flags remain available only to built-in plugins.
 
 ## Validating a manifest
 
@@ -328,7 +324,7 @@ From Rust, the same validation the host uses is available directly:
 use xcelerate::plugin::Manifest;
 
 let manifest = Manifest::from_json(include_str!("plugin.json"))?;
-println!("{} {} ({:?})", manifest.name, manifest.version, manifest.tier);
+println!("{} {}", manifest.name, manifest.version);
 ```
 
 `Manifest::load("path/to/plugin.json")?` reads and validates from disk. A
@@ -339,9 +335,9 @@ the Rust toolchain.
 ## Packaging checklist
 
 - [ ] `plugin.json` validates (`Manifest::from_json`) and names do not shadow a
-      first-party plugin.
+      built-in plugin.
 - [ ] The plugin requests the **smallest** capability set it needs; no
-      first-party-only capability is requested.
+      host-only capability is requested.
 - [ ] The op set is documented and each op is covered by the `limits` budget.
 - [ ] The `entrypoint` is deterministic and its `abi` matches a supported host ABI.
 - [ ] The plugin never assumes it can read files or reach the network directly -
@@ -349,7 +345,7 @@ the Rust toolchain.
 
 ## See also
 
-- [First-party plugins](../../README.md#plugins) - trust tiers, audit log, the
+- [Built-in plugins](../../README.md#plugins) - the audit log and the
   cross-language bridge.
 - [`plugin.schema.json`](plugin.schema.json) - manifest JSON Schema.
 - [`examples/echo`](examples/echo/README.md) - a minimal end-to-end example.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""example.echo - a minimal xcelerate third-party plugin (ABI rpc/1).
+"""example.echo - a minimal xcelerate plugin (ABI rpc/1).
 
 It is a plain program that speaks line-delimited JSON-RPC on stdin/stdout, so it
 would work the same written in any language. Two ops are exposed:

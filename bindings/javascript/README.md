@@ -28,7 +28,7 @@ main().catch(console.error);
 
 `Browser.launch()` accepts a plain config object. The defaults are
 `{ headless: true, detached: true, executable_path: null, plugins: null }`; pass
-`plugins: ['stealth', 'human']` to enable the first-party plugins.
+`plugins: ['stealth', 'human']` to enable the built-in plugins.
 `availablePlugins()` returns `['stealth', 'human']`; use `pluginNames()` and
 `plugin(name)` to inspect and drive them at runtime.
 

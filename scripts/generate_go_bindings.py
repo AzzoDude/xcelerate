@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate the Go bindings and assemble a Go module.
 
-Go is not a built-in UniFFI target. It needs the third-party
+Go is not a built-in UniFFI target. It needs the external
 ``uniffi-bindgen-go`` generator, which is **not** on crates.io - install it with
 the Go toolchain:
 

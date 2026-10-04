@@ -1,4 +1,4 @@
-//! First-party `human` plugin.
+//! Built-in `human` plugin.
 //!
 //! Turns automation input into something that behaves like a person: mouse
 //! travel follows a jittered Bezier path, clicks pause before pressing and hold
@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 
 use xcelerate_plugin_api::{
     ArcPageHost, BoxFut, Budgets, Capability, Manifest, OpCall, Plugin, PluginError, PluginResult,
-    Registry, Tier,
+    Registry,
 };
 
 /// Human-like input for the focused page.
@@ -86,7 +86,6 @@ impl Plugin for HumanPlugin {
         Manifest {
             name: "human".to_string(),
             version: env!("CARGO_PKG_VERSION").to_string(),
-            tier: Tier::FirstParty,
             host_api: "1.x".to_string(),
             entrypoint: None,
             abi: Some("native/1".to_string()),
@@ -95,6 +94,7 @@ impl Plugin for HumanPlugin {
                 .map(|op| (*op).to_string())
                 .collect(),
             capabilities: vec![Capability::Click, Capability::TypeKeys, Capability::Query],
+            dependencies: Default::default(),
             limits: Budgets::default(),
         }
     }
@@ -104,7 +104,6 @@ impl Plugin for HumanPlugin {
             Box::pin(async {
                 Ok(serde_json::json!({
                     "name": "human",
-                    "tier": "first-party",
                     "enabled": true,
                     "ops": ["move", "click", "type", "scroll", "delay"],
                 })

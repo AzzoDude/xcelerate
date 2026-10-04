@@ -10,7 +10,7 @@
 //! * `XCELERATE_CHROME`   - path to the Chrome/Edge executable.
 //! * `XCELERATE_HEADLESS` - `1`/`true` to run headless (default `true`).
 //! * `XCELERATE_DETACHED` - `1`/`true` to detach the browser process (default `false`).
-//! * `XCELERATE_PLUGINS`  - comma-separated first-party plugins (e.g. `stealth,human`).
+//! * `XCELERATE_PLUGINS`  - comma-separated built-in plugins (e.g. `stealth,human`).
 
 use std::error::Error;
 
@@ -739,7 +739,7 @@ fn tool_definitions() -> Value {
         },
         {
             "name": "browser_load_plugin",
-            "description": "Load a third-party plugin from a directory or plugin.json. Its ops become callable through browser_plugin_invoke. Dangerous capabilities stay denied unless the host opted in.",
+            "description": "Load a plugin from a directory or plugin.json. Its ops become callable through browser_plugin_invoke. Dangerous capabilities stay denied unless the host opted in.",
             "inputSchema": {
                 "type": "object",
                 "properties": { "path": { "type": "string", "description": "Plugin directory or path to plugin.json." } },

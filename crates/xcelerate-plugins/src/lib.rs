@@ -1,10 +1,10 @@
-//! First-party plugins for `xcelerate`, compiled into the engine and running
+//! Built-in plugins for `xcelerate`, compiled into the engine and running
 //! in-process.
 //!
 //! Every plugin lives in its own module and is reachable through [`builtin`],
-//! the single lookup the engine's plugin manager uses. First-party plugins are
+//! the single lookup the engine's plugin manager uses. Built-in plugins are
 //! trusted and may use privileged primitives (launch control, binary patching,
-//! detached spawn, init scripts); third-party plugins never can.
+//! detached spawn, init scripts); loaded plugins never can.
 //!
 //! * [`stealth`] - binary patching at launch + the anti-fingerprint payload.
 //! * [`human`] - human-like mouse, typing, and scrolling.
@@ -31,17 +31,17 @@ use xcelerate_plugin_api::{Plugin, PluginError};
 /// WebGL, ...).
 pub const CDC_PAYLOAD: &str = include_str!("cdc_payload.js");
 
-/// Names of all compiled-in first-party plugins.
+/// Names of all compiled-in built-in plugins.
 pub fn builtin_names() -> &'static [&'static str] {
     &["stealth", "human"]
 }
 
-/// Whether `name` is a reserved first-party plugin name.
+/// Whether `name` is a reserved built-in plugin name.
 pub fn is_builtin(name: &str) -> bool {
     builtin_names().contains(&name)
 }
 
-/// Construct a first-party plugin by name, or `None` if unknown.
+/// Construct a built-in plugin by name, or `None` if unknown.
 pub fn builtin(name: &str) -> Option<Arc<dyn Plugin>> {
     match name {
         "stealth" => Some(Arc::new(stealth::StealthPlugin)),

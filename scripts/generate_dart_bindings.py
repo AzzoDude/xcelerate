@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate the Dart/Flutter bindings and assemble a pub package.
 
-Dart is not a built-in UniFFI target; it needs the third-party
+Dart is not a built-in UniFFI target; it needs the external
 ``uniffi-bindgen-dart`` generator (``cargo install uniffi-bindgen-dart``). The
 generator emits a single ``xcelerate.dart`` which loads the native library named
 ``uniffi_xcelerate`` (``uniffi_xcelerate.dll`` / ``libuniffi_xcelerate.so`` /

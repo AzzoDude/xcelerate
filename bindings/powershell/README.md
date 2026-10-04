@@ -82,8 +82,8 @@ $stealth.Ops()                    # operations it exposes
 $stealth.Invoke('info', '{}')     # JSON in, JSON out
 ```
 
-Third-party plugins are not supported yet: `LoadPlugin` refuses rather than
-executing unknown code.
+Plugins load from disk out-of-process behind the capability gate; `LoadPlugin`
+runs the `entrypoint` the manifest names.
 
 ## Raw .NET access
 

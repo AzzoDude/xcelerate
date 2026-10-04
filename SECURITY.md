@@ -72,7 +72,7 @@ Out of scope:
 
 - **The `stealth` plugin's intended behaviour.** Reducing common automation
   fingerprints is a documented feature, not a vulnerability.
-- **Third-party plugin code.** How a third-party plugin behaves is the author's
+- **Sandboxed plugin code.** How a sandboxed plugin behaves is the author's
   responsibility and is used at your own risk. Report flaws in a *specific
   plugin* to that plugin's author. A flaw in the **host** that grants a plugin
   more than it asked for is in scope.

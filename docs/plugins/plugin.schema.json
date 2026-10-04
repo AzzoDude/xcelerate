@@ -2,25 +2,21 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/AzzoDude/xcelerate/docs/plugins/plugin.schema.json",
   "title": "xcelerate plugin manifest",
-  "description": "Declarative manifest for an xcelerate plugin. Third-party manifests are validated by the host before any plugin code runs.",
+  "description": "Declarative manifest for an xcelerate plugin. Manifests are validated by the host before any plugin code runs.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["name", "version", "tier", "host_api"],
+  "required": ["name", "version", "host_api", "entrypoint", "ops"],
   "properties": {
     "name": {
       "type": "string",
       "minLength": 1,
       "pattern": "^[A-Za-z0-9._-]+$",
-      "description": "Unique plugin id. May not shadow a first-party plugin name such as 'stealth'."
+      "description": "Unique plugin id. May not shadow a built-in plugin name such as 'stealth'."
     },
     "version": {
       "type": "string",
       "minLength": 1,
       "description": "Plugin version (semver recommended)."
-    },
-    "tier": {
-      "enum": ["first-party", "third-party"],
-      "description": "Trust tier. Plugins authored outside xcelerate must use 'third-party'."
     },
     "host_api": {
       "type": "string",
@@ -30,12 +26,12 @@
     "entrypoint": {
       "type": "string",
       "minLength": 1,
-      "description": "Path to the sandboxed program, relative to the manifest. Required for third-party plugins."
+      "description": "Path to the sandboxed program, relative to the manifest."
     },
     "abi": {
       "type": "string",
       "minLength": 1,
-      "description": "Sandbox ABI the plugin speaks, e.g. 'wasm32-wasi+rpc/1'."
+      "description": "Sandbox ABI the plugin speaks, e.g. 'wasm32-wasip2/1'."
     },
     "ops": {
       "type": "array",
@@ -48,7 +44,12 @@
       "type": "array",
       "uniqueItems": true,
       "items": { "$ref": "#/$defs/capability" },
-      "description": "Capabilities requested. Default-deny; first-party-only capabilities are rejected for third-party plugins."
+      "description": "Capabilities requested. Default-deny; host-only capabilities are rejected."
+    },
+    "dependencies": {
+      "type": "object",
+      "description": "Other plugins this one depends on, as plugin name -> version range. Resolved and loaded before this plugin; each remains independently sandboxed and granted.",
+      "additionalProperties": { "type": "string", "minLength": 1 }
     },
     "limits": {
       "type": "object",
@@ -94,14 +95,5 @@
         "detached_spawn"
       ]
     }
-  },
-  "allOf": [
-    {
-      "if": {
-        "properties": { "tier": { "const": "third-party" } },
-        "required": ["tier"]
-      },
-      "then": { "required": ["entrypoint", "ops"] }
-    }
-  ]
+  }
 }
