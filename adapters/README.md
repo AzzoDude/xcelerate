@@ -43,8 +43,9 @@ pw = use("playwright")
 browser = await pw.launch(config)
 ```
 
-Nothing runs unless it is listed (default-deny). Third-party plugins are not
-supported yet - `load_plugin` refuses rather than executing unknown code. See the
+Nothing runs unless it is listed (default-deny). Third-party plugins load
+out-of-process with `Browser::load_plugin` and speak a line-delimited JSON-RPC
+protocol, so they can be written in any language. See the
 [plugins section](../README.md#plugins) of the top-level README for the trust
 tiers, capabilities, and the append-only audit log.
 

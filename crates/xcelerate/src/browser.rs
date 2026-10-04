@@ -1,7 +1,7 @@
 use crate::CdpClient;
 use crate::error::{XcelerateError, XcelerateResult};
 use crate::page::Page;
-use crate::plugin::{PluginHandle, PluginManager};
+use crate::plugin::{Plugin, PluginHandle, PluginManager};
 use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Arc;
@@ -150,6 +150,7 @@ impl Browser {
             credentials: Arc::new(tokio::sync::Mutex::new(None)),
             drag_interception: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             default_timeout_ms: std::sync::atomic::AtomicU64::new(30_000),
+            recording: tokio::sync::Mutex::new(None),
         });
 
         // 3. Run plugin page-created hooks (e.g. stealth payload injection).
@@ -197,15 +198,45 @@ impl Browser {
         }
     }
 
-    /// Loads a third-party plugin. Not supported in this phase.
+    /// Loads a third-party plugin from disk.
     ///
-    /// The sandboxed, out-of-process runner required for untrusted plugins does
-    /// not exist yet, so this always refuses rather than executing unknown code.
+    /// `path` may be a plugin directory (containing `plugin.json`) or a
+    /// `plugin.json` file. The manifest is validated, the entrypoint is spawned
+    /// **out-of-process**, and a `describe` handshake wires up its ops. Dangerous
+    /// capabilities stay denied unless opted into via `XCELERATE_PLUGIN_ALLOW`.
+    ///
+    /// Once loaded, the plugin's ops are reachable through
+    /// `plugin(name).invoke(op, args_json)` in every language, exactly like a
+    /// first-party plugin.
     pub fn load_plugin(&self, path: String) -> XcelerateResult<String> {
-        Err(XcelerateError::Unsupported(format!(
-            "cannot load third-party plugin '{path}': only compiled-in first-party \
-             plugins are supported in this phase"
-        )))
+        let manifest_path = crate::plugin::process::resolve_manifest_path(&path)?;
+        let manifest = xcelerate_plugin_api::Manifest::load(&manifest_path.to_string_lossy())?;
+
+        // Only third-party plugins may be loaded from disk: the out-of-process
+        // path must not be usable to skip the third-party manifest checks.
+        if manifest.tier != xcelerate_plugin_api::Tier::ThirdParty {
+            return Err(XcelerateError::Unsupported(format!(
+                "plugin '{}' must declare tier 'third-party' to be loaded from disk",
+                manifest.name
+            )));
+        }
+        manifest
+            .validate_reserved(xcelerate_plugins::builtin_names())
+            .map_err(|error| XcelerateError::Unsupported(error.to_string()))?;
+        if self.plugins.has(&manifest.name) {
+            return Err(XcelerateError::Unsupported(format!(
+                "plugin '{}' is already loaded",
+                manifest.name
+            )));
+        }
+
+        let plugin = crate::plugin::process::spawn(
+            &manifest,
+            &manifest_path,
+            Some(Arc::clone(&self.client)),
+        )?;
+        self.plugins.install(plugin)?;
+        Ok(format!("loaded plugin '{}'", manifest.name))
     }
 
     /// Verifies the integrity of the append-only plugin audit log.
@@ -490,6 +521,40 @@ impl Browser {
                 serde_json::json!({ "behavior": "allow", "downloadPath": path }),
             )
             .await?;
+        Ok(())
+    }
+}
+
+/// Compile-time extension point, kept out of the `#[uniffi::export]` block so it
+/// stays Rust-only (it takes executable [`Plugin`] values).
+impl Browser {
+    /// Installs trusted, in-process plugins, taken by value.
+    ///
+    /// This is how a plugin shipped as a Cargo library is added: `cargo add` the
+    /// crate, then hand the plugin(s) here. The argument is anything iterable, so
+    /// a single plugin and a batch are both one call:
+    ///
+    /// ```ignore
+    /// browser.install_plugins([MyPlugin])?;
+    /// browser.install_plugins([PluginA, PluginB])?;
+    /// ```
+    ///
+    /// Installed plugins run in-process and therefore have the same trust as the
+    /// built-in `stealth`/`human` plugins. Install them before creating pages so
+    /// their `on_page_created` hook sees them. Names already owned by the host
+    /// catalog (for example `stealth`) are refused.
+    ///
+    /// Rust-only: it is intentionally not exposed through the language bindings,
+    /// because it hands the host an executable Rust value.
+    pub fn install_plugins<I>(&self, plugins: I) -> XcelerateResult<()>
+    where
+        I: IntoIterator,
+        I::Item: Plugin + 'static,
+    {
+        for plugin in plugins {
+            let plugin: Arc<dyn Plugin> = Arc::new(plugin);
+            self.plugins.install(plugin)?;
+        }
         Ok(())
     }
 }

@@ -68,7 +68,7 @@ pub enum Tier {
 /// capability proxy once the third-party tier lands; the enum already records
 /// the classification so first-party-only primitives can never be granted to a
 /// third-party plugin.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Capability {
     // On by default for a granted origin/context.
@@ -584,6 +584,44 @@ impl PluginManager {
         self.launched.store(true, Ordering::SeqCst);
     }
 
+    /// Install a trusted, in-process plugin directly.
+    ///
+    /// This is the compile-time extension point ("a plugin is a library"): a
+    /// plugin crate added as a Cargo dependency is installed here by the
+    /// embedder. Such a plugin runs in-process and is therefore trusted exactly
+    /// like a first-party plugin - it may use the whole [`PageHost`] interface.
+    /// The sandboxed, capability-gated path for untrusted plugins is a separate,
+    /// not-yet-implemented tier.
+    ///
+    /// Names already owned by the host catalog (for example `stealth`) are
+    /// refused, so a library plugin can never shadow a first-party one. Install
+    /// before creating pages so the plugin's `on_page_created` hook sees them.
+    pub fn install(&self, plugin: Arc<dyn Plugin>) -> PluginResult<()> {
+        let name = plugin.name().to_string();
+        if name.trim().is_empty() {
+            return Err(PluginError::Unsupported(
+                "cannot install a plugin with an empty name".to_string(),
+            ));
+        }
+        if (self.catalog)(&name).is_some() {
+            return Err(PluginError::Unsupported(format!(
+                "plugin name '{name}' is reserved by the host catalog"
+            )));
+        }
+        if self.has(&name) {
+            return Err(PluginError::Unsupported(format!(
+                "plugin '{name}' is already installed"
+            )));
+        }
+
+        let mut reg = Registry::default();
+        plugin.build(&mut reg);
+        self.tables.write().unwrap().insert(name.clone(), reg.ops);
+        self.plugins.write().unwrap().push(plugin);
+        audit(&name, "install", "in-process");
+        Ok(())
+    }
+
     pub fn names(&self) -> Vec<String> {
         self.plugins
             .read()
@@ -796,5 +834,68 @@ mod tests {
         audit("test", "action", "never-a-secret");
         assert!(audit_verify());
         assert!(audit_entries().iter().any(|e| e.plugin == "test"));
+    }
+
+    /// A minimal in-process plugin, standing in for a library a user adds as a
+    /// Cargo dependency.
+    struct LibraryPlugin;
+
+    impl Plugin for LibraryPlugin {
+        fn name(&self) -> &str {
+            "example.library"
+        }
+        fn tier(&self) -> Tier {
+            Tier::ThirdParty
+        }
+        fn manifest(&self) -> Manifest {
+            Manifest {
+                name: "example.library".to_string(),
+                version: "0.1.0".to_string(),
+                tier: Tier::ThirdParty,
+                host_api: "1.x".to_string(),
+                entrypoint: None,
+                abi: None,
+                ops: vec!["ping".to_string()],
+                capabilities: vec![],
+                limits: Budgets::default(),
+            }
+        }
+        fn build(&self, reg: &mut Registry) {
+            reg.op("ping", |_call| {
+                Box::pin(async { Ok("\"pong\"".to_string()) })
+            });
+        }
+    }
+
+    fn empty_catalog() -> Catalog {
+        Arc::new(|_name: &str| -> Option<Arc<dyn Plugin>> { None })
+    }
+
+    #[test]
+    fn installs_a_library_plugin() {
+        let manager = PluginManager::new(&[], empty_catalog()).unwrap();
+        manager.install(Arc::new(LibraryPlugin)).unwrap();
+        assert_eq!(manager.names(), vec!["example.library".to_string()]);
+        assert_eq!(manager.ops("example.library"), vec!["ping".to_string()]);
+    }
+
+    #[test]
+    fn refuses_installing_a_catalog_name_or_duplicate() {
+        let catalog: Catalog = Arc::new(|name: &str| {
+            (name == "example.library").then(|| Arc::new(LibraryPlugin) as Arc<dyn Plugin>)
+        });
+        let manager = PluginManager::new(&[], catalog).unwrap();
+        // A name the host catalog owns cannot be shadowed.
+        assert!(matches!(
+            manager.install(Arc::new(LibraryPlugin)).unwrap_err(),
+            PluginError::Unsupported(_)
+        ));
+        // And a plugin cannot be installed twice.
+        let manager = PluginManager::new(&[], empty_catalog()).unwrap();
+        manager.install(Arc::new(LibraryPlugin)).unwrap();
+        assert!(matches!(
+            manager.install(Arc::new(LibraryPlugin)).unwrap_err(),
+            PluginError::Unsupported(_)
+        ));
     }
 }

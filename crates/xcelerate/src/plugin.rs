@@ -17,6 +17,8 @@ pub use xcelerate_plugin_api::{
 };
 pub use xcelerate_plugins::{builtin_names, is_builtin};
 
+pub(crate) mod process;
+
 /// The host's first-party plugin catalog.
 pub(crate) fn catalog() -> Catalog {
     Arc::new(xcelerate_plugins::builtin)

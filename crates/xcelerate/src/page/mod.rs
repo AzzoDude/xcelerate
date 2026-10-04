@@ -17,6 +17,7 @@ use browser_protocol::performance::GetMetricsParams;
 use std::sync::Arc;
 
 mod intercept;
+pub(crate) mod recording;
 mod rng;
 
 use intercept::run_interception;
@@ -36,6 +37,7 @@ pub struct Page {
     pub(crate) credentials: Arc<tokio::sync::Mutex<Option<(String, String)>>>,
     pub(crate) drag_interception: Arc<std::sync::atomic::AtomicBool>,
     pub(crate) default_timeout_ms: std::sync::atomic::AtomicU64,
+    pub(crate) recording: tokio::sync::Mutex<Option<recording::VideoRecording>>,
 }
 
 /// A declarative network-interception rule.

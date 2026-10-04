@@ -27,6 +27,7 @@ pub use browser::{Browser, BrowserConfig};
 pub use element::Element;
 pub use error::{XcelerateError, XcelerateResult};
 pub use page::Page;
+pub use page::recording::VideoOptions;
 pub use plugin::{Capability, Manifest, Plugin, PluginHandle, Tier};
 
 // Re-export the transport layer and the generated protocol crates so downstream

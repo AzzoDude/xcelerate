@@ -3,12 +3,16 @@
 //! Each page command launches a fresh browser, performs one action, and exits.
 //! `xcelerate-cli mcp` instead starts the Model Context Protocol server on stdio.
 
+use mimalloc::MiMalloc;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
 use clap::{Args, Parser, Subcommand};
 
-use xcelerate::{Browser, BrowserConfig, Page, XcelerateResult};
+use xcelerate::{Browser, BrowserConfig, Page, VideoOptions, XcelerateResult};
 
 #[derive(Parser)]
 #[command(
@@ -80,6 +84,24 @@ enum Command {
     QueryAll { url: String, selector: String },
     /// Evaluate a JavaScript expression and print the JSON result.
     Evaluate { url: String, expression: String },
+    /// Record a video of a page for a fixed duration.
+    Record {
+        url: String,
+        #[arg(short, long, default_value = "video.mp4")]
+        output: PathBuf,
+        /// How long to record, in seconds.
+        #[arg(short, long, default_value_t = 5.0)]
+        duration: f64,
+        /// JPEG quality for each captured frame (1-100).
+        #[arg(long, default_value_t = 80)]
+        quality: u32,
+        /// Output frame rate for the native (AVI) back end.
+        #[arg(long, default_value_t = 12)]
+        fps: u32,
+        /// Never use ffmpeg; always write a native Motion-JPEG AVI.
+        #[arg(long)]
+        no_ffmpeg: bool,
+    },
     /// List the compiled-in first-party plugins.
     Plugins,
     /// Run the Model Context Protocol (MCP) server on stdio.
@@ -179,6 +201,31 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", page.evaluate_json(expression).await?);
             browser.close().await?;
         }
+        Command::Record {
+            url,
+            output,
+            duration,
+            quality,
+            fps,
+            no_ffmpeg,
+        } => {
+            let (browser, page) = launch(&cli.browser, &url).await?;
+            let options = VideoOptions {
+                quality,
+                max_width: 0,
+                max_height: 0,
+                fps,
+                ffmpeg: !no_ffmpeg,
+            };
+            page.start_video_with_options(output.to_string_lossy().into_owned(), options)
+                .await?;
+            tokio::time::sleep(std::time::Duration::from_secs_f64(duration.max(0.1))).await;
+            match page.stop_video().await? {
+                Some(path) => println!("wrote {path}"),
+                None => println!("recording did not start"),
+            }
+            browser.close().await?;
+        }
     }
     Ok(())
 }
@@ -200,5 +247,8 @@ async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Browser>,
     if args.timeout > 0 {
         page.set_default_timeout(args.timeout as f64).await?;
     }
+    // `new_page` returns as soon as navigation is issued; wait for the load
+    // event so client-rendered pages are populated before we read them.
+    let _ = page.wait_for_navigation().await;
     Ok((browser, page))
 }

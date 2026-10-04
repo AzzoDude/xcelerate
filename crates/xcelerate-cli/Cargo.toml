@@ -10,14 +10,15 @@ description = "Command-line interface for the xcelerate CDP engine."
 publish = false
 
 [[bin]]
-name = "xcelerate-cli"
+name = "xcelerate"
 path = "src/main.rs"
 
 [dependencies]
-xcelerate = { workspace = true }
-xcelerate-mcp = { path = "../xcelerate-mcp" }
-clap = { workspace = true }
-tokio = { workspace = true }
+xcelerate.workspace = true
+xcelerate-mcp.workspace = true
+clap.workspace = true
+tokio.workspace = true
+mimalloc.workspace = true
 
 [lints]
 workspace = true

@@ -154,6 +154,9 @@ impl Server {
                 let url = str_arg(args, "url")?;
                 let page = self.ensure_page().await?;
                 page.navigate(url.to_string()).await.map_err(to_message)?;
+                // `new_page`/`navigate` can return before a single-page app has
+                // hydrated, so give the load event a chance before reading the DOM.
+                let _ = page.wait_for_navigation().await;
                 let title = page.title().await.unwrap_or_default();
                 let current = page.url().await.unwrap_or_else(|_| url.to_string());
                 Ok(Outcome::Text(format!(
@@ -377,6 +380,44 @@ impl Server {
                     .map_err(to_message)?;
                 Ok(Outcome::Text(result))
             }
+            "browser_wait" => {
+                let milliseconds = u64_arg(args, "milliseconds").ok_or_else(|| {
+                    "missing required integer argument 'milliseconds'".to_string()
+                })?;
+                tokio::time::sleep(std::time::Duration::from_millis(milliseconds.min(60_000)))
+                    .await;
+                Ok(Outcome::Text(format!("Waited {milliseconds} ms.")))
+            }
+            "browser_start_recording" => {
+                let path = str_arg(args, "path")?;
+                let options = xcelerate::VideoOptions {
+                    quality: u32_arg(args, "quality").unwrap_or(80),
+                    max_width: u32_arg(args, "max_width").unwrap_or(0),
+                    max_height: u32_arg(args, "max_height").unwrap_or(0),
+                    fps: u32_arg(args, "fps").unwrap_or(12),
+                    ffmpeg: !bool_arg(args, "no_ffmpeg").unwrap_or(false),
+                };
+                let page = self.ensure_page().await?;
+                page.start_video_with_options(path.to_string(), options)
+                    .await
+                    .map_err(to_message)?;
+                Ok(Outcome::Text(format!(
+                    "Recording started; frames are being captured for {path}."
+                )))
+            }
+            "browser_stop_recording" => {
+                let page = self.ensure_page().await?;
+                match page.stop_video().await.map_err(to_message)? {
+                    Some(path) => Ok(Outcome::Text(format!("Recording saved to {path}"))),
+                    None => Ok(Outcome::Text("No recording was in progress.".to_string())),
+                }
+            }
+            "browser_load_plugin" => {
+                let path = str_arg(args, "path")?;
+                let browser = self.ensure_browser().await?;
+                let message = browser.load_plugin(path.to_string()).map_err(to_message)?;
+                Ok(Outcome::Text(message))
+            }
             "browser_close" => {
                 if let Some(page) = self.page.take() {
                     let _ = page.close().await;
@@ -447,6 +488,16 @@ fn opt_str_arg<'a>(args: &'a Value, key: &str) -> Option<&'a str> {
 
 fn bool_arg(args: &Value, key: &str) -> Option<bool> {
     args.get(key).and_then(Value::as_bool)
+}
+
+fn u32_arg(args: &Value, key: &str) -> Option<u32> {
+    args.get(key)
+        .and_then(Value::as_u64)
+        .map(|value| value as u32)
+}
+
+fn u64_arg(args: &Value, key: &str) -> Option<u64> {
+    args.get(key).and_then(Value::as_u64)
 }
 
 /// Browser launch configuration, taken from the environment with safe defaults.
@@ -647,6 +698,45 @@ fn tool_definitions() -> Value {
             }
         },
         {
+            "name": "browser_wait",
+            "description": "Pause for a number of milliseconds (max 60000).",
+            "inputSchema": {
+                "type": "object",
+                "properties": { "milliseconds": { "type": "integer" } },
+                "required": ["milliseconds"]
+            }
+        },
+        {
+            "name": "browser_start_recording",
+            "description": "Start recording the page to a video file. Uses ffmpeg for .mp4/.webm when available, otherwise writes a Motion-JPEG .avi next to the requested path.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "path": { "type": "string", "description": "Output video path (e.g. out.mp4 or out.avi)." },
+                    "quality": { "type": "integer", "description": "JPEG quality 1-100 (default 80)." },
+                    "fps": { "type": "integer", "description": "Frame rate for the native AVI back end (default 12)." },
+                    "max_width": { "type": "integer", "description": "Downscale width (0 = native)." },
+                    "max_height": { "type": "integer", "description": "Downscale height (0 = native)." },
+                    "no_ffmpeg": { "type": "boolean", "description": "Always use the native AVI writer." }
+                },
+                "required": ["path"]
+            }
+        },
+        {
+            "name": "browser_stop_recording",
+            "description": "Stop the current recording and write the video file. Returns the saved path.",
+            "inputSchema": { "type": "object", "properties": {} }
+        },
+        {
+            "name": "browser_load_plugin",
+            "description": "Load a third-party plugin from a directory or plugin.json. Its ops become callable through browser_plugin_invoke. Dangerous capabilities stay denied unless the host opted in.",
+            "inputSchema": {
+                "type": "object",
+                "properties": { "path": { "type": "string", "description": "Plugin directory or path to plugin.json." } },
+                "required": ["path"]
+            }
+        },
+        {
             "name": "browser_close",
             "description": "Close the browser and end the session.",
             "inputSchema": { "type": "object", "properties": {} }
@@ -673,6 +763,10 @@ mod tests {
         assert_eq!(names.len(), count, "tool names must be unique");
         assert!(names.contains(&"browser_navigate"));
         assert!(names.contains(&"browser_screenshot"));
+        assert!(names.contains(&"browser_start_recording"));
+        assert!(names.contains(&"browser_stop_recording"));
+        assert!(names.contains(&"browser_wait"));
+        assert!(names.contains(&"browser_load_plugin"));
     }
 
     #[test]

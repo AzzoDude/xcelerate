@@ -8,11 +8,6 @@ members = [
     "crates/xcelerate-cli",
     "crates/xcelerate-mcp",
 ]
-
-# Keep non-Rust artifact directories out of the workspace so they are never
-# treated as members (generated bindings, downloaded toolchains, generator
-# inputs). Harmless with an explicit member list, but defensive if a Cargo.toml
-# ever appears under one of them.
 exclude = ["bindings", "tools", "adapters", "scripts"]
 resolver = "3"
 
@@ -24,27 +19,23 @@ authors = ["AzzoDude"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/AzzoDude/xcelerate"
 
-# Shared lint policy for every crate in the workspace.
 [workspace.lints.rust]
-# `unsafe` is used deliberately in the first-party plugins crate for platform
-# syscalls (setsid/pre_exec, libc::kill), so it is allowed rather than forbidden.
 unsafe_code = "allow"
 
 [workspace.lints.clippy]
-# Allow lints that are not actionable for generated/hand-written glue.
 empty_line_after_doc_comments = "allow"
 doc_lazy_continuation = "allow"
 
-# Every dependency version lives here so the whole workspace can be bumped to
-# the latest release from a single place.
 [workspace.dependencies]
 # Internal crates.
 xcelerate = { path = "crates/xcelerate", version = "1.0.9" }
 xcelerate-core = { path = "crates/xcelerate-core", version = "1.0.9" }
+xcelerate-mcp = { path = "crates/xcelerate-mcp", version = "1.0.9" }
 xcelerate-plugin-api = { path = "crates/xcelerate-plugin-api", version = "1.0.9" }
 xcelerate-plugins = { path = "crates/xcelerate-plugins", version = "1.0.9" }
 
 # Third-party crates.
+mimalloc = "0.1.52"
 clap = { version = "4.5.20", features = ["derive"] }
 js-protocol = "0.1.6"
 browser-protocol = "0.1.6"

@@ -7,13 +7,197 @@ compiled into the core in Rust, while third-party plugins are authored by anyone
 and run **out-of-process under an OS sandbox behind a default-deny capability
 proxy**.
 
-> **Status.** The manifest format, the ABI contract, and the host-side validation
-> below are **implemented and enforced today** (`Manifest::from_json`,
-> `Manifest::load`, `Manifest::validate`). The sandboxed **runner** that would
-> execute a validated plugin is **not implemented yet**, so `Browser::load_plugin`
-> deliberately refuses every third-party plugin. A plugin that validates will not
-> run until the runner ships. This is intentional: xcelerate never executes
-> untrusted code just because a manifest looks valid.
+> **Status.** The manifest format, its validation, and the **out-of-process
+> runner** are implemented today. `Browser::load_plugin(path)` validates a
+> `plugin.json`, spawns its `entrypoint` as a child process, runs a `describe`
+> handshake, and forwards `invoke` calls. The plugin speaks line-delimited
+> JSON-RPC (ABI `rpc/1`) on stdin/stdout, so it can be written in **any
+> language**. Dangerous capabilities stay **denied by default** and require the
+> host to opt in (see below). OS-level sandboxing of the child (seccomp / job
+> objects) is still pending: today a plugin is isolated by being a separate
+> process and by capability gating, not yet by an OS sandbox.
+
+## Two ways to get a plugin
+
+| Model | How you add one | Runs today? | Trust |
+| --- | --- | --- | --- |
+| **Library (compile-time)** | `cargo add` a plugin crate, then install it with `Browser::install_plugins`. | ✅ | Trusted, in-process |
+| **Install (runtime)** | A `plugin.json` + `entrypoint`, loaded with `Browser::load_plugin`. | ✅ out-of-process | Untrusted, capability-gated |
+
+### Adding a plugin as a library (works today)
+
+A plugin is just a crate that implements `Plugin`. Add it as a dependency and
+install it **before** creating pages, so its `on_page_created` hook sees them:
+
+```rust
+use xcelerate::{Browser, BrowserConfig};
+
+let browser = Browser::launch(BrowserConfig::default()).await?;
+browser.install_plugins([my_plugin::MyPlugin])?;   // pass by value, no Arc
+
+let page = browser.new_page("https://example.com".to_string()).await?;
+let handle = browser.plugin("my.plugin".to_string())?;
+handle.invoke("ping".into(), "{}".into()).await?;
+```
+
+An installed plugin is in-process and therefore trusted exactly like `stealth`
+and `human`: it may use the whole `PageHost` interface. `install_plugins`
+refuses any name the host catalog already owns, so a library plugin can never
+shadow a first-party one. It is a **Rust-only** API - the language bindings
+cannot pass an executable Rust value, so a plugin that must reach Python, .NET,
+or the other bindings has to be compiled into the shipped `xcelerate` core and
+enabled by name.
+
+### Loading a third-party plugin (runtime)
+
+`Browser::load_plugin(path)` takes a plugin **directory** (containing
+`plugin.json`) or a `plugin.json` file. It:
+
+1. reads and validates the manifest (reserved names, first-party-only
+   capabilities, and budgets are rejected here);
+2. spawns the `entrypoint` as a child process and runs a `describe` handshake;
+3. registers the plugin's ops, which are then callable through
+   `plugin(name).invoke(op, args_json)` in **every language** - no binding code
+   and no rebuild of the core.
+
+The entrypoint is any program that speaks the `rpc/1` protocol. The host infers
+an interpreter from the extension (`.py` -> `python`, `.js` -> `node`, `.rb` ->
+`ruby`, `.sh` -> `sh`; anything else is run directly), so a plugin can be a
+script or a compiled binary.
+
+```rust
+let browser = Browser::launch(BrowserConfig::default()).await?;
+browser.load_plugin("docs/plugins/examples/echo".to_string())?;
+let handle = browser.plugin("example.echo".to_string())?;
+let result = handle.invoke("echo".into(), r#"{"hello":"world"}"#.into()).await?;
+```
+
+#### The `rpc/1` protocol
+
+Newline-delimited JSON, one object per line. Host to plugin:
+
+| Call | Meaning |
+| --- | --- |
+| `describe` | handshake; the plugin replies `{name, abi, ops}`. |
+| `invoke {op, args}` | run an op; reply with `result` or `error`. |
+| `shutdown` | the host is done; exit. |
+
+Plugin to host (each is **capability-gated** and audited):
+
+| Callback | Capability |
+| --- | --- |
+| `host.log {message}` | always (redacted) |
+| `host.get_cookies` | `read_cookies` |
+| `host.set_cookie {cookie}` | `write_cookies` |
+| `host.cdp {method, params}` | `cdp_proxy` |
+
+#### Granting dangerous capabilities
+
+Dangerous callbacks are **denied by default**. The host opts in with the
+`XCELERATE_PLUGIN_ALLOW` environment variable (comma-separated). Prefer the
+per-plugin form so a grant cannot leak to another plugin:
+
+```bash
+# only example.echo may read cookies
+XCELERATE_PLUGIN_ALLOW=example.echo:read_cookies <host command>
+# a bare capability name applies to every loaded plugin (use with care)
+XCELERATE_PLUGIN_ALLOW=read_cookies <host command>
+```
+
+Granting a callback is audited; refusing one is audited too. `host.cdp`
+requires the **narrower** capability for cookie/`evaluate` methods as well, so
+`cdp_proxy` cannot be used to bypass `read_cookies` / `write_cookies` /
+`evaluate`. The `docs/plugins/examples/echo` plugin demonstrates `echo` (always
+allowed) and `cookies` (`read_cookies`).
+
+#### Hardening and residual risk
+
+The child runs with a **cleared environment** (no host tokens or keys, no
+`XCELERATE_PLUGIN_ALLOW`), an **absolute interpreter path** (no `PATH` or
+current-directory exec planting), a **size-capped** protocol, and per-invoke
+**timeouts**. The `entrypoint` must resolve **inside the plugin directory**, and
+its self-described name and ops must match the manifest.
+
+**There is no OS sandbox yet.** A plugin still runs as the host user and can, in
+principle, read the browser profile, reach the network, or connect to the
+DevTools port directly - bypassing the host-mediated capabilities entirely.
+Treat a third-party plugin as untrusted code you have chosen to run: do not load
+plugins you do not trust, and do not run them alongside secrets. OS-level
+isolation (Job Objects / seccomp / AppContainer) is the next milestone.
+
+## Installing per language
+
+Every binding can use both kinds of plugin: a **compiled-in** plugin
+(first-party, or one baked into the core) enabled by name, and a **third-party**
+plugin loaded out-of-process from disk with `load_plugin(path)`.
+
+### Rust - install a plugin library
+
+```toml
+# Cargo.toml
+[dependencies]
+xcelerate-plugin-foo = "0.1"
+```
+
+```rust
+let browser = Browser::launch(BrowserConfig::default()).await?;
+browser.install_plugins([xcelerate_plugin_foo::FooPlugin])?;
+```
+
+### Any binding - load a third-party plugin
+
+`load_plugin` is exported to every language. Point it at a plugin directory (or a
+`plugin.json`); the plugin's ops are then callable through the same JSON bridge:
+
+| Language | Load | Invoke |
+| --- | --- | --- |
+| Python | `browser.load_plugin("path/to/plugin")` | `await browser.plugin("example.echo").invoke("echo", "{}")` |
+| JavaScript | `browser.loadPlugin("path/to/plugin")` | `await browser.plugin("example.echo").invoke("echo", "{}")` |
+| .NET / C# | `browser.LoadPlugin("path/to/plugin")` | `await browser.Plugin("example.echo").Invoke("echo", "{}")` |
+| Kotlin | `browser.loadPlugin("path/to/plugin")` | `browser.plugin("example.echo").invoke("echo", "{}")` |
+| Java | `browser.loadPlugin("path/to/plugin")` | `browser.plugin("example.echo").invoke("echo", "{}").get()` |
+| Swift | `try browser.loadPlugin(path: "path/to/plugin")` | `try await browser.plugin(name: "example.echo").invoke(op: "echo", argsJson: "{}")` |
+| Ruby | `browser.load_plugin("path/to/plugin")` | `browser.plugin("example.echo").invoke("echo", "{}")` |
+| Dart | `browser.loadPlugin("path/to/plugin")` | `await browser.plugin("example.echo").invoke("echo", "{}")` |
+| Go | `browser.LoadPlugin("path/to/plugin")` | `browser.Plugin("example.echo").Invoke("echo", "{}")` |
+| PowerShell | `$browser.LoadPlugin('path/to/plugin')` | `(Get-XceleratePlugin -Browser $browser -Name example.echo).Invoke('echo','{}')` |
+| MCP | tool `browser_load_plugin {path}` | tool `browser_plugin_invoke {name, op, args}` |
+
+Dangerous capabilities the plugin requests still need the host to opt in
+(`XCELERATE_PLUGIN_ALLOW`), in every language.
+
+### Any binding - enable a compiled-in plugin by name
+
+For plugins compiled into the core, enable by name and drive through the same
+bridge:
+
+| Language | Enable by name | Handle | Invoke (JSON in, JSON out) |
+| --- | --- | --- | --- |
+| Python | `await browser.use_plugin("stealth")` | `browser.plugin("stealth")` | `await handle.invoke("info", "{}")` |
+| JavaScript | `await browser.usePlugin("stealth")` | `browser.plugin("stealth")` | `await handle.invoke("info", "{}")` |
+| .NET / C# | `await browser.UsePlugin("stealth")` | `browser.Plugin("stealth")` | `await handle.Invoke("info", "{}")` |
+| Kotlin | `browser.usePlugin("stealth")` | `browser.plugin("stealth")` | `handle.invoke("info", "{}")` |
+| Java | `browser.usePlugin("stealth")` | `browser.plugin("stealth")` | `handle.invoke("info", "{}").get()` |
+| Swift | `try await browser.usePlugin(name: "stealth")` | `try browser.plugin(name: "stealth")` | `try await handle.invoke(op: "info", argsJson: "{}")` |
+| Ruby | `browser.use_plugin("stealth")` | `browser.plugin("stealth")` | `handle.invoke("info", "{}")` |
+| Dart | `await browser.usePlugin("stealth")` | `browser.plugin("stealth")` | `await handle.invoke("info", "{}")` |
+| Go | `browser.UsePlugin("stealth")` | `browser.Plugin("stealth")` | `handle.Invoke("info", "{}")` |
+| PowerShell | `$browser.UsePlugin('stealth')` | `Get-XceleratePlugin -Browser $browser -Name stealth` | `$handle.Invoke('info', '{}')` |
+| CLI | `xcelerate-cli --plugins stealth <cmd>` | - | - |
+| MCP | env `XCELERATE_PLUGINS=stealth` | - | `browser_plugin_invoke` |
+
+At launch you can instead list plugins on the browser config - for example
+`BrowserConfig(plugins=["stealth"])` in Python or `{ plugins: ["stealth"] }` in
+JavaScript (see each binding's README). The list is the same default-deny
+allow-list in every language.
+
+### Adding a plugin to the shipped core
+
+To make a custom plugin reachable from the non-Rust bindings, compile it into
+the engine: add its crate to `crates/xcelerate/Cargo.toml`, register it in the
+catalog in `crates/xcelerate/src/plugin.rs`, and rebuild the `xcelerate` cdylib.
+It then appears in `available_plugins()` in every language and can be enabled by
+name.
 
 ## What a plugin looks like
 
@@ -22,7 +206,7 @@ A third-party plugin is a self-contained directory:
 ```
 example.echo/
   plugin.json          # the manifest (validated by the host)
-  example-echo.wasm    # the sandboxed program (the `entrypoint`)
+  echo.py              # the entrypoint (any program speaking `rpc/1`)
   README.md
 ```
 

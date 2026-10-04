@@ -56,6 +56,9 @@ Playwright, and Puppeteer scripts run against the same engine.
 - **Multi-language bindings** - one core, generated bindings for Rust, Python,
   JavaScript (Node.js), .NET, Kotlin, Java, Swift, Ruby, Dart/Flutter, and Go via
   `uniffi`, plus a PowerShell module over the .NET SDK.
+- **Session video recording** - capture the page to a video through the CDP
+  screencast; writes Motion-JPEG AVI with no external tools, or H.264/VP9
+  MP4/WebM when `ffmpeg` is on `PATH`.
 - **CLI and MCP server** - `xcelerate-cli` for one-shot commands, and
   `xcelerate-mcp` to drive the browser from an MCP client.
 
@@ -263,7 +266,8 @@ new binding code:
 | `available_plugins()` | Names of the compiled-in first-party catalog |
 | `plugin_names()` | Plugins enabled on this browser |
 | `use_plugin(name)` | Enable a first-party plugin at runtime |
-| `load_plugin(path)` | Load a third-party plugin - **refused** in this phase |
+| `install_plugins([plugin])` | Install trusted plugins compiled in as a Cargo library (Rust only) |
+| `load_plugin(path)` | Load a third-party plugin out-of-process (a directory or `plugin.json`) |
 | `plugin(name)` | A handle to an enabled plugin |
 | `plugin(name).ops()` | The operations the plugin exposes |
 | `plugin(name).invoke(op, args_json)` | Invoke an operation with JSON args, returning JSON |
@@ -280,15 +284,18 @@ let info = stealth.invoke("info".into(), "{}".into()).await?;
 | Tier | Where it runs | Privileges |
 | --- | --- | --- |
 | First-party | In-process, compiled in | Launch flags, binary patching, detached spawn, init scripts |
-| Third-party | Out-of-process, OS-sandboxed, capability-gated | Default-deny subset (not implemented yet) |
+| Third-party | Out-of-process, capability-gated (OS sandbox pending) | Default-deny subset, audited |
 
 Capabilities are classified before they can ever be granted. `LaunchControl`,
 `BinaryPatch`, and `DetachedSpawn` are **first-party only**; `Evaluate`,
 `CdpProxy`, cookie access, init scripts, screenshots, and network capture are
-**dangerous** and require explicit consent. Third-party plugins are designed to
-run out-of-process behind a default-deny capability proxy with per-invocation
-time and response-size budgets - but until that runner exists, `load_plugin`
-**refuses** to execute unknown code rather than silently trusting it.
+**dangerous** and require explicit consent. Third-party plugins run
+**out-of-process**: the host spawns their entrypoint and they speak a
+line-delimited JSON-RPC protocol (ABI `rpc/1`) on stdin/stdout, so a plugin can
+be written in any language. Dangerous callbacks are **denied by default** and
+must be opted into per host via `XCELERATE_PLUGIN_ALLOW` (per plugin, or
+broadly), under per-invocation time and response-size budgets. See
+[`docs/plugins/`](docs/plugins/README.md).
 
 ### Audit log
 
@@ -409,6 +416,45 @@ querying, JavaScript evaluation, and plugin invocation.
 Configure it with the environment: `XCELERATE_CHROME` (browser path),
 `XCELERATE_HEADLESS` (`1`/`true`, default), `XCELERATE_DETACHED` (`1`/`true`), and
 `XCELERATE_PLUGINS` (comma-separated, e.g. `stealth,human`).
+
+## Video recording
+
+A page can be recorded to a video file. Recording is driven by the CDP
+screencast, so the capture is change-driven: an animating page produces real
+motion, while a static page yields a short clip.
+
+```rust
+use xcelerate::{Browser, BrowserConfig};
+
+let browser = Browser::launch(BrowserConfig::default()).await?;
+let page = browser.new_page("https://example.com".to_string()).await?;
+
+page.start_video("demo.mp4".to_string()).await?;
+tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+let path = page.stop_video().await?;   // the path actually written
+```
+
+The output extension selects the back end:
+
+- `.mp4` / `.mov` / `.mkv` / `.webm` are muxed with `ffmpeg` (H.264 or VP9) at
+  the frames' real timestamps when `ffmpeg` is on `PATH`. If it is missing the
+  frames fall back to a sibling `.avi`, and the returned path says which was used.
+- Any other extension (for example `.avi`) always uses the built-in Motion-JPEG
+  AVI writer, which needs no external tools.
+
+`start_video_with_options` takes tuning knobs (`quality`, `max_width`,
+`max_height`, `fps`, `ffmpeg`). This API is intentionally not exported through
+UniFFI yet, so it is available in Rust, the CLI, and the MCP server without
+changing the generated bindings' checksums.
+
+From the CLI:
+
+```bash
+xcelerate-cli record https://example.com -o demo.mp4 --duration 5
+```
+
+From the MCP server: `browser_start_recording {path}` … `browser_wait
+{milliseconds}` … `browser_stop_recording`.
 
 ## Workspace layout
 
