@@ -206,6 +206,8 @@ jobs:
             echo "::warning::PUB_TOKEN not set; skipping pub.dev."
             exit 0
           fi
+          # `dart pub publish` does not read PUB_TOKEN itself; register it first.
+          dart pub token add https://pub.dev --env-var PUB_TOKEN
           cd bindings/dart
           dart pub publish --force || echo "::warning::pub.dev publish failed; skipping."
 

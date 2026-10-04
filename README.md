@@ -141,7 +141,8 @@ python scripts/generate_powershell_bindings.py
 Import-Module ./bindings/powershell/Xcelerate.psd1
 ```
 
-See [`bindings/powershell/README.md`](bindings/powershell/README.md) for usage.
+See [`bindings/powershell/README.md`](bindings/powershell/README.md) for usage, or
+run the end-to-end example at [`examples/powershell/quickstart.ps1`](examples/powershell/quickstart.ps1).
 
 See [`bindings/`](bindings/) for each package's README.
 

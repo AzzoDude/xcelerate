@@ -7,6 +7,9 @@ SDK** (`uniffi.xcelerate`). The module code is hand-written; the managed
 assembly and the native `xcelerate` cdylib are staged next to each other by
 `scripts/generate_powershell_bindings.py`.
 
+A runnable end-to-end example lives in
+[`examples/powershell/quickstart.ps1`](../../examples/powershell/quickstart.ps1).
+
 ## Installation
 
 ```powershell

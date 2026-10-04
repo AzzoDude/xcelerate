@@ -661,6 +661,8 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_decode_base64() != 39526:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_xcelerate_checksum_method_page_default_timeout() != 18710:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_emulate_idle_state() != 53017:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_emulate_media() != 27664:
@@ -771,7 +773,7 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_set_content() != 60133:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_page_set_default_timeout() != 58523:
+    if lib.uniffi_xcelerate_checksum_method_page_set_default_timeout() != 7299:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_set_drag_interception() != 35102:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -825,7 +827,7 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_wait_for_event() != 16279:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_page_wait_for_event_default() != 30417:
+    if lib.uniffi_xcelerate_checksum_method_page_wait_for_event_default() != 7458:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_wait_for_function() != 39925:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -1587,6 +1589,11 @@ _UniffiLib.uniffi_xcelerate_fn_method_page_decode_base64.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_xcelerate_fn_method_page_decode_base64.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_xcelerate_fn_method_page_default_timeout.argtypes = (
+    ctypes.c_uint64,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_xcelerate_fn_method_page_default_timeout.restype = ctypes.c_uint64
 _UniffiLib.uniffi_xcelerate_fn_method_page_emulate_idle_state.argtypes = (
     ctypes.c_uint64,
     ctypes.c_int8,
@@ -2327,6 +2334,9 @@ _UniffiLib.uniffi_xcelerate_checksum_method_page_create_pdf_stream.restype = cty
 _UniffiLib.uniffi_xcelerate_checksum_method_page_decode_base64.argtypes = (
 )
 _UniffiLib.uniffi_xcelerate_checksum_method_page_decode_base64.restype = ctypes.c_uint16
+_UniffiLib.uniffi_xcelerate_checksum_method_page_default_timeout.argtypes = (
+)
+_UniffiLib.uniffi_xcelerate_checksum_method_page_default_timeout.restype = ctypes.c_uint16
 _UniffiLib.uniffi_xcelerate_checksum_method_page_emulate_idle_state.argtypes = (
 )
 _UniffiLib.uniffi_xcelerate_checksum_method_page_emulate_idle_state.restype = ctypes.c_uint16
@@ -2900,6 +2910,10 @@ class XcelerateError:  # type: ignore
         def __repr__(self):
             return "XcelerateError.Unsupported({})".format(repr(str(self)))
     _UniffiTempXcelerateError.Unsupported = Unsupported # type: ignore
+    class Plugin(_UniffiTempXcelerateError):
+        def __repr__(self):
+            return "XcelerateError.Plugin({})".format(repr(str(self)))
+    _UniffiTempXcelerateError.Plugin = Plugin # type: ignore
 
 XcelerateError = _UniffiTempXcelerateError # type: ignore
 del _UniffiTempXcelerateError
@@ -2937,6 +2951,10 @@ class _UniffiFfiConverterTypeXcelerateError(_UniffiConverterRustBuffer):
             return XcelerateError.Unsupported(
                 _UniffiFfiConverterString.read(buf),
             )
+        if variant == 8:
+            return XcelerateError.Plugin(
+                _UniffiFfiConverterString.read(buf),
+            )
         raise InternalError("Raw enum value doesn't match any cases")
 
     @staticmethod
@@ -2955,6 +2973,8 @@ class _UniffiFfiConverterTypeXcelerateError(_UniffiConverterRustBuffer):
             return
         if isinstance(value, XcelerateError.Unsupported):
             return
+        if isinstance(value, XcelerateError.Plugin):
+            return
 
     @staticmethod
     def write(value, buf):
@@ -2972,6 +2992,8 @@ class _UniffiFfiConverterTypeXcelerateError(_UniffiConverterRustBuffer):
             buf.write_i32(6)
         if isinstance(value, XcelerateError.Unsupported):
             buf.write_i32(7)
+        if isinstance(value, XcelerateError.Plugin):
+            buf.write_i32(8)
 
 class _UniffiFfiConverterFloat64(_UniffiConverterPrimitiveFloat):
     @staticmethod
@@ -3001,6 +3023,19 @@ class _UniffiFfiConverterBytes(_UniffiConverterRustBuffer):
     def write(value, buf):
         buf.write_i32(len(value))
         buf.write(value)
+
+class _UniffiFfiConverterUInt64(_UniffiConverterPrimitiveInt):
+    CLASS_NAME = "u64"
+    VALUE_MIN = 0
+    VALUE_MAX = 2**64
+
+    @staticmethod
+    def read(buf):
+        return buf.read_u64()
+
+    @staticmethod
+    def write(value, buf):
+        buf.write_u64(value)
 
 class _UniffiFfiConverterInt64(_UniffiConverterPrimitiveInt):
     CLASS_NAME = "i64"
@@ -3934,19 +3969,6 @@ class _UniffiFfiConverterTypeElement:
     def write(cls, value: Element, buf: _UniffiRustBuffer):
         buf.write_u64(cls.lower(value))
 
-class _UniffiFfiConverterUInt64(_UniffiConverterPrimitiveInt):
-    CLASS_NAME = "u64"
-    VALUE_MIN = 0
-    VALUE_MAX = 2**64
-
-    @staticmethod
-    def read(buf):
-        return buf.read_u64()
-
-    @staticmethod
-    def write(value, buf):
-        buf.write_u64(value)
-
 
 class PageProtocol(typing.Protocol):
     
@@ -4064,6 +4086,12 @@ class PageProtocol(typing.Protocol):
 """
         raise NotImplementedError
     def decode_base64(self, data: str) -> bytes:
+        raise NotImplementedError
+    def default_timeout(self, ) -> int:
+        """
+        The default timeout (ms) used by the waiting helpers. A stored value of
+        `0` means "no timeout" and is mapped to the largest representable wait.
+"""
         raise NotImplementedError
     async def emulate_idle_state(self, is_user_active: bool,is_screen_unlocked: bool) -> None:
         """
@@ -4330,7 +4358,9 @@ class PageProtocol(typing.Protocol):
         raise NotImplementedError
     async def set_default_timeout(self, milliseconds: float) -> None:
         """
-        Stores a default timeout (ms) for adapter compatibility.
+        Sets the default timeout (ms) applied by [`Page::wait_for_selector`],
+        [`Page::wait_for_navigation`], and [`Page::wait_for_event_default`].
+        As in Playwright, `0` disables the timeout.
 """
         raise NotImplementedError
     async def set_drag_interception(self, enabled: bool) -> None:
@@ -4468,7 +4498,7 @@ class PageProtocol(typing.Protocol):
         raise NotImplementedError
     async def wait_for_event_default(self, event_name: str) -> str:
         """
-        [`Page::wait_for_event`] with the default 30s timeout.
+        [`Page::wait_for_event`] with the page's default timeout.
 """
         raise NotImplementedError
     async def wait_for_function(self, expression: str,timeout_ms: int) -> None:
@@ -4976,6 +5006,22 @@ class Page(PageProtocol):
         _uniffi_ffi_result = _uniffi_rust_call_with_error(
             _uniffi_error_converter,
             _UniffiLib.uniffi_xcelerate_fn_method_page_decode_base64,
+            *_uniffi_lowered_args,
+        )
+        return _uniffi_lift_return(_uniffi_ffi_result)
+    def default_timeout(self, ) -> int:
+        """
+        The default timeout (ms) used by the waiting helpers. A stored value of
+        `0` means "no timeout" and is mapped to the largest representable wait.
+"""
+        _uniffi_lowered_args = (
+            self._uniffi_clone_handle(),
+        )
+        _uniffi_lift_return = _UniffiFfiConverterUInt64.lift
+        _uniffi_error_converter = None
+        _uniffi_ffi_result = _uniffi_rust_call_with_error(
+            _uniffi_error_converter,
+            _UniffiLib.uniffi_xcelerate_fn_method_page_default_timeout,
             *_uniffi_lowered_args,
         )
         return _uniffi_lift_return(_uniffi_ffi_result)
@@ -6051,7 +6097,9 @@ class Page(PageProtocol):
         )
     async def set_default_timeout(self, milliseconds: float) -> None:
         """
-        Stores a default timeout (ms) for adapter compatibility.
+        Sets the default timeout (ms) applied by [`Page::wait_for_selector`],
+        [`Page::wait_for_navigation`], and [`Page::wait_for_event_default`].
+        As in Playwright, `0` disables the timeout.
 """
         
         _UniffiFfiConverterFloat64.check_lower(milliseconds)
@@ -6595,7 +6643,7 @@ class Page(PageProtocol):
         )
     async def wait_for_event_default(self, event_name: str) -> str:
         """
-        [`Page::wait_for_event`] with the default 30s timeout.
+        [`Page::wait_for_event`] with the page's default timeout.
 """
         
         _UniffiFfiConverterString.check_lower(event_name)

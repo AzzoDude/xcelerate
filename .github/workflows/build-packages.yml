@@ -87,7 +87,10 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cargo/bin
-          key: ${{ runner.os }}-uniffi-tools-v2
+          # v3: forces a fresh install of the third-party generators so they match
+          # the pinned uniffi (0.31.x); a stale cached binary produces "Unexpected
+          # metadata type code" when it reads the current cdylib.
+          key: ${{ runner.os }}-uniffi-tools-v3
 
       - name: Install Generation Tools
         if: steps.cache-tools.outputs.cache-hit != 'true'

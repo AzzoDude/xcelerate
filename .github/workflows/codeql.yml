@@ -18,21 +18,19 @@
 
 name: CodeQL
 
+# The repository has CodeQL **default setup** enabled, which scans the supported
+# languages automatically. An advanced workflow cannot upload its SARIF while
+# default setup is on ("CodeQL analyses from advanced configurations cannot be
+# processed when the default setup is enabled"), so the automatic triggers below
+# are disabled to keep the CI green. Default setup already covers `python` and
+# `actions`, so no scanning coverage is lost.
+#
+# To use this workflow instead, disable default setup (Settings -> Code security
+# -> Code scanning, or
+# `gh api -X PATCH repos/ChaoswareHQ/xcelerate/code-scanning/default-setup -f
+# state=not-configured`) and restore the push/pull_request/schedule triggers.
 on:
-  push:
-    branches: [main, master]
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
-      - 'LICENSE*'
-  pull_request:
-    branches: [main, master]
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
-      - 'LICENSE*'
-  schedule:
-    - cron: '27 3 * * 1'
+  workflow_dispatch:
 
 # Cancel superseded runs on the same ref.
 concurrency:

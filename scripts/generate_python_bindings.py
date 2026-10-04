@@ -8,22 +8,7 @@ import re
 import shutil
 import sys
 
-from common import ROOT, find_tool, log, run_checked, workspace_version
-
-
-def bindgen_tool():
-    """Prefer a pre-built ``uniffi-bindgen`` binary over ``cargo run``."""
-    for candidate in (
-        os.path.join(ROOT, "target", "debug", "uniffi-bindgen.exe"),
-        os.path.join(ROOT, "target", "release", "uniffi-bindgen.exe"),
-    ):
-        if os.path.exists(candidate):
-            log("INFO", f"using pre-built bindgen: {candidate}")
-            return [candidate]
-    found = find_tool("uniffi-bindgen")
-    if os.path.exists(found):
-        return [found]
-    return ["cargo", "run", "-p", "xcelerate-bindgen", "--"]
+from common import ROOT, log, run_checked, uniffi_bindgen, workspace_version
 
 
 def main():
@@ -42,7 +27,7 @@ def main():
 
     print("--- 1. Generating Python code with UniFFI ---")
     run_checked(
-        bindgen_tool()
+        uniffi_bindgen()
         + ["generate", "--library", built_dll, "--language", "python", "--out-dir", python_dir],
         cwd=ROOT,
     )

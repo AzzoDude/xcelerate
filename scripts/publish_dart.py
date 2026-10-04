@@ -49,6 +49,14 @@ def main():
         log("INFO", "dry run - pass --push to publish to pub.dev")
         return 0
 
+    # CI provides a token in PUB_TOKEN; `dart pub publish` does not read that
+    # variable on its own, so register it as the credential for pub.dev first.
+    if os.environ.get("PUB_TOKEN"):
+        run_checked(
+            [dart_path, "pub", "token", "add", "https://pub.dev", "--env-var", "PUB_TOKEN"],
+            cwd=dart_dir,
+        )
+
     print("--- Publishing to pub.dev ---")
     run_checked([dart_path, "pub", "publish", "--force"], cwd=dart_dir)
     log("SUCCESS", "published to pub.dev")

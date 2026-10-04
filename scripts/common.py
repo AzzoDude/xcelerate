@@ -150,20 +150,11 @@ def workspace_version():
 def uniffi_bindgen():
     """Command prefix for the bundled Rust uniffi-bindgen helper.
 
-    Prefers a pre-built binary over ``cargo run`` so CI (and local runs) do not
-    recompile the helper on every invocation.
+    Always runs through Cargo so the helper is rebuilt against the workspace's
+    pinned uniffi version. A stale prebuilt binary (for example one left over
+    from a different uniffi release) emits mismatched FFI metadata and fails with
+    "Unexpected metadata type code".
     """
-    for candidate in (
-        os.path.join(ROOT, "target", "debug", "uniffi-bindgen.exe"),
-        os.path.join(ROOT, "target", "release", "uniffi-bindgen.exe"),
-        os.path.join(ROOT, "target", "debug", "uniffi-bindgen"),
-        os.path.join(ROOT, "target", "release", "uniffi-bindgen"),
-    ):
-        if os.path.exists(candidate):
-            return [candidate]
-    found = find_tool("uniffi-bindgen")
-    if os.path.exists(found):
-        return [found]
     return ["cargo", "run", "-p", "xcelerate-bindgen", "--"]
 
 
