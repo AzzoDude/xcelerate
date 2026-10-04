@@ -1,10 +1,11 @@
 //! Plugin manager and UniFFI bridge for the engine.
 //!
 //! The plugin *API* - the [`Plugin`] trait, [`Manifest`], audit log, and the
-//! [`PageHost`] interface - lives in `xcelerate-plugin-api`. The built-in
-//! implementations live in `xcelerate-plugins`. This module wires them into
-//! [`crate::Browser`], implements [`PageHost`] on top of [`Page`], and exposes
-//! [`PluginHandle`] to every language binding.
+//! [`PageHost`] interface - lives in `xcelerate-plugin-api`. The built-in plugins
+//! are independent crates under `plugins/`, reached through the `xcelerate-plugins`
+//! catalog. This module wires them into [`crate::Browser`], implements
+//! [`PageHost`] on top of [`Page`], and exposes [`PluginHandle`] to every language
+//! binding.
 
 use std::sync::Arc;
 
@@ -136,6 +137,39 @@ impl PluginHandle {
             .invoke(&self.name, &op, args_json, None)
             .await
             .map_err(XcelerateError::from)
+    }
+}
+
+impl xcelerate_plugin_api::OpInvoker for PluginHandle {
+    fn invoke_op<'a>(
+        &'a self,
+        op: &'a str,
+        args_json: String,
+    ) -> xcelerate_plugin_api::BoxFutLt<'a, xcelerate_plugin_api::PluginResult<String>> {
+        Box::pin(async move {
+            xcelerate_plugin_api::audit(&self.name, op, "invoke");
+            self.manager.invoke(&self.name, op, args_json, None).await
+        })
+    }
+}
+
+/// Typed, Rust-only calling. Kept out of the `#[uniffi::export]` block so it does
+/// not change the binding checksum.
+impl PluginHandle {
+    /// Serialize `args`, run `op`, deserialize the result - no JSON in your code.
+    ///
+    /// ```ignore
+    /// let report: FillReport = handle.call("fill_register", &profile).await?;
+    /// ```
+    pub async fn call<A, R>(&self, op: impl Into<String>, args: &A) -> XcelerateResult<R>
+    where
+        A: serde::Serialize,
+        R: serde::de::DeserializeOwned,
+    {
+        let args_json = serde_json::to_string(args)
+            .map_err(|error| XcelerateError::SerdeError(error.to_string()))?;
+        let result = self.invoke(op.into(), args_json).await?;
+        serde_json::from_str(&result).map_err(|error| XcelerateError::SerdeError(error.to_string()))
     }
 }
 

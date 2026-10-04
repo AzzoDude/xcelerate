@@ -1,17 +1,18 @@
 [package]
-name = "xcelerate-plugins"
+name = "xcelerate-plugin-stealth"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Built-in plugin catalog for xcelerate (stealth + human)."
+description = "The stealth plugin for xcelerate: binary patching + an anti-fingerprint payload."
 
 [dependencies]
 xcelerate-plugin-api = { workspace = true }
-xcelerate-plugin-stealth = { workspace = true }
-xcelerate-plugin-human = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+regex = { workspace = true }
 
 [lints]
 workspace = true

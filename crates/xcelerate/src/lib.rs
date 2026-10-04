@@ -8,8 +8,8 @@
 //! * [`xcelerate_core`] — the WebSocket transport and typed command layer.
 //! * [`xcelerate_plugin_api`] — the plugin trait, manifest, audit log, and the
 //!   `PageHost` interface plugins use to reach a page.
-//! * [`xcelerate_plugins`] — the built-in plugins (`stealth`, `human`) and the
-//!   low-level OS helpers they and the engine rely on.
+//! * [`xcelerate_plugins`] — the plugins that ship with the engine (`stealth`,
+//!   `human`).
 //!
 //! This crate is the thin facade: it composes those pieces into the high-level
 //! [`Browser`], [`Page`], and [`Element`] API and exposes it to other languages
@@ -20,6 +20,7 @@ pub mod element;
 pub mod error;
 pub mod page;
 pub mod plugin;
+pub mod process;
 
 mod proxy;
 

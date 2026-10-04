@@ -57,12 +57,13 @@ public disclosure.
 In scope:
 
 - **The Rust core and facade** (`xcelerate-core`, `xcelerate`,
-  `xcelerate-plugin-api`, `xcelerate-plugins`).
+  `xcelerate-plugin-api`, `xcelerate-plugins`, and the `plugins/stealth` and
+  `plugins/human` crates).
 - **The plugin trust model** - anything that lets a plugin exceed its granted
   capabilities, bypass manifest validation, escape the default-deny rules, or
   tamper with the append-only audit log.
-- **The sandbox / capability proxy** once implemented - escapes or confused-deputy
-  issues in the out-of-process runner.
+- **The sandbox / capability proxy** - escapes or confused-deputy issues in the
+  WebAssembly plugin runner.
 - **The language bindings** (UniFFI-generated) and their packaging, where the
   vulnerability is in the binding/host, not the target language.
 - **Supply chain** - compromised release artifacts, build scripts, or the

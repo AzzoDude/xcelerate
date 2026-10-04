@@ -363,6 +363,7 @@ fn msgpack_to_json(payload: &[u8]) -> PluginResult<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
     use xcelerate_plugin_api::PluginManager;
 
     /// Loads the prebuilt `wasm-echo` component and invokes `echo`.
@@ -403,5 +404,39 @@ mod tests {
             .await
             .unwrap();
         assert!(out.contains("42"), "unexpected echo result: {out}");
+    }
+
+    /// Loads a mod from a directory given by `XCELERATE_TEST_MOD` and invokes
+    /// its `hello` op. Skipped when the variable is unset. Useful for manually
+    /// checking a scaffolded mod:
+    ///
+    /// ```text
+    /// set XCELERATE_TEST_MOD=C:\path\to\my-mod
+    /// cargo test -p xcelerate --lib plugin::wasm
+    /// ```
+    #[tokio::test]
+    async fn loads_a_mod_pointed_at_by_env() {
+        let Ok(dir) = std::env::var("XCELERATE_TEST_MOD") else {
+            return;
+        };
+        let dir = PathBuf::from(dir);
+        let manifest = Manifest::load(&dir.join("plugin.json").to_string_lossy()).unwrap();
+        let plugin = load(&manifest, &dir, None).unwrap();
+
+        let catalog: xcelerate_plugin_api::Catalog =
+            Arc::new(|_: &str| -> Option<Arc<dyn Plugin>> { None });
+        let manager = PluginManager::new(&[], catalog).unwrap();
+        manager.install(Arc::new(plugin)).unwrap();
+
+        let out = manager
+            .invoke(
+                &manifest.name,
+                "hello",
+                r#"{"name":"Ada"}"#.to_string(),
+                None,
+            )
+            .await
+            .unwrap();
+        assert!(out.contains("Ada"), "unexpected hello result: {out}");
     }
 }

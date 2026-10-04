@@ -2,12 +2,12 @@ use crate::CdpClient;
 use crate::error::{XcelerateError, XcelerateResult};
 use crate::page::Page;
 use crate::plugin::{Plugin, PluginHandle, PluginManager};
+use crate::process::{ProcessGuard, spawn_detached};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Duration;
 use xcelerate_plugin_api::LaunchPlan;
-use xcelerate_plugins::{ProcessGuard, spawn_detached};
 
 /// Configuration for the Browser instance.
 #[derive(uniffi::Record)]
@@ -281,9 +281,10 @@ impl Browser {
     /// Loads a plugin from disk.
     ///
     /// `path` may be a plugin directory (containing `plugin.json`) or a
-    /// `plugin.json` file. The manifest is validated, the entrypoint is spawned
-    /// **out-of-process**, and a `describe` handshake wires up its ops. Dangerous
-    /// capabilities stay denied unless opted into via `XCELERATE_PLUGIN_ALLOW`.
+    /// `plugin.json` file. The manifest is validated, the `entrypoint` is
+    /// instantiated as a sandboxed WebAssembly component, and a `describe`
+    /// handshake wires up its ops. Dangerous capabilities stay denied unless
+    /// opted into via `XCELERATE_PLUGIN_ALLOW`.
     ///
     /// Once loaded, the plugin's ops are reachable through
     /// `plugin(name).invoke(op, args_json)` in every language, exactly like a

@@ -7,6 +7,8 @@ members = [
     "crates/xcelerate-bindgen",
     "crates/xcelerate-cli",
     "crates/xcelerate-mcp",
+    "plugins/stealth",
+    "plugins/human",
 ]
 exclude = ["bindings", "tools", "adapters", "scripts", "docs"]
 resolver = "3"
@@ -32,6 +34,8 @@ xcelerate = { path = "crates/xcelerate", version = "1.0.9" }
 xcelerate-core = { path = "crates/xcelerate-core", version = "1.0.9" }
 xcelerate-mcp = { path = "crates/xcelerate-mcp", version = "1.0.9" }
 xcelerate-plugin-api = { path = "crates/xcelerate-plugin-api", version = "1.0.9" }
+xcelerate-plugin-stealth = { path = "plugins/stealth", version = "1.0.9" }
+xcelerate-plugin-human = { path = "plugins/human", version = "1.0.9" }
 xcelerate-plugins = { path = "crates/xcelerate-plugins", version = "1.0.9" }
 
 # External crates.

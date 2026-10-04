@@ -1,0 +1,48 @@
+{
+  "plugin": "human",
+  "types": {
+    "Info": { "fields": { "name": "string", "enabled": "bool", "ops": "[string]" } },
+    "Move": { "fields": { "moved": "bool", "x": "float", "y": "float" } },
+    "Click": { "fields": { "clicked": "bool", "x": "float", "y": "float" } },
+    "Type": { "fields": { "typed": "int" } },
+    "Scroll": { "fields": { "scrolled": "float" } },
+    "Delay": { "fields": { "sleptMs": "int" } }
+  },
+  "ops": [
+    { "name": "info", "params": [], "result": "Info" },
+    {
+      "name": "move",
+      "params": [
+        { "name": "x", "type": "float" },
+        { "name": "y", "type": "float" }
+      ],
+      "result": "Move"
+    },
+    {
+      "name": "click",
+      "params": [
+        { "name": "x", "type": "float" },
+        { "name": "y", "type": "float" }
+      ],
+      "result": "Click"
+    },
+    {
+      "name": "type",
+      "params": [{ "name": "text", "type": "string" }],
+      "result": "Type"
+    },
+    {
+      "name": "scroll",
+      "params": [{ "name": "deltaY", "type": "float" }],
+      "result": "Scroll"
+    },
+    {
+      "name": "delay",
+      "params": [
+        { "name": "minMs", "type": "int", "optional": true },
+        { "name": "maxMs", "type": "int", "optional": true }
+      ],
+      "result": "Delay"
+    }
+  ]
+}

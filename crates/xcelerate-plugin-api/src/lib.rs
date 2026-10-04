@@ -49,6 +49,47 @@ pub type PluginResult<T> = std::result::Result<T, PluginError>;
 /// A boxed, `Send` future used by plugin hooks and op handlers.
 pub type BoxFut<T> = Pin<Box<dyn Future<Output = T> + Send + 'static>>;
 
+/// A boxed future that may borrow from its environment (unlike [`BoxFut`]).
+pub type BoxFutLt<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
+
+/// Runs an op by name with a JSON argument object, returning the op's JSON
+/// result. The engine's `PluginHandle` - and `Arc<PluginHandle>` - implement
+/// this, so a **typed plugin client** can offer real methods without depending
+/// on the engine crate.
+///
+/// ```ignore
+/// let args = serde_json::to_string(&my_args)?;
+/// let out = invoker.invoke_op("my.op", args).await?;
+/// let typed: MyResult = serde_json::from_str(&out)?;
+/// ```
+pub trait OpInvoker {
+    fn invoke_op<'a>(
+        &'a self,
+        op: &'a str,
+        args_json: String,
+    ) -> BoxFutLt<'a, PluginResult<String>>;
+}
+
+impl<T: OpInvoker + ?Sized> OpInvoker for Arc<T> {
+    fn invoke_op<'a>(
+        &'a self,
+        op: &'a str,
+        args_json: String,
+    ) -> BoxFutLt<'a, PluginResult<String>> {
+        (**self).invoke_op(op, args_json)
+    }
+}
+
+impl<T: OpInvoker + ?Sized> OpInvoker for &T {
+    fn invoke_op<'a>(
+        &'a self,
+        op: &'a str,
+        args_json: String,
+    ) -> BoxFutLt<'a, PluginResult<String>> {
+        (**self).invoke_op(op, args_json)
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Capabilities
 // ---------------------------------------------------------------------------
@@ -168,6 +209,12 @@ pub struct Manifest {
     /// (e.g. `{ "acme.totp": "^1.0" }`). Resolved and loaded before this one.
     #[serde(default)]
     pub dependencies: std::collections::BTreeMap<String, String>,
+    /// Other plugins whose ops this plugin **takes over**, as
+    /// `target -> [op, ...]`. When set, a call to `invoke(target, op)` is routed
+    /// to this plugin instead (and audited). This is how a mod overrides a
+    /// built-in like `human`, or another mod.
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub overrides: std::collections::BTreeMap<String, Vec<String>>,
     /// Resource limits requested by the plugin (clamped to host maxima).
     #[serde(default)]
     pub limits: Budgets,
@@ -238,6 +285,26 @@ impl Manifest {
             if dependency == &self.name {
                 return Err(PluginError::Unsupported(format!(
                     "plugin '{}' cannot depend on itself",
+                    self.name
+                )));
+            }
+        }
+
+        for (target, ops) in &self.overrides {
+            if target.trim().is_empty() {
+                return Err(PluginError::Unsupported(
+                    "plugin overrides need a non-empty target plugin name".to_string(),
+                ));
+            }
+            if target == &self.name {
+                return Err(PluginError::Unsupported(format!(
+                    "plugin '{}' cannot override itself",
+                    self.name
+                )));
+            }
+            if ops.is_empty() || ops.iter().any(|op| op.trim().is_empty()) {
+                return Err(PluginError::Unsupported(format!(
+                    "plugin '{}' override on '{target}' needs at least one non-empty op",
                     self.name
                 )));
             }
@@ -522,6 +589,8 @@ pub struct PluginManager {
     catalog: Catalog,
     plugins: RwLock<Vec<Arc<dyn Plugin>>>,
     tables: RwLock<BTreeMap<String, BTreeMap<String, OpHandler>>>,
+    /// `(target plugin, op)` -> the plugin that has taken that op over.
+    overrides: RwLock<BTreeMap<(String, String), String>>,
     budgets: Budgets,
     launched: AtomicBool,
 }
@@ -534,6 +603,7 @@ impl PluginManager {
             catalog,
             plugins: RwLock::new(Vec::new()),
             tables: RwLock::new(BTreeMap::new()),
+            overrides: RwLock::new(BTreeMap::new()),
             budgets: Budgets::default(),
             launched: AtomicBool::new(false),
         };
@@ -555,6 +625,8 @@ impl PluginManager {
         let plugin = (self.catalog)(name).ok_or_else(|| {
             PluginError::Unsupported(format!("plugin '{name}' is not a known built-in plugin"))
         })?;
+        let manifest = plugin.manifest();
+        self.ensure_dependencies(&manifest)?;
 
         let mut reg = Registry::default();
         plugin.build(&mut reg);
@@ -563,6 +635,7 @@ impl PluginManager {
             .unwrap()
             .insert(name.to_string(), reg.ops);
         self.plugins.write().unwrap().push(plugin);
+        self.register_overrides(&manifest);
 
         let detail = if self.launched.load(Ordering::SeqCst) {
             "runtime"
@@ -606,13 +679,48 @@ impl PluginManager {
                 "plugin '{name}' is already installed"
             )));
         }
+        let manifest = plugin.manifest();
+        self.ensure_dependencies(&manifest)?;
 
         let mut reg = Registry::default();
         plugin.build(&mut reg);
         self.tables.write().unwrap().insert(name.clone(), reg.ops);
         self.plugins.write().unwrap().push(plugin);
+        self.register_overrides(&manifest);
         audit(&name, "install", "in-process");
         Ok(())
+    }
+
+    /// Refuse a plugin whose declared dependencies are not already enabled.
+    fn ensure_dependencies(&self, manifest: &Manifest) -> PluginResult<()> {
+        for (dependency, range) in &manifest.dependencies {
+            if !self.has(dependency) {
+                return Err(PluginError::Unsupported(format!(
+                    "plugin '{}' requires '{dependency}' ({range}); enable it first",
+                    manifest.name
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    /// Record a plugin's declared overrides, so a later `invoke(target, op)` is
+    /// routed to it. Each takeover is audited.
+    fn register_overrides(&self, manifest: &Manifest) {
+        if manifest.overrides.is_empty() {
+            return;
+        }
+        let mut overrides = self.overrides.write().unwrap();
+        for (target, ops) in &manifest.overrides {
+            for op in ops {
+                overrides.insert((target.clone(), op.clone()), manifest.name.clone());
+                audit(
+                    &manifest.name,
+                    &format!("override:{target}.{op}"),
+                    "registered",
+                );
+            }
+        }
     }
 
     pub fn names(&self) -> Vec<String> {
@@ -674,6 +782,9 @@ impl PluginManager {
     }
 
     /// Invoke a plugin op, enforcing budgets and recording an audit event.
+    ///
+    /// If another plugin has declared an override for `plugin.op`, the call is
+    /// routed to that plugin instead (the audit event names the plugin that ran).
     pub async fn invoke(
         &self,
         plugin: &str,
@@ -681,19 +792,11 @@ impl PluginManager {
         args_json: String,
         page: Option<ArcPageHost>,
     ) -> PluginResult<String> {
-        let handler = {
-            let tables = self.tables.read().unwrap();
-            let table = tables.get(plugin).ok_or_else(|| {
-                PluginError::NotFound(format!("plugin '{plugin}' is not enabled"))
-            })?;
-            table.get(op).cloned().ok_or_else(|| {
-                PluginError::NotFound(format!("plugin '{plugin}' has no op '{op}'"))
-            })?
-        };
+        let (routed, handler) = self.resolve(plugin, op)?;
 
         let started = std::time::Instant::now();
         let outcome = handler(OpCall {
-            plugin: plugin.to_string(),
+            plugin: routed.clone(),
             op: op.to_string(),
             args_json,
             page,
@@ -702,24 +805,48 @@ impl PluginManager {
         let elapsed_ms = started.elapsed().as_millis() as u64;
 
         if elapsed_ms > self.budgets.max_invoke_millis {
-            audit(plugin, op, "budget:time-exceeded");
+            audit(&routed, op, "budget:time-exceeded");
             return Err(PluginError::Unsupported(format!(
-                "plugin '{plugin}.{op}' exceeded the {} ms budget",
+                "plugin '{routed}.{op}' exceeded the {} ms budget",
                 self.budgets.max_invoke_millis
             )));
         }
         if let Ok(result) = &outcome
             && result.len() > self.budgets.max_response_bytes
         {
-            audit(plugin, op, "budget:response-too-large");
+            audit(&routed, op, "budget:response-too-large");
             return Err(PluginError::Unsupported(format!(
-                "plugin '{plugin}.{op}' response exceeds {} bytes",
+                "plugin '{routed}.{op}' response exceeds {} bytes",
                 self.budgets.max_response_bytes
             )));
         }
 
-        audit(plugin, op, if outcome.is_ok() { "ok" } else { "error" });
+        audit(&routed, op, if outcome.is_ok() { "ok" } else { "error" });
         outcome
+    }
+
+    /// Find the handler for `plugin.op`, honouring any registered override.
+    fn resolve(&self, plugin: &str, op: &str) -> PluginResult<(String, OpHandler)> {
+        let tables = self.tables.read().unwrap();
+        let overriding = self
+            .overrides
+            .read()
+            .unwrap()
+            .get(&(plugin.to_string(), op.to_string()))
+            .cloned();
+        if let Some(overriding) = overriding
+            && let Some(handler) = tables.get(&overriding).and_then(|table| table.get(op))
+        {
+            return Ok((overriding, handler.clone()));
+        }
+        let table = tables
+            .get(plugin)
+            .ok_or_else(|| PluginError::NotFound(format!("plugin '{plugin}' is not enabled")))?;
+        let handler = table
+            .get(op)
+            .cloned()
+            .ok_or_else(|| PluginError::NotFound(format!("plugin '{plugin}' has no op '{op}'")))?;
+        Ok((plugin.to_string(), handler))
     }
 }
 
@@ -880,6 +1007,7 @@ mod tests {
                 ops: vec!["ping".to_string()],
                 capabilities: vec![],
                 dependencies: Default::default(),
+                overrides: Default::default(),
                 limits: Budgets::default(),
             }
         }
@@ -902,6 +1030,91 @@ mod tests {
         assert_eq!(manager.ops("example.library"), vec!["ping".to_string()]);
     }
 
+    /// A plugin that takes over `example.library.ping` - the "extend a library by
+    /// overriding one of its functions" case.
+    struct OverridingPlugin;
+
+    impl Plugin for OverridingPlugin {
+        fn name(&self) -> &str {
+            "example.override"
+        }
+        fn manifest(&self) -> Manifest {
+            Manifest {
+                name: "example.override".to_string(),
+                version: "0.1.0".to_string(),
+                host_api: "1.x".to_string(),
+                entrypoint: None,
+                abi: None,
+                ops: vec!["ping".to_string()],
+                capabilities: vec![],
+                dependencies: Default::default(),
+                overrides: std::collections::BTreeMap::from([(
+                    "example.library".to_string(),
+                    vec!["ping".to_string()],
+                )]),
+                limits: Budgets::default(),
+            }
+        }
+        fn build(&self, reg: &mut Registry) {
+            reg.op("ping", |_call| {
+                Box::pin(async { Ok("\"taken over\"".to_string()) })
+            });
+        }
+    }
+
+    #[test]
+    fn overrides_route_to_the_replacing_plugin() {
+        let manager = PluginManager::new(&[], empty_catalog()).unwrap();
+        manager.install(Arc::new(LibraryPlugin)).unwrap();
+        assert_eq!(
+            block_on(manager.invoke("example.library", "ping", "{}".to_string(), None)).unwrap(),
+            "\"pong\""
+        );
+
+        manager.install(Arc::new(OverridingPlugin)).unwrap();
+        // The same call is now served by the overriding plugin.
+        assert_eq!(
+            block_on(manager.invoke("example.library", "ping", "{}".to_string(), None)).unwrap(),
+            "\"taken over\""
+        );
+    }
+
+    /// Drive a future to completion on the current thread. The op handlers here
+    /// never await, so a single poll suffices.
+    fn block_on<F: std::future::Future>(future: F) -> F::Output {
+        use std::task::{Context, Poll, Waker};
+        let waker = Waker::noop();
+        let mut context = Context::from_waker(waker);
+        let mut future = std::pin::pin!(future);
+        loop {
+            match future.as_mut().poll(&mut context) {
+                Poll::Ready(value) => return value,
+                Poll::Pending => std::thread::yield_now(),
+            }
+        }
+    }
+
+    #[test]
+    fn rejects_bad_overrides() {
+        let self_override = VALID_MANIFEST.replace(
+            r#""ops": ["run"],"#,
+            r#""ops": ["run"], "overrides": { "example.plugin": ["run"] },"#,
+        );
+        assert!(matches!(
+            Manifest::from_json(&self_override).unwrap_err(),
+            PluginError::Unsupported(_)
+        ));
+
+        let empty = VALID_MANIFEST.replace(
+            r#""ops": ["run"],"#,
+            r#""ops": ["run"], "overrides": { "human": [] },"#,
+        );
+        assert!(matches!(
+            Manifest::from_json(&empty).unwrap_err(),
+            PluginError::Unsupported(_)
+        ));
+    }
+
     #[test]
     fn refuses_installing_a_catalog_name_or_duplicate() {
         let catalog: Catalog = Arc::new(|name: &str| {
@@ -920,5 +1133,49 @@ mod tests {
             manager.install(Arc::new(LibraryPlugin)).unwrap_err(),
             PluginError::Unsupported(_)
         ));
+    }
+
+    /// A plugin that requires another plugin to be present first.
+    struct DependentPlugin;
+
+    impl Plugin for DependentPlugin {
+        fn name(&self) -> &str {
+            "example.dependent"
+        }
+        fn manifest(&self) -> Manifest {
+            Manifest {
+                name: "example.dependent".to_string(),
+                version: "0.1.0".to_string(),
+                host_api: "1.x".to_string(),
+                entrypoint: None,
+                abi: None,
+                ops: vec!["go".to_string()],
+                capabilities: vec![],
+                dependencies: std::collections::BTreeMap::from([(
+                    "example.library".to_string(),
+                    "^0.1".to_string(),
+                )]),
+                overrides: Default::default(),
+                limits: Budgets::default(),
+            }
+        }
+        fn build(&self, reg: &mut Registry) {
+            reg.op("go", |_call| Box::pin(async { Ok("\"ok\"".to_string()) }));
+        }
+    }
+
+    #[test]
+    fn install_requires_dependencies_to_be_enabled_first() {
+        // Missing dependency -> refused.
+        let manager = PluginManager::new(&[], empty_catalog()).unwrap();
+        assert!(matches!(
+            manager.install(Arc::new(DependentPlugin)).unwrap_err(),
+            PluginError::Unsupported(_)
+        ));
+
+        // Enable the dependency first -> installs.
+        manager.install(Arc::new(LibraryPlugin)).unwrap();
+        manager.install(Arc::new(DependentPlugin)).unwrap();
+        assert!(manager.has("example.dependent"));
     }
 }

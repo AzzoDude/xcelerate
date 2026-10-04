@@ -40,16 +40,6 @@ impl From<xcelerate_core::Error> for XcelerateError {
     }
 }
 
-impl From<xcelerate_plugins::Error> for XcelerateError {
-    fn from(e: xcelerate_plugins::Error) -> Self {
-        use xcelerate_plugins::Error as PluginsError;
-        match e {
-            PluginsError::NotFound(message) => Self::NotFound(message),
-            PluginsError::Internal => Self::InternalError,
-        }
-    }
-}
-
 impl From<xcelerate_plugin_api::PluginError> for XcelerateError {
     fn from(e: xcelerate_plugin_api::PluginError) -> Self {
         use xcelerate_plugin_api::PluginError as ApiError;

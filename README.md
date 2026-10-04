@@ -289,18 +289,18 @@ let info = stealth.invoke("info".into(), "{}".into()).await?;
 | Model | Where it runs | Privileges |
 | --- | --- | --- |
 | Built-in | In-process, compiled in | Launch flags, binary patching, detached spawn, init scripts |
-| Loaded from disk | Sandboxed, capability-gated | Default-deny subset, audited |
+| Loaded from disk | WebAssembly, sandboxed, capability-gated | Default-deny subset, audited |
 
 Capabilities are classified before they can ever be granted. `LaunchControl`,
 `BinaryPatch`, and `DetachedSpawn` are **built-in only**; `Evaluate`,
 `CdpProxy`, cookie access, init scripts, screenshots, and network capture are
-**dangerous** and require explicit consent. A plugin loaded from disk runs
-sandboxed with **no ambient authority**: the host imports are the only way out,
-they are capability-gated, and every call is audited - so a plugin cannot reach
-the filesystem or the network on its own. Dangerous callbacks are **denied by
-default** and must be opted into per host via `XCELERATE_PLUGIN_ALLOW` (per
-plugin, or broadly), under per-invocation time and response-size budgets. See
-[`docs/plugins/`](docs/plugins/README.md).
+**dangerous** and require explicit consent. A plugin loaded from disk is a
+WebAssembly component that runs sandboxed with **no ambient authority**: the
+host imports are the only way out, they are capability-gated, and every call is
+audited - so a plugin cannot reach the filesystem or the network on its own.
+Dangerous callbacks are **denied by default** and must be opted into per host via
+`XCELERATE_PLUGIN_ALLOW` (per plugin, or broadly), under per-invocation time and
+response-size budgets. See [`docs/plugins/`](docs/plugins/README.md).
 
 ### Audit log
 
@@ -315,6 +315,18 @@ println!("{}", browser.audit_log());
 
 Plugins loaded from disk remain the user's responsibility to trust: the engine's
 job is to make what they *can* do explicit, auditable, and impossible by default.
+
+### Making a mod
+
+Scaffold a starter mod and build it in one step - see the
+[guide](docs/plugins/MAKING_A_MOD.md):
+
+```bash
+xcelerate plugin new acme.hello
+cd hello && ./build.sh          # Windows:  .\build.ps1
+```
+
+You write plain Rust op handlers; xcelerate handles the WebAssembly plumbing.
 
 ## API-style adapters
 
@@ -527,11 +539,14 @@ xcelerate/
   crates/
     xcelerate-core/        # WebSocket transport and typed CDP command layer
     xcelerate-plugin-api/  # plugin trait, manifest, capabilities, audit, host interface
-    xcelerate-plugins/     # built-in plugins (stealth, human) + OS helpers
+    xcelerate-plugins/     # built-in plugin catalog: name -> implementation lookup
     xcelerate/             # high-level facade: Browser, Page, Element, adapters
     xcelerate-bindgen/     # uniffi bindgen helper binary
     xcelerate-cli/         # `xcelerate-cli` command-line interface
     xcelerate-mcp/         # `xcelerate-mcp` Model Context Protocol server
+  plugins/
+    stealth/               # stealth plugin: binary patching + anti-fingerprint payload
+    human/                 # human plugin: human-like mouse, typing, and scrolling
   adapters/             # adapter profiles, runtime, and generator inputs
   bindings/             # generated Python, JavaScript, C#, Kotlin, Java, Swift, Ruby, Dart, and Go packages (plus the PowerShell module)
   docs/plugins/         # plugin authoring guide, JSON schema, examples
@@ -539,11 +554,14 @@ xcelerate/
 ```
 
 The plugin API - the `Plugin` trait, `Manifest`, capabilities, audit log, and the
-`PageHost` interface - lives in `crates/xcelerate-plugin-api/`. The built-in
-implementations (`stealth`, `human`) and the low-level OS helpers (binary
-patching, process management, payload) live in `crates/xcelerate-plugins/`. The
-facade owns the `PluginManager` and bridges `Page` to the plugin host interface,
-so plugins never touch a raw page or the transport.
+`PageHost` interface - lives in `crates/xcelerate-plugin-api/`. Each built-in
+plugin is an independent crate under `plugins/` (`stealth`, `human`);
+`crates/xcelerate-plugins/` is only the catalog that maps their names to
+implementations. The `stealth` crate owns its binary patcher and the
+anti-fingerprint payload; the engine owns browser process control
+(`crates/xcelerate/src/process.rs`). The facade owns the `PluginManager` and
+bridges `Page` to the plugin host interface, so plugins never touch a raw page or
+the transport.
 
 ## Development
 

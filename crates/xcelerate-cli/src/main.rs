@@ -7,6 +7,8 @@ use mimalloc::MiMalloc;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+mod scaffold;
+
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
@@ -112,8 +114,28 @@ enum Command {
     },
     /// List the compiled-in built-in plugins.
     Plugins,
+    /// Create a new mod (plugin) from the starter template.
+    Plugin {
+        #[command(subcommand)]
+        action: PluginAction,
+    },
     /// Run the Model Context Protocol (MCP) server on stdio.
     Mcp,
+}
+
+#[derive(Subcommand)]
+enum PluginAction {
+    /// Scaffold a new mod from the starter template.
+    New {
+        /// The mod id, e.g. `acme.hello` (last segment names the directory).
+        name: String,
+        /// Directory to create (default: the last id segment).
+        #[arg(long, value_name = "PATH")]
+        dir: Option<PathBuf>,
+        /// Write into the directory even if it already exists.
+        #[arg(long)]
+        force: bool,
+    },
 }
 
 #[tokio::main]
@@ -132,6 +154,17 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
                 println!("{name}");
             }
         }
+        Command::Plugin { action } => match action {
+            PluginAction::New { name, dir, force } => {
+                let path = scaffold::new_mod(&name, dir, force)?;
+                println!("created mod '{name}' in {}", path.display());
+                println!(
+                    "next: cd {} && {}   # builds the .wasm",
+                    path.display(),
+                    build_hint()
+                );
+            }
+        },
         Command::Mcp => {
             xcelerate_mcp::run_stdio().await?;
         }
@@ -241,6 +274,15 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     Ok(())
+}
+
+/// The build command to suggest after scaffolding, per platform.
+fn build_hint() -> &'static str {
+    if cfg!(windows) {
+        ".\\build.ps1"
+    } else {
+        "./build.sh"
+    }
 }
 
 /// Launches a browser and opens `url`, applying the shared browser options.

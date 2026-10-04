@@ -1,4 +1,4 @@
-//! Built-in `human` plugin.
+//! The `human` plugin.
 //!
 //! Turns automation input into something that behaves like a person: mouse
 //! travel follows a jittered Bezier path, clicks pause before pressing and hold
@@ -95,6 +95,7 @@ impl Plugin for HumanPlugin {
                 .collect(),
             capabilities: vec![Capability::Click, Capability::TypeKeys, Capability::Query],
             dependencies: Default::default(),
+            overrides: Default::default(),
             limits: Budgets::default(),
         }
     }
