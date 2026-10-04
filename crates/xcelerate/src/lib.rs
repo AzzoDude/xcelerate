@@ -25,7 +25,7 @@ mod proxy;
 
 pub mod adapters;
 
-pub use browser::{Browser, BrowserConfig};
+pub use browser::{Browser, BrowserConfig, configure_user_data_dir};
 pub use element::Element;
 pub use error::{XcelerateError, XcelerateResult};
 pub use page::Page;

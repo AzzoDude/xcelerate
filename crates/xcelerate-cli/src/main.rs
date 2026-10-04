@@ -44,6 +44,9 @@ struct BrowserArgs {
     /// Upstream proxy URL(s); repeat for a pool. `http://[user:pass@]host:port`.
     #[arg(long, global = true, value_name = "URL")]
     proxy: Vec<String>,
+    /// Persistent profile directory; keeps logins/cookies between runs.
+    #[arg(long, global = true, value_name = "PATH")]
+    user_data_dir: Option<String>,
     /// Default wait timeout in milliseconds (0 disables it).
     #[arg(long, global = true, default_value_t = 30000)]
     timeout: u64,
@@ -87,6 +90,8 @@ enum Command {
     QueryAll { url: String, selector: String },
     /// Evaluate a JavaScript expression and print the JSON result.
     Evaluate { url: String, expression: String },
+    /// Print the page's accessibility snapshot (semantic role/name/value nodes).
+    Accessibility { url: String },
     /// Record a video of a page for a fixed duration.
     Record {
         url: String,
@@ -204,6 +209,11 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", page.evaluate_json(expression).await?);
             browser.close().await?;
         }
+        Command::Accessibility { url } => {
+            let (browser, page) = launch(&cli.browser, &url).await?;
+            println!("{}", page.accessibility_snapshot().await?);
+            browser.close().await?;
+        }
         Command::Record {
             url,
             output,
@@ -237,6 +247,9 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
 async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Browser>, Arc<Page>)> {
     if !args.proxy.is_empty() {
         xcelerate::configure_proxy(&args.proxy)?;
+    }
+    if args.user_data_dir.is_some() {
+        xcelerate::configure_user_data_dir(args.user_data_dir.clone())?;
     }
     let config = BrowserConfig {
         headless: !args.no_headless,

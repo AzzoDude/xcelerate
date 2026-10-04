@@ -412,6 +412,11 @@ impl Server {
                     None => Ok(Outcome::Text("No recording was in progress.".to_string())),
                 }
             }
+            "browser_accessibility" => {
+                let page = self.ensure_page().await?;
+                let snapshot = page.accessibility_snapshot().await.map_err(to_message)?;
+                Ok(Outcome::Text(snapshot))
+            }
             "browser_load_plugin" => {
                 let path = str_arg(args, "path")?;
                 let browser = self.ensure_browser().await?;
@@ -728,6 +733,11 @@ fn tool_definitions() -> Value {
             "inputSchema": { "type": "object", "properties": {} }
         },
         {
+            "name": "browser_accessibility",
+            "description": "Return the page's accessibility snapshot as JSON (semantic role/name/value nodes). More robust than CSS selectors for understanding and driving a page.",
+            "inputSchema": { "type": "object", "properties": {} }
+        },
+        {
             "name": "browser_load_plugin",
             "description": "Load a third-party plugin from a directory or plugin.json. Its ops become callable through browser_plugin_invoke. Dangerous capabilities stay denied unless the host opted in.",
             "inputSchema": {
@@ -767,6 +777,7 @@ mod tests {
         assert!(names.contains(&"browser_stop_recording"));
         assert!(names.contains(&"browser_wait"));
         assert!(names.contains(&"browser_load_plugin"));
+        assert!(names.contains(&"browser_accessibility"));
     }
 
     #[test]

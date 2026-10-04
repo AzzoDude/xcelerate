@@ -1902,3 +1902,122 @@ pub(crate) async fn collect_elements(
     indexed.sort_by_key(|(index, _)| *index);
     Ok(indexed.into_iter().map(|(_, element)| element).collect())
 }
+
+// ---------------------------------------------------------------------------
+// Accessibility snapshot (non-exported: CLI, MCP, and Rust use it directly).
+// ---------------------------------------------------------------------------
+
+/// Roles worth keeping even when a node has no accessible name.
+const INTERESTING_AX_ROLES: &[&str] = &[
+    "button",
+    "link",
+    "textbox",
+    "searchbox",
+    "checkbox",
+    "radio",
+    "combobox",
+    "switch",
+    "slider",
+    "spinbutton",
+    "option",
+    "tab",
+    "menuitem",
+    "listitem",
+    "heading",
+    "img",
+    "cell",
+    "row",
+    "columnheader",
+    "rowheader",
+    "table",
+    "list",
+    "form",
+    "navigation",
+    "main",
+    "dialog",
+    "alert",
+    "banner",
+    "contentinfo",
+    "region",
+];
+
+/// Low-signal roles that merely restate an ancestor's text.
+const SKIP_AX_ROLES: &[&str] = &[
+    "InlineTextBox",
+    "LineBreak",
+    "none",
+    "generic",
+    "GenericContainer",
+];
+
+impl Page {
+    /// Captures a compact accessibility snapshot of the page.
+    ///
+    /// Returns a JSON array of the non-ignored accessibility nodes in document
+    /// order, each `{ role, name, value? }`. This is a semantic, resilient view
+    /// of the page - better than CSS selectors for asserting what a page exposes
+    /// and for driving it from an agent.
+    pub async fn accessibility_snapshot(&self) -> XcelerateResult<String> {
+        let _ = self
+            .client
+            .execute_raw_with_session(
+                Some(&self.session_id),
+                "Accessibility.enable",
+                serde_json::json!({}),
+            )
+            .await;
+        let response = self
+            .client
+            .execute_raw_with_session(
+                Some(&self.session_id),
+                "Accessibility.getFullAXTree",
+                serde_json::json!({}),
+            )
+            .await?;
+
+        let nodes = response
+            .get("nodes")
+            .and_then(|nodes| nodes.as_array())
+            .cloned()
+            .unwrap_or_default();
+
+        let snapshot: Vec<serde_json::Value> = nodes
+            .iter()
+            .filter(|node| {
+                !node
+                    .get("ignored")
+                    .and_then(|ignored| ignored.as_bool())
+                    .unwrap_or(false)
+            })
+            .filter_map(|node| {
+                let role = node.pointer("/role/value").and_then(|v| v.as_str());
+                if role.is_some_and(|role| SKIP_AX_ROLES.contains(&role)) {
+                    return None;
+                }
+                let name = node.pointer("/name/value").and_then(|v| v.as_str());
+                let interesting = role
+                    .map(|role| INTERESTING_AX_ROLES.contains(&role))
+                    .unwrap_or(false);
+                let named = name.is_some_and(|name| !name.is_empty());
+                if !named && !interesting {
+                    return None;
+                }
+                let mut entry = serde_json::Map::new();
+                if let Some(role) = role {
+                    entry.insert("role".to_string(), serde_json::json!(role));
+                }
+                if let Some(name) = name.filter(|name| !name.is_empty()) {
+                    entry.insert("name".to_string(), serde_json::json!(name));
+                }
+                if let Some(value) = node.pointer("/value/value").and_then(|v| v.as_str())
+                    && !value.is_empty()
+                {
+                    entry.insert("value".to_string(), serde_json::json!(value));
+                }
+                Some(serde_json::Value::Object(entry))
+            })
+            .collect();
+
+        Ok(serde_json::Value::Array(snapshot).to_string())
+    }
+}

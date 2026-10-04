@@ -2,7 +2,7 @@ use crate::CdpClient;
 use crate::error::{XcelerateError, XcelerateResult};
 use crate::page::Page;
 use crate::plugin::{Plugin, PluginHandle, PluginManager};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Duration;
@@ -35,13 +35,71 @@ impl Default for BrowserConfig {
     }
 }
 
+/// Where the browser profile (cookies, logins, cache) lives.
+enum Profile {
+    /// A throwaway directory removed when the browser closes.
+    Ephemeral(tempfile::TempDir),
+    /// A user-supplied directory kept between runs.
+    Persistent(PathBuf),
+}
+
+impl Profile {
+    fn path(&self) -> &Path {
+        match self {
+            Profile::Ephemeral(dir) => dir.path(),
+            Profile::Persistent(path) => path,
+        }
+    }
+}
+
+/// A process-wide persistent profile directory (Rust-only; the other languages
+/// set `XCELERATE_USER_DATA_DIR`).
+static USER_DATA_DIR: std::sync::Mutex<Option<PathBuf>> = std::sync::Mutex::new(None);
+
+/// Point the browser at a persistent profile directory so logins and cookies
+/// survive restarts. `None` (or an empty string) restores the default throwaway
+/// profile.
+///
+/// Rust-only: it is intentionally not exposed through the language bindings,
+/// which set `XCELERATE_USER_DATA_DIR` instead.
+pub fn configure_user_data_dir(path: Option<String>) -> XcelerateResult<()> {
+    match path
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+    {
+        Some(dir) => {
+            let path = PathBuf::from(dir);
+            std::fs::create_dir_all(&path).map_err(|error| {
+                XcelerateError::NotFound(format!("cannot create user data dir: {error}"))
+            })?;
+            // Canonicalize: Chrome resolves a relative `--user-data-dir` against
+            // its own cwd, which can silently hang or land somewhere else.
+            *USER_DATA_DIR.lock().unwrap() = Some(path.canonicalize().unwrap_or(path));
+        }
+        None => *USER_DATA_DIR.lock().unwrap() = None,
+    }
+    Ok(())
+}
+
+/// The configured persistent profile: the Rust setter, then `XCELERATE_USER_DATA_DIR`.
+fn configured_profile_dir() -> Option<PathBuf> {
+    if let Some(path) = USER_DATA_DIR.lock().unwrap().clone() {
+        return Some(path);
+    }
+    std::env::var("XCELERATE_USER_DATA_DIR")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from)
+}
+
 /// Represents a browser instance (e.g., Chrome or Edge).
 #[derive(uniffi::Object)]
 pub struct Browser {
     pub(crate) client: Arc<CdpClient>,
     _process: tokio::sync::Mutex<Option<tokio::process::Child>>,
     _process_guard: Option<ProcessGuard>,
-    _user_data_dir: Option<tempfile::TempDir>,
+    _profile: Profile,
     pub(crate) plugins: Arc<PluginManager>,
     _proxy: Option<crate::proxy::ProxyGateway>,
     ws_url: String,
@@ -63,7 +121,17 @@ impl Browser {
         })?;
 
         // 1. Setup environment
-        let user_data_dir = tempfile::tempdir().map_err(|_| XcelerateError::InternalError)?;
+        let profile = match configured_profile_dir() {
+            Some(path) => {
+                std::fs::create_dir_all(&path).map_err(|error| {
+                    XcelerateError::NotFound(format!("cannot use user data dir: {error}"))
+                })?;
+                Profile::Persistent(path.canonicalize().unwrap_or(path))
+            }
+            None => {
+                Profile::Ephemeral(tempfile::tempdir().map_err(|_| XcelerateError::InternalError)?)
+            }
+        };
         let port = get_free_port().ok_or(XcelerateError::InternalError)?;
 
         // Resolve the enabled plugins (default-deny).
@@ -78,7 +146,7 @@ impl Browser {
 
         // 2. Spawn process
         let mut cmd = std::process::Command::new(&plan.executable);
-        setup_browser_args(&mut cmd, &user_data_dir, port, plan.headless);
+        setup_browser_args(&mut cmd, profile.path(), port, plan.headless);
         // A configured proxy pool is served by a local gateway that Chrome points
         // at; the gateway adds upstream credentials Chrome cannot carry.
         let proxy_gateway = match crate::proxy::start_if_configured().await? {
@@ -121,7 +189,7 @@ impl Browser {
             client,
             _process: tokio::sync::Mutex::new(child),
             _process_guard: guard,
-            _user_data_dir: Some(user_data_dir),
+            _profile: profile,
             _proxy: proxy_gateway,
             plugins: Arc::new(manager),
             ws_url: ws_url.clone(),
@@ -285,18 +353,24 @@ impl Browser {
         ))
     }
 
-    /// Closes the browser and kills the process.
+    /// Closes the browser, letting it flush the profile, then kills it if needed.
     pub async fn close(&self) -> XcelerateResult<()> {
-        // Try to close gracefully via CDP first
+        // Ask the browser to close gracefully so it flushes cookies/storage to
+        // the profile directory (critical for persistent profiles).
         let _ = self
             .client
             .execute(browser_protocol::browser::CloseParams {})
             .await;
 
-        // Kill the process if it's still running
         let mut lock = self._process.lock().await;
         if let Some(mut child) = lock.take() {
-            let _ = child.kill().await;
+            // Wait briefly for the graceful exit; force-kill only if it overruns.
+            if tokio::time::timeout(std::time::Duration::from_secs(5), child.wait())
+                .await
+                .is_err()
+            {
+                let _ = child.kill().await;
+            }
         }
         Ok(())
     }
@@ -612,16 +686,13 @@ fn get_free_port() -> Option<u16> {
 
 fn setup_browser_args(
     cmd: &mut std::process::Command,
-    user_data_dir: &tempfile::TempDir,
+    profile_dir: &Path,
     port: u16,
     headless: bool,
 ) {
     cmd.arg(format!("--remote-debugging-port={}", port))
         .arg("--remote-debugging-address=127.0.0.1")
-        .arg(format!(
-            "--user-data-dir={}",
-            user_data_dir.path().display()
-        ))
+        .arg(format!("--user-data-dir={}", profile_dir.display()))
         .arg("--no-first-run")
         .arg("--no-default-browser-check")
         .arg("--remote-allow-origins=*")

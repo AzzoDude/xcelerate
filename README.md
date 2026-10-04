@@ -61,6 +61,10 @@ Playwright, and Puppeteer scripts run against the same engine.
   MP4/WebM when `ffmpeg` is on `PATH`.
 - **Proxy pool** - route the browser through one or more upstream HTTP proxies
   (with credentials) via a built-in local gateway.
+- **Persistent profiles** - keep logins, cookies, and site storage between runs
+  with a durable `user-data-dir`.
+- **Accessibility snapshots** - a semantic `role`/`name` view of the page for
+  robust selectors and agent-driven automation.
 - **CLI and MCP server** - `xcelerate-cli` for one-shot commands, and
   `xcelerate-mcp` to drive the browser from an MCP client.
 
@@ -491,6 +495,31 @@ let browser = Browser::launch(BrowserConfig::default()).await?;
 - SOCKS upstreams are unnecessary: Chrome speaks SOCKS natively via
   `--proxy-server`, so point Chrome at it directly.
 - `https://` upstreams (TLS to the proxy) are not supported yet.
+
+## Persistent profiles
+
+By default each browser gets a throwaway profile that is deleted on close. Point
+it at a directory to keep cookies, logins, and site storage between runs:
+
+```bash
+XCELERATE_USER_DATA_DIR=~/.xcelerate/profile xcelerate-cli title https://example.com
+xcelerate-cli --user-data-dir ./profile title https://example.com
+```
+
+```rust
+xcelerate::configure_user_data_dir(Some("./profile".to_string()))?;
+```
+
+The path is canonicalized (a relative `--user-data-dir` would otherwise resolve
+against Chrome's own cwd), and `Browser::close` lets Chrome flush the profile to
+disk before it exits.
+
+## Accessibility snapshots
+
+`page.accessibility_snapshot()` returns a compact semantic view of the page -
+`[{ role, name, value? }]` in document order - which is far more resilient than
+CSS selectors for asserting or driving a page. It is exposed as the CLI command
+`xcelerate-cli accessibility <url>` and the MCP tool `browser_accessibility`.
 
 ## Workspace layout
 
