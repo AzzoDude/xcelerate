@@ -61,9 +61,9 @@ val stealth = browser.plugin("stealth")
 println(stealth.invoke("info", "{}"))
 ```
 
-`loadPlugin` loads a plugin from disk, out-of-process and capability-gated; see
-the [top-level README](../../README.md#plugins) for capabilities and the audit
-log.
+`loadPlugin` loads a sandboxed (WebAssembly) plugin from disk, capability-gated;
+see the [top-level README](../../README.md#plugins) for capabilities and the
+audit log.
 
 ## Native library
 

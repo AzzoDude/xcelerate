@@ -82,8 +82,8 @@ $stealth.Ops()                    # operations it exposes
 $stealth.Invoke('info', '{}')     # JSON in, JSON out
 ```
 
-Plugins load from disk out-of-process behind the capability gate; `LoadPlugin`
-runs the `entrypoint` the manifest names.
+Plugins load from disk sandboxed (WebAssembly) behind the capability gate;
+`LoadPlugin` instantiates the `entrypoint` component the manifest names.
 
 ## Raw .NET access
 

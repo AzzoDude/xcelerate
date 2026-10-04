@@ -3,9 +3,8 @@
 A minimal xcelerate plugin compiled to **WebAssembly**, implementing the typed
 `plugin` interface in [`../../../crates/xcelerate/wit/plugin.wit`](../../../crates/xcelerate/wit/plugin.wit).
 
-Unlike the `rpc/1` subprocess plugins, a wasm plugin is a single portable
-artifact, runs sandboxed (no ambient filesystem/network), and passes **MessagePack**
-payloads instead of JSON.
+A wasm plugin is a single portable artifact, runs sandboxed (no ambient
+filesystem/network), and passes **MessagePack** payloads instead of JSON.
 
 ## Build
 

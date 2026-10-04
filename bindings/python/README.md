@@ -74,9 +74,9 @@ stealth = browser.plugin("stealth")
 print(await stealth.invoke("info", "{}"))
 ```
 
-Plugins are loaded from disk out-of-process behind the capability gate: the
-`entrypoint` in the manifest is spawned and its ops are reachable through
-`plugin(name).invoke(op, args_json)`. See the
+Plugins load from disk sandboxed in a WebAssembly store behind the capability
+gate: the `entrypoint` component in the manifest is instantiated and its ops are
+reachable through `plugin(name).invoke(op, args_json)`. See the
 [top-level README](../../README.md#plugins) for capabilities and the append-only
 audit log.
 

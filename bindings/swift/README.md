@@ -52,8 +52,9 @@ print(try await page.title())
 try await browser.close()
 ```
 
-Every call is `async throws`. Plugins load from disk out-of-process behind the
-capability gate; `loadPlugin` runs the `entrypoint` the manifest names.
+Every call is `async throws`. Plugins load from disk sandboxed (WebAssembly)
+behind the capability gate; `loadPlugin` instantiates the `entrypoint` component
+the manifest names.
 
 ## Publishing
 

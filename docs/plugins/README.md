@@ -3,17 +3,17 @@
 This guide describes how a plugin is authored, declared, and executed by
 xcelerate. It is the counterpart to the
 [built-in plugin system](../../README.md#plugins): built-in plugins are compiled
-into the core in Rust, while a loaded plugin is authored by anyone and runs
-**out-of-process under a sandbox behind a default-deny capability proxy**.
+into the core in Rust, while a loaded plugin is an external **WebAssembly**
+component that runs sandboxed behind a default-deny capability gate.
 
-> **Status.** The manifest format, its validation, and the **out-of-process
-> runner** are implemented today. `Browser::load_plugin(path)` validates a
-> `plugin.json`, spawns its `entrypoint` as a child process, runs a `describe`
-> handshake, and forwards `invoke` calls. The plugin speaks line-delimited
-> JSON-RPC (ABI `rpc/1`) on stdin/stdout, so it can be written in **any
-> language**. Dangerous capabilities stay **denied by default** and require the
-> host to opt in (see below). Loading from disk is always sandboxed: a plugin is
-> isolated by being a separate process and by capability gating.
+> **Status.** The manifest format, its validation, and the sandboxed
+> **WebAssembly (Component Model) runner** are implemented today.
+> `Browser::load_plugin(path)` validates a `plugin.json`, instantiates the
+> `entrypoint` as a wasm component with `wasmtime`, runs a `describe` handshake,
+> and forwards `invoke` calls. Dangerous capabilities stay **denied by default**
+> and require the host to opt in (see below). A component has no ambient
+> filesystem or network; it reaches the outside world only through granted,
+> audited host callbacks.
 
 ## Two ways to get a plugin
 
@@ -53,41 +53,35 @@ enabled by name.
 
 1. reads and validates the manifest (reserved names, host-only
    capabilities, and budgets are rejected here);
-2. spawns the `entrypoint` as a child process and runs a `describe` handshake;
+2. instantiates the `entrypoint` - a WebAssembly **component** - in its own
+   sandboxed `wasmtime` store, and runs the `describe` handshake;
 3. registers the plugin's ops, which are then callable through
    `plugin(name).invoke(op, args_json)` in **every language** - no binding code
    and no rebuild of the core.
 
-The entrypoint is any program that speaks the `rpc/1` protocol. The host infers
-an interpreter from the extension (`.py` -> `python`, `.js` -> `node`, `.rb` ->
-`ruby`, `.sh` -> `sh`; anything else is run directly), so a plugin can be a
-script or a compiled binary.
-
 ```rust
 let browser = Browser::launch(BrowserConfig::default()).await?;
-browser.load_plugin("docs/plugins/examples/echo".to_string())?;
-let handle = browser.plugin("example.echo".to_string())?;
+browser.load_plugin("docs/plugins/examples/wasm-echo".to_string())?;
+let handle = browser.plugin("example.wasm-echo".to_string())?;
 let result = handle.invoke("echo".into(), r#"{"hello":"world"}"#.into()).await?;
 ```
 
-#### The `rpc/1` protocol
+#### The component contract
 
-Newline-delimited JSON, one object per line. Host to plugin:
+A plugin is a `.wasm` component built against
+[`crates/xcelerate/wit/plugin.wit`](../../crates/xcelerate/wit/plugin.wit). It
+**imports** the capability-gated `host` interface and **exports** the `plugin`
+interface (`describe`, `invoke`). Op arguments and results are MessagePack
+payloads, so calls are binary and typed rather than JSON strings. See
+[`WASM.md`](WASM.md) for the contract and how to build a guest.
 
-| Call | Meaning |
+The host exposes only what a plugin is granted:
+
+| Host callback | Capability |
 | --- | --- |
-| `describe` | handshake; the plugin replies `{name, abi, ops}`. |
-| `invoke {op, args}` | run an op; reply with `result` or `error`. |
-| `shutdown` | the host is done; exit. |
-
-Plugin to host (each is **capability-gated** and audited):
-
-| Callback | Capability |
-| --- | --- |
-| `host.log {message}` | always (redacted) |
-| `host.get_cookies` | `read_cookies` |
-| `host.set_cookie {cookie}` | `write_cookies` |
-| `host.cdp {method, params}` | `cdp_proxy` |
+| `log(message)` | always (audited, capped) |
+| `get-cookies()` | `read_cookies` |
+| `set-cookie(cookie)` | `write_cookies` |
 
 #### Granting dangerous capabilities
 
@@ -96,38 +90,31 @@ Dangerous callbacks are **denied by default**. The host opts in with the
 per-plugin form so a grant cannot leak to another plugin:
 
 ```bash
-# only example.echo may read cookies
-XCELERATE_PLUGIN_ALLOW=example.echo:read_cookies <host command>
+# only example.wasm-echo may read cookies
+XCELERATE_PLUGIN_ALLOW=example.wasm-echo:read_cookies <host command>
 # a bare capability name applies to every loaded plugin (use with care)
 XCELERATE_PLUGIN_ALLOW=read_cookies <host command>
 ```
 
-Granting a callback is audited; refusing one is audited too. `host.cdp`
-requires the **narrower** capability for cookie/`evaluate` methods as well, so
-`cdp_proxy` cannot be used to bypass `read_cookies` / `write_cookies` /
-`evaluate`. The `docs/plugins/examples/echo` plugin demonstrates `echo` (always
-allowed) and `cookies` (`read_cookies`).
+Granting a callback is audited; refusing one is audited too.
 
 #### Hardening and residual risk
 
-The child runs with a **cleared environment** (no host tokens or keys, no
-`XCELERATE_PLUGIN_ALLOW`), an **absolute interpreter path** (no `PATH` or
-current-directory exec planting), a **size-capped** protocol, and per-invoke
-**timeouts**. The `entrypoint` must resolve **inside the plugin directory**, and
-its self-described name and ops must match the manifest.
+Each component gets its **own store** with a **default WASI context** (no
+preopened files, no environment, no sockets), so it has **no ambient filesystem
+or network** - the host callbacks are the only way out, and each is
+capability-gated and audited. The `entrypoint` must resolve **inside the plugin
+directory**, and its self-described name must match the manifest.
 
-**There is no OS sandbox yet.** A plugin still runs as the host user and can, in
-principle, read the browser profile, reach the network, or connect to the
-DevTools port directly - bypassing the host-mediated capabilities entirely.
-Treat a loaded plugin as code you have chosen to run: do not load
-plugins you do not trust, and do not run them alongside secrets. OS-level
-isolation (Job Objects / seccomp / AppContainer) is the next milestone.
+Because the sandbox is the WebAssembly runtime itself, a plugin can only touch
+what its granted host imports allow. (Cookie host callbacks are declared but not
+implemented yet; calling them returns an error.)
 
 ## Installing per language
 
 Every binding can use both kinds of plugin: a **compiled-in** plugin
 (built-in, or one baked into the core) enabled by name, and a **loaded**
-plugin run out-of-process from disk with `load_plugin(path)`.
+plugin run sandboxed (WebAssembly) from disk with `load_plugin(path)`.
 
 ### Rust - install a plugin library
 
@@ -149,16 +136,16 @@ browser.install_plugins([xcelerate_plugin_foo::FooPlugin])?;
 
 | Language | Load | Invoke |
 | --- | --- | --- |
-| Python | `browser.load_plugin("path/to/plugin")` | `await browser.plugin("example.echo").invoke("echo", "{}")` |
-| JavaScript | `browser.loadPlugin("path/to/plugin")` | `await browser.plugin("example.echo").invoke("echo", "{}")` |
-| .NET / C# | `browser.LoadPlugin("path/to/plugin")` | `await browser.Plugin("example.echo").Invoke("echo", "{}")` |
-| Kotlin | `browser.loadPlugin("path/to/plugin")` | `browser.plugin("example.echo").invoke("echo", "{}")` |
-| Java | `browser.loadPlugin("path/to/plugin")` | `browser.plugin("example.echo").invoke("echo", "{}").get()` |
-| Swift | `try browser.loadPlugin(path: "path/to/plugin")` | `try await browser.plugin(name: "example.echo").invoke(op: "echo", argsJson: "{}")` |
-| Ruby | `browser.load_plugin("path/to/plugin")` | `browser.plugin("example.echo").invoke("echo", "{}")` |
-| Dart | `browser.loadPlugin("path/to/plugin")` | `await browser.plugin("example.echo").invoke("echo", "{}")` |
-| Go | `browser.LoadPlugin("path/to/plugin")` | `browser.Plugin("example.echo").Invoke("echo", "{}")` |
-| PowerShell | `$browser.LoadPlugin('path/to/plugin')` | `(Get-XceleratePlugin -Browser $browser -Name example.echo).Invoke('echo','{}')` |
+| Python | `browser.load_plugin("path/to/plugin")` | `await browser.plugin("example.wasm-echo").invoke("echo", "{}")` |
+| JavaScript | `browser.loadPlugin("path/to/plugin")` | `await browser.plugin("example.wasm-echo").invoke("echo", "{}")` |
+| .NET / C# | `browser.LoadPlugin("path/to/plugin")` | `await browser.Plugin("example.wasm-echo").Invoke("echo", "{}")` |
+| Kotlin | `browser.loadPlugin("path/to/plugin")` | `browser.plugin("example.wasm-echo").invoke("echo", "{}")` |
+| Java | `browser.loadPlugin("path/to/plugin")` | `browser.plugin("example.wasm-echo").invoke("echo", "{}").get()` |
+| Swift | `try browser.loadPlugin(path: "path/to/plugin")` | `try await browser.plugin(name: "example.wasm-echo").invoke(op: "echo", argsJson: "{}")` |
+| Ruby | `browser.load_plugin("path/to/plugin")` | `browser.plugin("example.wasm-echo").invoke("echo", "{}")` |
+| Dart | `browser.loadPlugin("path/to/plugin")` | `await browser.plugin("example.wasm-echo").invoke("echo", "{}")` |
+| Go | `browser.LoadPlugin("path/to/plugin")` | `browser.Plugin("example.wasm-echo").Invoke("echo", "{}")` |
+| PowerShell | `$browser.LoadPlugin('path/to/plugin')` | `(Get-XceleratePlugin -Browser $browser -Name example.wasm-echo).Invoke('echo','{}')` |
 | MCP | tool `browser_load_plugin {path}` | tool `browser_plugin_invoke {name, op, args}` |
 
 Dangerous capabilities the plugin requests still need the host to opt in
@@ -202,9 +189,9 @@ name.
 A plugin is a self-contained directory:
 
 ```
-example.echo/
+example.wasm-echo/
   plugin.json          # the manifest (validated by the host)
-  echo.py              # the entrypoint (any program speaking `rpc/1`)
+  wasm-echo.wasm       # the component (built from Rust/C/Go/... via WIT)
   README.md
 ```
 
@@ -229,26 +216,57 @@ Unknown fields are **rejected** (`deny_unknown_fields`), so a typo fails closed
 instead of being silently ignored.
 
 A complete example lives in
-[`examples/echo/plugin.json`](examples/echo/plugin.json):
+[`examples/wasm-echo/plugin.json`](examples/wasm-echo/plugin.json):
 
 ```json
 {
-  "name": "example.echo",
+  "name": "example.wasm-echo",
   "version": "0.1.0",
   "host_api": ">=1.0 <2.0",
-  "entrypoint": "example-echo.wasm",
+  "entrypoint": "wasm-echo.wasm",
   "abi": "wasm32-wasip2/1",
-  "ops": ["echo"],
-  "capabilities": ["query", "get_text"],
+  "ops": ["echo", "log"],
+  "capabilities": [],
   "limits": { "max_invoke_millis": 5000, "max_response_bytes": 65536 }
 }
 ```
+
+## Dependencies
+
+A plugin may depend on other plugins. Declare it in the manifest:
+
+```jsonc
+"dependencies": { "acme.kv": "^1.0" }   // plugin name -> version range
+```
+
+The loader resolves dependencies first (one version per name, no cycles) and
+wires the dependent plugin's imports to the provider's exports at instantiation.
+Each plugin stays **independently sandboxed and granted** - there is no
+capability inheritance.
+
+In WIT, the dependency is a normal cross-package import. The provider exports an
+interface; the consumer imports it; the host backs the import with the provider:
+
+```wit
+// provider: export the typed surface
+world kv-plugin { export store; }
+
+// consumer: import it (no implementation here)
+world notes-plugin { import acme:kv/store@1.0.0; }
+```
+
+Because `wit-bindgen` resolves the provider's package at **build time**, the
+call is fully typed - the consumer depends on it before it ever runs.
+
+See the complete, runnable pair:
+[`examples/kv-store`](examples/kv-store/README.md) (provider) and
+[`examples/notes`](examples/notes/README.md) (consumer).
 
 ## Trust model
 
 | Guarantee | How |
 | --- | --- |
-| No unknown code in-process | Plugins run out-of-process in a fresh sandbox. |
+| No unknown code in-process | Each plugin runs in its own sandboxed WebAssembly store. |
 | No ambient authority | Default-deny: a capability does nothing unless granted. |
 | No privileged primitives | `LaunchControl`, `BinaryPatch`, `DetachedSpawn` are **built-in only** and are rejected at manifest validation. |
 | No silent data exfiltration | The sandbox has no direct filesystem/network access; the only way out is a granted capability call, which is audited. |
@@ -270,36 +288,28 @@ script in the page, so they are the highest-scrutiny grants. If a plugin does no
 need them, it should not request them - least privilege is enforced at authoring
 time by reviewers and at runtime by the proxy.
 
-## Host API (ABI `rpc/1`)
+## The component contract
 
-The host is the only caller. It drives the plugin over a versioned,
-length-prefixed JSON RPC: the plugin exports the ops named in its manifest and
-calls back to the host through capability-scoped functions.
-
-Host → plugin:
+The host is the only caller. It instantiates the component and drives the
+exported `plugin` interface:
 
 | Call | When |
 | --- | --- |
-| `describe()` | Handshake; must match the manifest's `abi`. |
-| `on_page_created(page_id)` | A new page is available. |
-| `invoke(op, args_json) -> result_json` | `PluginHandle::invoke`. |
+| `describe() -> payload` | Handshake; returns `{name, version, ops}` (MessagePack). |
+| `invoke(op, args) -> result<payload, string>` | `PluginHandle::invoke`. |
 
-Plugin → host (each checks a granted capability first):
+The component calls back through the imported `host` interface (each checks a
+granted capability first):
 
 | Callback | Capability required |
 | --- | --- |
-| `host.navigate(url)` | `navigate` |
-| `host.query(selector)` / `host.query_all(selector)` | `query` |
-| `host.get_text(selector)` / `host.get_attribute(selector, name)` | `get_text` / `get_attribute` |
-| `host.click(selector)` / `host.fill(selector, value)` / `host.type(selector, text)` | `click` / `fill` / `type_keys` |
-| `host.evaluate(js)` | `evaluate` (dangerous) |
-| `host.cdp(method, params_json)` | `cdp_proxy` (dangerous) |
-| `host.get_cookies()` / `host.set_cookie(json)` | `read_cookies` / `write_cookies` (dangerous) |
-| `host.screenshot(full_page)` | `screenshot` (dangerous) |
-| `host.log(message)` | always (redacted, never logs secrets) |
+| `log(message)` | always (redacted, never logs secrets) |
+| `get-cookies()` | `read_cookies` (dangerous) |
+| `set-cookie(cookie)` | `write_cookies` (dangerous) |
 
-`invoke` arguments and results are JSON strings, matching
-`PluginHandle::invoke(op, args_json) -> result_json` in every language binding.
+Payloads are MessagePack `list<u8>`, matching
+`PluginHandle::invoke(op, args_json) -> result_json` in every language binding
+(the bridge converts JSON args to MessagePack and back).
 
 ## Lifecycle
 
@@ -339,7 +349,8 @@ the Rust toolchain.
 - [ ] The plugin requests the **smallest** capability set it needs; no
       host-only capability is requested.
 - [ ] The op set is documented and each op is covered by the `limits` budget.
-- [ ] The `entrypoint` is deterministic and its `abi` matches a supported host ABI.
+- [ ] The `entrypoint` is a wasm component built from the shared WIT and its
+      `abi` is `wasm32-wasip2/1`.
 - [ ] The plugin never assumes it can read files or reach the network directly -
       all access goes through granted host callbacks.
 
@@ -348,4 +359,8 @@ the Rust toolchain.
 - [Built-in plugins](../../README.md#plugins) - the audit log and the
   cross-language bridge.
 - [`plugin.schema.json`](plugin.schema.json) - manifest JSON Schema.
-- [`examples/echo`](examples/echo/README.md) - a minimal end-to-end example.
+- [`examples/wasm-echo`](examples/wasm-echo/README.md) - a minimal end-to-end
+  example (Rust guest).
+- [`examples/kv-store`](examples/kv-store/README.md) and
+  [`examples/notes`](examples/notes/README.md) - a provider/consumer pair showing
+  a plugin that depends on another plugin.

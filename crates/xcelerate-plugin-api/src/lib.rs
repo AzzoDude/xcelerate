@@ -145,7 +145,7 @@ impl Capability {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Manifest {
-    /// Unique plugin name, e.g. `"example.echo"`.
+    /// Unique plugin name, e.g. `"example.plugin"`.
     pub name: String,
     pub version: String,
     /// Host interface range this plugin targets, e.g. `">=1.0 <2.0"`.
@@ -732,12 +732,12 @@ mod tests {
     use super::*;
 
     const VALID_MANIFEST: &str = r#"{
-        "name": "example.echo",
+        "name": "example.plugin",
         "version": "0.1.0",
         "host_api": ">=1.0 <2.0",
-        "entrypoint": "example-echo.wasm",
+        "entrypoint": "example.wasm",
         "abi": "wasm32-wasip2/1",
-        "ops": ["echo"],
+        "ops": ["run"],
         "capabilities": ["query", "get_text"],
         "limits": { "max_invoke_millis": 5000, "max_response_bytes": 65536 }
     }"#;
@@ -745,7 +745,7 @@ mod tests {
     #[test]
     fn parses_valid_sandboxed_manifest() {
         let manifest = Manifest::from_json(VALID_MANIFEST).unwrap();
-        assert_eq!(manifest.name, "example.echo");
+        assert_eq!(manifest.name, "example.plugin");
         assert_eq!(
             manifest.capabilities,
             vec![Capability::Query, Capability::GetText]
@@ -767,14 +767,14 @@ mod tests {
         let manifest = Manifest::from_json(VALID_MANIFEST).unwrap();
         assert!(manifest.validate_reserved(&["stealth"]).is_ok());
         assert!(matches!(
-            manifest.validate_reserved(&["example.echo"]).unwrap_err(),
+            manifest.validate_reserved(&["example.plugin"]).unwrap_err(),
             PluginError::Unsupported(_)
         ));
     }
 
     #[test]
     fn rejects_missing_entrypoint() {
-        let json = VALID_MANIFEST.replace(r#""entrypoint": "example-echo.wasm","#, "");
+        let json = VALID_MANIFEST.replace(r#""entrypoint": "example.wasm","#, "");
         assert!(matches!(
             Manifest::from_json(&json).unwrap_err(),
             PluginError::Unsupported(_)
@@ -798,10 +798,8 @@ mod tests {
             PluginError::Message(_)
         ));
 
-        let extra_field = VALID_MANIFEST.replace(
-            r#""ops": ["echo"],"#,
-            r#""ops": ["echo"], "backdoor": true,"#,
-        );
+        let extra_field =
+            VALID_MANIFEST.replace(r#""ops": ["run"],"#, r#""ops": ["run"], "backdoor": true,"#);
         assert!(matches!(
             Manifest::from_json(&extra_field).unwrap_err(),
             PluginError::Message(_)
@@ -811,8 +809,8 @@ mod tests {
     #[test]
     fn parses_and_validates_dependencies() {
         let with_dep = VALID_MANIFEST.replace(
-            r#""ops": ["echo"],"#,
-            r#""ops": ["echo"], "dependencies": { "acme.totp": "^1.0" },"#,
+            r#""ops": ["run"],"#,
+            r#""ops": ["run"], "dependencies": { "acme.totp": "^1.0" },"#,
         );
         let manifest = Manifest::from_json(&with_dep).unwrap();
         assert_eq!(
@@ -821,8 +819,8 @@ mod tests {
         );
 
         let self_dep = VALID_MANIFEST.replace(
-            r#""ops": ["echo"],"#,
-            r#""ops": ["echo"], "dependencies": { "example.echo": "^1.0" },"#,
+            r#""ops": ["run"],"#,
+            r#""ops": ["run"], "dependencies": { "example.plugin": "^1.0" },"#,
         );
         assert!(matches!(
             Manifest::from_json(&self_dep).unwrap_err(),
@@ -834,11 +832,27 @@ mod tests {
     fn documented_example_manifest_validates() {
         let path = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../docs/plugins/examples/echo/plugin.json"
+            "/../../docs/plugins/examples/wasm-echo/plugin.json"
         );
         let manifest = Manifest::load(path).unwrap();
-        assert_eq!(manifest.name, "example.echo");
+        assert_eq!(manifest.name, "example.wasm-echo");
         assert!(manifest.ops.contains(&"echo".to_string()));
+    }
+
+    #[test]
+    fn dependency_example_manifests_validate() {
+        let base = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/plugins/examples");
+
+        let provider = Manifest::load(&format!("{base}/kv-store/plugin.json")).unwrap();
+        assert_eq!(provider.name, "acme.kv");
+        assert!(provider.dependencies.is_empty());
+
+        let consumer = Manifest::load(&format!("{base}/notes/plugin.json")).unwrap();
+        assert_eq!(consumer.name, "acme.notes");
+        assert_eq!(
+            consumer.dependencies.get("acme.kv").map(String::as_str),
+            Some("^1.0")
+        );
     }
 
     #[test]

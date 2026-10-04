@@ -79,8 +79,8 @@ func main() {
 
 Key surface: `BrowserLaunch`, `Browser.NewPage`, `Browser.Close`, and the plugin
 bridge (`PluginNames`, `AvailablePlugins`, `UsePlugin`, `LoadPlugin`, `Plugin`,
-`PluginHandle.Invoke`). `LoadPlugin` loads a plugin from disk, out-of-process and
-capability-gated.
+`PluginHandle.Invoke`). `LoadPlugin` loads a sandboxed (WebAssembly) plugin from
+disk, capability-gated.
 
 ## Publishing
 

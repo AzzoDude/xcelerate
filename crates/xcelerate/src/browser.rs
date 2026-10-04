@@ -289,7 +289,7 @@ impl Browser {
     /// `plugin(name).invoke(op, args_json)` in every language, exactly like a
     /// built-in plugin.
     pub fn load_plugin(&self, path: String) -> XcelerateResult<String> {
-        let manifest_path = crate::plugin::process::resolve_manifest_path(&path)?;
+        let manifest_path = crate::plugin::resolve_manifest_path(&path)?;
         let manifest = xcelerate_plugin_api::Manifest::load(&manifest_path.to_string_lossy())?;
 
         manifest
@@ -302,13 +302,23 @@ impl Browser {
             )));
         }
 
-        let plugin = crate::plugin::process::spawn(
-            &manifest,
-            &manifest_path,
-            Some(Arc::clone(&self.client)),
-        )?;
-        self.plugins.install(plugin)?;
-        Ok(format!("loaded plugin '{}'", manifest.name))
+        #[cfg(feature = "wasm")]
+        {
+            let plugin_dir = manifest_path
+                .parent()
+                .unwrap_or_else(|| std::path::Path::new("."));
+            let plugin =
+                crate::plugin::wasm::load(&manifest, plugin_dir, Some(Arc::clone(&self.client)))?;
+            self.plugins.install(Arc::new(plugin))?;
+            Ok(format!("loaded plugin '{}'", manifest.name))
+        }
+        #[cfg(not(feature = "wasm"))]
+        {
+            let _ = manifest;
+            Err(XcelerateError::Unsupported(
+                "plugin loading requires the `wasm` feature".to_string(),
+            ))
+        }
     }
 
     /// Verifies the integrity of the append-only plugin audit log.

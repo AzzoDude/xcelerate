@@ -44,7 +44,8 @@ browser = await pw.launch(config)
 ```
 
 Nothing runs unless it is listed (default-deny). Plugins load with
-`Browser::load_plugin` and run out-of-process behind the capability gate. See the
+`Browser::load_plugin` and run sandboxed (WebAssembly) behind the capability gate.
+See the
 [plugins section](../README.md#plugins) of the top-level README for the
 capabilities and the append-only audit log.
 

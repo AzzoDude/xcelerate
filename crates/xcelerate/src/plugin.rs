@@ -17,7 +17,19 @@ pub use xcelerate_plugin_api::{
 };
 pub use xcelerate_plugins::{builtin_names, is_builtin};
 
-pub(crate) mod process;
+#[cfg(feature = "wasm")]
+pub(crate) mod wasm;
+
+/// Resolve a `load_plugin` path (a plugin directory or a `plugin.json`) to the
+/// manifest path.
+pub(crate) fn resolve_manifest_path(path: &str) -> XcelerateResult<std::path::PathBuf> {
+    let candidate = std::path::PathBuf::from(path);
+    if candidate.is_dir() {
+        Ok(candidate.join("plugin.json"))
+    } else {
+        Ok(candidate)
+    }
+}
 
 /// The host's built-in plugin catalog.
 pub(crate) fn catalog() -> Catalog {

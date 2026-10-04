@@ -62,8 +62,8 @@ print(await page.title());
 await browser.closeBrowser();   // `close` is reserved by the disposer
 ```
 
-Plugins load from disk out-of-process behind the capability gate; `loadPlugin`
-runs the `entrypoint` the manifest names.
+Plugins load from disk sandboxed (WebAssembly) behind the capability gate;
+`loadPlugin` instantiates the `entrypoint` component the manifest names.
 
 ## Publishing
 

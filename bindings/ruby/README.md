@@ -50,7 +50,7 @@ browser.close
 ```
 
 The generated bindings are synchronous (UniFFI blocks on the async core).
-`load_plugin` loads a plugin from disk, out-of-process and capability-gated.
+`load_plugin` loads a sandboxed (WebAssembly) plugin from disk, capability-gated.
 
 ## Publishing
 

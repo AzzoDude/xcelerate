@@ -16,6 +16,11 @@ readme = "../../README.md"
 name = "xcelerate"
 crate-type = ["rlib", "cdylib"]
 
+[features]
+default = ["wasm"]
+# The WebAssembly (Component Model) plugin transport. Sandboxed by construction.
+wasm = ["dep:wasmtime", "dep:wasmtime-wasi", "dep:rmp-serde"]
+
 [dependencies]
 xcelerate-core = { workspace = true }
 xcelerate-plugin-api = { workspace = true }
@@ -30,6 +35,10 @@ tokio = { workspace = true }
 base64 = { workspace = true }
 thiserror = { workspace = true }
 tempfile = { workspace = true }
+
+wasmtime = { version = "49", optional = true, features = ["component-model"] }
+wasmtime-wasi = { version = "49", optional = true }
+rmp-serde = { version = "1", optional = true }
 
 [lints]
 workspace = true
