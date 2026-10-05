@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "crates/bidi-protocol",
     "crates/xcelerate",
     "crates/xcelerate-core",
     "crates/xcelerate-plugin-api",
@@ -11,7 +10,7 @@ members = [
     "plugins/stealth",
     "plugins/human",
 ]
-exclude = ["bindings", "tools", "adapters", "scripts", "docs"]
+exclude = ["bindings", "tools", "adapters", "scripts", "docs", "bidi-protocol"]
 resolver = "3"
 
 [workspace.package]
@@ -44,8 +43,8 @@ mimalloc = "0.1.52"
 clap = { version = "4.5.20", features = ["derive"] }
 js-protocol = "0.1.6"
 browser-protocol = "0.1.6"
-# Firefox / W3C WebDriver BiDi protocol bindings (generated in-tree).
-bidi-protocol = { path = "crates/bidi-protocol", version = "0.1.0" }
+# Firefox / W3C WebDriver BiDi protocol bindings (published to crates.io).
+bidi-protocol = "0.1.0"
 # Held at the latest 0.31.x (0.31.2) on purpose: uniffi 0.32 changed its metadata
 # encoding, and the external generators this workspace depends on for
 # C#/Go/Dart/Node (`uniffi-bindgen-cs`, `-go`, `-dart`, `-node-js`) still vendor

@@ -18,3 +18,6 @@ pub use handler::CdpHandler;
 /// direct dependency on (and version-pinning) the generated protocol crates.
 pub use browser_protocol;
 pub use js_protocol;
+
+/// WebDriver BiDi bindings (the Firefox backend), published as `bidi-protocol`.
+pub use bidi_protocol;

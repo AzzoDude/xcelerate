@@ -813,6 +813,9 @@ dist-final/
 # Local research clones (e.g. browser-use) - never commit third-party source
 .research/
 
+# Standalone bidi-protocol crate (own repository, published to crates.io)
+bidi-protocol/
+
 ### macOS ###
 .DS_Store
 .AppleDouble

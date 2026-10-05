@@ -1,3 +1,0 @@
-# The full Bikeshed spec source (~550 KB) is downloaded on demand; the derived
-# all.cddl (the actual generation input) is committed instead.
-webdriver_bidi.bs
