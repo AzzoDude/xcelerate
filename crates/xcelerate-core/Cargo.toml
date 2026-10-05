@@ -11,7 +11,7 @@ description = "Transport and typed command layer for xcelerate (Chrome DevTools 
 [dependencies]
 browser-protocol = { workspace = true }
 js-protocol = { workspace = true }
-bidi-protocol = { workspace = true }
+webdriver-bidi = { workspace = true }
 futures = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

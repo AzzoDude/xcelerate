@@ -19,5 +19,5 @@ pub use handler::CdpHandler;
 pub use browser_protocol;
 pub use js_protocol;
 
-/// WebDriver BiDi bindings (the Firefox backend), published as `bidi-protocol`.
-pub use bidi_protocol;
+/// WebDriver BiDi bindings (the Firefox backend), published as `webdriver-bidi`.
+pub use webdriver_bidi;
