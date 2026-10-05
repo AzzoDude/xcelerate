@@ -414,11 +414,15 @@ xcelerate screenshot https://example.com -o shot.png --full
 xcelerate query https://example.com h1 --attr href
 xcelerate query-all https://example.com 'a'   # text of every match
 xcelerate evaluate https://example.com 'document.title'
+xcelerate list                                  # built-in devices + plugins
+xcelerate --device "iPhone 13" screenshot https://example.com -o phone.png
 xcelerate plugins
 ```
 
 Global flags apply to every command: `--no-headless`, `--detached`,
-`--executable-path <path>`, `--plugins stealth,human`, and `--timeout <ms>`.
+`--executable-path <path>`, `--plugins stealth,human`, `--device <name>`, and
+`--timeout <ms>`. `xcelerate --device <name> <command>` renders as a built-in
+mobile device, and `xcelerate list` prints every device and plugin.
 Install it with `cargo install --path crates/xcelerate-cli`, or
 `winget install Chaosware.Xcelerate` on Windows; from a checkout, prefix any
 command with `cargo run -p xcelerate-cli --`.

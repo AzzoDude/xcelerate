@@ -2,7 +2,7 @@
 //!
 //! Regenerate with: python scripts/generate_adapters.py --target rust
 
-pub mod support;
 pub mod playwright;
 pub mod puppeteer;
 pub mod selenium;
+pub mod support;

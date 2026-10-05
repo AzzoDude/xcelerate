@@ -422,11 +422,15 @@ xcelerate screenshot https://example.com -o shot.png --full
 xcelerate query https://example.com h1 --attr href
 xcelerate query-all https://example.com 'a'   # text of every match
 xcelerate evaluate https://example.com 'document.title'
+xcelerate list                                  # built-in devices + plugins
+xcelerate --device "iPhone 13" screenshot https://example.com -o phone.png
 xcelerate plugins
 ```
 
 グローバルフラグはすべてのコマンドに適用されます: `--no-headless`、`--detached`、
-`--executable-path <path>`、`--plugins stealth,human`、`--timeout <ms>`。
+`--executable-path <path>`、`--plugins stealth,human`、`--device <name>`、`--timeout <ms>`。
+`xcelerate --device <name> <command>` は組み込みのモバイル デバイスとして描画し、
+`xcelerate list` はすべてのデバイスとプラグインを一覧表示します。
 インストールには `cargo install --path crates/xcelerate-cli`、Windows では
 `winget install Chaosware.Xcelerate` を使用します。チェックアウトから実行する場合は、
 任意のコマンドの前に `cargo run -p xcelerate-cli --` を付けます。

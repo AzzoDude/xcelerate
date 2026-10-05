@@ -16,6 +16,7 @@
 //! through `uniffi`.
 
 pub mod browser;
+pub mod devices;
 pub mod element;
 pub mod error;
 pub mod page;
@@ -27,6 +28,7 @@ mod proxy;
 pub mod adapters;
 
 pub use browser::{Browser, BrowserConfig, configure_user_data_dir};
+pub use devices::Device;
 pub use element::Element;
 pub use error::{XcelerateError, XcelerateResult};
 pub use page::Page;

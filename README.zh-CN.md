@@ -407,11 +407,15 @@ xcelerate screenshot https://example.com -o shot.png --full
 xcelerate query https://example.com h1 --attr href
 xcelerate query-all https://example.com 'a'   # text of every match
 xcelerate evaluate https://example.com 'document.title'
+xcelerate list                                  # built-in devices + plugins
+xcelerate --device "iPhone 13" screenshot https://example.com -o phone.png
 xcelerate plugins
 ```
 
 全局标志适用于每个命令：`--no-headless`、`--detached`、
-`--executable-path <path>`、`--plugins stealth,human` 和 `--timeout <ms>`。
+`--executable-path <path>`、`--plugins stealth,human`、`--device <name>` 和 `--timeout <ms>`。
+`xcelerate --device <name> <command>` 会以内置移动设备渲染，`xcelerate list`
+会列出所有设备和插件。
 使用 `cargo install --path crates/xcelerate-cli` 安装，或在 Windows 上使用
 `winget install Chaosware.Xcelerate`；从代码检出运行时，请在任何命令前加上
 `cargo run -p xcelerate-cli --`。

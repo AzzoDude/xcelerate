@@ -44,6 +44,9 @@ struct BrowserArgs {
     /// Built-in plugins to enable (comma-separated): stealth,human.
     #[arg(long, global = true, value_name = "LIST", value_delimiter = ',')]
     plugins: Vec<String>,
+    /// Emulate a mobile device for this run (see `xcelerate list`).
+    #[arg(long, global = true, value_name = "NAME")]
+    device: Option<String>,
     /// Upstream proxy URL(s); repeat for a pool. `http://[user:pass@]host:port`.
     #[arg(long, global = true, value_name = "URL")]
     proxy: Vec<String>,
@@ -113,6 +116,8 @@ enum Command {
         #[arg(long)]
         no_ffmpeg: bool,
     },
+    /// List built-in devices and plugins.
+    List,
     /// List the compiled-in built-in plugins.
     Plugins,
     /// Create a new mod (plugin) from the starter template.
@@ -150,6 +155,24 @@ async fn main() {
 
 async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
+        Command::List => {
+            println!("Devices:");
+            for device in xcelerate::devices::all() {
+                println!(
+                    "  {:<22} {}x{}  dpr {:<5} {}{}",
+                    device.name,
+                    device.width,
+                    device.height,
+                    device.device_scale_factor,
+                    if device.mobile { "mobile" } else { "desktop" },
+                    if device.has_touch { " touch" } else { "" }
+                );
+            }
+            println!("\nPlugins:");
+            for name in xcelerate::plugin::builtin_names() {
+                println!("  {name}");
+            }
+        }
         Command::Plugins => {
             for name in xcelerate::plugin::builtin_names() {
                 println!("{name}");
@@ -305,7 +328,18 @@ async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Browser>,
         },
     };
     let browser = Browser::launch(config).await?;
-    let page = Arc::clone(&browser).new_page(url.to_string()).await?;
+    let page = if let Some(device) = args.device.clone() {
+        // Emulate before navigating so the UA, touch, and viewport are in place
+        // for the first request and the initial layout.
+        let page = Arc::clone(&browser)
+            .new_page("about:blank".to_string())
+            .await?;
+        page.emulate_device(device).await?;
+        page.navigate(url.to_string()).await?;
+        page
+    } else {
+        Arc::clone(&browser).new_page(url.to_string()).await?
+    };
     if args.timeout > 0 {
         page.set_default_timeout(args.timeout as f64).await?;
     }

@@ -420,11 +420,15 @@ xcelerate screenshot https://example.com -o shot.png --full
 xcelerate query https://example.com h1 --attr href
 xcelerate query-all https://example.com 'a'   # text of every match
 xcelerate evaluate https://example.com 'document.title'
+xcelerate list                                  # built-in devices + plugins
+xcelerate --device "iPhone 13" screenshot https://example.com -o phone.png
 xcelerate plugins
 ```
 
 Các cờ toàn cục áp dụng cho mọi lệnh: `--no-headless`, `--detached`,
-`--executable-path <path>`, `--plugins stealth,human`, và `--timeout <ms>`. Cài đặt
+`--executable-path <path>`, `--plugins stealth,human`, `--device <name>`, và `--timeout <ms>`.
+`xcelerate --device <name> <command>` hiển thị như một thiết bị di động có sẵn, và
+`xcelerate list` liệt kê mọi thiết bị và plugin. Cài đặt
 nó bằng `cargo install --path crates/xcelerate-cli`, hoặc
 `winget install Chaosware.Xcelerate` trên Windows; khi làm việc từ bản checkout, thêm
 tiền tố `cargo run -p xcelerate-cli --` trước mọi lệnh.

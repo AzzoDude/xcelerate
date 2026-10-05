@@ -2021,3 +2021,52 @@ impl Page {
         Ok(serde_json::Value::Array(snapshot).to_string())
     }
 }
+
+impl Page {
+    /// Emulates a built-in mobile/tablet device: viewport, pixel ratio, touch
+    /// input, and user agent (see [`crate::devices`] and `xcelerate list`).
+    ///
+    /// Rust/CLI/MCP only - not exported through UniFFI yet, like video
+    /// recording, so the device list can grow without changing binding
+    /// checksums.
+    pub async fn emulate_device(&self, name: String) -> XcelerateResult<()> {
+        let device = crate::devices::find(&name).ok_or_else(|| {
+            XcelerateError::Unsupported(format!(
+                "unknown device `{name}` (run `xcelerate list` to see the built-in devices)"
+            ))
+        })?;
+        let landscape = crate::devices::is_landscape(device);
+        self.execute_cdp_cmd(
+            "Emulation.setDeviceMetricsOverride".to_string(),
+            serde_json::json!({
+                "width": device.width,
+                "height": device.height,
+                "deviceScaleFactor": device.device_scale_factor,
+                "mobile": device.mobile,
+                "screenOrientation": {
+                    "type": if landscape { "landscapePrimary" } else { "portraitPrimary" },
+                    "angle": 0
+                }
+            })
+            .to_string(),
+        )
+        .await?;
+        self.execute_cdp_cmd(
+            "Emulation.setTouchEmulationEnabled".to_string(),
+            serde_json::json!({
+                "enabled": device.has_touch,
+                "maxTouchPoints": if device.has_touch { 5 } else { 0 }
+            })
+            .to_string(),
+        )
+        .await?;
+        if !device.user_agent.is_empty() {
+            self.execute_cdp_cmd(
+                "Emulation.setUserAgentOverride".to_string(),
+                serde_json::json!({ "userAgent": device.user_agent }).to_string(),
+            )
+            .await?;
+        }
+        Ok(())
+    }
+}

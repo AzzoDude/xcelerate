@@ -9,13 +9,14 @@
 use std::sync::Arc;
 
 use crate::{
-    Browser as CoreBrowser, BrowserConfig, Element as CoreElement, Page as CorePage,
-    XcelerateError,
+    Browser as CoreBrowser, BrowserConfig, Element as CoreElement, Page as CorePage, XcelerateError,
 };
 
 /// launch entry point.
 pub async fn launch(config: Option<BrowserConfig>) -> Result<Browser, XcelerateError> {
-    Ok(Browser::new(CoreBrowser::launch(config.unwrap_or_default()).await?))
+    Ok(Browser::new(
+        CoreBrowser::launch(config.unwrap_or_default()).await?,
+    ))
 }
 
 /// Puppeteer-style browser.
@@ -36,7 +37,9 @@ impl Browser {
 
     /// `createBrowserContext`.
     pub async fn createBrowserContext(&self) -> Result<BrowserContext, XcelerateError> {
-        Ok(BrowserContext::new(super::support::ContextHandle::new(Arc::clone(&self.inner))))
+        Ok(BrowserContext::new(super::support::ContextHandle::new(
+            Arc::clone(&self.inner),
+        )))
     }
 
     /// `version`.
@@ -72,7 +75,10 @@ impl Browser {
 
     /// `waitForTarget`.
     pub async fn waitForTarget(&self) -> Result<String, XcelerateError> {
-        Ok(self.inner.wait_for_event_default("Target.targetCreated".to_string()).await?)
+        Ok(self
+            .inner
+            .wait_for_event_default("Target.targetCreated".to_string())
+            .await?)
     }
 
     /// `userAgent`.
@@ -186,8 +192,14 @@ impl Browser {
     }
 
     /// `setPermission`.
-    pub async fn setPermission(&self, origin: String, permissions_json: String) -> Result<(), XcelerateError> {
-        self.inner.grant_permissions(origin, permissions_json).await?;
+    pub async fn setPermission(
+        &self,
+        origin: String,
+        permissions_json: String,
+    ) -> Result<(), XcelerateError> {
+        self.inner
+            .grant_permissions(origin, permissions_json)
+            .await?;
         Ok(())
     }
 }
@@ -229,8 +241,14 @@ impl BrowserContext {
     }
 
     /// `overridePermissions`.
-    pub async fn overridePermissions(&self, origin: String, permissions_json: String) -> Result<(), XcelerateError> {
-        self.inner.grant_permissions(origin, permissions_json).await?;
+    pub async fn overridePermissions(
+        &self,
+        origin: String,
+        permissions_json: String,
+    ) -> Result<(), XcelerateError> {
+        self.inner
+            .grant_permissions(origin, permissions_json)
+            .await?;
         Ok(())
     }
 
@@ -259,7 +277,10 @@ impl BrowserContext {
 
     /// `waitForTarget`.
     pub async fn waitForTarget(&self) -> Result<String, XcelerateError> {
-        Ok(self.inner.wait_for_event("Target.targetCreated".to_string()).await?)
+        Ok(self
+            .inner
+            .wait_for_event("Target.targetCreated".to_string())
+            .await?)
     }
 
     /// `addInitScript`.
@@ -281,8 +302,14 @@ impl BrowserContext {
     }
 
     /// `setPermission`.
-    pub async fn setPermission(&self, origin: String, permissions_json: String) -> Result<(), XcelerateError> {
-        self.inner.grant_permissions(origin, permissions_json).await?;
+    pub async fn setPermission(
+        &self,
+        origin: String,
+        permissions_json: String,
+    ) -> Result<(), XcelerateError> {
+        self.inner
+            .grant_permissions(origin, permissions_json)
+            .await?;
         Ok(())
     }
 }
@@ -332,13 +359,19 @@ impl Page {
     }
 
     /// `screenshot`.
-    pub async fn screenshot(&self, full_page: bool, path: Option<String>) -> Result<Vec<u8>, XcelerateError> {
+    pub async fn screenshot(
+        &self,
+        full_page: bool,
+        path: Option<String>,
+    ) -> Result<Vec<u8>, XcelerateError> {
         Ok(super::support::screenshot(&self.inner, full_page, path).await?)
     }
 
     /// `$`.
     pub async fn query_selector(&self, selector: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).find_element(selector).await?))
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).find_element(selector).await?,
+        ))
     }
 
     /// `click`.
@@ -372,7 +405,9 @@ impl Page {
 
     /// `waitForSelector`.
     pub async fn waitForSelector(&self, selector: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).wait_for_selector(selector).await?))
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).wait_for_selector(selector).await?,
+        ))
     }
 
     /// `waitForNavigation`.
@@ -389,12 +424,18 @@ impl Page {
 
     /// `evaluateOnNewDocument`.
     pub async fn evaluateOnNewDocument(&self, content: String) -> Result<String, XcelerateError> {
-        Ok(self.inner.add_script_to_evaluate_on_new_document(content).await?)
+        Ok(self
+            .inner
+            .add_script_to_evaluate_on_new_document(content)
+            .await?)
     }
 
     /// `addScriptTag`.
     pub async fn addScriptTag(&self, content: String) -> Result<String, XcelerateError> {
-        Ok(self.inner.add_script_to_evaluate_on_new_document(content).await?)
+        Ok(self
+            .inner
+            .add_script_to_evaluate_on_new_document(content)
+            .await?)
     }
 
     /// `goForward`.
@@ -411,38 +452,77 @@ impl Page {
 
     /// `setContent`.
     pub async fn setContent(&self, html: String) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(h){document.open();document.write(h);document.close();}".to_string(), serde_json::json!([html]).to_string()).await?;
+        self.inner
+            .call_json(
+                "function(h){document.open();document.write(h);document.close();}".to_string(),
+                serde_json::json!([html]).to_string(),
+            )
+            .await?;
         Ok(())
     }
 
     /// `url`.
     pub async fn url(&self) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_string("function(){return location.href;}".to_string(), "[]".to_string()).await?)
+        Ok(self
+            .inner
+            .call_string(
+                "function(){return location.href;}".to_string(),
+                "[]".to_string(),
+            )
+            .await?)
     }
 
     /// `$$`.
-    pub async fn query_selector_all(&self, selector: String) -> Result<Vec<ElementHandle>, XcelerateError> {
-        Ok(Arc::clone(&self.inner).query_selector_all(selector).await?.into_iter().map(ElementHandle::new).collect())
+    pub async fn query_selector_all(
+        &self,
+        selector: String,
+    ) -> Result<Vec<ElementHandle>, XcelerateError> {
+        Ok(Arc::clone(&self.inner)
+            .query_selector_all(selector)
+            .await?
+            .into_iter()
+            .map(ElementHandle::new)
+            .collect())
     }
 
     /// `$eval`.
-    pub async fn eval_on_selector(&self, selector: String, expression: String) -> Result<String, XcelerateError> {
+    pub async fn eval_on_selector(
+        &self,
+        selector: String,
+        expression: String,
+    ) -> Result<String, XcelerateError> {
         Ok(self.inner.call_on_selector(selector, expression).await?)
     }
 
     /// `$$eval`.
-    pub async fn eval_on_selector_all(&self, selector: String, expression: String) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_on_selector_all(selector, expression).await?)
+    pub async fn eval_on_selector_all(
+        &self,
+        selector: String,
+        expression: String,
+    ) -> Result<String, XcelerateError> {
+        Ok(self
+            .inner
+            .call_on_selector_all(selector, expression)
+            .await?)
     }
 
     /// `$x`.
-    pub async fn query_selector_xpath(&self, xpath: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).query_selector_xpath(xpath).await?))
+    pub async fn query_selector_xpath(
+        &self,
+        xpath: String,
+    ) -> Result<ElementHandle, XcelerateError> {
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).query_selector_xpath(xpath).await?,
+        ))
     }
 
     /// `waitForXPath`.
     pub async fn waitForXPath(&self, xpath: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).wait_for_xpath(xpath, 30_000).await?))
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner)
+                .wait_for_xpath(xpath, 30_000)
+                .await?,
+        ))
     }
 
     /// `waitForFunction`.
@@ -453,45 +533,78 @@ impl Page {
 
     /// `waitForRequest`.
     pub async fn waitForRequest(&self) -> Result<String, XcelerateError> {
-        Ok(self.inner.wait_for_event_default("Network.requestWillBeSent".to_string()).await?)
+        Ok(self
+            .inner
+            .wait_for_event_default("Network.requestWillBeSent".to_string())
+            .await?)
     }
 
     /// `waitForResponse`.
     pub async fn waitForResponse(&self) -> Result<String, XcelerateError> {
-        Ok(self.inner.wait_for_event_default("Network.responseReceived".to_string()).await?)
+        Ok(self
+            .inner
+            .wait_for_event_default("Network.responseReceived".to_string())
+            .await?)
     }
 
     /// `waitForNetworkIdle`.
     pub async fn waitForNetworkIdle(&self) -> Result<String, XcelerateError> {
-        Ok(self.inner.wait_for_event_default("Network.loadingFinished".to_string()).await?)
+        Ok(self
+            .inner
+            .wait_for_event_default("Network.loadingFinished".to_string())
+            .await?)
     }
 
     /// `waitForFrame`.
     pub async fn waitForFrame(&self) -> Result<String, XcelerateError> {
-        Ok(self.inner.wait_for_event_default("Page.frameAttached".to_string()).await?)
+        Ok(self
+            .inner
+            .wait_for_event_default("Page.frameAttached".to_string())
+            .await?)
     }
 
     /// `tap`.
     pub async fn tap(&self, selector: String) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(sel){const e=document.querySelector(sel);if(e)e.click();}".to_string(), serde_json::json!([selector]).to_string()).await?;
+        self.inner
+            .call_json(
+                "function(sel){const e=document.querySelector(sel);if(e)e.click();}".to_string(),
+                serde_json::json!([selector]).to_string(),
+            )
+            .await?;
         Ok(())
     }
 
     /// `select`.
-    pub async fn select(&self, selector: String, values_json: String) -> Result<(), XcelerateError> {
+    pub async fn select(
+        &self,
+        selector: String,
+        values_json: String,
+    ) -> Result<(), XcelerateError> {
         self.inner.call_json("function(sel,valuesRaw){const e=document.querySelector(sel);if(!e)return;const w=JSON.parse(valuesRaw).map(String);for(const o of e.options){o.selected=w.includes(o.value)||w.includes(o.text);}e.dispatchEvent(new Event('change',{bubbles:true}));}".to_string(), serde_json::json!([selector, values_json]).to_string()).await?;
         Ok(())
     }
 
     /// `setInputFiles`.
-    pub async fn setInputFiles(&self, selector: String, files_json: String) -> Result<(), XcelerateError> {
-        Arc::clone(&self.inner).set_input_files(selector, files_json).await?;
+    pub async fn setInputFiles(
+        &self,
+        selector: String,
+        files_json: String,
+    ) -> Result<(), XcelerateError> {
+        Arc::clone(&self.inner)
+            .set_input_files(selector, files_json)
+            .await?;
         Ok(())
     }
 
     /// `uploadFile`.
-    pub async fn uploadFile(&self, selector: String, files_json: String) -> Result<(), XcelerateError> {
-        Arc::clone(&self.inner).set_input_files(selector, files_json).await?;
+    pub async fn uploadFile(
+        &self,
+        selector: String,
+        files_json: String,
+    ) -> Result<(), XcelerateError> {
+        Arc::clone(&self.inner)
+            .set_input_files(selector, files_json)
+            .await?;
         Ok(())
     }
 
@@ -512,12 +625,23 @@ impl Page {
 
     /// `evaluate`.
     pub async fn evaluate(&self, expression: String) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_json("function(src){return (new Function(\"return (\"+src+\")\"))();}".to_string(), serde_json::json!([expression]).to_string()).await?)
+        Ok(self
+            .inner
+            .call_json(
+                "function(src){return (new Function(\"return (\"+src+\")\"))();}".to_string(),
+                serde_json::json!([expression]).to_string(),
+            )
+            .await?)
     }
 
     /// `evaluateHandle`.
-    pub async fn evaluateHandle(&self, expression: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).evaluate_handle(expression).await?))
+    pub async fn evaluateHandle(
+        &self,
+        expression: String,
+    ) -> Result<ElementHandle, XcelerateError> {
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).evaluate_handle(expression).await?,
+        ))
     }
 
     /// `addStyleTag`.
@@ -532,8 +656,14 @@ impl Page {
     }
 
     /// `setUserAgent`.
-    pub async fn setUserAgent(&self, user_agent: String, accept_language: Option<String>) -> Result<(), XcelerateError> {
-        self.inner.set_user_agent(user_agent, accept_language).await?;
+    pub async fn setUserAgent(
+        &self,
+        user_agent: String,
+        accept_language: Option<String>,
+    ) -> Result<(), XcelerateError> {
+        self.inner
+            .set_user_agent(user_agent, accept_language)
+            .await?;
         Ok(())
     }
 
@@ -545,7 +675,12 @@ impl Page {
 
     /// `setBypassCSP`.
     pub async fn setBypassCSP(&self, enabled: bool) -> Result<(), XcelerateError> {
-        self.inner.execute_cdp_cmd("Page.setBypassCSP".to_string(), serde_json::json!({ "enabled": enabled }).to_string()).await?;
+        self.inner
+            .execute_cdp_cmd(
+                "Page.setBypassCSP".to_string(),
+                serde_json::json!({ "enabled": enabled }).to_string(),
+            )
+            .await?;
         Ok(())
     }
 
@@ -568,43 +703,77 @@ impl Page {
     }
 
     /// `emulateNetworkConditions`.
-    pub async fn emulateNetworkConditions(&self, offline: bool, latency: f64, download: f64, upload: f64) -> Result<(), XcelerateError> {
+    pub async fn emulateNetworkConditions(
+        &self,
+        offline: bool,
+        latency: f64,
+        download: f64,
+        upload: f64,
+    ) -> Result<(), XcelerateError> {
         self.inner.execute_cdp_cmd("Network.emulateNetworkConditions".to_string(), serde_json::json!({ "offline": offline, "latency": latency, "downloadThroughput": download, "uploadThroughput": upload }).to_string()).await?;
         Ok(())
     }
 
     /// `emulateCPUThrottling`.
     pub async fn emulateCPUThrottling(&self, rate: f64) -> Result<(), XcelerateError> {
-        self.inner.execute_cdp_cmd("Emulation.setCPUThrottlingRate".to_string(), serde_json::json!({ "rate": rate }).to_string()).await?;
+        self.inner
+            .execute_cdp_cmd(
+                "Emulation.setCPUThrottlingRate".to_string(),
+                serde_json::json!({ "rate": rate }).to_string(),
+            )
+            .await?;
         Ok(())
     }
 
     /// `emulateIdleState`.
-    pub async fn emulateIdleState(&self, is_user_active: bool, is_screen_unlocked: bool) -> Result<(), XcelerateError> {
-        self.inner.emulate_idle_state(is_user_active, is_screen_unlocked).await?;
+    pub async fn emulateIdleState(
+        &self,
+        is_user_active: bool,
+        is_screen_unlocked: bool,
+    ) -> Result<(), XcelerateError> {
+        self.inner
+            .emulate_idle_state(is_user_active, is_screen_unlocked)
+            .await?;
         Ok(())
     }
 
     /// `emulateMediaFeatures`.
     pub async fn emulateMediaFeatures(&self, features_json: String) -> Result<(), XcelerateError> {
-        self.inner.set_emulated_media_features(features_json).await?;
+        self.inner
+            .set_emulated_media_features(features_json)
+            .await?;
         Ok(())
     }
 
     /// `emulateTimezone`.
     pub async fn emulateTimezone(&self, timezone_id: String) -> Result<(), XcelerateError> {
-        self.inner.execute_cdp_cmd("Emulation.setTimezoneOverride".to_string(), serde_json::json!({ "timezoneId": timezone_id }).to_string()).await?;
+        self.inner
+            .execute_cdp_cmd(
+                "Emulation.setTimezoneOverride".to_string(),
+                serde_json::json!({ "timezoneId": timezone_id }).to_string(),
+            )
+            .await?;
         Ok(())
     }
 
     /// `emulateVisionDeficiency`.
     pub async fn emulateVisionDeficiency(&self, kind: String) -> Result<(), XcelerateError> {
-        self.inner.execute_cdp_cmd("Emulation.setEmulatedVisionDeficiency".to_string(), serde_json::json!({ "type": kind }).to_string()).await?;
+        self.inner
+            .execute_cdp_cmd(
+                "Emulation.setEmulatedVisionDeficiency".to_string(),
+                serde_json::json!({ "type": kind }).to_string(),
+            )
+            .await?;
         Ok(())
     }
 
     /// `setGeolocation`.
-    pub async fn setGeolocation(&self, latitude: f64, longitude: f64, accuracy: f64) -> Result<(), XcelerateError> {
+    pub async fn setGeolocation(
+        &self,
+        latitude: f64,
+        longitude: f64,
+        accuracy: f64,
+    ) -> Result<(), XcelerateError> {
         self.inner.execute_cdp_cmd("Emulation.setGeolocationOverride".to_string(), serde_json::json!({ "latitude": latitude, "longitude": longitude, "accuracy": accuracy }).to_string()).await?;
         Ok(())
     }
@@ -627,20 +796,39 @@ impl Page {
     }
 
     /// `authenticate`.
-    pub async fn authenticate(&self, username: String, password: String) -> Result<(), XcelerateError> {
+    pub async fn authenticate(
+        &self,
+        username: String,
+        password: String,
+    ) -> Result<(), XcelerateError> {
         self.inner.authenticate(username, password).await?;
         Ok(())
     }
 
     /// `setCookie`.
-    pub async fn setCookie(&self, name: String, value: String, url: String) -> Result<(), XcelerateError> {
-        self.inner.execute_cdp_cmd("Network.setCookie".to_string(), serde_json::json!({ "name": name, "value": value, "url": url }).to_string()).await?;
+    pub async fn setCookie(
+        &self,
+        name: String,
+        value: String,
+        url: String,
+    ) -> Result<(), XcelerateError> {
+        self.inner
+            .execute_cdp_cmd(
+                "Network.setCookie".to_string(),
+                serde_json::json!({ "name": name, "value": value, "url": url }).to_string(),
+            )
+            .await?;
         Ok(())
     }
 
     /// `deleteCookie`.
     pub async fn deleteCookie(&self, name: String) -> Result<(), XcelerateError> {
-        self.inner.execute_cdp_cmd("Network.deleteCookies".to_string(), serde_json::json!({ "name": name }).to_string()).await?;
+        self.inner
+            .execute_cdp_cmd(
+                "Network.deleteCookies".to_string(),
+                serde_json::json!({ "name": name }).to_string(),
+            )
+            .await?;
         Ok(())
     }
 
@@ -672,27 +860,47 @@ impl Page {
 
     /// `J`.
     pub async fn J(&self, selector: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).find_element(selector).await?))
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).find_element(selector).await?,
+        ))
     }
 
     /// `JJ`.
     pub async fn JJ(&self, selector: String) -> Result<Vec<ElementHandle>, XcelerateError> {
-        Ok(Arc::clone(&self.inner).query_selector_all(selector).await?.into_iter().map(ElementHandle::new).collect())
+        Ok(Arc::clone(&self.inner)
+            .query_selector_all(selector)
+            .await?
+            .into_iter()
+            .map(ElementHandle::new)
+            .collect())
     }
 
     /// `JJeval`.
-    pub async fn JJeval(&self, selector: String, expression: String) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_on_selector_all(selector, expression).await?)
+    pub async fn JJeval(
+        &self,
+        selector: String,
+        expression: String,
+    ) -> Result<String, XcelerateError> {
+        Ok(self
+            .inner
+            .call_on_selector_all(selector, expression)
+            .await?)
     }
 
     /// `Jeval`.
-    pub async fn Jeval(&self, selector: String, expression: String) -> Result<String, XcelerateError> {
+    pub async fn Jeval(
+        &self,
+        selector: String,
+        expression: String,
+    ) -> Result<String, XcelerateError> {
         Ok(self.inner.call_on_selector(selector, expression).await?)
     }
 
     /// `Jx`.
     pub async fn Jx(&self, xpath: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).query_selector_xpath(xpath).await?))
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).query_selector_xpath(xpath).await?,
+        ))
     }
 
     /// `add_listener`.
@@ -707,7 +915,11 @@ impl Page {
     }
 
     /// `emulateMedia`.
-    pub async fn emulateMedia(&self, media: Option<String>, color_scheme: Option<String>) -> Result<(), XcelerateError> {
+    pub async fn emulateMedia(
+        &self,
+        media: Option<String>,
+        color_scheme: Option<String>,
+    ) -> Result<(), XcelerateError> {
         self.inner.emulate_media(media, color_scheme).await?;
         Ok(())
     }
@@ -751,26 +963,53 @@ impl Page {
 
     /// `plainText`.
     pub async fn plainText(&self) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_string("function(){return document.body?document.body.innerText:'';}".to_string(), "[]".to_string()).await?)
+        Ok(self
+            .inner
+            .call_string(
+                "function(){return document.body?document.body.innerText:'';}".to_string(),
+                "[]".to_string(),
+            )
+            .await?)
     }
 
     /// `querySelector`.
     pub async fn querySelector(&self, selector: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).find_element(selector).await?))
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).find_element(selector).await?,
+        ))
     }
 
     /// `querySelectorAll`.
-    pub async fn querySelectorAll(&self, selector: String) -> Result<Vec<ElementHandle>, XcelerateError> {
-        Ok(Arc::clone(&self.inner).query_selector_all(selector).await?.into_iter().map(ElementHandle::new).collect())
+    pub async fn querySelectorAll(
+        &self,
+        selector: String,
+    ) -> Result<Vec<ElementHandle>, XcelerateError> {
+        Ok(Arc::clone(&self.inner)
+            .query_selector_all(selector)
+            .await?
+            .into_iter()
+            .map(ElementHandle::new)
+            .collect())
     }
 
     /// `querySelectorAllEval`.
-    pub async fn querySelectorAllEval(&self, selector: String, expression: String) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_on_selector_all(selector, expression).await?)
+    pub async fn querySelectorAllEval(
+        &self,
+        selector: String,
+        expression: String,
+    ) -> Result<String, XcelerateError> {
+        Ok(self
+            .inner
+            .call_on_selector_all(selector, expression)
+            .await?)
     }
 
     /// `querySelectorEval`.
-    pub async fn querySelectorEval(&self, selector: String, expression: String) -> Result<String, XcelerateError> {
+    pub async fn querySelectorEval(
+        &self,
+        selector: String,
+        expression: String,
+    ) -> Result<String, XcelerateError> {
         Ok(self.inner.call_on_selector(selector, expression).await?)
     }
 
@@ -787,7 +1026,10 @@ impl Page {
     }
 
     /// `setDefaultNavigationTimeout`.
-    pub async fn setDefaultNavigationTimeout(&self, milliseconds: f64) -> Result<(), XcelerateError> {
+    pub async fn setDefaultNavigationTimeout(
+        &self,
+        milliseconds: f64,
+    ) -> Result<(), XcelerateError> {
         self.inner.set_default_timeout(milliseconds).await?;
         Ok(())
     }
@@ -799,17 +1041,32 @@ impl Page {
 
     /// `viewport`.
     pub async fn viewport(&self) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_json("function(){return {width:window.innerWidth,height:window.innerHeight};}".to_string(), "[]".to_string()).await?)
+        Ok(self
+            .inner
+            .call_json(
+                "function(){return {width:window.innerWidth,height:window.innerHeight};}"
+                    .to_string(),
+                "[]".to_string(),
+            )
+            .await?)
     }
 
     /// `xpath`.
     pub async fn xpath(&self, xpath: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).query_selector_xpath(xpath).await?))
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).query_selector_xpath(xpath).await?,
+        ))
     }
 
     /// `accessibility`.
     pub async fn accessibility(&self) -> Result<String, XcelerateError> {
-        Ok(self.inner.execute_cdp_cmd("Accessibility.getFullAXTree".to_string(), serde_json::json!({  }).to_string()).await?)
+        Ok(self
+            .inner
+            .execute_cdp_cmd(
+                "Accessibility.getFullAXTree".to_string(),
+                serde_json::json!({}).to_string(),
+            )
+            .await?)
     }
 
     /// `createCDPSession`.
@@ -824,19 +1081,34 @@ impl Page {
 
     /// `emulateFocusedPage`.
     pub async fn emulateFocusedPage(&self, enabled: bool) -> Result<(), XcelerateError> {
-        self.inner.execute_cdp_cmd("Emulation.setFocusEmulationEnabled".to_string(), serde_json::json!({ "enabled": enabled }).to_string()).await?;
+        self.inner
+            .execute_cdp_cmd(
+                "Emulation.setFocusEmulationEnabled".to_string(),
+                serde_json::json!({ "enabled": enabled }).to_string(),
+            )
+            .await?;
         Ok(())
     }
 
     /// `emulateLocale`.
     pub async fn emulateLocale(&self, locale: String) -> Result<(), XcelerateError> {
-        self.inner.execute_cdp_cmd("Emulation.setLocaleOverride".to_string(), serde_json::json!({ "locale": locale }).to_string()).await?;
+        self.inner
+            .execute_cdp_cmd(
+                "Emulation.setLocaleOverride".to_string(),
+                serde_json::json!({ "locale": locale }).to_string(),
+            )
+            .await?;
         Ok(())
     }
 
     /// `emulateMediaType`.
     pub async fn emulateMediaType(&self, media: String) -> Result<(), XcelerateError> {
-        self.inner.execute_cdp_cmd("Emulation.setEmulatedMedia".to_string(), serde_json::json!({ "media": media }).to_string()).await?;
+        self.inner
+            .execute_cdp_cmd(
+                "Emulation.setEmulatedMedia".to_string(),
+                serde_json::json!({ "media": media }).to_string(),
+            )
+            .await?;
         Ok(())
     }
 
@@ -857,7 +1129,10 @@ impl Page {
     }
 
     /// `removeScriptToEvaluateOnNewDocument`.
-    pub async fn removeScriptToEvaluateOnNewDocument(&self, identifier: String) -> Result<(), XcelerateError> {
+    pub async fn removeScriptToEvaluateOnNewDocument(
+        &self,
+        identifier: String,
+    ) -> Result<(), XcelerateError> {
         self.inner.remove_script(identifier).await?;
         Ok(())
     }
@@ -869,7 +1144,12 @@ impl Page {
 
     /// `setBypassServiceWorker`.
     pub async fn setBypassServiceWorker(&self, bypass: bool) -> Result<(), XcelerateError> {
-        self.inner.execute_cdp_cmd("Network.setBypassServiceWorker".to_string(), serde_json::json!({ "bypass": bypass }).to_string()).await?;
+        self.inner
+            .execute_cdp_cmd(
+                "Network.setBypassServiceWorker".to_string(),
+                serde_json::json!({ "bypass": bypass }).to_string(),
+            )
+            .await?;
         Ok(())
     }
 
@@ -881,17 +1161,26 @@ impl Page {
 
     /// `waitForDevicePrompt`.
     pub async fn waitForDevicePrompt(&self) -> Result<String, XcelerateError> {
-        Ok(self.inner.wait_for_event_default("DeviceAccess.deviceRequestPrompted".to_string()).await?)
+        Ok(self
+            .inner
+            .wait_for_event_default("DeviceAccess.deviceRequestPrompted".to_string())
+            .await?)
     }
 
     /// `waitForFileChooser`.
     pub async fn waitForFileChooser(&self) -> Result<String, XcelerateError> {
-        Ok(self.inner.wait_for_event_default("Page.fileChooserOpened".to_string()).await?)
+        Ok(self
+            .inner
+            .wait_for_event_default("Page.fileChooserOpened".to_string())
+            .await?)
     }
 
     /// `waitForNetworkIdle$`.
     pub async fn waitForNetworkIdle_(&self) -> Result<String, XcelerateError> {
-        Ok(self.inner.wait_for_event_default("Network.loadingFinished".to_string()).await?)
+        Ok(self
+            .inner
+            .wait_for_event_default("Network.loadingFinished".to_string())
+            .await?)
     }
 }
 
@@ -934,37 +1223,72 @@ impl ElementHandle {
 
     /// `evaluate`.
     pub async fn evaluate(&self, expression: String) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_json("function(src){return (new Function('el','return ('+src+')(el);'))(this);}".to_string(), serde_json::json!([expression]).to_string()).await?)
+        Ok(self
+            .inner
+            .call_json(
+                "function(src){return (new Function('el','return ('+src+')(el);'))(this);}"
+                    .to_string(),
+                serde_json::json!([expression]).to_string(),
+            )
+            .await?)
     }
 
     /// `evaluateHandle`.
     pub async fn evaluateHandle(&self, function: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).evaluate_handle(function).await?))
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).evaluate_handle(function).await?,
+        ))
     }
 
     /// `$`.
     pub async fn query_selector(&self, selector: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).query_selector(selector).await?))
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).query_selector(selector).await?,
+        ))
     }
 
     /// `$$`.
-    pub async fn query_selector_all(&self, selector: String) -> Result<Vec<ElementHandle>, XcelerateError> {
-        Ok(Arc::clone(&self.inner).query_selector_all(selector).await?.into_iter().map(ElementHandle::new).collect())
+    pub async fn query_selector_all(
+        &self,
+        selector: String,
+    ) -> Result<Vec<ElementHandle>, XcelerateError> {
+        Ok(Arc::clone(&self.inner)
+            .query_selector_all(selector)
+            .await?
+            .into_iter()
+            .map(ElementHandle::new)
+            .collect())
     }
 
     /// `$eval`.
-    pub async fn eval_on_selector(&self, selector: String, expression: String) -> Result<String, XcelerateError> {
+    pub async fn eval_on_selector(
+        &self,
+        selector: String,
+        expression: String,
+    ) -> Result<String, XcelerateError> {
         Ok(self.inner.call_on_selector(selector, expression).await?)
     }
 
     /// `$$eval`.
-    pub async fn eval_on_selector_all(&self, selector: String, expression: String) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_on_selector_all(selector, expression).await?)
+    pub async fn eval_on_selector_all(
+        &self,
+        selector: String,
+        expression: String,
+    ) -> Result<String, XcelerateError> {
+        Ok(self
+            .inner
+            .call_on_selector_all(selector, expression)
+            .await?)
     }
 
     /// `$x`.
-    pub async fn query_selector_xpath(&self, xpath: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).query_selector_xpath(xpath).await?))
+    pub async fn query_selector_xpath(
+        &self,
+        xpath: String,
+    ) -> Result<ElementHandle, XcelerateError> {
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).query_selector_xpath(xpath).await?,
+        ))
     }
 
     /// `screenshot`.
@@ -994,7 +1318,13 @@ impl ElementHandle {
 
     /// `scrollIntoViewIfNeeded`.
     pub async fn scrollIntoViewIfNeeded(&self) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(){this.scrollIntoView({block:\"center\",inline:\"center\"});}".to_string(), "[]".to_string()).await?;
+        self.inner
+            .call_json(
+                "function(){this.scrollIntoView({block:\"center\",inline:\"center\"});}"
+                    .to_string(),
+                "[]".to_string(),
+            )
+            .await?;
         Ok(())
     }
 
@@ -1006,7 +1336,9 @@ impl ElementHandle {
 
     /// `tap`.
     pub async fn tap(&self) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(){this.click();}".to_string(), "[]".to_string()).await?;
+        self.inner
+            .call_json("function(){this.click();}".to_string(), "[]".to_string())
+            .await?;
         Ok(())
     }
 
@@ -1042,25 +1374,45 @@ impl ElementHandle {
 
     /// `dragEnter`.
     pub async fn dragEnter(&self) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(){this.dispatchEvent(new DragEvent(\"dragenter\",{bubbles:true}));}".to_string(), "[]".to_string()).await?;
+        self.inner
+            .call_json(
+                "function(){this.dispatchEvent(new DragEvent(\"dragenter\",{bubbles:true}));}"
+                    .to_string(),
+                "[]".to_string(),
+            )
+            .await?;
         Ok(())
     }
 
     /// `dragOver`.
     pub async fn dragOver(&self) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(){this.dispatchEvent(new DragEvent(\"dragover\",{bubbles:true}));}".to_string(), "[]".to_string()).await?;
+        self.inner
+            .call_json(
+                "function(){this.dispatchEvent(new DragEvent(\"dragover\",{bubbles:true}));}"
+                    .to_string(),
+                "[]".to_string(),
+            )
+            .await?;
         Ok(())
     }
 
     /// `drop`.
     pub async fn drop(&self) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(){this.dispatchEvent(new DragEvent(\"drop\",{bubbles:true}));}".to_string(), "[]".to_string()).await?;
+        self.inner
+            .call_json(
+                "function(){this.dispatchEvent(new DragEvent(\"drop\",{bubbles:true}));}"
+                    .to_string(),
+                "[]".to_string(),
+            )
+            .await?;
         Ok(())
     }
 
     /// `waitForSelector`.
     pub async fn waitForSelector(&self, selector: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).wait_for_selector(selector).await?))
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).wait_for_selector(selector).await?,
+        ))
     }
 
     /// `asElement`.
@@ -1070,7 +1422,13 @@ impl ElementHandle {
 
     /// `getProperty`.
     pub async fn getProperty(&self, name: String) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_string("function(n){const v=this[n];return v==null?\"\":String(v);}".to_string(), serde_json::json!([name]).to_string()).await?)
+        Ok(self
+            .inner
+            .call_string(
+                "function(n){const v=this[n];return v==null?\"\":String(v);}".to_string(),
+                serde_json::json!([name]).to_string(),
+            )
+            .await?)
     }
 
     /// `dispose`.
@@ -1081,21 +1439,39 @@ impl ElementHandle {
 
     /// `J`.
     pub async fn J(&self, selector: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).query_selector(selector).await?))
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).query_selector(selector).await?,
+        ))
     }
 
     /// `JJ`.
     pub async fn JJ(&self, selector: String) -> Result<Vec<ElementHandle>, XcelerateError> {
-        Ok(Arc::clone(&self.inner).query_selector_all(selector).await?.into_iter().map(ElementHandle::new).collect())
+        Ok(Arc::clone(&self.inner)
+            .query_selector_all(selector)
+            .await?
+            .into_iter()
+            .map(ElementHandle::new)
+            .collect())
     }
 
     /// `JJeval`.
-    pub async fn JJeval(&self, selector: String, expression: String) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_on_selector_all(selector, expression).await?)
+    pub async fn JJeval(
+        &self,
+        selector: String,
+        expression: String,
+    ) -> Result<String, XcelerateError> {
+        Ok(self
+            .inner
+            .call_on_selector_all(selector, expression)
+            .await?)
     }
 
     /// `Jeval`.
-    pub async fn Jeval(&self, selector: String, expression: String) -> Result<String, XcelerateError> {
+    pub async fn Jeval(
+        &self,
+        selector: String,
+        expression: String,
+    ) -> Result<String, XcelerateError> {
         Ok(self.inner.call_on_selector(selector, expression).await?)
     }
 
@@ -1106,37 +1482,72 @@ impl ElementHandle {
 
     /// `querySelector`.
     pub async fn querySelector(&self, selector: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).query_selector(selector).await?))
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).query_selector(selector).await?,
+        ))
     }
 
     /// `querySelectorAll`.
-    pub async fn querySelectorAll(&self, selector: String) -> Result<Vec<ElementHandle>, XcelerateError> {
-        Ok(Arc::clone(&self.inner).query_selector_all(selector).await?.into_iter().map(ElementHandle::new).collect())
+    pub async fn querySelectorAll(
+        &self,
+        selector: String,
+    ) -> Result<Vec<ElementHandle>, XcelerateError> {
+        Ok(Arc::clone(&self.inner)
+            .query_selector_all(selector)
+            .await?
+            .into_iter()
+            .map(ElementHandle::new)
+            .collect())
     }
 
     /// `querySelectorAllEval`.
-    pub async fn querySelectorAllEval(&self, selector: String, expression: String) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_on_selector_all(selector, expression).await?)
+    pub async fn querySelectorAllEval(
+        &self,
+        selector: String,
+        expression: String,
+    ) -> Result<String, XcelerateError> {
+        Ok(self
+            .inner
+            .call_on_selector_all(selector, expression)
+            .await?)
     }
 
     /// `querySelectorEval`.
-    pub async fn querySelectorEval(&self, selector: String, expression: String) -> Result<String, XcelerateError> {
+    pub async fn querySelectorEval(
+        &self,
+        selector: String,
+        expression: String,
+    ) -> Result<String, XcelerateError> {
         Ok(self.inner.call_on_selector(selector, expression).await?)
     }
 
     /// `toString`.
     pub async fn toString(&self) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_string("function(){return this.outerHTML;}".to_string(), "[]".to_string()).await?)
+        Ok(self
+            .inner
+            .call_string(
+                "function(){return this.outerHTML;}".to_string(),
+                "[]".to_string(),
+            )
+            .await?)
     }
 
     /// `xpath`.
     pub async fn xpath(&self, xpath: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).query_selector_xpath(xpath).await?))
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).query_selector_xpath(xpath).await?,
+        ))
     }
 
     /// `id`.
     pub async fn id(&self) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_string("function(){return this.id||'';}".to_string(), "[]".to_string()).await?)
+        Ok(self
+            .inner
+            .call_string(
+                "function(){return this.id||'';}".to_string(),
+                "[]".to_string(),
+            )
+            .await?)
     }
 
     /// `isHidden`.
@@ -1151,7 +1562,12 @@ impl ElementHandle {
 
     /// `scrollIntoView`.
     pub async fn scrollIntoView(&self) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(){this.scrollIntoView();}".to_string(), "[]".to_string()).await?;
+        self.inner
+            .call_json(
+                "function(){this.scrollIntoView();}".to_string(),
+                "[]".to_string(),
+            )
+            .await?;
         Ok(())
     }
 
@@ -1162,19 +1578,37 @@ impl ElementHandle {
 
     /// `touchEnd`.
     pub async fn touchEnd(&self) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(){this.dispatchEvent(new Event(\"touchend\",{bubbles:true}));}".to_string(), "[]".to_string()).await?;
+        self.inner
+            .call_json(
+                "function(){this.dispatchEvent(new Event(\"touchend\",{bubbles:true}));}"
+                    .to_string(),
+                "[]".to_string(),
+            )
+            .await?;
         Ok(())
     }
 
     /// `touchMove`.
     pub async fn touchMove(&self) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(){this.dispatchEvent(new Event(\"touchmove\",{bubbles:true}));}".to_string(), "[]".to_string()).await?;
+        self.inner
+            .call_json(
+                "function(){this.dispatchEvent(new Event(\"touchmove\",{bubbles:true}));}"
+                    .to_string(),
+                "[]".to_string(),
+            )
+            .await?;
         Ok(())
     }
 
     /// `touchStart`.
     pub async fn touchStart(&self) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(){this.dispatchEvent(new Event(\"touchstart\",{bubbles:true}));}".to_string(), "[]".to_string()).await?;
+        self.inner
+            .call_json(
+                "function(){this.dispatchEvent(new Event(\"touchstart\",{bubbles:true}));}"
+                    .to_string(),
+                "[]".to_string(),
+            )
+            .await?;
         Ok(())
     }
 }
@@ -1192,32 +1626,59 @@ impl Frame {
 
     /// `$`.
     pub async fn query_selector(&self, selector: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).find_element(selector).await?))
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).find_element(selector).await?,
+        ))
     }
 
     /// `$$`.
-    pub async fn query_selector_all(&self, selector: String) -> Result<Vec<ElementHandle>, XcelerateError> {
-        Ok(Arc::clone(&self.inner).query_selector_all(selector).await?.into_iter().map(ElementHandle::new).collect())
+    pub async fn query_selector_all(
+        &self,
+        selector: String,
+    ) -> Result<Vec<ElementHandle>, XcelerateError> {
+        Ok(Arc::clone(&self.inner)
+            .query_selector_all(selector)
+            .await?
+            .into_iter()
+            .map(ElementHandle::new)
+            .collect())
     }
 
     /// `$$eval`.
-    pub async fn __eval(&self, selector: String, expression: String) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_on_selector_all(selector, expression).await?)
+    pub async fn __eval(
+        &self,
+        selector: String,
+        expression: String,
+    ) -> Result<String, XcelerateError> {
+        Ok(self
+            .inner
+            .call_on_selector_all(selector, expression)
+            .await?)
     }
 
     /// `$eval`.
-    pub async fn _eval(&self, selector: String, expression: String) -> Result<String, XcelerateError> {
+    pub async fn _eval(
+        &self,
+        selector: String,
+        expression: String,
+    ) -> Result<String, XcelerateError> {
         Ok(self.inner.call_on_selector(selector, expression).await?)
     }
 
     /// `addPreloadScript`.
     pub async fn addPreloadScript(&self, content: String) -> Result<String, XcelerateError> {
-        Ok(self.inner.add_script_to_evaluate_on_new_document(content).await?)
+        Ok(self
+            .inner
+            .add_script_to_evaluate_on_new_document(content)
+            .await?)
     }
 
     /// `addScriptTag`.
     pub async fn addScriptTag(&self, content: String) -> Result<String, XcelerateError> {
-        Ok(self.inner.add_script_to_evaluate_on_new_document(content).await?)
+        Ok(self
+            .inner
+            .add_script_to_evaluate_on_new_document(content)
+            .await?)
     }
 
     /// `addStyleTag`.
@@ -1244,12 +1705,23 @@ impl Frame {
 
     /// `evaluate`.
     pub async fn evaluate(&self, expression: String) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_json("function(src){return (new Function(\"return (\"+src+\")\"))();}".to_string(), serde_json::json!([expression]).to_string()).await?)
+        Ok(self
+            .inner
+            .call_json(
+                "function(src){return (new Function(\"return (\"+src+\")\"))();}".to_string(),
+                serde_json::json!([expression]).to_string(),
+            )
+            .await?)
     }
 
     /// `evaluateHandle`.
-    pub async fn evaluateHandle(&self, expression: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).evaluate_handle(expression).await?))
+    pub async fn evaluateHandle(
+        &self,
+        expression: String,
+    ) -> Result<ElementHandle, XcelerateError> {
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).evaluate_handle(expression).await?,
+        ))
     }
 
     /// `focus`.
@@ -1283,14 +1755,23 @@ impl Frame {
     }
 
     /// `select`.
-    pub async fn select(&self, selector: String, values_json: String) -> Result<(), XcelerateError> {
+    pub async fn select(
+        &self,
+        selector: String,
+        values_json: String,
+    ) -> Result<(), XcelerateError> {
         self.inner.call_json("function(sel,valuesRaw){const e=document.querySelector(sel);if(!e)return;const w=JSON.parse(valuesRaw).map(String);for(const o of e.options){o.selected=w.includes(o.value)||w.includes(o.text);}e.dispatchEvent(new Event('change',{bubbles:true}));}".to_string(), serde_json::json!([selector, values_json]).to_string()).await?;
         Ok(())
     }
 
     /// `setContent`.
     pub async fn setContent(&self, html: String) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(h){document.open();document.write(h);document.close();}".to_string(), serde_json::json!([html]).to_string()).await?;
+        self.inner
+            .call_json(
+                "function(h){document.open();document.write(h);document.close();}".to_string(),
+                serde_json::json!([html]).to_string(),
+            )
+            .await?;
         Ok(())
     }
 
@@ -1302,7 +1783,12 @@ impl Frame {
 
     /// `tap`.
     pub async fn tap(&self, selector: String) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(sel){const e=document.querySelector(sel);if(e)e.click();}".to_string(), serde_json::json!([selector]).to_string()).await?;
+        self.inner
+            .call_json(
+                "function(sel){const e=document.querySelector(sel);if(e)e.click();}".to_string(),
+                serde_json::json!([selector]).to_string(),
+            )
+            .await?;
         Ok(())
     }
 
@@ -1321,12 +1807,21 @@ impl Frame {
 
     /// `url`.
     pub async fn url(&self) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_string("function(){return location.href;}".to_string(), "[]".to_string()).await?)
+        Ok(self
+            .inner
+            .call_string(
+                "function(){return location.href;}".to_string(),
+                "[]".to_string(),
+            )
+            .await?)
     }
 
     /// `waitForDevicePrompt`.
     pub async fn waitForDevicePrompt(&self) -> Result<String, XcelerateError> {
-        Ok(self.inner.wait_for_event_default("DeviceAccess.deviceRequestPrompted".to_string()).await?)
+        Ok(self
+            .inner
+            .wait_for_event_default("DeviceAccess.deviceRequestPrompted".to_string())
+            .await?)
     }
 
     /// `waitForFunction`.
@@ -1343,7 +1838,9 @@ impl Frame {
 
     /// `waitForSelector`.
     pub async fn waitForSelector(&self, selector: String) -> Result<ElementHandle, XcelerateError> {
-        Ok(ElementHandle::new(Arc::clone(&self.inner).wait_for_selector(selector).await?))
+        Ok(ElementHandle::new(
+            Arc::clone(&self.inner).wait_for_selector(selector).await?,
+        ))
     }
 }
 
@@ -1359,7 +1856,11 @@ impl CDPSession {
     }
 
     /// `send`.
-    pub async fn send(&self, method: String, params_json: String) -> Result<String, XcelerateError> {
+    pub async fn send(
+        &self,
+        method: String,
+        params_json: String,
+    ) -> Result<String, XcelerateError> {
         Ok(self.inner.execute_cdp_cmd(method, params_json).await?)
     }
 
