@@ -3,8 +3,10 @@
 Winget is **Windows only**. The package is `Chaosware.Xcelerate` and installs
 `xcelerate.exe` as the command `xcelerate`. For Linux, see [`../linux`](../linux).
 
-The manifests in this folder are the reference set; [`wingetcreate`][wc] is the
-supported way to generate and submit them (it computes the SHA256 for you).
+The manifests live in
+[`manifests/c/Chaosware/Xcelerate/<version>/`](manifests/c/Chaosware/Xcelerate/1.0.10)
+- the same layout [`microsoft/winget-pkgs`][pkgs] uses - and validate cleanly
+with `winget validate`. [`wingetcreate`][wc] submits them.
 
 ## 1. Build the Windows artifact
 
@@ -50,7 +52,7 @@ wingetcreate new "https://github.com/ChaoswareHQ/xcelerate/releases/download/v1.
 #   wingetcreate update Chaosware.Xcelerate -u <url> -v <version>
 
 # Open a PR against microsoft/winget-pkgs (needs a GitHub PAT with `public_repo`)
-wingetcreate submit --token <PAT> .\manifests
+wingetcreate submit --token <PAT> .\manifests\c\Chaosware\Xcelerate\1.0.10
 ```
 
 `wingetcreate submit` forks [`microsoft/winget-pkgs`][pkgs], writes the manifests
@@ -64,9 +66,8 @@ xcelerate --version
 
 ## Doing it by hand
 
-Copy the three files in this folder into
-`manifests/c/Chaosware/Xcelerate/<version>/`, set `PackageVersion` and
-`InstallerUrl`, and replace `REPLACE_WITH_SHA256` with:
+The manifests are already in the `winget-pkgs` layout. For a new version, set
+`PackageVersion` and `InstallerUrl`, and update `InstallerSha256` with:
 
 ```powershell
 (Get-FileHash .\xcelerate-<version>-x86_64-pc-windows-msvc.zip -Algorithm SHA256).Hash
@@ -78,6 +79,23 @@ Then validate locally and open the PR:
 winget validate --manifest manifests\c\Chaosware\Xcelerate\<version>
 winget install  --manifest manifests\c\Chaosware\Xcelerate\<version>
 ```
+
+## Localization
+
+The metadata ships in four locales. `en-US` is the default; the others are
+`locale` manifests that winget shows to users with a matching locale:
+
+| Locale | File |
+| --- | --- |
+| English (default) | `Chaosware.Xcelerate.locale.en-US.yaml` |
+| Chinese (Simplified) | `Chaosware.Xcelerate.locale.zh-CN.yaml` |
+| Japanese | `Chaosware.Xcelerate.locale.ja-JP.yaml` |
+| Vietnamese | `Chaosware.Xcelerate.locale.vi-VN.yaml` |
+
+Only the default (`en-US`) manifest carries `Moniker` and `Tags` is fine
+anywhere; winget rejects `Moniker` in the other locale files. To add a language,
+copy a `locale.*` file, set `PackageLocale` to its BCP-47 tag, and translate the
+text fields.
 
 ## Notes
 

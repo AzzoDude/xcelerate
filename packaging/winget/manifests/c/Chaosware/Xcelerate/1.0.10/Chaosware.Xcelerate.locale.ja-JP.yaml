@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.locale.1.10.0.schema.json
+PackageIdentifier: Chaosware.Xcelerate
+PackageVersion: 1.0.10
+PackageLocale: ja-JP
+Publisher: Chaosware
+PublisherUrl: https://github.com/ChaoswareHQ
+PackageName: Xcelerate
+PackageUrl: https://github.com/ChaoswareHQ/xcelerate
+License: MIT OR Apache-2.0
+LicenseUrl: https://github.com/ChaoswareHQ/xcelerate/blob/main/LICENSE-MIT
+Copyright: Copyright (c) 2026 Chaosware
+ShortDescription: 高性能な Chrome DevTools Protocol (CDP) クライアント兼 CLI。
+Description: >-
+  Xcelerate は高速な Chrome DevTools Protocol クライアントです。xcelerate CLI は実際の Chrome または Edge
+  をコマンドラインから操作し、1 回の実行につき 1 つの操作を行います。タイトル取得、ページ内容、スクリーンショット、PDF、
+  セレクター クエリ、JavaScript 評価、アクセシビリティ スナップショット、動画録画、MCP サーバー モードに対応します。
+Tags:
+  - cdp
+  - chrome
+  - devtools
+  - browser
+  - automation
+  - cli
+ManifestType: locale
+ManifestVersion: 1.10.0

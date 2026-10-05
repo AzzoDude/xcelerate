@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.locale.1.10.0.schema.json
+PackageIdentifier: Chaosware.Xcelerate
+PackageVersion: 1.0.10
+PackageLocale: vi-VN
+Publisher: Chaosware
+PublisherUrl: https://github.com/ChaoswareHQ
+PackageName: Xcelerate
+PackageUrl: https://github.com/ChaoswareHQ/xcelerate
+License: MIT OR Apache-2.0
+LicenseUrl: https://github.com/ChaoswareHQ/xcelerate/blob/main/LICENSE-MIT
+Copyright: Copyright (c) 2026 Chaosware
+ShortDescription: Ứng dụng khách Chrome DevTools Protocol (CDP) kiêm CLI hiệu năng cao.
+Description: >-
+  Xcelerate là ứng dụng khách Chrome DevTools Protocol tốc độ cao. CLI xcelerate điều khiển Chrome hoặc Edge thật từ dòng
+  lệnh, mỗi lần chạy thực hiện một thao tác: lấy tiêu đề, nội dung trang, ảnh chụp màn hình, PDF, truy vấn bộ chọn, đánh giá
+  JavaScript, ảnh chụp khả năng truy cập, ghi video và chế độ máy chủ MCP.
+Tags:
+  - cdp
+  - chrome
+  - devtools
+  - browser
+  - automation
+  - cli
+ManifestType: locale
+ManifestVersion: 1.10.0

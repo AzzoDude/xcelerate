@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.locale.1.10.0.schema.json
+PackageIdentifier: Chaosware.Xcelerate
+PackageVersion: 1.0.10
+PackageLocale: zh-CN
+Publisher: Chaosware
+PublisherUrl: https://github.com/ChaoswareHQ
+PackageName: Xcelerate
+PackageUrl: https://github.com/ChaoswareHQ/xcelerate
+License: MIT OR Apache-2.0
+LicenseUrl: https://github.com/ChaoswareHQ/xcelerate/blob/main/LICENSE-MIT
+Copyright: Copyright (c) 2026 Chaosware
+ShortDescription: 高性能的 Chrome DevTools Protocol (CDP) 客户端与命令行工具。
+Description: >-
+  Xcelerate 是一个高性能的 Chrome DevTools Protocol 客户端。xcelerate 命令行工具可从命令行驱动真实的 Chrome 或 Edge
+  浏览器，每次运行执行一个操作：获取标题、页面内容、截图、PDF、选择器查询、JavaScript 求值、无障碍快照、视频录制，以及
+  MCP 服务器模式。
+Tags:
+  - cdp
+  - chrome
+  - devtools
+  - browser
+  - automation
+  - cli
+ManifestType: locale
+ManifestVersion: 1.10.0
