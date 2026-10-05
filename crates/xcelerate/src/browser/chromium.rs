@@ -1,3 +1,9 @@
+//! Chromium backend over the Chrome DevTools Protocol (CDP).
+//!
+//! Discovers and launches a Chromium-family browser (Chrome, Edge, Chromium)
+//! with `--remote-debugging-port` and speaks CDP through the shared
+//! [`xcelerate_core::CdpClient`].
+
 use crate::CdpClient;
 use crate::error::{XcelerateError, XcelerateResult};
 use crate::page::Page;

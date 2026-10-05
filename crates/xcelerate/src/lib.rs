@@ -19,7 +19,6 @@ pub mod browser;
 pub mod devices;
 pub mod element;
 pub mod error;
-pub mod firefox;
 pub mod page;
 pub mod plugin;
 pub mod policy;
@@ -32,6 +31,7 @@ mod proxy;
 
 pub mod adapters;
 
+pub use browser::firefox;
 pub use browser::{Browser, BrowserConfig, configure_user_data_dir};
 pub use devices::Device;
 pub use element::Element;
