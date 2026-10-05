@@ -1,3 +1,5 @@
+**[English](README.md)** | [简体中文](README.zh-CN.md) | [日本語](README.ja-JP.md) | [Tiếng Việt](README.vi-VN.md)
+
 # Xcelerate
 
 [![CI](https://github.com/ChaoswareHQ/xcelerate/actions/workflows/ci.yml/badge.svg)](https://github.com/ChaoswareHQ/xcelerate/actions/workflows/ci.yml)
