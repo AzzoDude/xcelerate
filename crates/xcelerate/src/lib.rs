@@ -19,6 +19,7 @@ pub mod browser;
 pub mod devices;
 pub mod element;
 pub mod error;
+pub mod firefox;
 pub mod page;
 pub mod plugin;
 pub mod policy;
@@ -52,5 +53,8 @@ pub use options::{LaunchOptions, configure_launch_options, reset_launch_options}
 // code can reach everything through `xcelerate`.
 pub use xcelerate_core::{CdpClient, CdpCommand, CdpHandler, connect};
 pub use xcelerate_core::{browser_protocol, js_protocol};
+
+/// WebDriver BiDi bindings, re-exported for the Firefox backend and consumers.
+pub use xcelerate_core::webdriver_bidi;
 
 uniffi::setup_scaffolding!("xcelerate");

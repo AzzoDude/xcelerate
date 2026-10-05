@@ -19,11 +19,33 @@
 [![Rust](https://img.shields.io/badge/rust-1.99%2B-dea584.svg)](https://github.com/ChaoswareHQ/xcelerate/blob/master/Cargo.toml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
+[![Chromium](https://img.shields.io/badge/Chromium-supported-4285F4?logo=googlechrome&logoColor=white)](#supported-engines)
+[![Firefox](https://img.shields.io/badge/Firefox-supported-FF7139?logo=firefoxbrowser&logoColor=white)](#supported-engines)
+
 Xcelerate is a high-performance, lightweight Chrome DevTools Protocol (CDP) client
 with idiomatic bindings for Rust, .NET, Python, JavaScript (Node.js), Kotlin,
 Java, Swift, Ruby, Dart/Flutter, and Go. It pairs a fast Rust core with an
 async-first API and a data-driven adapter layer that lets existing Selenium,
 Playwright, and Puppeteer scripts run against the same engine.
+
+## Supported engines
+
+One core, two engines: Chromium over CDP, Firefox over WebDriver BiDi.
+
+| Engine | Protocol | Backend |
+| --- | --- | --- |
+| ![Chromium](https://img.shields.io/badge/Chromium-4285F4?logo=googlechrome&logoColor=white) Chromium, Chrome, Edge | Chrome DevTools Protocol (CDP) | `xcelerate::Browser` |
+| ![Firefox](https://img.shields.io/badge/Firefox-FF7139?logo=firefoxbrowser&logoColor=white) Firefox | [WebDriver BiDi](https://w3c.github.io/webdriver-bidi/) | `xcelerate::firefox` |
+
+```rust
+// Chromium (CDP)
+let browser = xcelerate::Browser::launch(Default::default()).await?;
+
+// Firefox (WebDriver BiDi)
+let browser = xcelerate::firefox::FirefoxBrowser::launch(Default::default()).await?;
+let page = browser.clone().new_page("https://example.com".to_string()).await?;
+println!("{}", page.title().await?);
+```
 
 ## Bindings
 

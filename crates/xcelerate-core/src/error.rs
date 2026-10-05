@@ -12,6 +12,9 @@ pub enum Error {
     #[error("CDP Error {code}: {message}")]
     Cdp { code: i32, message: String },
 
+    #[error("BiDi error {error}: {message}")]
+    Bidi { error: String, message: String },
+
     #[error("Internal channel error")]
     Internal,
 }

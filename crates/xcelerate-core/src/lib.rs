@@ -4,6 +4,7 @@
 //! events, and exposes a typed [`CdpCommand`] abstraction so callers can send
 //! generated protocol structs without hand-writing any wire glue.
 
+pub mod bidi;
 pub mod client;
 pub mod command;
 pub mod error;

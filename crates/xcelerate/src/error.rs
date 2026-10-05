@@ -35,6 +35,7 @@ impl From<xcelerate_core::Error> for XcelerateError {
             CoreError::Ws(message) => Self::WsError(message),
             CoreError::Serde(message) => Self::SerdeError(message),
             CoreError::Cdp { code, message } => Self::CdpResponseError { code, message },
+            CoreError::Bidi { error, message } => Self::WsError(format!("{error}: {message}")),
             CoreError::Internal => Self::InternalError,
         }
     }
