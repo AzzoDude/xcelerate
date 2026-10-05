@@ -19,6 +19,20 @@ use std::sync::Arc;
 mod intercept;
 pub(crate) mod recording;
 mod rng;
+mod snapshot;
+
+// Capability modules (markdown content, waits, downloads, HAR, highlights,
+// in-page search, challenge detection, per-call timeouts, popups). Each holds
+// inherent `impl Page` blocks and is kept out of the UniFFI-exported block.
+mod challenge;
+mod downloads;
+mod find;
+mod har;
+mod highlight;
+mod markdown;
+mod popups;
+mod timeout;
+mod wait;
 
 use intercept::run_interception;
 pub(crate) use rng::Lcg;
@@ -38,6 +52,15 @@ pub struct Page {
     pub(crate) drag_interception: Arc<std::sync::atomic::AtomicBool>,
     pub(crate) default_timeout_ms: std::sync::atomic::AtomicU64,
     pub(crate) recording: tokio::sync::Mutex<Option<recording::VideoRecording>>,
+    /// Maps the `[index]` markers of the most recent agent snapshot to the
+    /// element's CDP backend node id (see `page::snapshot`).
+    pub(crate) snapshot_index: Arc<tokio::sync::Mutex<std::collections::HashMap<u32, i64>>>,
+    /// Directory completed downloads are written to (see `page::downloads`).
+    pub(crate) downloads_path: Arc<tokio::sync::Mutex<Option<String>>>,
+    /// HAR entries accumulated while HAR recording is active (see `page::har`).
+    pub(crate) har_entries: Arc<tokio::sync::Mutex<Vec<serde_json::Value>>>,
+    /// Background task that fills `har_entries` from `Network.*` events.
+    pub(crate) har_task: Arc<tokio::sync::Mutex<Option<tokio::task::JoinHandle<()>>>>,
 }
 
 /// A declarative network-interception rule.
@@ -151,6 +174,7 @@ impl Page {
 
     /// Navigates to a URL.
     pub async fn navigate(&self, url: String) -> XcelerateResult<()> {
+        crate::policy::ensure_allowed(&url)?;
         self.client
             .execute_with_session(
                 Some(&self.session_id),

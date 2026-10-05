@@ -66,6 +66,8 @@ Playwright, and Puppeteer scripts run against the same engine.
   with a durable `user-data-dir`.
 - **Accessibility snapshots** - a semantic `role`/`name` view of the page for
   robust selectors and agent-driven automation.
+- **Agent snapshots** - an indexed, LLM-friendly rendering of the page in which
+  every interactive element can be acted on by its `[index]`.
 - **CLI and MCP server** - the `xcelerate` command for one-shot actions, and
   `xcelerate mcp` (or the `xcelerate-mcp` binary) to drive the browser from an
   MCP client.
@@ -417,6 +419,8 @@ xcelerate evaluate https://example.com 'document.title'
 xcelerate list                                  # built-in devices + plugins
 xcelerate --device "iPhone 13" screenshot https://example.com -o phone.png
 xcelerate plugins
+xcelerate snapshot https://example.com          # indexed, LLM-friendly snapshot
+xcelerate click-index https://example.com 2     # click element [2] from the snapshot
 ```
 
 Global flags apply to every command: `--no-headless`, `--detached`,
@@ -540,6 +544,27 @@ disk before it exits.
 `[{ role, name, value? }]` in document order - which is far more resilient than
 CSS selectors for asserting or driving a page. It is exposed as the CLI command
 `xcelerate accessibility <url>` and the MCP tool `browser_accessibility`.
+
+## Agent snapshots
+
+`page.agent_snapshot()` renders the page as indented text where every
+interactive element is tagged with a stable `[index]`:
+
+```
+[0]<link> "Home"
+[1]<textbox> "Email" = "a@b.com"
+[2]<button> "Sign in"
+```
+
+The snapshot is built entirely in Rust from a single
+`Accessibility.getFullAXTree` and `DOMSnapshot.captureSnapshot` call on the
+persistent CDP session, so it is far cheaper and more predictable than
+serializing the DOM in a scripting language. Pass an index to
+`page.click_index(n)` to click that element without re-resolving a CSS selector
+(`page.snapshot_json()` returns the same elements with roles, names, bounds, and
+backend node ids). It is exposed as the CLI commands `xcelerate snapshot <url>`
+and `xcelerate click-index <url> <index>`, and the MCP tools `browser_snapshot`
+and `browser_click_index`.
 
 ## Workspace layout
 

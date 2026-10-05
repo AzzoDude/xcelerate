@@ -66,6 +66,8 @@ Selenium、Playwright 和 Puppeteer 脚本能够在同一引擎上运行。
   登录状态、cookie 和站点存储。
 - **无障碍快照** —— 页面的语义化 `role`/`name` 视图，用于稳健的选择器和由
   智能体（agent）驱动的自动化。
+- **Agent 快照** —— 页面的索引化、面向 LLM 的渲染，可交互元素均可通过其
+  `[index]` 进行操作。
 - **CLI 与 MCP 服务器** —— `xcelerate` 命令用于一次性操作，`xcelerate mcp`
   （或 `xcelerate-mcp` 二进制文件）用于从 MCP 客户端驱动浏览器。
 
@@ -410,6 +412,8 @@ xcelerate evaluate https://example.com 'document.title'
 xcelerate list                                  # built-in devices + plugins
 xcelerate --device "iPhone 13" screenshot https://example.com -o phone.png
 xcelerate plugins
+xcelerate snapshot https://example.com          # 索引化、面向 LLM 的快照
+xcelerate click-index https://example.com 2     # 点击快照中的元素 [2]
 ```
 
 全局标志适用于每个命令：`--no-headless`、`--detached`、
@@ -529,6 +533,25 @@ xcelerate::configure_user_data_dir(Some("./profile".to_string()))?;
 `[{ role, name, value? }]` —— 在断言或驱动页面时，它比 CSS 选择器稳健得多。
 它以 CLI 命令 `xcelerate accessibility <url>` 和 MCP 工具
 `browser_accessibility` 的形式暴露。
+
+## Agent 快照
+
+`page.agent_snapshot()` 将页面渲染为缩进文本，其中每个可交互元素都带有稳定的
+`[index]` 标记：
+
+```
+[0]<link> "Home"
+[1]<textbox> "Email" = "a@b.com"
+[2]<button> "Sign in"
+```
+
+该快照完全在 Rust 中构建，只需在持久化的 CDP 会话上分别调用一次
+`Accessibility.getFullAXTree` 和一次 `DOMSnapshot.captureSnapshot`，因此比在脚本
+语言中序列化 DOM 更廉价、更可预测。把索引传给 `page.click_index(n)` 即可点击该
+元素，无需重新解析 CSS 选择器（`page.snapshot_json()` 会返回带有 role、name、
+bounds 和 backend node id 的相同元素）。它以 CLI 命令 `xcelerate snapshot <url>`、
+`xcelerate click-index <url> <index>` 以及 MCP 工具 `browser_snapshot`、
+`browser_click_index` 的形式暴露。
 
 ## 工作区布局
 

@@ -94,6 +94,38 @@ impl CdpClient {
         let response: T::Response = serde_json::from_value(res)?;
         Ok(response)
     }
+
+    /// Sends a raw CDP command scoped to an optional session id, aborting with
+    /// [`Error::Ws`] if no response arrives within `timeout`.
+    ///
+    /// A send failure or a dropped response channel is reported as
+    /// [`Error::Internal`]. Existing (untimed) callers are unaffected.
+    pub async fn execute_raw_with_session_timeout(
+        &self,
+        session_id: Option<&str>,
+        method: &str,
+        params: Value,
+        timeout: std::time::Duration,
+    ) -> Result<Value> {
+        let id = self.next_id.fetch_add(1, Ordering::SeqCst);
+        let mut envelope = json!({ "id": id, "method": method, "params": params });
+        if let Some(sid) = session_id {
+            envelope["sessionId"] = json!(sid);
+        }
+
+        let (tx, rx) = oneshot::channel();
+        self.cmd_tx
+            .send((id, envelope, tx))
+            .map_err(|_| Error::Internal)?;
+
+        match tokio::time::timeout(timeout, rx).await {
+            Ok(Ok(result)) => result,
+            Ok(Err(_)) => Err(Error::Internal),
+            Err(_) => Err(Error::Ws(format!(
+                "CDP call `{method}` timed out after {timeout:?}"
+            ))),
+        }
+    }
 }
 
 /// Connects to a CDP WebSocket endpoint and starts its handler task.

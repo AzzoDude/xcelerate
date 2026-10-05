@@ -21,7 +21,9 @@ pub mod element;
 pub mod error;
 pub mod page;
 pub mod plugin;
+pub mod policy;
 pub mod process;
+pub mod profile;
 
 mod proxy;
 
@@ -37,6 +39,9 @@ pub use plugin::{Capability, Manifest, Plugin, PluginHandle};
 
 // Proxy configuration (Rust-only; other languages set `XCELERATE_PROXY[_POOL]`).
 pub use proxy::configure as configure_proxy;
+
+// Domain allow/deny policy (Rust-only; enforced before navigation).
+pub use policy::configure_domain_policy;
 
 // Re-export the transport layer and the generated protocol crates so downstream
 // code can reach everything through `xcelerate`.

@@ -810,6 +810,9 @@ dist-packages/
 native-libs/
 dist-final/
 
+# Local research clones (e.g. browser-use) - never commit third-party source
+.research/
+
 ### macOS ###
 .DS_Store
 .AppleDouble

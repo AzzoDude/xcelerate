@@ -69,6 +69,8 @@ và Puppeteer hiện có chạy trên cùng một engine.
   trang giữa các lần chạy bằng một `user-data-dir` lâu dài.
 - **Ảnh chụp nhanh accessibility** - một góc nhìn ngữ nghĩa `role`/`name` của trang
   để có các selector vững chắc và tự động hóa do agent điều khiển.
+- **Ảnh chụp nhanh cho agent** - bản hiển thị trang có chỉ mục, thân thiện với LLM,
+  nơi mọi phần tử tương tác đều có thể được thao tác bằng `[index]`.
 - **CLI và máy chủ MCP** - lệnh `xcelerate` cho các tác vụ một lần, và `xcelerate mcp`
   (hoặc binary `xcelerate-mcp`) để điều khiển trình duyệt từ một client MCP.
 
@@ -423,6 +425,8 @@ xcelerate evaluate https://example.com 'document.title'
 xcelerate list                                  # built-in devices + plugins
 xcelerate --device "iPhone 13" screenshot https://example.com -o phone.png
 xcelerate plugins
+xcelerate snapshot https://example.com          # ảnh chụp nhanh có chỉ mục, thân thiện LLM
+xcelerate click-index https://example.com 2     # nhấp phần tử [2] từ ảnh chụp nhanh
 ```
 
 Các cờ toàn cục áp dụng cho mọi lệnh: `--no-headless`, `--detached`,
@@ -550,6 +554,26 @@ dựa trên cwd của chính Chrome), và `Browser::close` cho phép Chrome ghi 
 selector CSS khi cần khẳng định (assert) hoặc điều khiển một trang. Nó được cung cấp
 dưới dạng lệnh CLI `xcelerate accessibility <url>` và công cụ MCP
 `browser_accessibility`.
+
+## Ảnh chụp nhanh cho agent
+
+`page.agent_snapshot()` hiển thị trang dưới dạng văn bản thụt lề, trong đó mỗi phần tử
+có thể tương tác được gắn một `[index]` ổn định:
+
+```
+[0]<link> "Home"
+[1]<textbox> "Email" = "a@b.com"
+[2]<button> "Sign in"
+```
+
+Ảnh chụp nhanh được dựng hoàn toàn bằng Rust, chỉ với một lần gọi
+`Accessibility.getFullAXTree` và một lần gọi `DOMSnapshot.captureSnapshot` trên phiên
+CDP liên tục, nên rẻ và ổn định hơn nhiều so với việc tuần tự hóa DOM bằng ngôn ngữ
+script. Truyền chỉ số cho `page.click_index(n)` để nhấp vào phần tử đó mà không cần
+phân giải lại selector CSS (`page.snapshot_json()` trả về đúng các phần tử đó kèm
+role, name, bounds và backend node id). Nó được cung cấp dưới dạng lệnh CLI
+`xcelerate snapshot <url>`, `xcelerate click-index <url> <index>`, và công cụ MCP
+`browser_snapshot`, `browser_click_index`.
 
 ## Bố cục workspace
 

@@ -98,6 +98,10 @@ enum Command {
     Evaluate { url: String, expression: String },
     /// Print the page's accessibility snapshot (semantic role/name/value nodes).
     Accessibility { url: String },
+    /// Print an agent-friendly, indexed snapshot of the page's interactive elements.
+    Snapshot { url: String },
+    /// Click the element at `index` from the snapshot of this same run.
+    ClickIndex { url: String, index: u32 },
     /// Record a video of a page for a fixed duration.
     Record {
         url: String,
@@ -269,6 +273,19 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         Command::Accessibility { url } => {
             let (browser, page) = launch(&cli.browser, &url).await?;
             println!("{}", page.accessibility_snapshot().await?);
+            browser.close().await?;
+        }
+        Command::Snapshot { url } => {
+            let (browser, page) = launch(&cli.browser, &url).await?;
+            println!("{}", page.agent_snapshot().await?);
+            browser.close().await?;
+        }
+        Command::ClickIndex { url, index } => {
+            let (browser, page) = launch(&cli.browser, &url).await?;
+            // Build a snapshot so the index refers to this page state, then act on it.
+            page.agent_snapshot().await?;
+            Arc::clone(&page).click_index(index).await?;
+            println!("clicked snapshot index {index}");
             browser.close().await?;
         }
         Command::Record {

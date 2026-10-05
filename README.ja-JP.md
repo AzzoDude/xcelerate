@@ -68,6 +68,8 @@ async ファーストの API とデータ駆動型のアダプターレイヤー
   サイトストレージを保持します。
 - **アクセシビリティスナップショット** - 堅牢なセレクターとエージェント駆動の
   自動化のための、ページの意味的な `role`/`name` ビュー。
+- **エージェントスナップショット** - 操作可能なすべての要素を `[index]` で操作
+  できる、インデックス付きの LLM 向けページ描画。
 - **CLI と MCP サーバー** - 単発のアクション向けの `xcelerate` コマンド、および
   MCP クライアントからブラウザを操作するための `xcelerate mcp`（または
   `xcelerate-mcp` バイナリ）。
@@ -425,6 +427,8 @@ xcelerate evaluate https://example.com 'document.title'
 xcelerate list                                  # built-in devices + plugins
 xcelerate --device "iPhone 13" screenshot https://example.com -o phone.png
 xcelerate plugins
+xcelerate snapshot https://example.com          # インデックス付きの LLM 向けスナップショット
+xcelerate click-index https://example.com 2     # スナップショットの要素 [2] をクリック
 ```
 
 グローバルフラグはすべてのコマンドに適用されます: `--no-headless`、`--detached`、
@@ -551,6 +555,26 @@ xcelerate::configure_user_data_dir(Some("./profile".to_string()))?;
 操作において CSS セレクターよりもはるかに堅牢です。CLI コマンド
 `xcelerate accessibility <url>` および MCP ツール `browser_accessibility` として
 公開されています。
+
+## エージェントスナップショット
+
+`page.agent_snapshot()` は、ページをインデント付きテキストとして描画し、操作可能な
+各要素に安定した `[index]` を付与します:
+
+```
+[0]<link> "Home"
+[1]<textbox> "Email" = "a@b.com"
+[2]<button> "Sign in"
+```
+
+このスナップショットは完全に Rust で構築され、永続化された CDP セッション上で
+`Accessibility.getFullAXTree` と `DOMSnapshot.captureSnapshot` をそれぞれ 1 回呼ぶ
+だけで済むため、スクリプト言語で DOM をシリアライズするよりもはるかに安価で予測
+可能です。インデックスを `page.click_index(n)` に渡すと、CSS セレクターを再解決
+せずにその要素をクリックできます（`page.snapshot_json()` は role、name、bounds、
+backend node id を持つ同じ要素を返します）。CLI コマンド `xcelerate snapshot <url>`、
+`xcelerate click-index <url> <index>`、および MCP ツール `browser_snapshot`、
+`browser_click_index` として公開されています。
 
 ## ワークスペース構成
 

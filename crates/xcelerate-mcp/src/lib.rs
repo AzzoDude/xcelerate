@@ -417,6 +417,21 @@ impl Server {
                 let snapshot = page.accessibility_snapshot().await.map_err(to_message)?;
                 Ok(Outcome::Text(snapshot))
             }
+            "browser_snapshot" => {
+                let page = self.ensure_page().await?;
+                let snapshot = page.agent_snapshot().await.map_err(to_message)?;
+                Ok(Outcome::Text(snapshot))
+            }
+            "browser_click_index" => {
+                let index = u32_arg(args, "index")
+                    .ok_or_else(|| "missing required integer argument 'index'".to_string())?;
+                let page = self.ensure_page().await?;
+                std::sync::Arc::clone(&page)
+                    .click_index(index)
+                    .await
+                    .map_err(to_message)?;
+                Ok(Outcome::Text(format!("Clicked snapshot index {index}.")))
+            }
             "browser_load_plugin" => {
                 let path = str_arg(args, "path")?;
                 let browser = self.ensure_browser().await?;
@@ -738,6 +753,20 @@ fn tool_definitions() -> Value {
             "inputSchema": { "type": "object", "properties": {} }
         },
         {
+            "name": "browser_snapshot",
+            "description": "Return an agent-friendly, indented snapshot of the page. Interactive elements are tagged with a stable [index] usable with browser_click_index; call it before every action instead of guessing CSS selectors.",
+            "inputSchema": { "type": "object", "properties": {} }
+        },
+        {
+            "name": "browser_click_index",
+            "description": "Click the element at an [index] from the most recent browser_snapshot.",
+            "inputSchema": {
+                "type": "object",
+                "properties": { "index": { "type": "integer", "description": "Index from a preceding browser_snapshot." } },
+                "required": ["index"]
+            }
+        },
+        {
             "name": "browser_load_plugin",
             "description": "Load a plugin from a directory or plugin.json. Its ops become callable through browser_plugin_invoke. Dangerous capabilities stay denied unless the host opted in.",
             "inputSchema": {
@@ -778,6 +807,8 @@ mod tests {
         assert!(names.contains(&"browser_wait"));
         assert!(names.contains(&"browser_load_plugin"));
         assert!(names.contains(&"browser_accessibility"));
+        assert!(names.contains(&"browser_snapshot"));
+        assert!(names.contains(&"browser_click_index"));
     }
 
     #[test]

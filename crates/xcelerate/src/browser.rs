@@ -231,6 +231,10 @@ impl Browser {
             drag_interception: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             default_timeout_ms: std::sync::atomic::AtomicU64::new(30_000),
             recording: tokio::sync::Mutex::new(None),
+            snapshot_index: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
+            downloads_path: Arc::new(tokio::sync::Mutex::new(None)),
+            har_entries: Arc::new(tokio::sync::Mutex::new(Vec::new())),
+            har_task: Arc::new(tokio::sync::Mutex::new(None)),
         });
 
         // 3. Run plugin page-created hooks (e.g. stealth payload injection).
