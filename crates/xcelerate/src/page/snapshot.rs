@@ -93,10 +93,21 @@ const STRUCTURAL_AX_ROLES: &[&str] = &[
 ];
 
 /// Low-signal roles that merely restate an ancestor's content.
-const SKIP_AX_ROLES: &[&str] = &["none", "generic", "GenericContainer", "Ignored"];
+const SKIP_AX_ROLES: &[&str] = &[
+    "none",
+    "generic",
+    "GenericContainer",
+    "Ignored",
+    "InlineTextBox",
+    "LineBreak",
+];
 
 /// Container roles that are printed without an index but not treated as noise.
 const CONTAINER_ROLES: &[&str] = &["RootWebArea", "WebArea", "Iframe"];
+
+/// Appended when an indexed element extends past the viewport bottom, telling
+/// the caller there is more to reveal by scrolling.
+const SCROLL_HINT: &str = "... (more content below the viewport — scroll to reveal)";
 
 /// A rectangle in CSS pixels, viewport-relative where applicable.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -113,6 +124,54 @@ pub(crate) struct LayoutInfo {
     pub bounds: Option<Rect>,
     pub is_clickable: bool,
     pub tag: Option<String>,
+    /// Stacking/paint order from `DOMSnapshot` (present when `includePaintOrder`
+    /// is requested). Higher values are painted later, i.e. on top of lower ones.
+    pub paint_order: Option<i64>,
+}
+
+/// Fraction of `inner`'s area that lies within `outer` (0.0..=1.0).
+///
+/// Degenerate rectangles return `0.0` so they can never be treated as covered.
+fn containment_ratio(inner: Rect, outer: Rect) -> f64 {
+    if inner.width <= 0.0 || inner.height <= 0.0 {
+        return 0.0;
+    }
+    let overlap_x = (inner.x + inner.width).min(outer.x + outer.width) - inner.x.max(outer.x);
+    let overlap_y = (inner.y + inner.height).min(outer.y + outer.height) - inner.y.max(outer.y);
+    if overlap_x <= 0.0 || overlap_y <= 0.0 {
+        return 0.0;
+    }
+    (overlap_x * overlap_y) / (inner.width * inner.height)
+}
+
+/// Best-effort occlusion test: is `rect` (a box plus its paint order) almost
+/// entirely covered by a strictly larger box that is painted on top of it?
+///
+/// Deliberately conservative so genuinely clickable elements are never dropped:
+/// it requires complete containment (>= 99% of the area), a strictly larger
+/// cover, and a strictly higher cover paint order. Missing paint orders or
+/// degenerate boxes are treated as *not* occluded.
+pub(crate) fn is_occluded(
+    rect: (Rect, Option<i64>),
+    rects_with_order: &[(Rect, Option<i64>)],
+) -> bool {
+    let (target, target_order) = rect;
+    let Some(target_order) = target_order else {
+        return false;
+    };
+    let target_area = target.width * target.height;
+    if target_area <= 0.0 {
+        return false;
+    }
+
+    rects_with_order.iter().any(|&(cover, cover_order)| {
+        let Some(cover_order) = cover_order else {
+            return false;
+        };
+        cover_order > target_order
+            && cover.width * cover.height > target_area
+            && containment_ratio(target, cover) >= 0.99
+    })
 }
 
 /// An interactive element surfaced by the snapshot, addressable by `index`.
@@ -248,6 +307,12 @@ pub(crate) fn build_layout_lookup(
             .and_then(|layout| layout.get("bounds"))
             .and_then(Value::as_array);
 
+        // Parallel to `layout.nodeIndex`; only present when the capture requested
+        // `includePaintOrder`.
+        let paint_orders = layout
+            .and_then(|layout| layout.get("paintOrders"))
+            .and_then(Value::as_array);
+
         for (snapshot_index, backend_id) in backend_ids.iter().enumerate() {
             let Some(backend_id) = backend_id.as_i64() else {
                 continue;
@@ -264,19 +329,25 @@ pub(crate) fn build_layout_lookup(
                 is_clickable: clickable_set.contains(&(snapshot_index as u64)),
                 tag,
                 bounds: None,
+                paint_order: None,
             };
 
-            if let Some(layout_idx) = layout_index_map.get(&(snapshot_index as u64))
-                && let Some(entry) = bounds.and_then(|bounds| bounds.get(*layout_idx))
-                && let Some(quad) = entry.as_array()
-                && quad.len() >= 4
-            {
-                info.bounds = Some(Rect {
-                    x: quad[0].as_f64().unwrap_or(0.0) / dpr,
-                    y: quad[1].as_f64().unwrap_or(0.0) / dpr,
-                    width: quad[2].as_f64().unwrap_or(0.0) / dpr,
-                    height: quad[3].as_f64().unwrap_or(0.0) / dpr,
-                });
+            if let Some(layout_idx) = layout_index_map.get(&(snapshot_index as u64)) {
+                info.paint_order = paint_orders
+                    .and_then(|orders| orders.get(*layout_idx))
+                    .and_then(Value::as_i64);
+
+                if let Some(entry) = bounds.and_then(|bounds| bounds.get(*layout_idx))
+                    && let Some(quad) = entry.as_array()
+                    && quad.len() >= 4
+                {
+                    info.bounds = Some(Rect {
+                        x: quad[0].as_f64().unwrap_or(0.0) / dpr,
+                        y: quad[1].as_f64().unwrap_or(0.0) / dpr,
+                        width: quad[2].as_f64().unwrap_or(0.0) / dpr,
+                        height: quad[3].as_f64().unwrap_or(0.0) / dpr,
+                    });
+                }
             }
 
             lookup.insert(backend_id, info);
@@ -298,14 +369,34 @@ struct AxNode {
     has_parent: bool,
 }
 
+/// True when any indexed element's box extends below `viewport_height`.
+///
+/// Used to decide whether to append [`SCROLL_HINT`]. A non-positive viewport
+/// (for example, when the probe failed) counts as unknown and never triggers it.
+pub(crate) fn has_content_below(elements: &[SnapshotElement], viewport_height: f64) -> bool {
+    if viewport_height <= 0.0 {
+        return false;
+    }
+    elements.iter().any(|element| {
+        element
+            .bounds
+            .is_some_and(|bounds| bounds.y + bounds.height > viewport_height)
+    })
+}
+
 /// Assembles the renderable text and the indexable element list from an AX tree
 /// and the layout lookup.
 ///
 /// Nodes are visited in document order. Interactive nodes are assigned a stable
 /// index; structural, named, or text-bearing nodes are printed for context.
+/// Interactive candidates that are fully covered by a later-painted box
+/// ([`is_occluded`]) are dropped, and cross-origin frames still render a
+/// placeholder. When `viewport_height` is known and indexed content extends
+/// below it, [`SCROLL_HINT`] is appended.
 pub(crate) fn assemble(
     ax_tree: &Value,
     layout: &HashMap<i64, LayoutInfo>,
+    viewport_height: Option<f64>,
 ) -> (String, Vec<SnapshotElement>) {
     let empty = Vec::new();
     let raw_nodes = ax_tree
@@ -378,6 +469,13 @@ pub(crate) fn assemble(
     // indexing every interactive node rather than emitting nothing.
     let have_layout = !layout.is_empty();
 
+    // Every laid-out box plus its paint order, for the occlusion test. Boxes
+    // without bounds or paint order simply cannot occlude anything.
+    let ordered_rects: Vec<(Rect, Option<i64>)> = layout
+        .values()
+        .filter_map(|info| info.bounds.map(|bounds| (bounds, info.paint_order)))
+        .collect();
+
     let mut stack: Vec<(usize, usize)> = roots.iter().rev().map(|&root| (root, 0)).collect();
     while let Some((index, depth)) = stack.pop() {
         if std::mem::replace(&mut visited[index], true) {
@@ -386,6 +484,7 @@ pub(crate) fn assemble(
         let node = &nodes[index];
 
         let is_container = CONTAINER_ROLES.contains(&node.role.as_str());
+        let is_iframe = node.role.eq_ignore_ascii_case("iframe");
         let is_skipped_role = SKIP_AX_ROLES.contains(&node.role.as_str());
         let lookup = node.backend_id.and_then(|id| layout.get(&id));
         let is_clickable = lookup.map(|info| info.is_clickable).unwrap_or(false);
@@ -399,16 +498,44 @@ pub(crate) fn assemble(
         let mut rendered = false;
         let mut child_depth = depth + 1;
 
-        if !node.ignored && !is_skipped_role && !is_container {
+        // A cross-origin frame has no layout entry (its document is not
+        // captured), so it would otherwise vanish. Always render a placeholder
+        // for it - role/title only, never an index. This also covers same-origin
+        // frames whose node is present but unnamed.
+        if is_iframe && !node.ignored {
+            let mut line = String::new();
+            line.push_str(&"  ".repeat(depth.min(MAX_INDENT)));
+            line.push_str("<iframe>");
+            let name = clean(&node.name, MAX_TEXT_LEN);
+            if !name.is_empty() {
+                line.push_str(&format!(" \"{name}\""));
+            }
+            lines.push(line);
+            rendered = true;
+        }
+
+        if !node.ignored && !is_skipped_role && !is_container && !is_iframe {
             let tag = lookup
                 .and_then(|info| info.tag.clone())
                 .unwrap_or_else(|| node.role.clone());
 
-            let index_it = interactive && visible;
+            // Interactive node that is fully covered by a later-painted box is
+            // not a real target: drop it so agents do not click through an
+            // overlay. Conservative - see [`is_occluded`].
+            let candidate = interactive && visible;
+            let occluded = candidate
+                && lookup
+                    .and_then(|info| {
+                        info.bounds
+                            .map(|bounds| is_occluded((bounds, info.paint_order), &ordered_rects))
+                    })
+                    .unwrap_or(false);
+            let index_it = candidate && !occluded;
             // Print anything interactive, structural, or that carries text.
-            let show = index_it
-                || STRUCTURAL_AX_ROLES.contains(&node.role.as_str())
-                || !node.name.is_empty();
+            let show = !occluded
+                && (index_it
+                    || STRUCTURAL_AX_ROLES.contains(&node.role.as_str())
+                    || !node.name.is_empty());
 
             if show {
                 let assigned = if index_it {
@@ -453,7 +580,7 @@ pub(crate) fn assemble(
             }
         }
 
-        if is_container {
+        if is_container || is_iframe {
             // Containers keep their children at the same level: they add no
             // structure of their own to the rendered text.
             child_depth = depth;
@@ -468,7 +595,17 @@ pub(crate) fn assemble(
         }
     }
 
-    (lines.join("\n"), elements)
+    let mut text = lines.join("\n");
+    if let Some(viewport_height) = viewport_height
+        && has_content_below(&elements, viewport_height)
+    {
+        if !text.is_empty() {
+            text.push('\n');
+        }
+        text.push_str(SCROLL_HINT);
+    }
+
+    (text, elements)
 }
 
 impl Page {
@@ -494,27 +631,41 @@ impl Page {
             json!({
                 "computedStyles": REQUIRED_COMPUTED_STYLES,
                 "includeDOMRects": true,
-                "includePaintOrder": false,
+                "includePaintOrder": true,
             }),
         );
-        let dpr_future = self.client.execute_raw_with_session(
+        // One probe returns both the scale factor (bounding boxes are in device
+        // pixels) and the viewport height (for the scroll hint).
+        let probe_future = self.client.execute_raw_with_session(
             Some(&self.session_id),
             "Runtime.evaluate",
-            json!({ "expression": "window.devicePixelRatio || 1", "returnByValue": true }),
+            json!({
+                "expression": "({ dpr: window.devicePixelRatio || 1, innerHeight: window.innerHeight || 0 })",
+                "returnByValue": true,
+            }),
         );
 
-        let (ax_result, snapshot_result, dpr_result) =
-            tokio::join!(ax_future, snapshot_future, dpr_future);
+        let (ax_result, snapshot_result, probe_result) =
+            tokio::join!(ax_future, snapshot_future, probe_future);
 
         let ax_tree = ax_result?;
         let snapshot = snapshot_result.unwrap_or(Value::Null);
-        let device_pixel_ratio = dpr_result
+        let probe = probe_result
             .ok()
-            .and_then(|value| value.pointer("/result/value").and_then(Value::as_f64))
+            .and_then(|value| value.pointer("/result/value").cloned());
+        let device_pixel_ratio = probe
+            .as_ref()
+            .and_then(|value| value.get("dpr"))
+            .and_then(Value::as_f64)
             .unwrap_or(1.0);
+        let viewport_height = probe
+            .as_ref()
+            .and_then(|value| value.get("innerHeight"))
+            .and_then(Value::as_f64)
+            .filter(|height| *height > 0.0);
 
         let layout = build_layout_lookup(&snapshot, device_pixel_ratio);
-        let (text, elements) = assemble(&ax_tree, &layout);
+        let (text, elements) = assemble(&ax_tree, &layout, viewport_height);
 
         {
             let mut cache = self.snapshot_index.lock().await;
@@ -676,7 +827,8 @@ mod tests {
                     "bounds": [
                         [0.0, 0.0, 20.0, 10.0],
                         [10.0, 10.0, 40.0, 20.0]
-                    ]
+                    ],
+                    "paintOrders": [3, 7]
                 }
             }]
         });
@@ -685,6 +837,8 @@ mod tests {
         let button = lookup.get(&200).expect("button layout");
         assert!(button.is_clickable);
         assert_eq!(button.tag.as_deref(), Some("button"));
+        assert_eq!(button.paint_order, Some(7));
+        assert_eq!(lookup.get(&100).expect("div layout").paint_order, Some(3));
         assert_eq!(
             button.bounds,
             Some(Rect {
@@ -699,7 +853,7 @@ mod tests {
 
     #[test]
     fn assemble_indexes_interactive_nodes_in_document_order() {
-        let (text, elements) = assemble(&sample_ax(), &HashMap::new());
+        let (text, elements) = assemble(&sample_ax(), &HashMap::new(), None);
 
         assert_eq!(elements.len(), 3);
         assert_eq!(elements[0].index, 0);
@@ -733,9 +887,10 @@ mod tests {
                 }),
                 is_clickable: true,
                 tag: Some("input".into()),
+                paint_order: None,
             },
         );
-        let (_, elements) = assemble(&sample_ax(), &lookup);
+        let (_, elements) = assemble(&sample_ax(), &lookup, None);
 
         // Only the visible textbox (backend 11) is indexed.
         assert_eq!(elements.len(), 1);
@@ -747,5 +902,193 @@ mod tests {
     fn clean_collapses_and_truncates() {
         assert_eq!(clean("  a   b\n c ", 20), "a b c");
         assert_eq!(clean("abcdef", 4), "abc…");
+    }
+
+    /// Layout lookup for `sample_ax`'s backend ids, each with a paint order.
+    fn layout_with(entries: &[(i64, f64, f64, f64, f64)]) -> HashMap<i64, LayoutInfo> {
+        entries
+            .iter()
+            .map(|&(id, x, y, width, height)| {
+                (
+                    id,
+                    LayoutInfo {
+                        bounds: Some(Rect {
+                            x,
+                            y,
+                            width,
+                            height,
+                        }),
+                        is_clickable: false,
+                        tag: None,
+                        paint_order: Some(0),
+                    },
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn is_occluded_requires_containment_size_and_higher_paint_order() {
+        let target = (
+            Rect {
+                x: 10.0,
+                y: 10.0,
+                width: 20.0,
+                height: 20.0,
+            },
+            Some(1),
+        );
+        let cover = (
+            Rect {
+                x: 0.0,
+                y: 0.0,
+                width: 100.0,
+                height: 100.0,
+            },
+            Some(2),
+        );
+
+        // Fully contained in a strictly larger, later-painted box.
+        assert!(is_occluded(target, &[cover]));
+        // The cover is painted first, so the target sits on top of it.
+        assert!(!is_occluded(target, &[(cover.0, Some(0))]));
+        // A same-sized box is not strictly larger.
+        assert!(!is_occluded(target, &[(target.0, Some(2))]));
+        // Overlap below the 99% containment threshold.
+        let partial = (
+            Rect {
+                x: 25.0,
+                y: 25.0,
+                width: 100.0,
+                height: 100.0,
+            },
+            Some(2),
+        );
+        assert!(!is_occluded(target, &[partial]));
+        // Unknown paint orders are never treated as occluding/occluded.
+        assert!(!is_occluded((target.0, None), &[cover]));
+        assert!(!is_occluded(target, &[(cover.0, None)]));
+    }
+
+    #[test]
+    fn assemble_drops_interactive_node_covered_by_later_painted_box() {
+        let mut layout = HashMap::new();
+        // Backend 10 (Home link) is painted under an overlay that covers it.
+        layout.insert(
+            10,
+            LayoutInfo {
+                bounds: Some(Rect {
+                    x: 10.0,
+                    y: 10.0,
+                    width: 20.0,
+                    height: 20.0,
+                }),
+                is_clickable: true,
+                tag: Some("a".into()),
+                paint_order: Some(1),
+            },
+        );
+        layout.insert(
+            99,
+            LayoutInfo {
+                bounds: Some(Rect {
+                    x: 5.0,
+                    y: 5.0,
+                    width: 50.0,
+                    height: 50.0,
+                }),
+                is_clickable: false,
+                tag: Some("div".into()),
+                paint_order: Some(2),
+            },
+        );
+        // The remaining interactive nodes are laid out clear of the overlay.
+        layout.insert(
+            11,
+            LayoutInfo {
+                bounds: Some(Rect {
+                    x: 0.0,
+                    y: 100.0,
+                    width: 60.0,
+                    height: 20.0,
+                }),
+                is_clickable: false,
+                tag: Some("input".into()),
+                paint_order: Some(0),
+            },
+        );
+        layout.insert(
+            13,
+            LayoutInfo {
+                bounds: Some(Rect {
+                    x: 0.0,
+                    y: 200.0,
+                    width: 60.0,
+                    height: 20.0,
+                }),
+                is_clickable: false,
+                tag: Some("button".into()),
+                paint_order: Some(0),
+            },
+        );
+
+        let (text, elements) = assemble(&sample_ax(), &layout, None);
+
+        // The covered link is dropped; the other interactive nodes remain.
+        assert_eq!(elements.len(), 2);
+        assert!(elements.iter().all(|element| element.backend_node_id != 10));
+        assert!(!text.contains("\"Home\""));
+        assert!(text.contains("[0]<input> \"Email\""));
+    }
+
+    #[test]
+    fn assemble_renders_iframe_placeholder_without_index() {
+        let ax = json!({
+            "nodes": [
+                {
+                    "nodeId": "1",
+                    "ignored": false,
+                    "role": { "value": "RootWebArea" },
+                    "name": { "value": "Page" },
+                    "childIds": ["2"]
+                },
+                {
+                    "nodeId": "2",
+                    "ignored": false,
+                    "parentId": "1",
+                    "role": { "value": "Iframe" },
+                    "name": { "value": "https://example.com/embed" },
+                    "childIds": []
+                }
+            ]
+        });
+        // No layout entry for the cross-origin frame.
+        let (text, elements) = assemble(&ax, &HashMap::new(), None);
+
+        assert!(elements.is_empty());
+        assert!(text.contains("<iframe> \"https://example.com/embed\""));
+        assert!(!text.contains('['));
+    }
+
+    #[test]
+    fn assemble_appends_scroll_hint_when_content_is_below_viewport() {
+        let layout = layout_with(&[
+            (10, 0.0, 0.0, 10.0, 10.0),
+            (11, 0.0, 250.0, 10.0, 10.0),
+            (13, 0.0, 20.0, 10.0, 10.0),
+        ]);
+
+        let (text, elements) = assemble(&sample_ax(), &layout, Some(200.0));
+        assert_eq!(elements.len(), 3);
+        assert!(has_content_below(&elements, 200.0));
+        assert!(text.ends_with(SCROLL_HINT));
+
+        let (fits, _) = assemble(&sample_ax(), &layout, Some(1000.0));
+        assert!(!has_content_below(&elements, 1000.0));
+        assert!(!fits.contains("more content below"));
+
+        // An unknown viewport never adds the hint.
+        let (unknown, _) = assemble(&sample_ax(), &layout, None);
+        assert!(!unknown.contains("more content below"));
     }
 }

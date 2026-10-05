@@ -68,10 +68,10 @@ pub(crate) fn extract_main_html(html: &str) -> String {
     let mut candidates: Vec<String> = Vec::new();
     candidates.extend(find_blocks(&cleaned, "main"));
     candidates.extend(find_blocks(&cleaned, "article"));
-    if let Some(best) = candidates.into_iter().max_by_key(|c| c.len()) {
-        if !best.trim().is_empty() {
-            return best;
-        }
+    if let Some(best) = candidates.into_iter().max_by_key(|c| c.len())
+        && !best.trim().is_empty()
+    {
+        return best;
     }
 
     if let Some(body) = find_blocks(&cleaned, "body")
@@ -207,14 +207,14 @@ fn parse_html(html: &str) -> Vec<Node> {
     roots
 }
 
-fn push_node(stack: &mut Vec<Element>, roots: &mut Vec<Node>, node: Node) {
+fn push_node(stack: &mut [Element], roots: &mut Vec<Node>, node: Node) {
     match stack.last_mut() {
         Some(parent) => parent.children.push(node),
         None => roots.push(node),
     }
 }
 
-fn push_text(stack: &mut Vec<Element>, roots: &mut Vec<Node>, text: &str) {
+fn push_text(stack: &mut [Element], roots: &mut Vec<Node>, text: &str) {
     if text.is_empty() {
         return;
     }
@@ -483,16 +483,16 @@ fn decode_entities(input: &str) -> String {
     let bytes = input.as_bytes();
     let mut i = 0;
     while i < input.len() {
-        if bytes[i] == b'&' {
-            if let Some(semi) = input[i..].find(';') {
-                let entity = &input[i + 1..i + semi];
-                if is_entity_body(entity) {
-                    if let Some(decoded) = decode_entity(entity) {
-                        out.push_str(&decoded);
-                        i = i + semi + 1;
-                        continue;
-                    }
-                }
+        if bytes[i] == b'&'
+            && let Some(semi) = input[i..].find(';')
+        {
+            let entity = &input[i + 1..i + semi];
+            if is_entity_body(entity)
+                && let Some(decoded) = decode_entity(entity)
+            {
+                out.push_str(&decoded);
+                i = i + semi + 1;
+                continue;
             }
         }
         let ch = input[i..].chars().next().expect("index within bounds");

@@ -68,16 +68,11 @@ pub(crate) fn host_of(url: &str) -> Option<String> {
     let trimmed = url.trim();
     let after_scheme = if let Some(index) = trimmed.find("://") {
         &trimmed[index + 3..]
-    } else if let Some(rest) = trimmed.strip_prefix("//") {
-        rest
     } else {
-        return None;
+        trimmed.strip_prefix("//")?
     };
 
-    let authority = after_scheme
-        .split(|c| c == '/' || c == '?' || c == '#')
-        .next()
-        .unwrap_or("");
+    let authority = after_scheme.split(['/', '?', '#']).next().unwrap_or("");
 
     let host_port = match authority.rsplit_once('@') {
         Some((_userinfo, host)) => host,

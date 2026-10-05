@@ -41,6 +41,9 @@ enum Profile {
     Ephemeral(tempfile::TempDir),
     /// A user-supplied directory kept between runs.
     Persistent(PathBuf),
+    /// No profile: used by [`Browser::connect`], which attaches to a browser it
+    /// did not spawn and therefore has no profile directory of its own.
+    None,
 }
 
 impl Profile {
@@ -48,6 +51,7 @@ impl Profile {
         match self {
             Profile::Ephemeral(dir) => dir.path(),
             Profile::Persistent(path) => path,
+            Profile::None => Path::new(""),
         }
     }
 }
@@ -104,6 +108,10 @@ pub struct Browser {
     _proxy: Option<crate::proxy::ProxyGateway>,
     ws_url: String,
     events: tokio::sync::Mutex<Vec<String>>,
+    /// Whether this handle owns the browser process. `true` for
+    /// [`Browser::launch`], `false` for [`Browser::connect`]; an attached
+    /// browser is never closed by [`Browser::close`].
+    owned: bool,
 }
 
 #[uniffi::export(async_runtime = "tokio")]
@@ -161,6 +169,25 @@ impl Browser {
             cmd.arg(arg);
         }
 
+        // Capability F: apply process-wide launch options just before spawn.
+        let launch_options = crate::options::configured();
+        if let Some(options) = &launch_options {
+            for arg in &options.extra_args {
+                cmd.arg(arg);
+            }
+            if options.deterministic_rendering {
+                cmd.args(deterministic_flags());
+            }
+            if options.disable_security {
+                cmd.args(disable_security_flags());
+            }
+        }
+        // `keep_alive` disables the auto-kill guard so the browser outlives the
+        // handle. Detached processes are already never auto-killed.
+        let keep_alive = launch_options
+            .as_ref()
+            .is_some_and(|options| options.keep_alive);
+
         let (child, guard) = if plan.detached {
             let pid = spawn_detached(cmd)?;
             let guard = ProcessGuard {
@@ -176,7 +203,7 @@ impl Browser {
             let pid = child.id().ok_or(XcelerateError::InternalError)?;
             let guard = ProcessGuard {
                 pid,
-                auto_kill: true,
+                auto_kill: !keep_alive,
             };
             (Some(child), Some(guard))
         };
@@ -184,6 +211,20 @@ impl Browser {
         // 3. Connect to debugger
         let ws_url = wait_for_ws_url(port).await?;
         let client = Arc::new(xcelerate_core::connect(&ws_url).await?);
+
+        // Capability F: downloads are opt-in; deny explicitly otherwise. Best
+        // effort: a browser that rejects this must not fail the launch.
+        if let Some(options) = &launch_options
+            && let Some(accept) = options.accept_downloads
+        {
+            let behavior = if accept { "allow" } else { "deny" };
+            let _ = client
+                .execute_raw(
+                    "Browser.setDownloadBehavior",
+                    serde_json::json!({ "behavior": behavior }),
+                )
+                .await;
+        }
 
         Ok(Arc::new(Self {
             client,
@@ -194,6 +235,7 @@ impl Browser {
             plugins: Arc::new(manager),
             ws_url: ws_url.clone(),
             events: tokio::sync::Mutex::new(Vec::new()),
+            owned: true,
         }))
     }
 
@@ -235,6 +277,7 @@ impl Browser {
             downloads_path: Arc::new(tokio::sync::Mutex::new(None)),
             har_entries: Arc::new(tokio::sync::Mutex::new(Vec::new())),
             har_task: Arc::new(tokio::sync::Mutex::new(None)),
+            har_body_mode: Arc::new(tokio::sync::Mutex::new("omit".to_string())),
         });
 
         // 3. Run plugin page-created hooks (e.g. stealth payload injection).
@@ -361,7 +404,14 @@ impl Browser {
     }
 
     /// Closes the browser, letting it flush the profile, then kills it if needed.
+    ///
+    /// An attached browser (from [`Browser::connect`]) is not owned by this
+    /// handle, so this is a no-op: it never sends `Browser.close` and never
+    /// kills the process.
     pub async fn close(&self) -> XcelerateResult<()> {
+        if !self.owned {
+            return Ok(());
+        }
         // Ask the browser to close gracefully so it flushes cookies/storage to
         // the profile directory (critical for persistent profiles).
         let _ = self
@@ -618,9 +668,35 @@ impl Browser {
     }
 }
 
-/// Compile-time extension point, kept out of the `#[uniffi::export]` block so it
-/// stays Rust-only (it takes executable [`Plugin`] values).
+/// Rust-only extension points, kept out of the `#[uniffi::export]` block so
+/// their signatures never affect the language bindings.
 impl Browser {
+    /// Attaches to a browser that is already running and exposes a CDP
+    /// WebSocket endpoint (capability A).
+    ///
+    /// Unlike [`Browser::launch`], this spawns no process and owns no lifecycle:
+    /// the returned handle has no profile, no proxy gateway, and no plugins
+    /// enabled. [`Browser::close`] on an attached handle is a no-op, so the
+    /// running browser is never shut down.
+    ///
+    /// Rust-only: it is intentionally not exposed through the language
+    /// bindings.
+    pub async fn connect(ws_url: String) -> XcelerateResult<Arc<Self>> {
+        let client = Arc::new(xcelerate_core::connect(&ws_url).await?);
+        let plugins = Arc::new(PluginManager::new(&[], crate::plugin::catalog())?);
+        Ok(Arc::new(Self {
+            client,
+            _process: tokio::sync::Mutex::new(None),
+            _process_guard: None,
+            _profile: Profile::None,
+            _proxy: None,
+            plugins,
+            ws_url,
+            events: tokio::sync::Mutex::new(Vec::new()),
+            owned: false,
+        }))
+    }
+
     /// Installs trusted, in-process plugins, taken by value.
     ///
     /// This is how a plugin shipped as a Cargo library is added: `cargo add` the
@@ -738,5 +814,69 @@ async fn wait_for_ws_url(port: u16) -> XcelerateResult<String> {
                 tokio::time::sleep(Duration::from_millis(150)).await;
             }
         }
+    }
+}
+
+/// Chrome flags that make rendering deterministic (stable screenshots).
+fn deterministic_flags() -> &'static [&'static str] {
+    &[
+        "--deterministic-mode",
+        "--run-all-compositor-stages-before-draw",
+        "--disable-new-content-rendering-timeout",
+        "--disable-threaded-animation",
+        "--disable-threaded-scrolling",
+        "--disable-checker-imaging",
+        "--disable-image-animation-resync",
+        "--disable-background-timer-throttling",
+    ]
+}
+
+/// Chrome flags that disable web security / site isolation (testing only).
+fn disable_security_flags() -> &'static [&'static str] {
+    &[
+        "--disable-web-security",
+        "--disable-site-isolation-trials",
+        "--allow-running-insecure-content",
+    ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn deterministic_flags_are_populated() {
+        let flags = deterministic_flags();
+        assert!(!flags.is_empty());
+        for expected in [
+            "--deterministic-mode",
+            "--run-all-compositor-stages-before-draw",
+            "--disable-new-content-rendering-timeout",
+            "--disable-threaded-animation",
+            "--disable-threaded-scrolling",
+            "--disable-checker-imaging",
+            "--disable-image-animation-resync",
+            "--disable-background-timer-throttling",
+        ] {
+            assert!(flags.contains(&expected), "missing flag: {expected}");
+        }
+    }
+
+    #[test]
+    fn disable_security_flags_are_populated() {
+        let flags = disable_security_flags();
+        assert!(!flags.is_empty());
+        for expected in [
+            "--disable-web-security",
+            "--disable-site-isolation-trials",
+            "--allow-running-insecure-content",
+        ] {
+            assert!(flags.contains(&expected), "missing flag: {expected}");
+        }
+    }
+
+    #[test]
+    fn profile_none_has_an_empty_path() {
+        assert!(Profile::None.path().as_os_str().is_empty());
     }
 }

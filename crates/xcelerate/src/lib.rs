@@ -25,6 +25,8 @@ pub mod policy;
 pub mod process;
 pub mod profile;
 
+pub mod options;
+
 mod proxy;
 
 pub mod adapters;
@@ -42,6 +44,9 @@ pub use proxy::configure as configure_proxy;
 
 // Domain allow/deny policy (Rust-only; enforced before navigation).
 pub use policy::configure_domain_policy;
+
+// Launch options (Rust-only; applied by `Browser::launch`).
+pub use options::{LaunchOptions, configure_launch_options, reset_launch_options};
 
 // Re-export the transport layer and the generated protocol crates so downstream
 // code can reach everything through `xcelerate`.

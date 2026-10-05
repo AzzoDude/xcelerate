@@ -432,6 +432,80 @@ impl Server {
                     .map_err(to_message)?;
                 Ok(Outcome::Text(format!("Clicked snapshot index {index}.")))
             }
+            "browser_markdown" => {
+                let page = self.ensure_page().await?;
+                Ok(Outcome::Text(page.markdown().await.map_err(to_message)?))
+            }
+            "browser_detect_challenge" => {
+                let page = self.ensure_page().await?;
+                let report = page.detect_challenge().await.map_err(to_message)?;
+                Ok(Outcome::Text(report.to_json().to_string()))
+            }
+            "browser_find_text" => {
+                let text = str_arg(args, "text")?;
+                let page = self.ensure_page().await?;
+                let count = page.find_text(text.to_string()).await.map_err(to_message)?;
+                Ok(Outcome::Text(format!("{count} match(es) for {text:?}.")))
+            }
+            "browser_wait_for_network_idle" => {
+                let idle = u64_arg(args, "idle_ms").unwrap_or(500);
+                let timeout = u64_arg(args, "timeout_ms").unwrap_or(30_000);
+                let page = self.ensure_page().await?;
+                page.wait_for_network_idle(idle, timeout)
+                    .await
+                    .map_err(to_message)?;
+                Ok(Outcome::Text("Network is idle.".to_string()))
+            }
+            "browser_wait_for_dom_stable" => {
+                let quiet = u64_arg(args, "quiet_ms").unwrap_or(500);
+                let timeout = u64_arg(args, "timeout_ms").unwrap_or(30_000);
+                let page = self.ensure_page().await?;
+                page.wait_for_dom_stable(quiet, timeout)
+                    .await
+                    .map_err(to_message)?;
+                Ok(Outcome::Text("DOM is stable.".to_string()))
+            }
+            "browser_highlight" => {
+                let page = self.ensure_page().await?;
+                let count = page.highlight_all().await.map_err(to_message)?;
+                Ok(Outcome::Text(format!("Highlighted {count} element(s).")))
+            }
+            "browser_clear_highlights" => {
+                let page = self.ensure_page().await?;
+                page.clear_highlights().await.map_err(to_message)?;
+                Ok(Outcome::Text("Cleared highlights.".to_string()))
+            }
+            "browser_wait_for_download" => {
+                let timeout = u64_arg(args, "timeout_ms").unwrap_or(30_000);
+                let page = self.ensure_page().await?;
+                let path = page.wait_for_download(timeout).await.map_err(to_message)?;
+                Ok(Outcome::Text(format!("Downloaded {path}")))
+            }
+            "browser_wait_for_popup" => {
+                let timeout = u64_arg(args, "timeout_ms").unwrap_or(30_000);
+                let page = self.ensure_page().await?;
+                let target = page.wait_for_popup(timeout).await.map_err(to_message)?;
+                Ok(Outcome::Text(format!("New page target: {target}")))
+            }
+            "browser_save_har" => {
+                let path = str_arg(args, "path")?;
+                let page = self.ensure_page().await?;
+                let saved = page.save_har(path.to_string()).await.map_err(to_message)?;
+                Ok(Outcome::Text(format!("HAR written to {saved}")))
+            }
+            "browser_response_body" => {
+                let request_id = str_arg(args, "request_id")?;
+                let page = self.ensure_page().await?;
+                let body = page
+                    .response_body(request_id.to_string())
+                    .await
+                    .map_err(to_message)?;
+                Ok(Outcome::Text(body))
+            }
+            "browser_health" => {
+                let page = self.ensure_page().await?;
+                Ok(Outcome::Text(page.health().await.map_err(to_message)?))
+            }
             "browser_load_plugin" => {
                 let path = str_arg(args, "path")?;
                 let browser = self.ensure_browser().await?;
@@ -767,6 +841,96 @@ fn tool_definitions() -> Value {
             }
         },
         {
+            "name": "browser_markdown",
+            "description": "Return the page's main content as clean Markdown (scripts, nav, and boilerplate removed). Ideal for reading or summarizing a page.",
+            "inputSchema": { "type": "object", "properties": {} }
+        },
+        {
+            "name": "browser_detect_challenge",
+            "description": "Detect anti-bot / CAPTCHA challenges on the page and return JSON {detected, vendors, signals}.",
+            "inputSchema": { "type": "object", "properties": {} }
+        },
+        {
+            "name": "browser_find_text",
+            "description": "Count elements containing the given text, scrolling the first match into view and highlighting it.",
+            "inputSchema": {
+                "type": "object",
+                "properties": { "text": { "type": "string" } },
+                "required": ["text"]
+            }
+        },
+        {
+            "name": "browser_wait_for_network_idle",
+            "description": "Wait until the page has finished loading resources and the network is idle.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "idle_ms": { "type": "integer", "description": "How long the network must stay quiet (default 500)." },
+                    "timeout_ms": { "type": "integer", "description": "Overall timeout (default 30000)." }
+                }
+            }
+        },
+        {
+            "name": "browser_wait_for_dom_stable",
+            "description": "Wait until the DOM stops mutating for a quiet period.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "quiet_ms": { "type": "integer", "description": "Required quiet period (default 500)." },
+                    "timeout_ms": { "type": "integer", "description": "Overall timeout (default 30000)." }
+                }
+            }
+        },
+        {
+            "name": "browser_highlight",
+            "description": "Draw red outlines over interactive elements so they can be seen in a screenshot or by a human.",
+            "inputSchema": { "type": "object", "properties": {} }
+        },
+        {
+            "name": "browser_clear_highlights",
+            "description": "Remove any highlights drawn by browser_highlight.",
+            "inputSchema": { "type": "object", "properties": {} }
+        },
+        {
+            "name": "browser_wait_for_download",
+            "description": "Wait for the page to trigger a file download and return the saved path.",
+            "inputSchema": {
+                "type": "object",
+                "properties": { "timeout_ms": { "type": "integer", "description": "Overall timeout (default 30000)." } }
+            }
+        },
+        {
+            "name": "browser_wait_for_popup",
+            "description": "Wait for a popup / new tab to open and return its target id.",
+            "inputSchema": {
+                "type": "object",
+                "properties": { "timeout_ms": { "type": "integer", "description": "Overall timeout (default 30000)." } }
+            }
+        },
+        {
+            "name": "browser_save_har",
+            "description": "Write the network activity recorded so far to a HAR 1.2 file and return the path.",
+            "inputSchema": {
+                "type": "object",
+                "properties": { "path": { "type": "string" } },
+                "required": ["path"]
+            }
+        },
+        {
+            "name": "browser_response_body",
+            "description": "Fetch a network response body by CDP requestId (base64 payloads are decoded).",
+            "inputSchema": {
+                "type": "object",
+                "properties": { "request_id": { "type": "string" } },
+                "required": ["request_id"]
+            }
+        },
+        {
+            "name": "browser_health",
+            "description": "Return a JSON health report for the page (responsiveness, url, target).",
+            "inputSchema": { "type": "object", "properties": {} }
+        },
+        {
             "name": "browser_load_plugin",
             "description": "Load a plugin from a directory or plugin.json. Its ops become callable through browser_plugin_invoke. Dangerous capabilities stay denied unless the host opted in.",
             "inputSchema": {
@@ -809,6 +973,13 @@ mod tests {
         assert!(names.contains(&"browser_accessibility"));
         assert!(names.contains(&"browser_snapshot"));
         assert!(names.contains(&"browser_click_index"));
+        assert!(names.contains(&"browser_markdown"));
+        assert!(names.contains(&"browser_detect_challenge"));
+        assert!(names.contains(&"browser_find_text"));
+        assert!(names.contains(&"browser_wait_for_network_idle"));
+        assert!(names.contains(&"browser_save_har"));
+        assert!(names.contains(&"browser_response_body"));
+        assert!(names.contains(&"browser_health"));
     }
 
     #[test]

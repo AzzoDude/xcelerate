@@ -39,11 +39,6 @@ const MARKERS: &[(&str, Option<&str>, &str)] = &[
         "shows a Cloudflare browser check",
     ),
     (
-        "cloudflare",
-        Some("cloudflare"),
-        "found a Cloudflare reference",
-    ),
-    (
         "px-captcha",
         Some("perimeterx"),
         "found a PerimeterX px-captcha",
@@ -59,7 +54,6 @@ const MARKERS: &[(&str, Option<&str>, &str)] = &[
         Some("akamai"),
         "shows the Akamai \"Pardon Our Interruption\" interstitial",
     ),
-    ("akamai", Some("akamai"), "found an Akamai reference"),
     ("kasada", Some("kasada"), "found a Kasada reference"),
     ("geetest", Some("geetest"), "found a Geetest reference"),
     ("are you a robot", None, "asks \"are you a robot\""),
@@ -165,6 +159,19 @@ mod tests {
         let report = analyze_challenge("<title>Just a moment...</title>", "https://example.com");
         assert!(report.detected);
         assert!(report.vendors.iter().any(|v| v == "cloudflare"));
+    }
+
+    #[test]
+    fn cloudflare_analytics_is_not_a_challenge() {
+        // The analytics beacon (cloudflareinsights.com) is on many ordinary
+        // sites and must not be mistaken for a challenge.
+        let html = r#"<script src="https://static.cloudflareinsights.com/beacon.min.js"></script>"#;
+        let report = analyze_challenge(html, "https://fuoverflow.com/");
+        assert!(
+            !report.detected,
+            "cloudflare analytics should not flag: {:?}",
+            report.signals
+        );
     }
 
     #[test]

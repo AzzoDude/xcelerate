@@ -49,6 +49,14 @@ impl Page {
     /// enabled, and remembers the directory so [`Page::wait_for_download`] can
     /// resolve absolute paths.
     pub async fn set_download_path(&self, path: String) -> XcelerateResult<()> {
+        // Chrome on Windows expects a native path; a forward-slash `downloadPath`
+        // can be ignored, which silently sends downloads to the (ephemeral)
+        // profile directory instead.
+        let path = if cfg!(windows) {
+            path.replace('/', "\\")
+        } else {
+            path
+        };
         self.client
             .execute_raw(
                 "Browser.setDownloadBehavior",
@@ -59,6 +67,17 @@ impl Page {
                 }),
             )
             .await?;
+        // Some Chrome versions only emit the page-scoped `Page.downloadWillBegin`
+        // (and honor the path) when the page-scoped command is also set. Best
+        // effort: a browser that rejects the deprecated command must not fail.
+        let _ = self
+            .client
+            .execute_raw_with_session(
+                Some(&self.session_id),
+                "Page.setDownloadBehavior",
+                serde_json::json!({ "behavior": "allow", "downloadPath": path }),
+            )
+            .await;
         *self.downloads_path.lock().await = Some(path);
         Ok(())
     }

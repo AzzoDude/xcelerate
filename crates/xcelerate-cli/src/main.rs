@@ -56,6 +56,30 @@ struct BrowserArgs {
     /// Default wait timeout in milliseconds (0 disables it).
     #[arg(long, global = true, default_value_t = 30000)]
     timeout: u64,
+    /// Allowed navigation domains (repeatable). When set, only these may load.
+    #[arg(long = "allow-domain", global = true, value_name = "DOMAIN")]
+    allow_domain: Vec<String>,
+    /// Prohibited navigation domains (repeatable). Overrides the allow list.
+    #[arg(long = "deny-domain", global = true, value_name = "DOMAIN")]
+    deny_domain: Vec<String>,
+    /// Attach to an existing browser's CDP websocket instead of launching one.
+    #[arg(long, global = true, value_name = "WS_URL")]
+    connect: Option<String>,
+    /// Extra browser flag passed verbatim (repeatable).
+    #[arg(long = "extra-arg", global = true, value_name = "FLAG")]
+    extra_arg: Vec<String>,
+    /// Allow the browser to download files.
+    #[arg(long, global = true)]
+    accept_downloads: bool,
+    /// Enable deterministic-rendering flags.
+    #[arg(long, global = true)]
+    deterministic: bool,
+    /// Disable web security / site isolation (testing only).
+    #[arg(long, global = true)]
+    disable_security: bool,
+    /// Keep the browser process alive after the command exits.
+    #[arg(long, global = true)]
+    keep_alive: bool,
 }
 
 #[derive(Subcommand)]
@@ -102,6 +126,35 @@ enum Command {
     Snapshot { url: String },
     /// Click the element at `index` from the snapshot of this same run.
     ClickIndex { url: String, index: u32 },
+    /// Print the page's main content as Markdown.
+    Markdown { url: String },
+    /// Report anti-bot / challenge markers found on the page (JSON).
+    Challenge { url: String },
+    /// Print how many elements contain the given text (1 = found).
+    Find { url: String, text: String },
+    /// Wait until the network is idle, then print the current URL.
+    WaitIdle { url: String },
+    /// Record network activity while loading a URL and save a HAR 1.2 file.
+    Har {
+        url: String,
+        #[arg(short, long, default_value = "network.har")]
+        output: PathBuf,
+        /// Embed response bodies in the HAR (via Network.getResponseBody).
+        #[arg(long)]
+        bodies: bool,
+    },
+    /// Set a download directory, open a URL, and wait for the first download.
+    Download {
+        url: String,
+        #[arg(short, long, value_name = "DIR")]
+        output: PathBuf,
+    },
+    /// Copy a Chrome profile directory (e.g. the system `Default` profile).
+    ReuseProfile { source: String, dest: PathBuf },
+    /// List installed Chrome profiles discovered on this machine.
+    Profiles,
+    /// Print a browser health report (JSON) for a URL.
+    Health { url: String },
     /// Record a video of a page for a fixed duration.
     Record {
         url: String,
@@ -288,6 +341,80 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             println!("clicked snapshot index {index}");
             browser.close().await?;
         }
+        Command::Markdown { url } => {
+            let (browser, page) = launch(&cli.browser, &url).await?;
+            println!("{}", page.markdown().await?);
+            browser.close().await?;
+        }
+        Command::Challenge { url } => {
+            let (browser, page) = launch(&cli.browser, &url).await?;
+            println!("{}", page.detect_challenge().await?.to_json());
+            browser.close().await?;
+        }
+        Command::Find { url, text } => {
+            let (browser, page) = launch(&cli.browser, &url).await?;
+            println!("{}", page.find_text(text).await?);
+            browser.close().await?;
+        }
+        Command::WaitIdle { url } => {
+            let (browser, page) = launch(&cli.browser, &url).await?;
+            page.wait_for_network_idle(500, cli.browser.timeout.max(1))
+                .await?;
+            println!("{}", page.url().await?);
+            browser.close().await?;
+        }
+        Command::Har {
+            url,
+            output,
+            bodies,
+        } => {
+            // Load about:blank first so the recorded HAR includes the real
+            // navigation instead of only late-arriving subresources.
+            let (browser, page) = launch(&cli.browser, "about:blank").await?;
+            if bodies {
+                page.set_har_body_mode("embed".to_string()).await?;
+            }
+            page.start_har_recording().await?;
+            page.navigate(url).await?;
+            let _ = page
+                .wait_for_network_idle(500, cli.browser.timeout.max(1))
+                .await;
+            let path = page.save_har(output.to_string_lossy().into_owned()).await?;
+            println!("wrote {path}");
+            browser.close().await?;
+        }
+        Command::Download { url, output } => {
+            let (browser, page) = launch(&cli.browser, "about:blank").await?;
+            page.set_download_path(output.to_string_lossy().into_owned())
+                .await?;
+            // Start waiting *before* navigating: a small download can begin and
+            // finish during `navigate`, and `wait_for_download` only observes
+            // events that arrive after it subscribes.
+            let (download, _) = tokio::join!(
+                page.wait_for_download(cli.browser.timeout.max(1)),
+                page.navigate(url),
+            );
+            println!("{}", download?);
+            browser.close().await?;
+        }
+        Command::ReuseProfile { source, dest } => {
+            let path = xcelerate::profile::reuse_system_profile(&source, &dest.to_string_lossy())?;
+            println!("{path}");
+        }
+        Command::Profiles => {
+            let profiles = xcelerate::profile::list_chrome_profiles();
+            if profiles.is_empty() {
+                println!("no Chrome profiles found");
+            }
+            for profile in profiles {
+                println!("{}\t{}\t{}", profile.name, profile.directory, profile.path);
+            }
+        }
+        Command::Health { url } => {
+            let (browser, page) = launch(&cli.browser, &url).await?;
+            println!("{}", page.health().await?);
+            browser.close().await?;
+        }
         Command::Record {
             url,
             output,
@@ -334,6 +461,23 @@ async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Browser>,
     if args.user_data_dir.is_some() {
         xcelerate::configure_user_data_dir(args.user_data_dir.clone())?;
     }
+    if !args.allow_domain.is_empty() || !args.deny_domain.is_empty() {
+        xcelerate::configure_domain_policy(args.allow_domain.clone(), args.deny_domain.clone());
+    }
+    if !args.extra_arg.is_empty()
+        || args.accept_downloads
+        || args.deterministic
+        || args.disable_security
+        || args.keep_alive
+    {
+        xcelerate::configure_launch_options(xcelerate::LaunchOptions {
+            extra_args: args.extra_arg.clone(),
+            accept_downloads: args.accept_downloads.then_some(true),
+            deterministic_rendering: args.deterministic,
+            disable_security: args.disable_security,
+            keep_alive: args.keep_alive,
+        });
+    }
     let config = BrowserConfig {
         headless: !args.no_headless,
         detached: args.detached,
@@ -344,7 +488,10 @@ async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Browser>,
             Some(args.plugins.clone())
         },
     };
-    let browser = Browser::launch(config).await?;
+    let browser = match args.connect.clone() {
+        Some(ws_url) => Browser::connect(ws_url).await?,
+        None => Browser::launch(config).await?,
+    };
     let page = if let Some(device) = args.device.clone() {
         // Emulate before navigating so the UA, touch, and viewport are in place
         // for the first request and the initial layout.

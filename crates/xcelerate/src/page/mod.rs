@@ -28,11 +28,15 @@ mod challenge;
 mod downloads;
 mod find;
 mod har;
+mod health;
 mod highlight;
 mod markdown;
 mod popups;
+mod response;
 mod timeout;
 mod wait;
+
+pub use challenge::ChallengeReport;
 
 use intercept::run_interception;
 pub(crate) use rng::Lcg;
@@ -61,6 +65,9 @@ pub struct Page {
     pub(crate) har_entries: Arc<tokio::sync::Mutex<Vec<serde_json::Value>>>,
     /// Background task that fills `har_entries` from `Network.*` events.
     pub(crate) har_task: Arc<tokio::sync::Mutex<Option<tokio::task::JoinHandle<()>>>>,
+    /// HAR response-body mode: `omit` (default), `embed`, or `base64`
+    /// (see `page::har` and `page::response`).
+    pub(crate) har_body_mode: Arc<tokio::sync::Mutex<String>>,
 }
 
 /// A declarative network-interception rule.

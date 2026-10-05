@@ -23,6 +23,7 @@ async fn run_har(
     client: Arc<CdpClient>,
     session_id: String,
     entries: Arc<tokio::sync::Mutex<Vec<Value>>>,
+    body_mode: Arc<tokio::sync::Mutex<String>>,
 ) {
     let mut receiver = client.subscribe();
     let mut pending: HashMap<String, Value> = HashMap::new();
@@ -65,6 +66,32 @@ async fn run_har(
             }
             "Network.loadingFinished" => {
                 if let Some(mut entry) = pending.remove(&request_id) {
+                    let mode = body_mode.lock().await.clone();
+                    if mode != "omit" {
+                        // Best effort: a body may be unavailable for streamed,
+                        // cached, or already-released responses.
+                        if let Ok(result) = client
+                            .execute_raw_with_session(
+                                Some(&session_id),
+                                "Network.getResponseBody",
+                                json!({ "requestId": request_id }),
+                            )
+                            .await
+                        {
+                            let body = result
+                                .get("body")
+                                .and_then(Value::as_str)
+                                .unwrap_or_default()
+                                .to_string();
+                            let base64_encoded = result
+                                .get("base64Encoded")
+                                .and_then(Value::as_bool)
+                                .unwrap_or(false);
+                            entry["har_body_mode"] = json!(mode);
+                            entry["response_body"] = json!(body);
+                            entry["response_base64"] = json!(base64_encoded);
+                        }
+                    }
                     entry["loadingFinished"] = params;
                     entries.lock().await.push(entry);
                 }
@@ -193,6 +220,21 @@ fn build_har_entry(record: &Value) -> Value {
         .map(format_iso8601)
         .unwrap_or_else(|| format_iso8601(0.0));
 
+    let mut content = json!({
+        "size": content_size,
+        "mimeType": mime_type,
+    });
+    if let Some(body) = record.get("response_body").and_then(Value::as_str) {
+        content["text"] = json!(body);
+        if record
+            .get("response_base64")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+        {
+            content["encoding"] = json!("base64");
+        }
+    }
+
     json!({
         "startedDateTime": started_date_time,
         "time": time_ms,
@@ -210,10 +252,7 @@ fn build_har_entry(record: &Value) -> Value {
             "statusText": status_text,
             "httpVersion": "HTTP/1.1",
             "headers": headers_to_har(record.pointer("/response/headers")),
-            "content": {
-                "size": content_size,
-                "mimeType": mime_type,
-            },
+            "content": content,
             "redirectURL": "",
             "headersSize": -1,
             "bodySize": -1,
@@ -246,9 +285,35 @@ impl Page {
             Arc::clone(&self.client),
             self.session_id.clone(),
             Arc::clone(&self.har_entries),
+            Arc::clone(&self.har_body_mode),
         ));
         *self.har_task.lock().await = Some(handle);
         Ok(())
+    }
+
+    /// Sets how response bodies are captured during HAR recording.
+    ///
+    /// Accepted modes are:
+    /// - `"omit"` (default): bodies are not captured.
+    /// - `"embed"`: bodies are fetched on `Network.loadingFinished` and stored
+    ///   as text in the HAR `response.content.text` field.
+    /// - `"base64"`: like `embed`, but the recorded entry keeps the
+    ///   `base64Encoded` flag so binary payloads are emitted with
+    ///   `response.content.encoding = "base64"`.
+    ///
+    /// Any other value returns [`XcelerateError::Unsupported`]. The mode is
+    /// read by the background pump when each request finishes, so it applies to
+    /// in-flight recordings without restarting them.
+    pub async fn set_har_body_mode(&self, mode: String) -> XcelerateResult<()> {
+        match mode.as_str() {
+            "omit" | "embed" | "base64" => {
+                *self.har_body_mode.lock().await = mode;
+                Ok(())
+            }
+            other => Err(XcelerateError::Unsupported(format!(
+                "invalid HAR body mode {other:?} (expected omit, embed, or base64)"
+            ))),
+        }
     }
 
     /// Stops recording network activity.
@@ -423,6 +488,55 @@ mod tests {
             Some("Accept")
         );
         assert_eq!(headers[0].get("value").and_then(Value::as_str), Some("*/*"));
+    }
+
+    #[test]
+    fn build_har_includes_captured_response_body_text() {
+        let mut entry = record(
+            request_will_be_sent().get("params").unwrap(),
+            response_received().get("params").unwrap(),
+            loading_finished().get("params").unwrap(),
+        );
+        entry["har_body_mode"] = json!("embed");
+        entry["response_body"] = json!("{\"ok\":true}");
+        entry["response_base64"] = json!(false);
+
+        let har = Page::build_har(&[entry]);
+
+        assert_eq!(
+            har.pointer("/log/entries/0/response/content/text")
+                .and_then(Value::as_str),
+            Some("{\"ok\":true}")
+        );
+        assert!(
+            har.pointer("/log/entries/0/response/content/encoding")
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn build_har_marks_base64_content_encoding() {
+        let mut entry = record(
+            request_will_be_sent().get("params").unwrap(),
+            response_received().get("params").unwrap(),
+            loading_finished().get("params").unwrap(),
+        );
+        entry["har_body_mode"] = json!("base64");
+        entry["response_body"] = json!("aGVsbG8=");
+        entry["response_base64"] = json!(true);
+
+        let har = Page::build_har(&[entry]);
+
+        assert_eq!(
+            har.pointer("/log/entries/0/response/content/text")
+                .and_then(Value::as_str),
+            Some("aGVsbG8=")
+        );
+        assert_eq!(
+            har.pointer("/log/entries/0/response/content/encoding")
+                .and_then(Value::as_str),
+            Some("base64")
+        );
     }
 
     #[test]
