@@ -1,0 +1,33 @@
+# Configuration for the UniFFI generators, keyed by language.
+#
+# The C#, Java and Kotlin generators share this single file; each reads only its
+# own `[bindings.<language>]` section and ignores the others.
+
+# --- C# (uniffi-bindgen-cs) -------------------------------------------------
+# The C# generator emits an `IDisposable.Dispose()` for every exported object.
+# The core `Element` type also exposes a `dispose()` method (it releases the
+# remote object handle), which collides with that generated member
+# (`CS0111: Type 'Element' already defines a member called 'Dispose'`).
+#
+# Rename only the C# surface name so the Rust, Python and JavaScript APIs keep
+# their existing `dispose` spelling.
+[bindings.csharp.rename.xcelerate]
+"Element.dispose" = "release"
+
+# --- Java (uniffi-bindgen-java) ---------------------------------------------
+# Rust's `Browser::close` / `Page::close` collide with the `close()` the
+# generator adds to every exported object (it implements `AutoCloseable`).
+# Rename the asynchronous ones so the Java surface compiles; the inherited
+# `close()` remains the synchronous handle cleanup.
+[bindings.java.rename]
+"Browser.close" = "closeBrowser"
+"Page.close" = "closePage"
+
+# --- Kotlin (built-in uniffi generator) -------------------------------------
+# Rust's `Browser::close` / `Page::close` collide with the `close()` the
+# generator adds to every exported object (it implements `AutoCloseable` and the
+# `Disposable` helper). Rename the asynchronous ones so the Kotlin surface
+# compiles; the inherited `close()` remains the synchronous handle cleanup.
+[bindings.kotlin.rename]
+"Browser.close" = "closeBrowser"
+"Page.close" = "closePage"

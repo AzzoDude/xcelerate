@@ -17,7 +17,7 @@ generator (pinned to the release that targets UniFFI 0.31).
 ```bash
 # from the repository root
 python scripts/install_toolchains.py        # JDK 22+, Gradle, uniffi-bindgen-java
-python scripts/generate_java_bindings.py    # sources + native libs + Gradle build
+python scripts/generate_bindings/java.py    # sources + native libs + Gradle build
 ```
 
 or, once generated, inside this directory:

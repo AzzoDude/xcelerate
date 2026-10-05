@@ -7,7 +7,7 @@
 .DESCRIPTION
     PowerShell has no UniFFI generator, so this module drives the generated .NET
     SDK (`uniffi.xcelerate`) directly. The managed assembly and the native cdylib
-    are staged side by side by `scripts/generate_powershell_bindings.py`.
+    are staged side by side by `scripts/generate_bindings/powershell.py`.
 
     Every engine method is `async` and returns a .NET `Task`. The wrapper
     functions resolve tasks synchronously so they compose naturally in a script;
@@ -64,7 +64,7 @@ function Import-XcelerateAssembly {
     }
 
     $message = "xcelerate binding not found under '$script:XcelerateModuleRoot/lib'. " +
-    "Run 'python scripts/generate_powershell_bindings.py' to stage it."
+    "Run 'python scripts/generate_bindings/powershell.py' to stage it."
     $script:XcelerateLoadError = $message
     throw $message
 }

@@ -6,13 +6,14 @@ duplicated across every ``scripts/*.py`` file.
 
 from __future__ import annotations
 
-import keyword
 import json
+import keyword
 import os
 import re
 import shutil
 import subprocess
 import sys
+import threading
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(SCRIPT_DIR)
@@ -26,6 +27,15 @@ PY_BINDING_DIR = os.path.join(BINDINGS_DIR, "python", "xcelerate")
 NODE_BIN = os.path.join(
     os.environ.get("ProgramFiles", r"C:\Program Files"), "nodejs", "node.exe"
 )
+
+# The cdylib the Rust core is built as; it drives UniFFI code generation.
+BUILT_DLL = os.path.join(ROOT, "target", "release", "xcelerate.dll")
+
+# Native libraries shipped next to each binding, one per host platform.
+NATIVE_LIBS = ("xcelerate.dll", "libxcelerate.so", "libxcelerate.dylib")
+
+# Set ``XCELERATE_VERBOSE=1`` to echo every subprocess command.
+VERBOSE = os.environ.get("XCELERATE_VERBOSE") == "1"
 
 _DOLLAR_NAMES = {
     "$": "query_selector",
@@ -42,12 +52,19 @@ def log(prefix, message):
 
 def run(cmd, cwd=None, capture=False, env=None):
     """Run a command (list or str). Returns the CompletedProcess."""
-    printable = cmd if isinstance(cmd, str) else " ".join(cmd)
-    print(f"[EXEC] {printable}")
+    if VERBOSE:
+        printable = cmd if isinstance(cmd, str) else " ".join(cmd)
+        print(f"[EXEC] {printable}")
     # Only a string command needs a shell (it may contain pipes/redirects); a
     # list is executed directly, which also avoids `shell=True` injection.
     result = subprocess.run(
-        cmd, cwd=cwd, shell=isinstance(cmd, str), capture_output=capture, text=True, env=env
+        cmd,
+        cwd=cwd,
+        shell=isinstance(cmd, str),
+        capture_output=capture,
+        text=True,
+        env=env,
+        check=False,
     )
     if capture:
         if result.stdout:
@@ -63,6 +80,71 @@ def run_checked(cmd, cwd=None, capture=False, env=None):
         log("ERROR", f"command failed ({result.returncode}): {cmd if isinstance(cmd, str) else ' '.join(cmd)}")
         sys.exit(result.returncode)
     return result
+
+
+def write_file(path, content):
+    """Write ``content`` to ``path`` as UTF-8."""
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(content)
+
+
+_rust_lock = threading.Lock()
+_rust_built = False
+
+
+def ensure_rust_build(quiet=False):
+    """Build the Rust cdylib once per process, honouring ``SKIP_RUST_BUILD``.
+
+    CI ships pre-built native libraries in ``SKIP_RUST_BUILD=true`` mode, so the
+    compile is skipped when the cdylib is already present. With ``quiet=True``
+    the (noisy) build log is buffered and shown only if the build fails.
+    """
+    global _rust_built
+    with _rust_lock:
+        if _rust_built:
+            return
+        if os.environ.get("SKIP_RUST_BUILD") == "true" and os.path.exists(BUILT_DLL):
+            if not quiet:
+                log("SKIP", f"Rust build skipped, using existing: {BUILT_DLL}")
+        else:
+            command = ["cargo", "build", "--release"]
+            if quiet:
+                result = subprocess.run(
+                    command, cwd=ROOT, text=True, capture_output=True, check=False
+                )
+                if result.returncode != 0:
+                    sys.stdout.write(result.stdout or "")
+                    sys.stderr.write(result.stderr or "")
+                    sys.exit(result.returncode)
+            else:
+                run_checked(command, cwd=ROOT)
+        _rust_built = True
+
+
+def copy_native_libs(dest, mapping=NATIVE_LIBS):
+    """Copy the built native libraries into ``dest``.
+
+    ``mapping`` is either a sequence of source names or of ``(source,
+    destination)`` pairs; the latter lets a target rename the library (Dart
+    loads it under a ``uniffi_`` prefix).
+    """
+    os.makedirs(dest, exist_ok=True)
+    for entry in mapping:
+        source, destination = (entry, entry) if isinstance(entry, str) else entry
+        src = os.path.join(ROOT, "target", "release", source)
+        if os.path.exists(src):
+            shutil.copy2(src, os.path.join(dest, destination))
+            log("COPY", f"{source} -> {os.path.relpath(os.path.join(dest, destination), ROOT)}")
+
+
+def find_binding_tool(name, hint):
+    """Locate an external generator, warning (and returning ``None``) if absent."""
+    found = find_tool(name)
+    if os.path.exists(found):
+        return found
+    log("WARNING", f"{name} not found; skipping generation")
+    log("HINT", hint)
+    return None
 
 
 def load_profiles():

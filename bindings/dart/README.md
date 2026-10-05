@@ -2,9 +2,9 @@
 
 > **Note:** the early `uniffi-bindgen-dart` 0.1.x generator has a few codegen
 > bugs (async `bool` returns, the async constructor, and a `close` name clash).
-> `generate_dart_bindings.py` applies targeted post-processing so the generated
-> package analyzes clean; see `_patch()` in that script. Re-check the fixes when
-> bumping the generator.
+> `generate_bindings/dart.py` applies targeted post-processing
+> so the generated package analyzes clean; see `_patch()` in that script.
+> Re-check the fixes when bumping the generator.
 
 Dart bindings for the xcelerate Rust CDP engine. Dart is not a built-in UniFFI
 target, so the sources are generated with the external
@@ -23,7 +23,7 @@ target, so the sources are generated with the external
 ```bash
 # from the repository root
 cargo install uniffi-bindgen-dart      # once
-python scripts/generate_dart_bindings.py
+python scripts/generate_bindings/dart.py
 ```
 
 The script assembles a pub package:
@@ -68,8 +68,8 @@ Plugins load from disk sandboxed (WebAssembly) behind the capability gate;
 ## Publishing
 
 ```bash
-python scripts/publish_dart.py          # regenerate + `dart pub publish --dry-run`
-python scripts/publish_dart.py --push   # `dart pub publish --force`
+python scripts/publish/dart.py          # regenerate + `dart pub publish --dry-run`
+python scripts/publish/dart.py --push   # `dart pub publish --force`
 ```
 
 `dart pub publish` authenticates with a Google account (OAuth on first run) or a

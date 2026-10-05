@@ -122,7 +122,7 @@ jobs:
         run: python scripts/install_toolchains.py
 
       - name: Run Bindgen Scripts
-        run: python scripts/generate_all.py
+        run: python scripts/generate_bindings.py
         env:
           SKIP_RUST_BUILD: "true"
 

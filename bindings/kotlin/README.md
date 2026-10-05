@@ -14,7 +14,7 @@ Kotlin/JVM bindings for the xcelerate Rust CDP engine, generated with
 ```bash
 # from the repository root
 python scripts/install_toolchains.py          # JDK + Gradle (uses winget where possible)
-python scripts/generate_kotlin_bindings.py    # sources + native libs + Gradle build
+python scripts/generate_bindings/kotlin.py    # sources + native libs + Gradle build
 ```
 
 or, once generated, inside this directory:

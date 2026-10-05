@@ -1,9 +1,0 @@
-# Configuration for uniffi-bindgen-java.
-#
-# Rust's `Browser::close` / `Page::close` collide with the `close()` the
-# generator adds to every exported object (it implements `AutoCloseable`).
-# Rename the asynchronous ones so the Java surface compiles; the inherited
-# `close()` remains the synchronous handle cleanup.
-[bindings.java.rename]
-"Browser.close" = "closeBrowser"
-"Page.close" = "closePage"

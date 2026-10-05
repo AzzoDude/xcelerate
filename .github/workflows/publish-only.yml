@@ -226,7 +226,7 @@ jobs:
           git push origin "$TAG" || echo "::warning::Could not push $TAG; skipping."
 
       # SwiftPM publishes via a dedicated repository (Package.swift at its root).
-      # Add a step that runs `python scripts/publish_swift.py --push --remote <repo>`
+      # Add a step that runs `python scripts/publish/swift.py --push --remote <repo>`
       # once such a repository and a push token are configured.
 
       - name: Create GitHub Release

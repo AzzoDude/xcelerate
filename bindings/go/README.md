@@ -17,7 +17,7 @@ target, so the sources are generated with the external
 ```bash
 # from the repository root
 python scripts/install_toolchains.py        # installs Go + uniffi-bindgen-go
-python scripts/generate_go_bindings.py      # sources + native libs + `go build ./...`
+python scripts/generate_bindings/go.py      # sources + native libs + `go build ./...`
 ```
 
 or, once generated, inside this directory:
@@ -88,7 +88,7 @@ Go modules are distributed through the module proxy, not uploaded. Because the
 module lives in `bindings/go`, publish by pushing a **prefixed** tag:
 
 ```bash
-python scripts/publish_go.py --push
+python scripts/publish/go.py --push
 # equivalent to:
 git tag bindings/go/v1.0.9
 git push origin bindings/go/v1.0.9

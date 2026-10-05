@@ -5,7 +5,7 @@ PowerShell bindings for the xcelerate CDP browser-automation engine.
 PowerShell has no UniFFI generator, so this module wraps the generated **.NET
 SDK** (`uniffi.xcelerate`). The module code is hand-written; the managed
 assembly and the native `xcelerate` cdylib are staged next to each other by
-`scripts/generate_powershell_bindings.py`.
+`scripts/generate_bindings/powershell.py`.
 
 A runnable end-to-end example lives in
 [`examples/powershell/quickstart.ps1`](../../examples/powershell/quickstart.ps1).
@@ -25,7 +25,7 @@ native `xcelerate` cdylib for Windows x64.
 ## Building from source
 
 ```bash
-python scripts/generate_powershell_bindings.py
+python scripts/generate_bindings/powershell.py
 ```
 
 This builds the Rust core and the .NET SDK if needed, then copies

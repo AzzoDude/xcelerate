@@ -520,6 +520,8 @@ DocProject/Help/html
 
 # Click-Once directory
 publish/
+# ...but keep the repository's own publish scripts under version control.
+!scripts/publish/
 
 # Publish Web Output
 *.[Pp]ublish.xml

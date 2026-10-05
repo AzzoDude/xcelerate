@@ -128,7 +128,7 @@ One generator consumes the profiles and emits both target languages:
    python scripts/harvest_adapters.py --check   # validate + coverage
    ```
 
-   `scripts/generate_all.py` runs this automatically as part of the binding
+   `scripts/generate_bindings.py` runs this automatically as part of the binding
    pipeline.
 
 ## Adding a new adapter (e.g. a new library)
@@ -162,5 +162,5 @@ cannot faithfully express are **removed** by
 
 `harvest_adapters.py --update` still records newly discovered upstream members
 as candidate stubs; run `backfill_impls.py` to map them (or `--prune` to drop
-them). `scripts/generate_all.py` runs populate+prune automatically before
+them). `scripts/generate_bindings.py` runs populate+prune automatically before
 generating the adapters.

@@ -13,7 +13,7 @@ Ruby bindings for the xcelerate Rust CDP engine, generated with
 
 ```bash
 # from the repository root
-python scripts/generate_ruby_bindings.py
+python scripts/generate_bindings/ruby.py
 ```
 
 The script runs UniFFI and assembles a gem layout:
@@ -55,8 +55,8 @@ The generated bindings are synchronous (UniFFI blocks on the async core).
 ## Publishing
 
 ```bash
-python scripts/publish_ruby.py          # regenerate + gem build (dry run)
-python scripts/publish_ruby.py --push   # gem build + gem push
+python scripts/publish/ruby.py          # regenerate + gem build (dry run)
+python scripts/publish/ruby.py --push   # gem build + gem push
 ```
 
 `gem push` authenticates with `~/.gem/credentials` (run `gem signin` once) or the

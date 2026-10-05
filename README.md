@@ -116,8 +116,8 @@ Building them from source:
 
 ```bash
 python scripts/install_toolchains.py        # JDK 22+ via winget, Gradle, uniffi-bindgen-java
-python scripts/generate_kotlin_bindings.py  # Kotlin sources + Gradle build
-python scripts/generate_java_bindings.py    # Java sources + Gradle build
+python scripts/generate_bindings/kotlin.py  # Kotlin sources + Gradle build
+python scripts/generate_bindings/java.py    # Java sources + Gradle build
 ```
 
 ### Swift / Ruby / Dart / Go
@@ -127,12 +127,12 @@ are built-in UniFFI targets; Dart needs `uniffi-bindgen-dart`; Go needs the
 NordSecurity `uniffi-bindgen-go` generator and a Go toolchain.
 
 ```bash
-python scripts/generate_swift_bindings.py    # Swift sources + SwiftPM package
-python scripts/generate_ruby_bindings.py     # Ruby sources + gemspec
+python scripts/generate_bindings/swift.py    # Swift sources + SwiftPM package
+python scripts/generate_bindings/ruby.py     # Ruby sources + gemspec
 cargo install uniffi-bindgen-dart            # once
-python scripts/generate_dart_bindings.py     # Dart sources + pubspec
+python scripts/generate_bindings/dart.py     # Dart sources + pubspec
 go install github.com/NordSecurity/uniffi-bindgen-go/v2/uniffi-bindgen-go@latest
-python scripts/generate_go_bindings.py       # Go sources + go.mod
+python scripts/generate_bindings/go.py       # Go sources + go.mod
 ```
 
 ### PowerShell
@@ -147,7 +147,7 @@ PowerShell has no UniFFI generator, so the module wraps the .NET SDK. To build
 and stage the payload from source instead:
 
 ```powershell
-python scripts/generate_powershell_bindings.py
+python scripts/generate_bindings/powershell.py
 Import-Module ./bindings/powershell/Xcelerate.psd1
 ```
 

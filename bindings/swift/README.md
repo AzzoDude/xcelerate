@@ -14,7 +14,7 @@ target, so no extra generator is required.
 
 ```bash
 # from the repository root
-python scripts/generate_swift_bindings.py
+python scripts/generate_bindings/swift.py
 ```
 
 The script runs UniFFI and arranges a SwiftPM package:
@@ -63,8 +63,8 @@ contains `Package.swift`. This repo keeps the package in `bindings/swift`, so
 split it onto its own repository:
 
 ```bash
-python scripts/publish_swift.py                    # git subtree split -> local branch
-python scripts/publish_swift.py --push --remote swift
+python scripts/publish/swift.py                    # git subtree split -> local branch
+python scripts/publish/swift.py --push --remote swift
 ```
 
 Consumers then depend on that repository:
