@@ -9,14 +9,13 @@
 use std::sync::Arc;
 
 use crate::{
-    Browser as CoreBrowser, BrowserConfig, Element as CoreElement, Page as CorePage, XcelerateError,
+    Browser as CoreBrowser, BrowserConfig, Element as CoreElement, Page as CorePage,
+    XcelerateError,
 };
 
 /// launch entry point.
 pub async fn launch(config: Option<BrowserConfig>) -> Result<WebDriver, XcelerateError> {
-    Ok(WebDriver::new(
-        super::support::DriverHandle::new(config).await?,
-    ))
+    Ok(WebDriver::new(super::support::DriverHandle::new(config).await?))
 }
 
 /// Selenium-style driver. Owns navigation, element lookup, cookies and window management.
@@ -37,15 +36,9 @@ impl WebDriver {
     }
 
     /// `find_element`.
-    pub async fn find_element(
-        &self,
-        by: String,
-        value: Option<String>,
-    ) -> Result<WebElement, XcelerateError> {
+    pub async fn find_element(&self, by: String, value: Option<String>) -> Result<WebElement, XcelerateError> {
         let __sel = super::support::resolve_selector(&by, value.as_deref())?;
-        Ok(WebElement::new(
-            Arc::clone(&self.inner.page).find_element(__sel).await?,
-        ))
+        Ok(WebElement::new(Arc::clone(&self.inner.page).find_element(__sel).await?))
     }
 
     /// `title`.
@@ -83,20 +76,12 @@ impl WebDriver {
     }
 
     /// `save_screenshot`.
-    pub async fn save_screenshot(
-        &self,
-        path: Option<String>,
-        full_page: bool,
-    ) -> Result<Vec<u8>, XcelerateError> {
+    pub async fn save_screenshot(&self, path: Option<String>, full_page: bool) -> Result<Vec<u8>, XcelerateError> {
         Ok(super::support::screenshot(&self.inner.page, full_page, path).await?)
     }
 
     /// `get_screenshot_as_file`.
-    pub async fn get_screenshot_as_file(
-        &self,
-        path: Option<String>,
-        full_page: bool,
-    ) -> Result<Vec<u8>, XcelerateError> {
+    pub async fn get_screenshot_as_file(&self, path: Option<String>, full_page: bool) -> Result<Vec<u8>, XcelerateError> {
         Ok(super::support::screenshot(&self.inner.page, full_page, path).await?)
     }
 
@@ -106,26 +91,14 @@ impl WebDriver {
     }
 
     /// `get_screenshot_as_base64`.
-    pub async fn get_screenshot_as_base64(
-        &self,
-        full_page: bool,
-    ) -> Result<String, XcelerateError> {
+    pub async fn get_screenshot_as_base64(&self, full_page: bool) -> Result<String, XcelerateError> {
         Ok(super::support::screenshot_base64(&self.inner.page, full_page).await?)
     }
 
     /// `find_elements`.
-    pub async fn find_elements(
-        &self,
-        by: String,
-        value: Option<String>,
-    ) -> Result<Vec<WebElement>, XcelerateError> {
+    pub async fn find_elements(&self, by: String, value: Option<String>) -> Result<Vec<WebElement>, XcelerateError> {
         let __sel = super::support::resolve_selector(&by, value.as_deref())?;
-        Ok(Arc::clone(&self.inner.page)
-            .query_selector_all(__sel)
-            .await?
-            .into_iter()
-            .map(WebElement::new)
-            .collect())
+        Ok(Arc::clone(&self.inner.page).query_selector_all(__sel).await?.into_iter().map(WebElement::new).collect())
     }
 
     /// `execute_script`.
@@ -177,44 +150,26 @@ impl WebDriver {
     }
 
     /// `set_window_rect`.
-    pub async fn set_window_rect(
-        &self,
-        x: i64,
-        y: i64,
-        width: i64,
-        height: i64,
-    ) -> Result<(), XcelerateError> {
-        self.inner
-            .page
-            .set_window_bounds(x, y, width, height)
-            .await?;
+    pub async fn set_window_rect(&self, x: i64, y: i64, width: i64, height: i64) -> Result<(), XcelerateError> {
+        self.inner.page.set_window_bounds(x, y, width, height).await?;
         Ok(())
     }
 
     /// `maximize_window`.
     pub async fn maximize_window(&self) -> Result<(), XcelerateError> {
-        self.inner
-            .page
-            .set_window_state("maximized".to_string())
-            .await?;
+        self.inner.page.set_window_state("maximized".to_string()).await?;
         Ok(())
     }
 
     /// `minimize_window`.
     pub async fn minimize_window(&self) -> Result<(), XcelerateError> {
-        self.inner
-            .page
-            .set_window_state("minimized".to_string())
-            .await?;
+        self.inner.page.set_window_state("minimized".to_string()).await?;
         Ok(())
     }
 
     /// `fullscreen_window`.
     pub async fn fullscreen_window(&self) -> Result<(), XcelerateError> {
-        self.inner
-            .page
-            .set_window_state("fullscreen".to_string())
-            .await?;
+        self.inner.page.set_window_state("fullscreen".to_string()).await?;
         Ok(())
     }
 
@@ -230,31 +185,18 @@ impl WebDriver {
 
     /// `add_cookie`.
     pub async fn add_cookie(&self, cookie_json: String) -> Result<String, XcelerateError> {
-        Ok(self
-            .inner
-            .page
-            .execute_cdp_cmd("Network.setCookie".to_string(), cookie_json)
-            .await?)
+        Ok(self.inner.page.execute_cdp_cmd("Network.setCookie".to_string(), cookie_json).await?)
     }
 
     /// `delete_cookie`.
     pub async fn delete_cookie(&self, name: String) -> Result<(), XcelerateError> {
-        self.inner
-            .page
-            .execute_cdp_cmd(
-                "Network.deleteCookies".to_string(),
-                serde_json::json!({"name": name}).to_string(),
-            )
-            .await?;
+        self.inner.page.execute_cdp_cmd("Network.deleteCookies".to_string(), serde_json::json!({"name": name}).to_string()).await?;
         Ok(())
     }
 
     /// `delete_all_cookies`.
     pub async fn delete_all_cookies(&self) -> Result<(), XcelerateError> {
-        self.inner
-            .page
-            .execute_cdp_cmd("Network.clearBrowserCookies".to_string(), "{}".to_string())
-            .await?;
+        self.inner.page.execute_cdp_cmd("Network.clearBrowserCookies".to_string(), "{}".to_string()).await?;
         Ok(())
     }
 
@@ -278,23 +220,13 @@ impl WebDriver {
 
     /// `set_page_load_strategy`.
     pub async fn set_page_load_strategy(&self, strategy: String) -> Result<(), XcelerateError> {
-        self.inner
-            .page
-            .call_json(
-                "function(v){window.__xcelerate_page_load_strategy=v;}".to_string(),
-                serde_json::json!([strategy]).to_string(),
-            )
-            .await?;
+        self.inner.page.call_json("function(v){window.__xcelerate_page_load_strategy=v;}".to_string(), serde_json::json!([strategy]).to_string()).await?;
         Ok(())
     }
 
     /// `print_page`.
     pub async fn print_page(&self) -> Result<String, XcelerateError> {
-        Ok(self
-            .inner
-            .page
-            .execute_cdp_cmd("Page.printToPDF".to_string(), "{}".to_string())
-            .await?)
+        Ok(self.inner.page.execute_cdp_cmd("Page.printToPDF".to_string(), "{}".to_string()).await?)
     }
 
     /// `current_url`.
@@ -314,10 +246,7 @@ impl WebDriver {
 
     /// `switch_to`.
     pub async fn switch_to(&self) -> Result<SwitchTo, XcelerateError> {
-        Ok(SwitchTo::new(super::support::DriverHandle {
-            browser: Arc::clone(&self.inner.browser),
-            page: Arc::clone(&self.inner.page),
-        }))
+        Ok(SwitchTo::new(super::support::DriverHandle { browser: Arc::clone(&self.inner.browser), page: Arc::clone(&self.inner.page) }))
     }
 
     /// `capabilities`.
@@ -332,36 +261,22 @@ impl WebDriver {
 
     /// `active_element`.
     pub async fn active_element(&self) -> Result<WebElement, XcelerateError> {
-        Ok(WebElement::new(
-            Arc::clone(&self.inner.page)
-                .evaluate_handle("document.activeElement".to_string())
-                .await?,
-        ))
+        Ok(WebElement::new(Arc::clone(&self.inner.page).evaluate_handle("document.activeElement".to_string()).await?))
     }
 
     /// `dialog`.
     pub async fn dialog(&self) -> Result<Dialog, XcelerateError> {
-        Ok(Dialog::new(super::support::DriverHandle {
-            browser: Arc::clone(&self.inner.browser),
-            page: Arc::clone(&self.inner.page),
-        }))
+        Ok(Dialog::new(super::support::DriverHandle { browser: Arc::clone(&self.inner.browser), page: Arc::clone(&self.inner.page) }))
     }
 
     /// `execute_cdp_cmd`.
-    pub async fn execute_cdp_cmd(
-        &self,
-        method: String,
-        params_json: String,
-    ) -> Result<String, XcelerateError> {
+    pub async fn execute_cdp_cmd(&self, method: String, params_json: String) -> Result<String, XcelerateError> {
         Ok(self.inner.page.execute_cdp_cmd(method, params_json).await?)
     }
 
     /// `timeouts`.
     pub async fn timeouts(&self) -> Result<Timeouts, XcelerateError> {
-        Ok(Timeouts::new(super::support::DriverHandle {
-            browser: Arc::clone(&self.inner.browser),
-            page: Arc::clone(&self.inner.page),
-        }))
+        Ok(Timeouts::new(super::support::DriverHandle { browser: Arc::clone(&self.inner.browser), page: Arc::clone(&self.inner.page) }))
     }
 }
 
@@ -422,36 +337,17 @@ impl WebElement {
 
     /// `get_property`.
     pub async fn get_property(&self, name: String) -> Result<String, XcelerateError> {
-        Ok(self
-            .inner
-            .call_string(
-                "function(n){const v=this[n];return v==null?\"\":String(v);}".to_string(),
-                serde_json::json!([name]).to_string(),
-            )
-            .await?)
+        Ok(self.inner.call_string("function(n){const v=this[n];return v==null?\"\":String(v);}".to_string(), serde_json::json!([name]).to_string()).await?)
     }
 
     /// `is_selected`.
     pub async fn is_selected(&self) -> Result<bool, XcelerateError> {
-        Ok(self
-            .inner
-            .call_bool(
-                "function(){return this.selected===true||this.checked===true;}".to_string(),
-                "[]".to_string(),
-            )
-            .await?)
+        Ok(self.inner.call_bool("function(){return this.selected===true||this.checked===true;}".to_string(), "[]".to_string()).await?)
     }
 
     /// `is_enabled`.
     pub async fn is_enabled(&self) -> Result<bool, XcelerateError> {
-        Ok(self
-            .inner
-            .call_bool(
-                "function(){return !(this.disabled===true||this.hasAttribute(\"disabled\"));}"
-                    .to_string(),
-                "[]".to_string(),
-            )
-            .await?)
+        Ok(self.inner.call_bool("function(){return !(this.disabled===true||this.hasAttribute(\"disabled\"));}".to_string(), "[]".to_string()).await?)
     }
 
     /// `is_displayed`.
@@ -461,33 +357,17 @@ impl WebElement {
 
     /// `find_element`.
     pub async fn find_element(&self, selector: String) -> Result<WebElement, XcelerateError> {
-        Ok(WebElement::new(
-            Arc::clone(&self.inner).query_selector(selector).await?,
-        ))
+        Ok(WebElement::new(Arc::clone(&self.inner).query_selector(selector).await?))
     }
 
     /// `find_elements`.
     pub async fn find_elements(&self, selector: String) -> Result<Vec<WebElement>, XcelerateError> {
-        Ok(Arc::clone(&self.inner)
-            .query_selector_all(selector)
-            .await?
-            .into_iter()
-            .map(WebElement::new)
-            .collect())
+        Ok(Arc::clone(&self.inner).query_selector_all(selector).await?.into_iter().map(WebElement::new).collect())
     }
 
     /// `value_of_css_property`.
-    pub async fn value_of_css_property(
-        &self,
-        property_name: String,
-    ) -> Result<String, XcelerateError> {
-        Ok(self
-            .inner
-            .call_string(
-                "function(p){return getComputedStyle(this).getPropertyValue(p);}".to_string(),
-                serde_json::json!([property_name]).to_string(),
-            )
-            .await?)
+    pub async fn value_of_css_property(&self, property_name: String) -> Result<String, XcelerateError> {
+        Ok(self.inner.call_string("function(p){return getComputedStyle(this).getPropertyValue(p);}".to_string(), serde_json::json!([property_name]).to_string()).await?)
     }
 
     /// `screenshot`.
@@ -507,14 +387,7 @@ impl WebElement {
 
     /// `tag_name`.
     pub async fn tag_name(&self) -> Result<String, XcelerateError> {
-        Ok(self
-            .inner
-            .call_string(
-                "function(){return this.tagName?this.tagName.toLowerCase():\"unknown\";}"
-                    .to_string(),
-                "[]".to_string(),
-            )
-            .await?)
+        Ok(self.inner.call_string("function(){return this.tagName?this.tagName.toLowerCase():\"unknown\";}".to_string(), "[]".to_string()).await?)
     }
 
     /// `location`.
@@ -539,45 +412,22 @@ impl WebElement {
 
     /// `parent`.
     pub async fn parent(&self) -> Result<WebElement, XcelerateError> {
-        Ok(WebElement::new(
-            Arc::clone(&self.inner)
-                .evaluate_handle("function(){{return this.parentElement;}}".to_string())
-                .await?,
-        ))
+        Ok(WebElement::new(Arc::clone(&self.inner).evaluate_handle("function(){{return this.parentElement;}}".to_string()).await?))
     }
 
     /// `id`.
     pub async fn id(&self) -> Result<String, XcelerateError> {
-        Ok(self
-            .inner
-            .call_string(
-                "function(){return this.id||'';}".to_string(),
-                "[]".to_string(),
-            )
-            .await?)
+        Ok(self.inner.call_string("function(){return this.id||'';}".to_string(), "[]".to_string()).await?)
     }
 
     /// `shadow_root`.
     pub async fn shadow_root(&self) -> Result<String, XcelerateError> {
-        Ok(self
-            .inner
-            .call_string(
-                "function(){return this.shadowRoot?this.shadowRoot.innerHTML:\"\";}".to_string(),
-                "[]".to_string(),
-            )
-            .await?)
+        Ok(self.inner.call_string("function(){return this.shadowRoot?this.shadowRoot.innerHTML:\"\";}".to_string(), "[]".to_string()).await?)
     }
 
     /// `aria_role`.
     pub async fn aria_role(&self) -> Result<String, XcelerateError> {
-        Ok(self
-            .inner
-            .call_string(
-                "function(){return this.getAttribute(\"role\")||this.tagName.toLowerCase();}"
-                    .to_string(),
-                "[]".to_string(),
-            )
-            .await?)
+        Ok(self.inner.call_string("function(){return this.getAttribute(\"role\")||this.tagName.toLowerCase();}".to_string(), "[]".to_string()).await?)
     }
 
     /// `accessible_name`.
@@ -611,9 +461,7 @@ impl SwitchTo {
     /// `new_window`.
     pub async fn new_window(&self, window_type: String) -> Result<(), XcelerateError> {
         let _ = window_type;
-        let _ = Arc::clone(&self.inner.browser)
-            .new_page("about:blank".to_string())
-            .await?;
+        let _ = Arc::clone(&self.inner.browser).new_page("about:blank".to_string()).await?;
         Ok(())
     }
 }

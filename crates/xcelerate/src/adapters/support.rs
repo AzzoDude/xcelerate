@@ -98,10 +98,7 @@ impl ContextHandle {
         &self,
         headers_json: String,
     ) -> Result<(), XcelerateError> {
-        self.working_page()
-            .await?
-            .set_extra_http_headers(headers_json)
-            .await
+        self.working_page().await?.set_extra_http_headers(headers_json).await
     }
 
     pub(crate) async fn grant_permissions(
@@ -109,9 +106,7 @@ impl ContextHandle {
         origin: String,
         permissions_json: String,
     ) -> Result<(), XcelerateError> {
-        self.browser
-            .grant_permissions(origin, permissions_json)
-            .await
+        self.browser.grant_permissions(origin, permissions_json).await
     }
 
     pub(crate) async fn clear_permissions(&self) -> Result<(), XcelerateError> {
@@ -147,32 +142,25 @@ impl ContextHandle {
         self.working_page().await?.storage_state().await
     }
 
-    pub(crate) async fn set_storage_state(&self, state_json: String) -> Result<(), XcelerateError> {
-        self.working_page()
-            .await?
-            .set_storage_state(state_json)
-            .await
+    pub(crate) async fn set_storage_state(
+        &self,
+        state_json: String,
+    ) -> Result<(), XcelerateError> {
+        self.working_page().await?.set_storage_state(state_json).await
     }
 
     pub(crate) async fn set_default_timeout(
         &self,
         milliseconds: f64,
     ) -> Result<(), XcelerateError> {
-        self.working_page()
-            .await?
-            .set_default_timeout(milliseconds)
-            .await
+        self.working_page().await?.set_default_timeout(milliseconds).await
     }
 
     pub(crate) async fn targets(&self) -> Result<String, XcelerateError> {
         self.browser.targets().await
     }
 
-    pub(crate) async fn route(
-        &self,
-        pattern: String,
-        action: String,
-    ) -> Result<(), XcelerateError> {
+    pub(crate) async fn route(&self, pattern: String, action: String) -> Result<(), XcelerateError> {
         self.working_page()
             .await?
             .route(pattern, action, None, None)
@@ -241,10 +229,7 @@ impl ContextHandle {
         &self,
         event_name: String,
     ) -> Result<String, XcelerateError> {
-        self.working_page()
-            .await?
-            .wait_for_event_default(event_name)
-            .await
+        self.working_page().await?.wait_for_event_default(event_name).await
     }
 
     pub(crate) async fn set_download_behavior(&self, path: String) -> Result<(), XcelerateError> {
