@@ -1,0 +1,18 @@
+[package]
+name = "bidi-protocol"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Generated Rust types and commands for the W3C WebDriver BiDi protocol (Firefox backend)."
+keywords = ["webdriver", "bidi", "browser", "automation", "protocol"]
+categories = ["development-tools", "web-programming"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true
