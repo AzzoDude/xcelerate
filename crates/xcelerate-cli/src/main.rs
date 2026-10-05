@@ -1,7 +1,7 @@
 //! Command-line interface for the xcelerate CDP engine.
 //!
 //! Each page command launches a fresh browser, performs one action, and exits.
-//! `xcelerate-cli mcp` instead starts the Model Context Protocol server on stdio.
+//! `xcelerate mcp` instead starts the Model Context Protocol server on stdio.
 
 use mimalloc::MiMalloc;
 use std::path::PathBuf;
@@ -18,6 +18,7 @@ use xcelerate::{Browser, BrowserConfig, Page, VideoOptions, XcelerateResult};
 
 #[derive(Parser)]
 #[command(
+    name = "xcelerate",
     version,
     about = "Browser automation from the command line, powered by xcelerate.",
     propagate_version = true

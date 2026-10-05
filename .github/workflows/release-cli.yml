@@ -1,0 +1,116 @@
+name: Release CLI
+
+# Builds the `xcelerate` CLI for Windows/Linux/macOS on a `v*` tag and attaches
+# the archives to the GitHub Release. The Windows zip is what the winget
+# manifest points at (see packaging/winget/).
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            kind: windows
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            kind: unix
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            kind: unix
+          # Cross-compiled from the arm64 runner: the Apple SDK targets both.
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            kind: unix
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          key: cli-${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release -p xcelerate-cli --target ${{ matrix.target }}
+
+      - name: Package (unix)
+        if: matrix.kind == 'unix'
+        shell: bash
+        run: |
+          version=$(grep -m1 '^version = ' Cargo.toml | cut -d '"' -f2)
+          name="xcelerate-${version}-${{ matrix.target }}"
+          mkdir -p "dist/$name"
+          cp "target/${{ matrix.target }}/release/xcelerate" "dist/$name/"
+          cp LICENSE-MIT LICENSE-APACHE "dist/$name/"
+          tar -C dist -czf "dist/$name.tar.gz" "$name"
+
+      - name: Package (windows)
+        if: matrix.kind == 'windows'
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path Cargo.toml -Pattern '^version = "([^"]+)"' |
+            Select-Object -First 1).Matches.Groups[1].Value
+          $name = "xcelerate-$version-${{ matrix.target }}"
+          New-Item -ItemType Directory -Force "dist/$name" | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/xcelerate.exe" "dist/$name/"
+          Copy-Item LICENSE-MIT,LICENSE-APACHE "dist/$name/"
+          Compress-Archive -Path "dist/$name/*" -DestinationPath "dist/$name.zip"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cli-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Attach to release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: (cd dist && sha256sum *.zip *.tar.gz > SHA256SUMS)
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+
+  winget:
+    name: Submit to winget (optional)
+    needs: release
+    runs-on: windows-latest
+    if: ${{ github.event_name == 'push' }}
+    env:
+      # Add a WINGET_TOKEN repo secret (a GitHub PAT with `public_repo`) to
+      # auto-open the microsoft/winget-pkgs PR. Without it this job is a no-op.
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+    steps:
+      - if: env.WINGET_TOKEN == ''
+        shell: pwsh
+        run: echo "::warning::WINGET_TOKEN not set; skipping winget submission."
+      - if: env.WINGET_TOKEN != ''
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          $url = "https://github.com/ChaoswareHQ/xcelerate/releases/download/v$version/xcelerate-$version-x86_64-pc-windows-msvc.zip"
+          Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          .\wingetcreate.exe update Chaosware.Xcelerate -v $version -u $url --submit --token $env:WINGET_TOKEN

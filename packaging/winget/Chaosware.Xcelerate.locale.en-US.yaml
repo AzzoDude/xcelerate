@@ -1,0 +1,26 @@
+PackageIdentifier: Chaosware.Xcelerate
+PackageVersion: 1.0.10
+PackageLocale: en-US
+Publisher: Chaosware
+PublisherUrl: https://github.com/ChaoswareHQ
+PackageName: Xcelerate
+PackageUrl: https://github.com/ChaoswareHQ/xcelerate
+License: MIT OR Apache-2.0
+LicenseUrl: https://github.com/ChaoswareHQ/xcelerate/blob/main/LICENSE-MIT
+Copyright: Copyright (c) 2026 Chaosware
+ShortDescription: High-performance Chrome DevTools Protocol (CDP) client and CLI.
+Description: >-
+  Xcelerate is a fast Chrome DevTools Protocol client. The xcelerate CLI drives
+  a real Chrome or Edge browser from the command line - one action per run:
+  titles, content, screenshots, PDFs, queries, JavaScript evaluation,
+  accessibility snapshots, video recording, and MCP server mode.
+Moniker: xcelerate
+Tags:
+  - cdp
+  - chrome
+  - devtools
+  - browser
+  - automation
+  - cli
+ManifestType: defaultLocale
+ManifestVersion: 1.10.0

@@ -64,8 +64,9 @@ Playwright, and Puppeteer scripts run against the same engine.
   with a durable `user-data-dir`.
 - **Accessibility snapshots** - a semantic `role`/`name` view of the page for
   robust selectors and agent-driven automation.
-- **CLI and MCP server** - `xcelerate-cli` for one-shot commands, and
-  `xcelerate-mcp` to drive the browser from an MCP client.
+- **CLI and MCP server** - the `xcelerate` command for one-shot actions, and
+  `xcelerate mcp` (or the `xcelerate-mcp` binary) to drive the browser from an
+  MCP client.
 
 ## Installation
 
@@ -403,24 +404,26 @@ main();
 
 ## Command-line interface
 
-The `xcelerate-cli` binary performs one browser action per invocation:
+The `xcelerate` command performs one browser action per invocation:
 
 ```bash
-cargo run -p xcelerate-cli -- title https://example.com
-cargo run -p xcelerate-cli -- screenshot https://example.com -o shot.png --full
-cargo run -p xcelerate-cli -- query https://example.com h1 --attr href
-cargo run -p xcelerate-cli -- query-all https://example.com 'a'   # text of every match
-cargo run -p xcelerate-cli -- evaluate https://example.com 'document.title'
-cargo run -p xcelerate-cli -- plugins
+xcelerate title https://example.com
+xcelerate screenshot https://example.com -o shot.png --full
+xcelerate query https://example.com h1 --attr href
+xcelerate query-all https://example.com 'a'   # text of every match
+xcelerate evaluate https://example.com 'document.title'
+xcelerate plugins
 ```
 
 Global flags apply to every command: `--no-headless`, `--detached`,
 `--executable-path <path>`, `--plugins stealth,human`, and `--timeout <ms>`.
-Install it with `cargo install --path crates/xcelerate-cli`.
+Install it with `cargo install --path crates/xcelerate-cli`, or
+`winget install Chaosware.Xcelerate` on Windows; from a checkout, prefix any
+command with `cargo run -p xcelerate-cli --`.
 
 ## MCP server
 
-`xcelerate-mcp` - also reachable as `xcelerate-cli mcp` - is a
+`xcelerate-mcp` - also reachable as `xcelerate mcp` - is a
 [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, so
 an MCP client can drive a real browser. It exposes 21 tools covering navigation,
 titles, page content, screenshots, PDFs, clicking, typing, hovering, key presses,
@@ -467,7 +470,7 @@ changing the generated bindings' checksums.
 From the CLI:
 
 ```bash
-xcelerate-cli record https://example.com -o demo.mp4 --duration 5
+xcelerate record https://example.com -o demo.mp4 --duration 5
 ```
 
 From the MCP server: `browser_start_recording {path}` … `browser_wait
@@ -487,11 +490,11 @@ Chrome --(HTTP/CONNECT)--> xcelerate gateway (127.0.0.1) --> upstream pool --> i
 
 ```bash
 # environment (works from every language binding)
-XCELERATE_PROXY=http://user:pass@proxy.example:8080 xcelerate-cli title https://example.com
+XCELERATE_PROXY=http://user:pass@proxy.example:8080 xcelerate title https://example.com
 XCELERATE_PROXY_POOL=http://a:8080,http://b:8080 ./your-app      # round-robin
 
 # CLI flag (repeatable)
-xcelerate-cli --proxy http://user:pass@proxy.example:8080 --proxy http://backup:8080 \
+xcelerate --proxy http://user:pass@proxy.example:8080 --proxy http://backup:8080 \
   title https://example.com
 ```
 
@@ -513,8 +516,8 @@ By default each browser gets a throwaway profile that is deleted on close. Point
 it at a directory to keep cookies, logins, and site storage between runs:
 
 ```bash
-XCELERATE_USER_DATA_DIR=~/.xcelerate/profile xcelerate-cli title https://example.com
-xcelerate-cli --user-data-dir ./profile title https://example.com
+XCELERATE_USER_DATA_DIR=~/.xcelerate/profile xcelerate title https://example.com
+xcelerate --user-data-dir ./profile title https://example.com
 ```
 
 ```rust
@@ -530,7 +533,7 @@ disk before it exits.
 `page.accessibility_snapshot()` returns a compact semantic view of the page -
 `[{ role, name, value? }]` in document order - which is far more resilient than
 CSS selectors for asserting or driving a page. It is exposed as the CLI command
-`xcelerate-cli accessibility <url>` and the MCP tool `browser_accessibility`.
+`xcelerate accessibility <url>` and the MCP tool `browser_accessibility`.
 
 ## Workspace layout
 
@@ -542,7 +545,7 @@ xcelerate/
     xcelerate-plugins/     # built-in plugin catalog: name -> implementation lookup
     xcelerate/             # high-level facade: Browser, Page, Element, adapters
     xcelerate-bindgen/     # uniffi bindgen helper binary
-    xcelerate-cli/         # `xcelerate-cli` command-line interface
+    xcelerate-cli/         # CLI (binary `xcelerate`)
     xcelerate-mcp/         # `xcelerate-mcp` Model Context Protocol server
   plugins/
     stealth/               # stealth plugin: binary patching + anti-fingerprint payload
