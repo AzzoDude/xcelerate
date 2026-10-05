@@ -1,0 +1,10 @@
+# Shows the "Sponsor" button on this repository.
+# Docs: https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+#
+# `github` points at the ChaoswareHQ GitHub Sponsors profile (the same one the
+# website links to at chaoswarehq.com/support).
+github: ChaoswareHQ
+
+# Extra funding links shown alongside the GitHub Sponsors button.
+custom:
+  - https://chaoswarehq.com/support
