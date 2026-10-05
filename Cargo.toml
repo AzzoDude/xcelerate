@@ -14,7 +14,7 @@ exclude = ["bindings", "tools", "adapters", "scripts", "docs"]
 resolver = "3"
 
 [workspace.package]
-version = "1.0.9"
+version = "1.0.10"
 edition = "2024"
 rust-version = "1.99.0"
 authors = ["AzzoDude"]
@@ -30,13 +30,13 @@ doc_lazy_continuation = "allow"
 
 [workspace.dependencies]
 # Internal crates.
-xcelerate = { path = "crates/xcelerate", version = "1.0.9" }
-xcelerate-core = { path = "crates/xcelerate-core", version = "1.0.9" }
-xcelerate-mcp = { path = "crates/xcelerate-mcp", version = "1.0.9" }
-xcelerate-plugin-api = { path = "crates/xcelerate-plugin-api", version = "1.0.9" }
-xcelerate-plugin-stealth = { path = "plugins/stealth", version = "1.0.9" }
-xcelerate-plugin-human = { path = "plugins/human", version = "1.0.9" }
-xcelerate-plugins = { path = "crates/xcelerate-plugins", version = "1.0.9" }
+xcelerate = { path = "crates/xcelerate", version = "1.0.10" }
+xcelerate-core = { path = "crates/xcelerate-core", version = "1.0.10" }
+xcelerate-mcp = { path = "crates/xcelerate-mcp", version = "1.0.10" }
+xcelerate-plugin-api = { path = "crates/xcelerate-plugin-api", version = "1.0.10" }
+xcelerate-plugin-stealth = { path = "plugins/stealth", version = "1.0.10" }
+xcelerate-plugin-human = { path = "plugins/human", version = "1.0.10" }
+xcelerate-plugins = { path = "crates/xcelerate-plugins", version = "1.0.10" }
 
 # External crates.
 mimalloc = "0.1.52"
@@ -50,7 +50,7 @@ browser-protocol = "0.1.6"
 # metadata version, so the whole workspace must stay in step. 0.31.x patch
 # releases are still allowed; move to 0.32 only once every one of those
 # generators ships 0.32 support (Dependabot is set to ignore >= 0.32).
-uniffi = { version = "0.31.2", features = ["tokio"] }
+uniffi = { version = "0.31.2", features = ["tokio", "scaffolding-ffi-buffer-fns"] }
 futures = "0.3.34"
 reqwest = { version = "0.13.5", features = ["json", "rustls"], default-features = false }
 serde = { version = "1.0.229", features = ["derive"] }

@@ -3,10 +3,13 @@
 
 Dart is not a built-in UniFFI target; it needs the external
 ``uniffi-bindgen-dart`` generator (``cargo install uniffi-bindgen-dart``). The
-generator emits a single ``xcelerate.dart`` which loads the native library named
-``uniffi_xcelerate`` (``uniffi_xcelerate.dll`` / ``libuniffi_xcelerate.so`` /
-``libuniffi_xcelerate.dylib``); this script places it under ``lib/``, writes a
-``pubspec.yaml``, and copies the native library under that name.
+generator emits a single ``xcelerate.dart``. It is invoked with
+``--crate xcelerate`` so the FFI helper symbols and the library name match the
+Rust crate (``xcelerate.dll`` / ``libxcelerate.so`` / ``libxcelerate.dylib``,
+which is what ``DynamicLibrary.open`` looks for); the core must be built with
+UniFFI's ``scaffolding-ffi-buffer-fns`` feature, which the generator assumes.
+This script places the binding under ``lib/``, writes a ``pubspec.yaml``, copies
+the native library, and patches the generator's known codegen bugs.
 
 Building/analyzing needs the Dart SDK (``dart``/``flutter`` on ``PATH``); the
 script skips with a hint if it is missing.
@@ -46,10 +49,14 @@ except ImportError:  # pragma: no cover - executed as a standalone script
     )
 
 # (source name in target/release, destination name for Dart FFI)
+#
+# The binding is generated with `--crate xcelerate`, so `DynamicLibrary.open`
+# loads the library by that name. Keep the on-disk names identical so the
+# generated loader finds them without a `libraryPath` override.
 NATIVE_LIBS = (
-    ("xcelerate.dll", "uniffi_xcelerate.dll"),
-    ("libxcelerate.so", "libuniffi_xcelerate.so"),
-    ("libxcelerate.dylib", "libuniffi_xcelerate.dylib"),
+    ("xcelerate.dll", "xcelerate.dll"),
+    ("libxcelerate.so", "libxcelerate.so"),
+    ("libxcelerate.dylib", "libxcelerate.dylib"),
 )
 
 
@@ -105,6 +112,242 @@ _CLOSE = re.compile(
     re.DOTALL,
 )
 
+# `uniffi-bindgen-dart` 0.1.x does not implement the constructor ABI: it emits a
+# `browserCreateLaunch` stub that throws `UnsupportedError`. `Browser::launch` is
+# an async constructor taking a struct (lowered to a `RustBuffer`), so the
+# generator stubs it and the whole binding is unusable - nothing can create a
+# browser. Replace the stub with a real async-constructor call.
+#
+# This mirrors the generated async-method body (`ffi_buffer.rs`,
+# `render_bound_methods/*.rs`), but the constructor is an ordinary function that
+# takes the serialized config `RustBuffer` and returns a future handle; the
+# result is completed as a `u64` object handle.
+_LAUNCH_STUB = re.compile(
+    r"  Browser browserCreateLaunch\(BrowserConfig config\) \{\r?\n"
+    r"    throw UnsupportedError\('runtime invocation for this UniFFI ABI "
+    r"\([^)]*\) is not implemented yet[^']*'\);\r?\n"
+    r"  \}"
+)
+
+_LAUNCH_IMPLEMENTATION = r"""  Future<Browser> browserCreateLaunch(BrowserConfig config) async {
+    final Uint8List configBytes = _uniffiEncodeBrowserConfig(config);
+    final ffi.Pointer<ffi.Uint8> configPtr = configBytes.isEmpty ? ffi.nullptr : calloc<ffi.Uint8>(configBytes.length);
+    final ffi.Pointer<_UniFfiForeignBytes> configForeignPtr = calloc<_UniFfiForeignBytes>();
+    final ffi.Pointer<_UniFfiRustCallStatus> configFromBytesStatusPtr = calloc<_UniFfiRustCallStatus>();
+    final rustRetBufferPtrs = <ffi.Pointer<_UniFfiRustBuffer>>[];
+    try {
+      if (configBytes.isNotEmpty) { configPtr.asTypedList(configBytes.length).setAll(0, configBytes); }
+      configFromBytesStatusPtr.ref.code = _uniFfiRustCallStatusSuccess;
+      configFromBytesStatusPtr.ref.errorBuf
+        ..capacity = 0
+        ..len = 0
+        ..data = ffi.nullptr;
+      configForeignPtr.ref
+        ..len = configBytes.length
+        ..data = configPtr;
+      final _UniFfiRustBuffer configRustBuffer = _uniFfiRustBufferFromBytes(configForeignPtr.ref, configFromBytesStatusPtr);
+      final int fromBytesCode = configFromBytesStatusPtr.ref.code;
+      final _UniFfiRustBuffer fromBytesErr = configFromBytesStatusPtr.ref.errorBuf;
+      if (fromBytesCode != _uniFfiRustCallStatusSuccess) {
+        final ffi.Pointer<_UniFfiRustBuffer> errPtr = calloc<_UniFfiRustBuffer>();
+        errPtr.ref
+          ..capacity = fromBytesErr.capacity
+          ..len = fromBytesErr.len
+          ..data = fromBytesErr.data;
+        rustRetBufferPtrs.add(errPtr);
+        throw StateError('UniFFI rustbuffer_from_bytes failed with status $fromBytesCode');
+      }
+
+      final int Function(_UniFfiRustBuffer) constructorLaunch = _lib.lookupFunction<ffi.Uint64 Function(_UniFfiRustBuffer), int Function(_UniFfiRustBuffer)>('uniffi_xcelerate_fn_constructor_browser_launch');
+      final void Function(int, ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Uint64, ffi.Int8)>>, int) futurePoll = _lib.lookupFunction<ffi.Void Function(ffi.Uint64, ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Uint64, ffi.Int8)>>, ffi.Uint64), void Function(int, ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Uint64, ffi.Int8)>>, int)>('ffi_xcelerate_rust_future_poll_u64');
+      final void Function(int) futureCancel = _lib.lookupFunction<ffi.Void Function(ffi.Uint64), void Function(int)>('ffi_xcelerate_rust_future_cancel_u64');
+      final int Function(int, ffi.Pointer<_UniFfiRustCallStatus>) futureComplete = _lib.lookupFunction<ffi.Uint64 Function(ffi.Uint64, ffi.Pointer<_UniFfiRustCallStatus>), int Function(int, ffi.Pointer<_UniFfiRustCallStatus>)>('ffi_xcelerate_rust_future_complete_u64');
+      final void Function(int) futureFree = _lib.lookupFunction<ffi.Void Function(ffi.Uint64), void Function(int)>('ffi_xcelerate_rust_future_free_u64');
+
+      final int futureHandle = constructorLaunch(configRustBuffer);
+      final StreamController<int> pollEvents = StreamController<int>.broadcast();
+      final callback = ffi.NativeCallable<ffi.Void Function(ffi.Uint64, ffi.Int8)>.listener((int _, int pollResult) {
+        pollEvents.add(pollResult);
+      });
+      try {
+        futurePoll(futureHandle, callback.nativeFunction, 0);
+        while (true) {
+          final int pollResult = await pollEvents.stream.first;
+          if (pollResult == _rustFuturePollReady) {
+            break;
+          }
+          if (pollResult == _rustFuturePollWake) {
+            futurePoll(futureHandle, callback.nativeFunction, 0);
+            continue;
+          }
+          throw StateError('Rust future poll returned invalid status for launch: $pollResult');
+        }
+        final ffi.Pointer<_UniFfiRustCallStatus> outStatusPtr = calloc<_UniFfiRustCallStatus>();
+        outStatusPtr.ref.code = _uniFfiRustCallStatusSuccess;
+        outStatusPtr.ref.errorBuf
+          ..capacity = 0
+          ..len = 0
+          ..data = ffi.nullptr;
+        try {
+          final int resultValue = futureComplete(futureHandle, outStatusPtr);
+          final int completeStatusCode = outStatusPtr.ref.code;
+          if (completeStatusCode == _uniFfiRustCallStatusSuccess) {
+            return Browser._(this, resultValue);
+          }
+          if (completeStatusCode == _uniFfiRustCallStatusCancelled) {
+            throw StateError('Rust future was cancelled for launch');
+          }
+          final _UniFfiRustBuffer errorBuf = outStatusPtr.ref.errorBuf;
+          if (!(errorBuf.data == ffi.nullptr && errorBuf.len == 0 && errorBuf.capacity == 0)) {
+            final ffi.Pointer<_UniFfiRustBuffer> errorBufPtr = calloc<_UniFfiRustBuffer>();
+            errorBufPtr.ref
+              ..capacity = errorBuf.capacity
+              ..len = errorBuf.len
+              ..data = errorBuf.data;
+            rustRetBufferPtrs.add(errorBufPtr);
+            final Uint8List errorBytes = errorBufPtr.ref.len == 0 ? Uint8List(0) : Uint8List.fromList(errorBufPtr.ref.data.asTypedList(errorBufPtr.ref.len));
+            if (completeStatusCode == _uniFfiRustCallStatusError && errorBytes.isNotEmpty) {
+              throw _uniffiLiftXcelerateErrorException(errorBytes);
+            }
+            if (errorBytes.isNotEmpty) {
+              throw StateError(utf8.decode(errorBytes, allowMalformed: true));
+            }
+          }
+          throw StateError('Rust future failed for launch with status code: $completeStatusCode');
+        } finally {
+          calloc.free(outStatusPtr);
+        }
+      } catch (_) {
+        futureCancel(futureHandle);
+        rethrow;
+      } finally {
+        await pollEvents.close();
+        callback.close();
+        futureFree(futureHandle);
+      }
+    } finally {
+      for (final bufPtr in rustRetBufferPtrs) {
+        if (bufPtr.ref.data == ffi.nullptr && bufPtr.ref.len == 0 && bufPtr.ref.capacity == 0) {
+          continue;
+        }
+        final ffi.Pointer<_UniFfiRustCallStatus> freeStatusPtr = calloc<_UniFfiRustCallStatus>();
+        freeStatusPtr.ref.code = _uniFfiRustCallStatusSuccess;
+        freeStatusPtr.ref.errorBuf
+          ..capacity = 0
+          ..len = 0
+          ..data = ffi.nullptr;
+        _uniFfiRustBufferFree(bufPtr.ref, freeStatusPtr);
+        calloc.free(freeStatusPtr);
+        calloc.free(bufPtr);
+      }
+      if (configPtr != ffi.nullptr) {
+        calloc.free(configPtr);
+      }
+      calloc.free(configForeignPtr);
+      calloc.free(configFromBytesStatusPtr);
+    }
+  }"""
+# `XcelerateError` is an error enum. `uniffi-bindgen-dart` 0.1.x decodes only
+# the leading variant tag and ignores the payload, so the very first real
+# failure throws "extra bytes remaining" instead of the message. Decode the
+# payload too and carry the text on a message-bearing exception (the generated
+# variants are empty).
+_ERROR_EXCEPTION_DECL = re.compile(
+    r"sealed class XcelerateErrorException implements Exception \{\r?\n"
+    r"  const XcelerateErrorException\(\);\r?\n"
+    r"\}"
+)
+
+_FLAT_EXCEPTION_CLASS = r"""sealed class XcelerateErrorException implements Exception {
+  const XcelerateErrorException();
+}
+
+/// A lifted error carrying the message the generated, payload-less variants
+/// cannot.
+final class XcelerateErrorExceptionFlat extends XcelerateErrorException {
+  const XcelerateErrorExceptionFlat(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}"""
+
+_LIFT_STUB = re.compile(
+    r"XcelerateErrorException _uniffiLiftXcelerateErrorException\(Uint8List bytes\) \{.*?\n\}",
+    re.DOTALL,
+)
+
+_LIFT_IMPLEMENTATION = r"""XcelerateErrorException _uniffiLiftXcelerateErrorException(Uint8List bytes) {
+  try {
+    final reader = _UniFfiBinaryReader(bytes);
+    final int tag = reader.readI32();
+    if (tag == 1) {
+      return XcelerateErrorExceptionFlat('wsError: ${reader.readString()}');
+    }
+    if (tag == 2) {
+      return XcelerateErrorExceptionFlat('serdeError: ${reader.readString()}');
+    }
+    if (tag == 3) {
+      final int code = reader.readI32();
+      return XcelerateErrorExceptionFlat('cdpResponseError $code: ${reader.readString()}');
+    }
+    if (tag == 4) {
+      return XcelerateErrorExceptionFlat('httpError: ${reader.readString()}');
+    }
+    if (tag == 5) {
+      return XcelerateErrorExceptionFlat('notFound: ${reader.readString()}');
+    }
+    if (tag == 6) {
+      return XcelerateErrorExceptionFlat('internalError');
+    }
+    if (tag == 7) {
+      return XcelerateErrorExceptionFlat('unsupported: ${reader.readString()}');
+    }
+    if (tag == 8) {
+      return XcelerateErrorExceptionFlat('plugin: ${reader.readString()}');
+    }
+  } on Object {
+    // Fall through to the raw text below.
+  }
+  return XcelerateErrorExceptionFlat(utf8.decode(bytes, allowMalformed: true));
+}"""
+# A `Vec<u8>`/`Bytes` return is a UniFFI sequence: a big-endian i32 length
+# followed by that many bytes (a `String` is raw UTF-8, which is why only bytes
+# are affected). The generator returns the whole buffer, leaving the prefix on
+# e.g. screenshots, so decode it away.
+_BYTES_HELPER_ANCHOR = re.compile(r"\nclass XcelerateFfi \{")
+
+_BYTES_HELPER = r"""
+Uint8List _uniffiDecodeBytes(Uint8List buffer) {
+  if (buffer.length < 4) {
+    return Uint8List(0);
+  }
+  final int length = ByteData.sublistView(buffer, 0, 4).getInt32(0, Endian.big);
+  final int end = 4 + length;
+  return buffer.sublist(4, end > buffer.length ? buffer.length : end);
+}
+
+class XcelerateFfi {"""
+
+_BYTES_RETURN = re.compile(r"return resultBytes;")
+
+
+# The generator emits snake_case `_checksum_...` fields, which trip the
+# `non_constant_identifier_names` lint. They are generated identifiers, so add
+# the rule to the file's existing ignore directive.
+_IGNORE_FOR_FILE = re.compile(r"// ignore_for_file: (?P<rules>[^\n]+)")
+
+
+def _extend_ignore_directive(content: str) -> tuple[str, int]:
+    def repl(match: re.Match) -> str:
+        rules = match.group("rules")
+        if "non_constant_identifier_names" in rules:
+            return match.group(0)
+        return f"// ignore_for_file: {rules}, non_constant_identifier_names"
+
+    return _IGNORE_FOR_FILE.subn(repl, content)
+
 
 def _patch(content: str) -> tuple[str, dict[str, int]]:
     counts: dict[str, int] = {}
@@ -115,6 +358,21 @@ def _patch(content: str) -> tuple[str, dict[str, int]]:
     content, counts["launch async"] = _LAUNCH.subn(
         "static Future<Browser> launch(BrowserConfig config) async {", content
     )
+    content, counts["launch impl"] = _LAUNCH_STUB.subn(
+        lambda _match: _LAUNCH_IMPLEMENTATION, content
+    )
+    content, counts["flat error class"] = _ERROR_EXCEPTION_DECL.subn(
+        lambda _match: _FLAT_EXCEPTION_CLASS, content
+    )
+    content, counts["flat error lift"] = _LIFT_STUB.subn(
+        lambda _match: _LIFT_IMPLEMENTATION, content
+    )
+    content, counts["bytes helper"] = _BYTES_HELPER_ANCHOR.subn(
+        lambda _match: _BYTES_HELPER, content
+    )
+    content, counts["bytes decode"] = _BYTES_RETURN.subn(
+        "return _uniffiDecodeBytes(resultBytes);", content
+    )
 
     def rename_close(match: re.Match) -> str:
         if match.group("call") == "browserInvokeClose":
@@ -122,6 +380,7 @@ def _patch(content: str) -> tuple[str, dict[str, int]]:
         return "Future<void> closePage()"
 
     content, counts["close rename"] = _CLOSE.subn(rename_close, content)
+    content, counts["ignore lints"] = _extend_ignore_directive(content)
     return content, counts
 
 
@@ -147,7 +406,20 @@ def main():
     if os.path.exists(stale):
         os.remove(stale)
     run_checked(
-        [tool, "generate", "--out-dir", lib_dir, "--no-format", BUILT_DLL],
+        [
+            tool,
+            "generate",
+            "--out-dir",
+            lib_dir,
+            "--no-format",
+            # The Rust crate is `xcelerate`; use it for the FFI symbol prefix and
+            # the library name the binding loads (`xcelerate.dll`). The generator
+            # otherwise defaults to `uniffi_xcelerate`, which matches neither the
+            # exported helper symbols nor the on-disk library.
+            "--crate",
+            "xcelerate",
+            BUILT_DLL,
+        ],
         cwd=ROOT,
     )
 
@@ -164,6 +436,20 @@ def main():
 
     write_file(os.path.join(dart_dir, "pubspec.yaml"), pubspec(workspace_version()))
     log("WRITE", "pubspec.yaml")
+
+    print("--- 1c. Formatting the patched sources ---")
+    # The generator runs with `--no-format` (its own formatter step is skipped),
+    # and the patches above insert code, so format the final output here. pub.dev
+    # (pana) only grants the full analysis score when `dart format` is clean.
+    dart_format = dart_exe()
+    if os.path.exists(dart_format):
+        format_targets = [os.path.join(lib_dir, "xcelerate.dart")]
+        example_dir = os.path.join(dart_dir, "example")
+        if os.path.isdir(example_dir):
+            format_targets.append(example_dir)
+        run_checked([dart_format, "format", *format_targets], cwd=dart_dir)
+    else:
+        log("WARNING", "dart not found; skipping source formatting")
 
     print("--- 2. Distributing native libraries ---")
     copy_native_libs(src_dir, NATIVE_LIBS)

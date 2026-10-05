@@ -1,0 +1,10 @@
+# Dart/Flutter tooling artifacts.
+.dart_tool/
+build/
+
+# Example outputs.
+pixelscan_shots/
+*.png
+
+# The platform-native library is generated per machine (see README.md).
+native/

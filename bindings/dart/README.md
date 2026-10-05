@@ -1,10 +1,21 @@
 # Xcelerate Dart / Flutter SDK
 
-> **Note:** the early `uniffi-bindgen-dart` 0.1.x generator has a few codegen
-> bugs (async `bool` returns, the async constructor, and a `close` name clash).
-> `generate_bindings/dart.py` applies targeted post-processing
-> so the generated package analyzes clean; see `_patch()` in that script.
-> Re-check the fixes when bumping the generator.
+> **Note:** the early `uniffi-bindgen-dart` 0.1.x generator has several codegen
+> bugs for this API. `scripts/generate_bindings/dart.py` post-processes the
+> output before it is written; see `_patch()` in that script. The fixes are:
+>
+> - async `bool` returns and the async constructor are emitted synchronously;
+> - `Browser::close`/`Page::close` collide with the disposer (renamed
+>   `closeBrowser`/`closePage`);
+> - the `Browser.launch` async constructor (a `RustBuffer` argument) is stubbed
+>   with `UnsupportedError`, so the whole binding is unusable - it is
+>   implemented directly;
+> - error payloads are dropped ("extra bytes remaining") - decoded here;
+> - `Vec<u8>` returns keep their UniFFI length prefix - stripped here;
+> - the FFI helper symbols use an `uniffi_`-prefixed library name; the generator
+>   is invoked with `--crate xcelerate` so they match the exported symbols.
+>
+> Re-check every fix when bumping the generator.
 
 Dart bindings for the xcelerate Rust CDP engine. Dart is not a built-in UniFFI
 target, so the sources are generated with the external
@@ -15,8 +26,10 @@ target, so the sources are generated with the external
 
 - Dart SDK 3.1+ or Flutter
 - The `uniffi-bindgen-dart` generator: `cargo install uniffi-bindgen-dart`
-- The native xcelerate library, shipped as `uniffi_xcelerate.dll` /
-  `libuniffi_xcelerate.so` / `libuniffi_xcelerate.dylib` (copied by the script)
+- The native xcelerate library, shipped as `xcelerate.dll` / `libxcelerate.so`
+  / `libxcelerate.dylib` (copied by the script). It must be built with UniFFI's
+  `scaffolding-ffi-buffer-fns` feature (enabled in the workspace `Cargo.toml`),
+  which exports the `uniffi_ffibuffer_*` entry points this binding calls.
 
 ## Generate / build
 
@@ -32,7 +45,7 @@ The script assembles a pub package:
 bindings/dart/
   pubspec.yaml
   lib/xcelerate.dart
-  src/uniffi_xcelerate.dll / libuniffi_xcelerate.so / libuniffi_xcelerate.dylib   # local only
+  src/xcelerate.dll / libxcelerate.so / libxcelerate.dylib   # local only
 ```
 
 or, once generated, inside this directory:
@@ -44,8 +57,8 @@ dart analyze
 
 ## Usage
 
-The generated binding loads the native library by name; point it at the bundled
-copy with `libraryPath` when the loader cannot find it:
+The generated binding loads the native library by name (`xcelerate`); pass
+`libraryPath` when the loader cannot find it:
 
 ```dart
 import 'package:xcelerate/xcelerate.dart';
@@ -56,8 +69,8 @@ final config = BrowserConfig(
   executablePath: null,           // auto-discover Chrome/Edge
   plugins: ['stealth', 'human'],  // opt into built-in plugins
 );
-final browser = await Browser.launch(config: config);
-final page = await browser.newPage(url: 'https://example.com');
+final browser = await Browser.launch(config);
+final page = await browser.newPage('https://example.com');
 print(await page.title());
 await browser.closeBrowser();   // `close` is reserved by the disposer
 ```
