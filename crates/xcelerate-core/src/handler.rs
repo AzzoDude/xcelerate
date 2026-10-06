@@ -49,12 +49,14 @@ impl CdpHandler {
                     let Some(msg) = msg else { break };
                     let Ok(Message::Text(text)) = msg else { continue };
 
-                    let Ok(resp): std::result::Result<Value, _> = serde_json::from_str(&text) else { continue };
+                    let Ok(mut resp): std::result::Result<Value, _> = serde_json::from_str(&text) else { continue };
 
                     if let Some(id) = resp["id"].as_u64() {
                         if let Some(tx) = self.pending.remove(&(id as u32)) {
                             let result = if resp["error"].is_null() {
-                                Ok(resp["result"].clone())
+                                // Move the result out instead of deep-cloning it;
+                                // responses can be large (screenshots, DOM trees).
+                                Ok(resp.get_mut("result").map(std::mem::take).unwrap_or(Value::Null))
                             } else {
                                 Err(Error::Cdp {
                                     code: resp["error"]["code"].as_i64().unwrap_or(0) as i32,

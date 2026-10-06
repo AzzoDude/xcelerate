@@ -57,7 +57,9 @@ impl BidiClient {
 
 /// Connects to a BiDi `/session` WebSocket endpoint and starts its handler task.
 pub async fn connect(ws_url: &str) -> Result<BidiClient> {
-    let (ws, _) = tokio_tungstenite::connect_async(ws_url).await?;
+    // The third argument disables Nagle: CDP/BiDi traffic is small
+    // request/response frames where delayed-ACK stalls add real latency.
+    let (ws, _) = tokio_tungstenite::connect_async_with_config(ws_url, None, true).await?;
     let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
     let (event_tx, _) = broadcast::channel(2048);
     tokio::spawn(run(ws, cmd_rx, event_tx.clone()));
@@ -89,12 +91,14 @@ async fn run(
             incoming = ws.next() => {
                 let Some(incoming) = incoming else { break };
                 let Ok(Message::Text(text)) = incoming else { continue };
-                let Ok(reply): std::result::Result<Value, _> = serde_json::from_str(&text) else { continue };
+                let Ok(mut reply): std::result::Result<Value, _> = serde_json::from_str(&text) else { continue };
 
                 if let Some(id) = reply["id"].as_u64() {
                     if let Some(tx) = pending.remove(&id) {
                         let result = match reply["type"].as_str() {
-                            Some("success") => Ok(reply["result"].clone()),
+                            Some("success") => {
+                                Ok(reply.get_mut("result").map(std::mem::take).unwrap_or(Value::Null))
+                            }
                             _ => Err(Error::Bidi {
                                 error: reply["error"].as_str().unwrap_or("unknown error").to_string(),
                                 message: reply["message"].as_str().unwrap_or_default().to_string(),

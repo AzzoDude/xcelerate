@@ -12,7 +12,6 @@ description = "The stealth plugin for xcelerate: binary patching + an anti-finge
 xcelerate-plugin-api = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-regex = { workspace = true }
 
 [lints]
 workspace = true

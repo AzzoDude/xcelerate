@@ -1,0 +1,10 @@
+# Identical-code folding for the distributed cdylib. Fat LTO already merges most
+# duplicates; ICF is the linker's final pass over monomorphised generics from
+# serde/wasmtime. It changes no machine-code semantics (Rust never compares
+# function pointers for identity), so it is a pure size win. `/OPT:REF` is on by
+# default for MSVC release links; ELF gets `--gc-sections` from rustc already.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "link-arg=/OPT:ICF"]
+
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "link-arg=/OPT:ICF"]

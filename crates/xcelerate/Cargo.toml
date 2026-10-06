@@ -36,20 +36,9 @@ base64 = { workspace = true }
 thiserror = { workspace = true }
 tempfile = { workspace = true }
 
-wasmtime = { version = "49", optional = true, default-features = false, features = [
-    # Everything below is required by this transport or by wasmtime-wasi's
-    # preview-2 host: the component model compiled ahead of time by Cranelift and
-    # driven through the synchronous API. `async` is pulled in by wasmtime-wasi.
-    "async",
-    "component-model",
-    "cranelift",
-    "runtime",
-    "std",
-] }
-# `p2` is the only WASI surface the plugins target (see `plugin/wasm.rs`); the
-# default `p1`/`p3` pull in the preview-1 wiggle shim and async-only interfaces.
-wasmtime-wasi = { version = "49", optional = true, default-features = false, features = ["p2"] }
-rmp-serde = { version = "1", optional = true }
+wasmtime = { workspace = true, optional = true }
+wasmtime-wasi = { workspace = true, optional = true }
+rmp-serde = { workspace = true, optional = true }
 
 [target.'cfg(unix)'.dependencies]
 libc = { workspace = true }

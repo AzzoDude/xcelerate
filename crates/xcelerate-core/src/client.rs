@@ -130,7 +130,9 @@ impl CdpClient {
 
 /// Connects to a CDP WebSocket endpoint and starts its handler task.
 pub async fn connect(ws_url: &str) -> Result<CdpClient> {
-    let (ws, _) = tokio_tungstenite::connect_async(ws_url).await?;
+    // The third argument disables Nagle: CDP traffic is small request/response
+    // frames where delayed-ACK stalls add real latency.
+    let (ws, _) = tokio_tungstenite::connect_async_with_config(ws_url, None, true).await?;
     let (tx, rx) = mpsc::unbounded_channel();
     let (handler, _events) = CdpHandler::new(ws, rx);
     let client = CdpClient::new(tx, handler.event_tx.clone());
