@@ -1,0 +1,13 @@
+{
+  "name": "xcelerate-xpath-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "jsdom regression suite for the shipped XPath engine",
+  "scripts": {
+    "test": "node xpath_engine.test.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}
