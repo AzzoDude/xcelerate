@@ -851,3 +851,9 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Build artifacts for the wasm plugin examples. The wasm-echo test skips when the
+# guest module is absent, so these are local build outputs, not source files.
+docs/plugins/examples/**/target/
+docs/plugins/examples/wasm-echo/wasm-echo.wasm
+docs/plugins/examples/wasm-echo/Cargo.lock

@@ -12,14 +12,13 @@
 use std::collections::HashSet;
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
+use std::time::Duration;
 
 use wasmtime::component::{Component, HasSelf, Linker, ResourceTable};
-use wasmtime::{Config, Engine, Store};
+use wasmtime::{Config, Engine, Store, StoreLimits, StoreLimitsBuilder, Trap};
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView};
 
-use xcelerate_plugin::{
-    Capability, Manifest, OpCall, Plugin, PluginError, PluginResult, Registry,
-};
+use xcelerate_plugin::{Capability, Manifest, OpCall, Plugin, PluginError, PluginResult, Registry};
 
 use crate::{CdpClient, XcelerateError, XcelerateResult};
 
@@ -30,6 +29,16 @@ wasmtime::component::bindgen!({
 
 /// Cap on a returned payload, mirroring the manifest's `max_response_bytes` ceiling.
 const MAX_RESULT_BYTES: usize = 1024 * 1024;
+
+/// Hard ceiling on a guest's linear memory. A plugin can never grow past this,
+/// so a runaway guest cannot exhaust host memory. Kept as an internal constant
+/// (never a manifest field) so it cannot be raised by a plugin on disk.
+const MAX_GUEST_MEMORY_BYTES: usize = 256 * 1024 * 1024;
+
+/// Wall-clock granularity of epoch-based interruption, in milliseconds. The
+/// engine's epoch advances once per tick, so a per-invocation budget of `n` ms
+/// becomes an epoch deadline of `ceil(n / EPOCH_TICK_MILLIS)` ticks.
+const EPOCH_TICK_MILLIS: u64 = 50;
 
 /// Whether an `abi` string selects the WebAssembly transport.
 pub(crate) fn is_wasm_abi(abi: &str) -> bool {
@@ -45,6 +54,9 @@ struct HostState {
     table: ResourceTable,
     plugin: String,
     granted: HashSet<Capability>,
+    /// The guest's memory/table limits, installed on the store via
+    /// `Store::limiter` so growth is refused rather than unbounded.
+    limits: StoreLimits,
     #[allow(dead_code)]
     client: Option<Arc<CdpClient>>,
 }
@@ -117,6 +129,9 @@ struct Describe {
 struct WasmInstance {
     store: Mutex<Store<HostState>>,
     bindings: PluginWorld,
+    /// Epoch ticks a single guest call may consume before it is interrupted,
+    /// derived from the manifest's per-invocation time budget.
+    epoch_deadline_ticks: u64,
 }
 
 impl WasmInstance {
@@ -126,10 +141,13 @@ impl WasmInstance {
             .store
             .lock()
             .map_err(|_| PluginError::Message("wasm plugin store poisoned".to_string()))?;
+        // Re-arm the deadline: it is relative to the engine's current epoch,
+        // which has been advancing on the ticker thread since the last call.
+        store.set_epoch_deadline(self.epoch_deadline_ticks);
         let guest = self.bindings.xcelerate_plugin_plugin();
         let outcome = guest
             .call_invoke(&mut *store, op, &args)
-            .map_err(|error| PluginError::Message(format!("wasm: {error}")))?;
+            .map_err(|error| guest_error(error, self.epoch_deadline_ticks))?;
         match outcome {
             Ok(payload) => msgpack_to_json(&payload),
             Err(message) => Err(PluginError::Message(message)),
@@ -210,9 +228,18 @@ pub(crate) fn load(
         table: ResourceTable::new(),
         plugin: manifest.name.clone(),
         granted: granted_capabilities(manifest, &allow_list()),
+        limits: StoreLimitsBuilder::new()
+            .memory_size(MAX_GUEST_MEMORY_BYTES)
+            .build(),
         client,
     };
     let mut store = Store::new(&engine, state);
+    // Cap the guest's memory, and arm the epoch deadline so instantiation and
+    // the `describe` handshake below are bounded too; `invoke` re-arms it.
+    store.limiter(|state| &mut state.limits);
+    let epoch_deadline_ticks = budget_ticks(manifest.limits.max_invoke_millis);
+    store.set_epoch_deadline(epoch_deadline_ticks);
+    store.epoch_deadline_trap();
     let bindings = PluginWorld::instantiate(&mut store, &component, &linker).map_err(|error| {
         XcelerateError::Unsupported(format!(
             "plugin '{}': instantiate failed: {error}",
@@ -254,6 +281,7 @@ pub(crate) fn load(
         instance: Arc::new(WasmInstance {
             store: Mutex::new(store),
             bindings,
+            epoch_deadline_ticks,
         }),
     })
 }
@@ -270,9 +298,47 @@ fn engine() -> Engine {
         .get_or_init(|| {
             let mut config = Config::new();
             config.wasm_component_model(true);
-            Engine::new(&config).expect("failed to create the wasm engine")
+            // Wall-clock interruption: guests are instrumented to check the
+            // engine's epoch, which the ticker started below advances.
+            config.epoch_interruption(true);
+            let engine = Engine::new(&config).expect("failed to create the wasm engine");
+            start_epoch_ticker(engine.clone());
+            engine
         })
         .clone()
+}
+
+/// Advance the engine's epoch on a fixed cadence so a guest that overruns its
+/// deadline traps instead of pinning the host. One process-wide thread serves
+/// every plugin, since the epoch (and the engine) are shared.
+fn start_epoch_ticker(engine: Engine) {
+    std::thread::Builder::new()
+        .name("xcelerate-wasm-epoch".to_string())
+        .spawn(move || {
+            let tick = Duration::from_millis(EPOCH_TICK_MILLIS);
+            loop {
+                std::thread::sleep(tick);
+                engine.increment_epoch();
+            }
+        })
+        .expect("failed to spawn the wasm epoch ticker");
+}
+
+/// Translate a per-invocation wall-clock budget into an epoch deadline (ticks).
+fn budget_ticks(max_invoke_millis: u64) -> u64 {
+    max_invoke_millis.div_ceil(EPOCH_TICK_MILLIS).max(1)
+}
+
+/// Map a guest error, naming the invocation budget when the epoch deadline was
+/// what halted execution rather than the guest itself.
+fn guest_error(error: wasmtime::Error, deadline_ticks: u64) -> PluginError {
+    if error.downcast_ref::<Trap>() == Some(&Trap::Interrupt) {
+        let millis = deadline_ticks.saturating_mul(EPOCH_TICK_MILLIS);
+        return PluginError::Unsupported(format!(
+            "wasm plugin exceeded its {millis} ms invocation budget and was interrupted"
+        ));
+    }
+    PluginError::Message(format!("wasm: {error}"))
 }
 
 /// Resolve the entrypoint, requiring it to stay inside the plugin directory.
@@ -404,6 +470,46 @@ mod tests {
             .await
             .unwrap();
         assert!(out.contains("42"), "unexpected echo result: {out}");
+    }
+
+    /// The bytes of `(module (func (export "spin") (loop br 0)))`: a core
+    /// module exporting a function that spins forever. Hand-encoded because the
+    /// `wat` feature is off for this build.
+    fn runaway_module_bytes() -> Vec<u8> {
+        vec![
+            0x00, 0x61, 0x73, 0x6d, // "\0asm"
+            0x01, 0x00, 0x00, 0x00, // version 1
+            // type section: one `() -> ()` function type
+            0x01, 0x04, 0x01, 0x60, 0x00, 0x00,
+            // function section: function 0 has type 0
+            0x03, 0x02, 0x01, 0x00, // export section: "spin" -> function 0
+            0x07, 0x08, 0x01, 0x04, b's', b'p', b'i', b'n', 0x00, 0x00,
+            // code section: `loop br 0 end end`
+            0x0a, 0x09, 0x01, 0x07, 0x00, 0x03, 0x40, 0x0c, 0x00, 0x0b, 0x0b,
+        ]
+    }
+
+    /// A guest that loops forever must be interrupted by the epoch deadline
+    /// rather than pinning the host, and the resulting error must name the
+    /// budget.
+    #[test]
+    fn a_runaway_guest_is_interrupted() {
+        let engine = engine();
+        let module = wasmtime::Module::new(&engine, runaway_module_bytes()).unwrap();
+        let mut store = Store::new(&engine, ());
+        store.set_epoch_deadline(1);
+        store.epoch_deadline_trap();
+        let instance = wasmtime::Instance::new(&mut store, &module, &[]).unwrap();
+        let spin = instance
+            .get_typed_func::<(), ()>(&mut store, "spin")
+            .unwrap();
+
+        let error = spin.call(&mut store, ()).unwrap_err();
+        let mapped = guest_error(error, 1);
+        assert!(
+            matches!(&mapped, PluginError::Unsupported(message) if message.contains("budget")),
+            "expected a budget error naming the invocation budget, got {mapped:?}"
+        );
     }
 
     /// Loads a mod from a directory given by `XCELERATE_TEST_MOD` and invokes
