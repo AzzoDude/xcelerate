@@ -1,6 +1,6 @@
 @{
     RootModule           = 'Xcelerate.psm1'
-    ModuleVersion        = '1.0.9'
+    ModuleVersion        = '1.0.12'
     GUID                 = 'b7e4c1a2-6f3d-4e8b-9a2c-1d5f0e7b3c94'
     Author               = 'AzzoDude'
     CompanyName          = 'Chaosware'

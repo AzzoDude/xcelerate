@@ -94,6 +94,14 @@ def main():
         r'^version: .+$',
         f'version: {version}',
     )
+    # The PowerShell module manifest carries its own version, and the gallery
+    # rejects a re-publish of a version that already exists, so it has to move
+    # with everything else.
+    update_file(
+        os.path.join(ROOT, "bindings", "powershell", "Xcelerate.psd1"),
+        r"(ModuleVersion\s*=\s*)'[^']+'",
+        rf"\g<1>'{version}'",
+    )
     # Install snippets in the READMEs carry the version too.
     update_file(
         os.path.join(ROOT, "README.md"),

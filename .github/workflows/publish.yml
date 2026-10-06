@@ -240,7 +240,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [java, kotlin]
+        include:
+          - language: java
+            artifact: xcelerate-java
+          - language: kotlin
+            artifact: xcelerate
     env:
       # The Gradle build reads these exact (camelCase) environment variables.
       centralUsername: ${{ secrets.CENTRAL_USERNAME }}
@@ -282,8 +286,24 @@ jobs:
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Check whether this version is already on Maven Central
+        id: exists
+        run: |
+          VERSION=$(grep -oP '^version = "\K[^"]+' Cargo.toml | head -n 1)
+          QUERY="https://search.maven.org/solrsearch/select?q=g:%22io.github.azzodude%22%20AND%20a:%22${{ matrix.artifact }}%22%20AND%20v:%22${VERSION}%22&rows=1&wt=json"
+          # Fail open: if the lookup itself fails, attempt the publish anyway.
+          FOUND=$(curl -fsS "$QUERY" | grep -oP '"numFound":\K[0-9]+' || echo 0)
+          if [ "${FOUND:-0}" != "0" ]; then
+            echo "::notice::${{ matrix.artifact }} ${VERSION} is already on Maven Central; skipping."
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish to Maven Central
-        if: steps.creds.outputs.ready == 'true'
+        # Central rejects a version that already exists, which would fail this
+        # job even though the other registries may still need publishing.
+        if: ${{ steps.creds.outputs.ready == 'true' && steps.exists.outputs.published != 'true' }}
         working-directory: bindings/${{ matrix.language }}
         run: gradle publish --no-daemon -x test
 
@@ -386,10 +406,21 @@ jobs:
             exit 0
           }
           $module = 'bindings/powershell'
-          if (Get-Command Publish-PSResource -ErrorAction SilentlyContinue) {
-            Publish-PSResource -Path $module -Repository $env:PSGALLERY_REPOSITORY -ApiKey $env:PSGALLERY_API_KEY
-          } else {
-            Publish-Module -Path $module -Repository $env:PSGALLERY_REPOSITORY -NuGetApiKey $env:PSGALLERY_API_KEY
+          # A gallery rejects a version that already exists. Treat that as a
+          # no-op so the rest of the registries can still be published, but let
+          # any other failure surface.
+          try {
+            if (Get-Command Publish-PSResource -ErrorAction SilentlyContinue) {
+              Publish-PSResource -Path $module -Repository $env:PSGALLERY_REPOSITORY -ApiKey $env:PSGALLERY_API_KEY
+            } else {
+              Publish-Module -Path $module -Repository $env:PSGALLERY_REPOSITORY -NuGetApiKey $env:PSGALLERY_API_KEY
+            }
+          } catch {
+            if ($_.Exception.Message -match 'already exists|already been published|is already|Cannot publish') {
+              Write-Warning "Xcelerate is already at this version on $($env:PSGALLERY_REPOSITORY); skipping."
+              exit 0
+            }
+            throw
           }
 
   # --- Swift → SwiftPM repository ------------------------------------------
