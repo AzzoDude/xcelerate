@@ -8,7 +8,7 @@ license.workspace = true
 repository.workspace = true
 description = "A high-performance, lightweight Chrome DevTools Protocol (CDP) client for Rust."
 documentation = "https://docs.rs/xcelerate"
-keywords = ["automation", "cdp", "chrome", "headless", "stealth"]
+keywords = ["automation", "cdp", "chrome", "headless"]
 categories = ["web-programming", "development-tools"]
 readme = "../../README.md"
 

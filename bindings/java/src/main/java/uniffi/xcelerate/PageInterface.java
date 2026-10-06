@@ -39,10 +39,16 @@ public interface PageInterface {
     
     /**
      * Runs a JS function against the element matching `selector` (`$eval`).
+     *
+     * The element is resolved with the shadow-piercing selector first, so a
+     * match inside an open shadow root is reachable.
      */public java.util.concurrent.CompletableFuture<java.lang.String> callOnSelector(java.lang.String selector, java.lang.String expression) ;
     
     /**
      * Runs a JS function against every element matching `selector` (`$$eval`).
+     *
+     * The elements are resolved with the shadow-piercing selector first, so
+     * matches inside open shadow roots are included too.
      */public java.util.concurrent.CompletableFuture<java.lang.String> callOnSelectorAll(java.lang.String selector, java.lang.String expression) ;
     
     /**
@@ -95,6 +101,17 @@ public interface PageInterface {
     public byte[] decodeBase64(java.lang.String data) throws XcelerateException;
     
     /**
+     * The default timeout (ms) used by the waiting helpers. A stored value of
+     * `0` means "no timeout" and is mapped to the largest representable wait.
+     */public long defaultTimeout();
+    
+    /**
+     * Wraps the page's `document` as an [`Element`] so the shadow-piercing
+     * selector helpers on [`Element`] can be reused at the page level (with the
+     * same `document.querySelectorAll` scope).
+     */public java.util.concurrent.CompletableFuture<Element> documentElement() ;
+    
+    /**
      * Overrides the idle state.
      */public java.util.concurrent.CompletableFuture<java.lang.Void> emulateIdleState(boolean isUserActive, boolean isScreenUnlocked) ;
     
@@ -132,6 +149,8 @@ public interface PageInterface {
     
     /**
      * Finds an element matching the CSS selector.
+     *
+     * The search pierces open shadow roots, so web components are reachable.
      */public java.util.concurrent.CompletableFuture<Element> findElement(java.lang.String selector) ;
     
     /**
@@ -148,14 +167,23 @@ public interface PageInterface {
     
     /**
      * Finds a form control by its associated `<label>` text.
+     *
+     * Delegates to [`Element::get_by_label`], so the search pierces open shadow
+     * roots.
      */public java.util.concurrent.CompletableFuture<Element> getByLabel(java.lang.String label) ;
     
     /**
-     * Finds an element by ARIA role (falls back to a tag-name lookup).
+     * Finds an element by ARIA role.
+     *
+     * Delegates to [`Element::get_by_role`], so the search pierces open shadow
+     * roots.
      */public java.util.concurrent.CompletableFuture<Element> getByRole(java.lang.String role) ;
     
     /**
      * Finds an element whose text content contains `text`.
+     *
+     * Delegates to [`Element::get_by_text`], so the search pierces open shadow
+     * roots.
      */public java.util.concurrent.CompletableFuture<Element> getByText(java.lang.String text) ;
     
     /**
@@ -239,12 +267,15 @@ public interface PageInterface {
     /**
      * Returns every element matching the CSS selector.
      *
-     * Uses two round trips (fetch the node list, then read its properties)
-     * instead of one `evaluate` per match.
+     * The search pierces open shadow roots. Uses two round trips (fetch the node
+     * list, then read its properties) instead of one `evaluate` per match.
      */public java.util.concurrent.CompletableFuture<java.util.List<Element>> querySelectorAll(java.lang.String selector) ;
     
     /**
      * Returns the first node matching an XPath expression as an [`Element`].
+     *
+     * The search pierces open shadow roots and same-origin frames (see
+     * [`Element::query_selector_xpath`]).
      */public java.util.concurrent.CompletableFuture<Element> querySelectorXpath(java.lang.String xpath) ;
     public java.util.concurrent.CompletableFuture<java.lang.String> rawWindowBounds() ;
     
@@ -303,7 +334,9 @@ public interface PageInterface {
      */public java.util.concurrent.CompletableFuture<java.lang.Void> setContent(java.lang.String html) ;
     
     /**
-     * Stores a default timeout (ms) for adapter compatibility.
+     * Sets the default timeout (ms) applied by [`Page::wait_for_selector`],
+     * [`Page::wait_for_navigation`], and [`Page::wait_for_event_default`].
+     * As in Playwright, `0` disables the timeout.
      */public java.util.concurrent.CompletableFuture<java.lang.Void> setDefaultTimeout(double milliseconds) ;
     
     /**
@@ -414,7 +447,7 @@ public interface PageInterface {
      */public java.util.concurrent.CompletableFuture<java.lang.String> waitForEvent(java.lang.String eventName, long timeoutMs) ;
     
     /**
-     * [`Page::wait_for_event`] with the default 30s timeout.
+     * [`Page::wait_for_event`] with the page's default timeout.
      */public java.util.concurrent.CompletableFuture<java.lang.String> waitForEventDefault(java.lang.String eventName) ;
     
     /**
@@ -427,6 +460,9 @@ public interface PageInterface {
     
     /**
      * Waits for an element matching the selector to appear in the DOM.
+     *
+     * The search pierces open shadow roots. Polls until the page's default
+     * timeout elapses.
      */public java.util.concurrent.CompletableFuture<Element> waitForSelector(java.lang.String selector) ;
     
     /**

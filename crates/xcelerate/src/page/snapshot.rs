@@ -1048,7 +1048,7 @@ impl Page {
     /// Clicks the element that carried `index` in the most recent snapshot.
     ///
     /// Resolves the node's `backendNodeId` with `DOM.resolveNode` and then
-    /// reuses the stealth click path (scroll into view + real mouse events), so
+    /// reuses the real-mouse click path (scroll into view + real mouse events), so
     /// no CSS selector is re-evaluated and click targets cannot drift between
     /// the snapshot and the click.
     pub async fn click_index(self: Arc<Self>, index: u32) -> XcelerateResult<Arc<Self>> {
@@ -1083,7 +1083,7 @@ impl Page {
             page: Arc::clone(&self),
             object_id: object_id.to_string(),
         });
-        element.click_stealth().await?;
+        element.click_mouse().await?;
         Ok(self)
     }
 

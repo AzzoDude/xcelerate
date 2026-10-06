@@ -556,7 +556,7 @@ fileprivate struct FfiConverterData: FfiConverterRustBuffer {
 
 
 /**
- * Represents a browser instance (e.g., Chrome or Edge).
+ * A running Chromium-family browser (Chrome, Chromium, Edge, Brave, …).
  */
 public protocol BrowserProtocol: AnyObject, Sendable {
     
@@ -571,7 +571,10 @@ public protocol BrowserProtocol: AnyObject, Sendable {
     func auditVerify()  -> Bool
     
     /**
-     * Names of all compiled-in first-party plugins (the catalog).
+     * Names of the plugins currently available on this browser.
+     *
+     * Xcelerate ships **no** built-in plugins, so this lists the plugins that
+     * have been installed or loaded on this instance.
      */
     func availablePlugins()  -> [String]
     
@@ -586,7 +589,11 @@ public protocol BrowserProtocol: AnyObject, Sendable {
     func capabilities() async throws  -> String
     
     /**
-     * Closes the browser and kills the process.
+     * Closes the browser, letting it flush the profile, then kills it if needed.
+     *
+     * An attached browser (from [`Browser::connect`]) is not owned by this
+     * handle, so this is a no-op: it never sends `Browser.close` and never
+     * kills the process.
      */
     func close() async throws 
     
@@ -621,10 +628,16 @@ public protocol BrowserProtocol: AnyObject, Sendable {
     func listensTo(eventName: String) async  -> Bool
     
     /**
-     * Loads a third-party plugin. Not supported in this phase.
+     * Loads a plugin from disk.
      *
-     * The sandboxed, out-of-process runner required for untrusted plugins does
-     * not exist yet, so this always refuses rather than executing unknown code.
+     * `path` may be a plugin directory (containing `plugin.json`) or a
+     * `plugin.json` file. The manifest is validated, the `entrypoint` is
+     * instantiated as a sandboxed WebAssembly component, and a `describe`
+     * handshake wires up its ops. Dangerous capabilities stay denied unless
+     * opted into via `XCELERATE_PLUGIN_ALLOW`.
+     *
+     * Once loaded, the plugin's ops are reachable through
+     * `plugin(name).invoke(op, args_json)` in every language.
      */
     func loadPlugin(path: String) throws  -> String
     
@@ -696,12 +709,12 @@ public protocol BrowserProtocol: AnyObject, Sendable {
     func targets() async throws  -> String
     
     /**
-     * Enables a compiled-in first-party plugin at runtime.
+     * Enables an installed plugin at runtime.
      *
      * Launch-time contributions (such as binary patching) only take effect if
-     * the plugin was enabled before the browser launched; enabling a plugin
+     * the plugin was installed before the browser launched; enabling a plugin
      * afterwards applies its runtime hooks to pages created from now on. This
-     * is audited as a runtime enable. Unknown or third-party names are refused.
+     * is audited as a runtime enable. Unknown names are refused.
      */
     func usePlugin(name: String) async throws 
     
@@ -732,7 +745,7 @@ public protocol BrowserProtocol: AnyObject, Sendable {
     
 }
 /**
- * Represents a browser instance (e.g., Chrome or Edge).
+ * A running Chromium-family browser (Chrome, Chromium, Edge, Brave, …).
  */
 open class Browser: BrowserProtocol, @unchecked Sendable {
     fileprivate let handle: UInt64
@@ -825,7 +838,10 @@ open func auditVerify() -> Bool  {
 }
     
     /**
-     * Names of all compiled-in first-party plugins (the catalog).
+     * Names of the plugins currently available on this browser.
+     *
+     * Xcelerate ships **no** built-in plugins, so this lists the plugins that
+     * have been installed or loaded on this instance.
      */
 open func availablePlugins() -> [String]  {
     return try!  FfiConverterSequenceString.lift(try! rustCall() {
@@ -876,7 +892,11 @@ open func capabilities()async throws  -> String  {
 }
     
     /**
-     * Closes the browser and kills the process.
+     * Closes the browser, letting it flush the profile, then kills it if needed.
+     *
+     * An attached browser (from [`Browser::connect`]) is not owned by this
+     * handle, so this is a no-op: it never sends `Browser.close` and never
+     * kills the process.
      */
 open func close()async throws   {
     return
@@ -1019,10 +1039,16 @@ open func listensTo(eventName: String)async  -> Bool  {
 }
     
     /**
-     * Loads a third-party plugin. Not supported in this phase.
+     * Loads a plugin from disk.
      *
-     * The sandboxed, out-of-process runner required for untrusted plugins does
-     * not exist yet, so this always refuses rather than executing unknown code.
+     * `path` may be a plugin directory (containing `plugin.json`) or a
+     * `plugin.json` file. The manifest is validated, the `entrypoint` is
+     * instantiated as a sandboxed WebAssembly component, and a `describe`
+     * handshake wires up its ops. Dangerous capabilities stay denied unless
+     * opted into via `XCELERATE_PLUGIN_ALLOW`.
+     *
+     * Once loaded, the plugin's ops are reachable through
+     * `plugin(name).invoke(op, args_json)` in every language.
      */
 open func loadPlugin(path: String)throws  -> String  {
     return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeXcelerateError_lift) {
@@ -1298,12 +1324,12 @@ open func targets()async throws  -> String  {
 }
     
     /**
-     * Enables a compiled-in first-party plugin at runtime.
+     * Enables an installed plugin at runtime.
      *
      * Launch-time contributions (such as binary patching) only take effect if
-     * the plugin was enabled before the browser launched; enabling a plugin
+     * the plugin was installed before the browser launched; enabling a plugin
      * afterwards applies its runtime hooks to pages created from now on. This
-     * is audited as a runtime enable. Unknown or third-party names are refused.
+     * is audited as a runtime enable. Unknown names are refused.
      */
 open func usePlugin(name: String)async throws   {
     return
@@ -1485,11 +1511,17 @@ public protocol ElementProtocol: AnyObject, Sendable {
     
     /**
      * Runs a JS function against the first descendant matching `selector`.
+     *
+     * The descendant is resolved with the shadow-piercing selector first, so
+     * the expression also runs against a match inside an open shadow root.
      */
     func callOnSelector(selector: String, expression: String) async throws  -> String
     
     /**
      * Runs a JS function against every descendant matching `selector`.
+     *
+     * The descendants are resolved with the shadow-piercing selector first, so
+     * matches inside open shadow roots are included too.
      */
     func callOnSelectorAll(selector: String, expression: String) async throws  -> String
     
@@ -1505,8 +1537,12 @@ public protocol ElementProtocol: AnyObject, Sendable {
     
     /**
      * Clicks the element using realistic mouse movement and CDP input events.
+     *
+     * Fails with [`XcelerateError::NotFound`] if the element is not actionable
+     * (zero-size, `display:none`, `visibility:hidden` or fully transparent),
+     * rather than dispatching a click at coordinates that nothing occupies.
      */
-    func clickStealth() async throws  -> Element
+    func clickMouse() async throws  -> Element
     
     /**
      * Number of elements this handle represents (always 1).
@@ -1545,16 +1581,25 @@ public protocol ElementProtocol: AnyObject, Sendable {
     
     /**
      * Finds a descendant form control by its `<label>` text.
+     *
+     * The `<label>` search pierces open shadow roots, and the associated control
+     * is resolved from the label's own root so shadow-encapsulated controls work.
      */
     func getByLabel(label: String) async throws  -> Element
     
     /**
      * Finds a descendant by ARIA role.
+     *
+     * Prefers an explicit `[role="..."]` match, then falls back to the role name
+     * as a tag, since a native `<button>`/`<a>` carries its role implicitly.
+     * Both searches pierce open shadow roots.
      */
     func getByRole(role: String) async throws  -> Element
     
     /**
      * Finds a descendant whose text contains `text`.
+     *
+     * The search pierces open shadow roots.
      */
     func getByText(text: String) async throws  -> Element
     
@@ -1571,7 +1616,7 @@ public protocol ElementProtocol: AnyObject, Sendable {
     /**
      * Hovers over the element using realistic mouse movement.
      */
-    func hoverStealth() async throws  -> Element
+    func hoverMouse() async throws  -> Element
     
     /**
      * Returns the inner HTML of the element.
@@ -1585,14 +1630,16 @@ public protocol ElementProtocol: AnyObject, Sendable {
     
     /**
      * Returns the first descendant matching `selector` as an [`Element`].
+     *
+     * The search pierces open shadow roots, so web components are reachable.
      */
     func querySelector(selector: String) async throws  -> Element
     
     /**
      * Returns every descendant matching `selector`.
      *
-     * Resolves the whole node list with a single `Runtime.getProperties` call
-     * rather than one `evaluate` per match.
+     * The search pierces open shadow roots. Resolves the whole node list with a
+     * single `Runtime.getProperties` call rather than one `evaluate` per match.
      */
     func querySelectorAll(selector: String) async throws  -> [Element]
     
@@ -1603,6 +1650,12 @@ public protocol ElementProtocol: AnyObject, Sendable {
     
     /**
      * Finds a descendant matching an XPath expression.
+     *
+     * The expression is evaluated over the composed tree - open shadow roots and
+     * same-origin iframe documents are searched - by a built-in subset evaluator.
+     * Expressions outside that subset (unions, extra axes, `count()`, ...) fall
+     * back to the browser's native `document.evaluate`, which handles the full
+     * language but does not pierce shadow roots.
      */
     func querySelectorXpath(xpath: String) async throws  -> Element
     
@@ -1635,6 +1688,11 @@ public protocol ElementProtocol: AnyObject, Sendable {
     
     /**
      * Waits for a descendant matching `selector` to appear.
+     *
+     * The wait happens inside the page in a single CDP call: a `MutationObserver`
+     * resolves as soon as the node appears (and a slow rescan covers shadow
+     * roots), instead of the caller polling `query_selector` over the wire every
+     * 250ms. Times out after 30 seconds.
      */
     func waitForSelector(selector: String) async throws  -> Element
     
@@ -1757,6 +1815,9 @@ open func callJson(function: String, argsJson: String)async throws  -> String  {
     
     /**
      * Runs a JS function against the first descendant matching `selector`.
+     *
+     * The descendant is resolved with the shadow-piercing selector first, so
+     * the expression also runs against a match inside an open shadow root.
      */
 open func callOnSelector(selector: String, expression: String)async throws  -> String  {
     return
@@ -1777,6 +1838,9 @@ open func callOnSelector(selector: String, expression: String)async throws  -> S
     
     /**
      * Runs a JS function against every descendant matching `selector`.
+     *
+     * The descendants are resolved with the shadow-piercing selector first, so
+     * matches inside open shadow roots are included too.
      */
 open func callOnSelectorAll(selector: String, expression: String)async throws  -> String  {
     return
@@ -1837,12 +1901,16 @@ open func click()async throws  -> Element  {
     
     /**
      * Clicks the element using realistic mouse movement and CDP input events.
+     *
+     * Fails with [`XcelerateError::NotFound`] if the element is not actionable
+     * (zero-size, `display:none`, `visibility:hidden` or fully transparent),
+     * rather than dispatching a click at coordinates that nothing occupies.
      */
-open func clickStealth()async throws  -> Element  {
+open func clickMouse()async throws  -> Element  {
     return
         try  await uniffiRustCallAsync(
             rustFutureFunc: {
-                uniffi_xcelerate_fn_method_element_click_stealth(
+                uniffi_xcelerate_fn_method_element_click_mouse(
                     self.uniffiCloneHandle()
                     
                 )
@@ -1997,6 +2065,9 @@ open func focus()async throws  -> Element  {
     
     /**
      * Finds a descendant form control by its `<label>` text.
+     *
+     * The `<label>` search pierces open shadow roots, and the associated control
+     * is resolved from the label's own root so shadow-encapsulated controls work.
      */
 open func getByLabel(label: String)async throws  -> Element  {
     return
@@ -2017,6 +2088,10 @@ open func getByLabel(label: String)async throws  -> Element  {
     
     /**
      * Finds a descendant by ARIA role.
+     *
+     * Prefers an explicit `[role="..."]` match, then falls back to the role name
+     * as a tag, since a native `<button>`/`<a>` carries its role implicitly.
+     * Both searches pierce open shadow roots.
      */
 open func getByRole(role: String)async throws  -> Element  {
     return
@@ -2037,6 +2112,8 @@ open func getByRole(role: String)async throws  -> Element  {
     
     /**
      * Finds a descendant whose text contains `text`.
+     *
+     * The search pierces open shadow roots.
      */
 open func getByText(text: String)async throws  -> Element  {
     return
@@ -2098,11 +2175,11 @@ open func hover()async throws  -> Element  {
     /**
      * Hovers over the element using realistic mouse movement.
      */
-open func hoverStealth()async throws  -> Element  {
+open func hoverMouse()async throws  -> Element  {
     return
         try  await uniffiRustCallAsync(
             rustFutureFunc: {
-                uniffi_xcelerate_fn_method_element_hover_stealth(
+                uniffi_xcelerate_fn_method_element_hover_mouse(
                     self.uniffiCloneHandle()
                     
                 )
@@ -2157,6 +2234,8 @@ open func press(key: String)async throws   {
     
     /**
      * Returns the first descendant matching `selector` as an [`Element`].
+     *
+     * The search pierces open shadow roots, so web components are reachable.
      */
 open func querySelector(selector: String)async throws  -> Element  {
     return
@@ -2178,8 +2257,8 @@ open func querySelector(selector: String)async throws  -> Element  {
     /**
      * Returns every descendant matching `selector`.
      *
-     * Resolves the whole node list with a single `Runtime.getProperties` call
-     * rather than one `evaluate` per match.
+     * The search pierces open shadow roots. Resolves the whole node list with a
+     * single `Runtime.getProperties` call rather than one `evaluate` per match.
      */
 open func querySelectorAll(selector: String)async throws  -> [Element]  {
     return
@@ -2220,6 +2299,12 @@ open func querySelectorAttr(attribute: String, value: String)async throws  -> El
     
     /**
      * Finds a descendant matching an XPath expression.
+     *
+     * The expression is evaluated over the composed tree - open shadow roots and
+     * same-origin iframe documents are searched - by a built-in subset evaluator.
+     * Expressions outside that subset (unions, extra axes, `count()`, ...) fall
+     * back to the browser's native `document.evaluate`, which handles the full
+     * language but does not pierce shadow roots.
      */
 open func querySelectorXpath(xpath: String)async throws  -> Element  {
     return
@@ -2357,6 +2442,11 @@ open func typeText(text: String)async throws  -> Element  {
     
     /**
      * Waits for a descendant matching `selector` to appear.
+     *
+     * The wait happens inside the page in a single CDP call: a `MutationObserver`
+     * resolves as soon as the node appears (and a slow rescan covers shadow
+     * roots), instead of the caller polling `query_selector` over the wire every
+     * 250ms. Times out after 30 seconds.
      */
 open func waitForSelector(selector: String)async throws  -> Element  {
     return
@@ -2472,11 +2562,17 @@ public protocol PageProtocol: AnyObject, Sendable {
     
     /**
      * Runs a JS function against the element matching `selector` (`$eval`).
+     *
+     * The element is resolved with the shadow-piercing selector first, so a
+     * match inside an open shadow root is reachable.
      */
     func callOnSelector(selector: String, expression: String) async throws  -> String
     
     /**
      * Runs a JS function against every element matching `selector` (`$$eval`).
+     *
+     * The elements are resolved with the shadow-piercing selector first, so
+     * matches inside open shadow roots are included too.
      */
     func callOnSelectorAll(selector: String, expression: String) async throws  -> String
     
@@ -2543,6 +2639,19 @@ public protocol PageProtocol: AnyObject, Sendable {
     func decodeBase64(data: String) throws  -> Data
     
     /**
+     * The default timeout (ms) used by the waiting helpers. A stored value of
+     * `0` means "no timeout" and is mapped to the largest representable wait.
+     */
+    func defaultTimeout()  -> UInt64
+    
+    /**
+     * Wraps the page's `document` as an [`Element`] so the shadow-piercing
+     * selector helpers on [`Element`] can be reused at the page level (with the
+     * same `document.querySelectorAll` scope).
+     */
+    func documentElement() async throws  -> Element
+    
+    /**
      * Overrides the idle state.
      */
     func emulateIdleState(isUserActive: Bool, isScreenUnlocked: Bool) async throws 
@@ -2589,6 +2698,8 @@ public protocol PageProtocol: AnyObject, Sendable {
     
     /**
      * Finds an element matching the CSS selector.
+     *
+     * The search pierces open shadow roots, so web components are reachable.
      */
     func findElement(selector: String) async throws  -> Element
     
@@ -2609,16 +2720,25 @@ public protocol PageProtocol: AnyObject, Sendable {
     
     /**
      * Finds a form control by its associated `<label>` text.
+     *
+     * Delegates to [`Element::get_by_label`], so the search pierces open shadow
+     * roots.
      */
     func getByLabel(label: String) async throws  -> Element
     
     /**
-     * Finds an element by ARIA role (falls back to a tag-name lookup).
+     * Finds an element by ARIA role.
+     *
+     * Delegates to [`Element::get_by_role`], so the search pierces open shadow
+     * roots.
      */
     func getByRole(role: String) async throws  -> Element
     
     /**
      * Finds an element whose text content contains `text`.
+     *
+     * Delegates to [`Element::get_by_text`], so the search pierces open shadow
+     * roots.
      */
     func getByText(text: String) async throws  -> Element
     
@@ -2724,13 +2844,16 @@ public protocol PageProtocol: AnyObject, Sendable {
     /**
      * Returns every element matching the CSS selector.
      *
-     * Uses two round trips (fetch the node list, then read its properties)
-     * instead of one `evaluate` per match.
+     * The search pierces open shadow roots. Uses two round trips (fetch the node
+     * list, then read its properties) instead of one `evaluate` per match.
      */
     func querySelectorAll(selector: String) async throws  -> [Element]
     
     /**
      * Returns the first node matching an XPath expression as an [`Element`].
+     *
+     * The search pierces open shadow roots and same-origin frames (see
+     * [`Element::query_selector_xpath`]).
      */
     func querySelectorXpath(xpath: String) async throws  -> Element
     
@@ -2806,7 +2929,9 @@ public protocol PageProtocol: AnyObject, Sendable {
     func setContent(html: String) async throws 
     
     /**
-     * Stores a default timeout (ms) for adapter compatibility.
+     * Sets the default timeout (ms) applied by [`Page::wait_for_selector`],
+     * [`Page::wait_for_navigation`], and [`Page::wait_for_event_default`].
+     * As in Playwright, `0` disables the timeout.
      */
     func setDefaultTimeout(milliseconds: Double) async throws 
     
@@ -2944,7 +3069,7 @@ public protocol PageProtocol: AnyObject, Sendable {
     func waitForEvent(eventName: String, timeoutMs: UInt64) async throws  -> String
     
     /**
-     * [`Page::wait_for_event`] with the default 30s timeout.
+     * [`Page::wait_for_event`] with the page's default timeout.
      */
     func waitForEventDefault(eventName: String) async throws  -> String
     
@@ -2960,6 +3085,9 @@ public protocol PageProtocol: AnyObject, Sendable {
     
     /**
      * Waits for an element matching the selector to appear in the DOM.
+     *
+     * The search pierces open shadow roots. Polls until the page's default
+     * timeout elapses.
      */
     func waitForSelector(selector: String) async throws  -> Element
     
@@ -3204,6 +3332,9 @@ open func callJson(function: String, argsJson: String)async throws  -> String  {
     
     /**
      * Runs a JS function against the element matching `selector` (`$eval`).
+     *
+     * The element is resolved with the shadow-piercing selector first, so a
+     * match inside an open shadow root is reachable.
      */
 open func callOnSelector(selector: String, expression: String)async throws  -> String  {
     return
@@ -3224,6 +3355,9 @@ open func callOnSelector(selector: String, expression: String)async throws  -> S
     
     /**
      * Runs a JS function against every element matching `selector` (`$$eval`).
+     *
+     * The elements are resolved with the shadow-piercing selector first, so
+     * matches inside open shadow roots are included too.
      */
 open func callOnSelectorAll(selector: String, expression: String)async throws  -> String  {
     return
@@ -3493,6 +3627,40 @@ open func decodeBase64(data: String)throws  -> Data  {
 }
     
     /**
+     * The default timeout (ms) used by the waiting helpers. A stored value of
+     * `0` means "no timeout" and is mapped to the largest representable wait.
+     */
+open func defaultTimeout() -> UInt64  {
+    return try!  FfiConverterUInt64.lift(try! rustCall() {
+    uniffi_xcelerate_fn_method_page_default_timeout(
+            self.uniffiCloneHandle(),$0
+    )
+})
+}
+    
+    /**
+     * Wraps the page's `document` as an [`Element`] so the shadow-piercing
+     * selector helpers on [`Element`] can be reused at the page level (with the
+     * same `document.querySelectorAll` scope).
+     */
+open func documentElement()async throws  -> Element  {
+    return
+        try  await uniffiRustCallAsync(
+            rustFutureFunc: {
+                uniffi_xcelerate_fn_method_page_document_element(
+                    self.uniffiCloneHandle()
+                    
+                )
+            },
+            pollFunc: ffi_xcelerate_rust_future_poll_u64,
+            completeFunc: ffi_xcelerate_rust_future_complete_u64,
+            freeFunc: ffi_xcelerate_rust_future_free_u64,
+            liftFunc: FfiConverterTypeElement_lift,
+            errorHandler: FfiConverterTypeXcelerateError_lift
+        )
+}
+    
+    /**
      * Overrides the idle state.
      */
 open func emulateIdleState(isUserActive: Bool, isScreenUnlocked: Bool)async throws   {
@@ -3676,6 +3844,8 @@ open func executeCdpCmd(method: String, paramsJson: String)async throws  -> Stri
     
     /**
      * Finds an element matching the CSS selector.
+     *
+     * The search pierces open shadow roots, so web components are reachable.
      */
 open func findElement(selector: String)async throws  -> Element  {
     return
@@ -3756,6 +3926,9 @@ open func frames()async throws  -> String  {
     
     /**
      * Finds a form control by its associated `<label>` text.
+     *
+     * Delegates to [`Element::get_by_label`], so the search pierces open shadow
+     * roots.
      */
 open func getByLabel(label: String)async throws  -> Element  {
     return
@@ -3775,7 +3948,10 @@ open func getByLabel(label: String)async throws  -> Element  {
 }
     
     /**
-     * Finds an element by ARIA role (falls back to a tag-name lookup).
+     * Finds an element by ARIA role.
+     *
+     * Delegates to [`Element::get_by_role`], so the search pierces open shadow
+     * roots.
      */
 open func getByRole(role: String)async throws  -> Element  {
     return
@@ -3796,6 +3972,9 @@ open func getByRole(role: String)async throws  -> Element  {
     
     /**
      * Finds an element whose text content contains `text`.
+     *
+     * Delegates to [`Element::get_by_text`], so the search pierces open shadow
+     * roots.
      */
 open func getByText(text: String)async throws  -> Element  {
     return
@@ -4235,8 +4414,8 @@ open func press(selector: String, key: String)async throws   {
     /**
      * Returns every element matching the CSS selector.
      *
-     * Uses two round trips (fetch the node list, then read its properties)
-     * instead of one `evaluate` per match.
+     * The search pierces open shadow roots. Uses two round trips (fetch the node
+     * list, then read its properties) instead of one `evaluate` per match.
      */
 open func querySelectorAll(selector: String)async throws  -> [Element]  {
     return
@@ -4257,6 +4436,9 @@ open func querySelectorAll(selector: String)async throws  -> [Element]  {
     
     /**
      * Returns the first node matching an XPath expression as an [`Element`].
+     *
+     * The search pierces open shadow roots and same-origin frames (see
+     * [`Element::query_selector_xpath`]).
      */
 open func querySelectorXpath(xpath: String)async throws  -> Element  {
     return
@@ -4589,7 +4771,9 @@ open func setContent(html: String)async throws   {
 }
     
     /**
-     * Stores a default timeout (ms) for adapter compatibility.
+     * Sets the default timeout (ms) applied by [`Page::wait_for_selector`],
+     * [`Page::wait_for_navigation`], and [`Page::wait_for_event_default`].
+     * As in Playwright, `0` disables the timeout.
      */
 open func setDefaultTimeout(milliseconds: Double)async throws   {
     return
@@ -5123,7 +5307,7 @@ open func waitForEvent(eventName: String, timeoutMs: UInt64)async throws  -> Str
 }
     
     /**
-     * [`Page::wait_for_event`] with the default 30s timeout.
+     * [`Page::wait_for_event`] with the page's default timeout.
      */
 open func waitForEventDefault(eventName: String)async throws  -> String  {
     return
@@ -5184,6 +5368,9 @@ open func waitForNavigation()async throws   {
     
     /**
      * Waits for an element matching the selector to appear in the DOM.
+     *
+     * The search pierces open shadow roots. Polls until the page's default
+     * timeout elapses.
      */
 open func waitForSelector(selector: String)async throws  -> Element  {
     return
@@ -5533,9 +5720,12 @@ public struct BrowserConfig: Equatable, Hashable {
      */
     public var executablePath: String?
     /**
-     * First-party plugins to enable for this browser (for example
-     * `["stealth", "human"]`). Default-deny: no plugin does anything unless
-     * listed here (or enabled afterwards with `Browser::use_plugin`).
+     * External plugins to load at launch. Each entry is a path to a plugin
+     * directory or a `plugin.json`.
+     *
+     * Xcelerate ships **no** plugins built into the core. Default-deny: no
+     * plugin does anything unless it is listed here (or installed afterwards
+     * with `Browser::use_plugin` / `Browser::load_plugin`).
      */
     public var plugins: [String]?
 
@@ -5552,9 +5742,12 @@ public struct BrowserConfig: Equatable, Hashable {
          * Optional path to the browser executable.
          */executablePath: String?, 
         /**
-         * First-party plugins to enable for this browser (for example
-         * `["stealth", "human"]`). Default-deny: no plugin does anything unless
-         * listed here (or enabled afterwards with `Browser::use_plugin`).
+         * External plugins to load at launch. Each entry is a path to a plugin
+         * directory or a `plugin.json`.
+         *
+         * Xcelerate ships **no** plugins built into the core. Default-deny: no
+         * plugin does anything unless it is listed here (or installed afterwards
+         * with `Browser::use_plugin` / `Browser::load_plugin`).
          */plugins: [String]?) {
         self.headless = headless
         self.detached = detached
@@ -5627,6 +5820,8 @@ public enum XcelerateError: Swift.Error, Equatable, Hashable, Foundation.Localiz
     
     case Unsupported(message: String)
     
+    case Plugin(message: String)
+    
 
     
 
@@ -5684,6 +5879,10 @@ public struct FfiConverterTypeXcelerateError: FfiConverterRustBuffer {
             message: try FfiConverterString.read(from: &buf)
         )
         
+        case 8: return .Plugin(
+            message: try FfiConverterString.read(from: &buf)
+        )
+        
 
         default: throw UniffiInternalError.unexpectedEnumCase
         }
@@ -5709,6 +5908,8 @@ public struct FfiConverterTypeXcelerateError: FfiConverterRustBuffer {
             writeInt(&buf, Int32(6))
         case .Unsupported(_ /* message is ignored*/):
             writeInt(&buf, Int32(7))
+        case .Plugin(_ /* message is ignored*/):
+            writeInt(&buf, Int32(8))
 
         
         }
@@ -5891,103 +6092,103 @@ private let initializationResult: InitializationResult = {
     if bindings_contract_version != scaffolding_contract_version {
         return InitializationResult.contractVersionMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_audit_log() != 37952) {
+    if (uniffi_xcelerate_checksum_method_browser_audit_log() != 58417) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_audit_verify() != 5412) {
+    if (uniffi_xcelerate_checksum_method_browser_audit_verify() != 56834) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_available_plugins() != 9431) {
+    if (uniffi_xcelerate_checksum_method_browser_available_plugins() != 13132) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_browser_contexts() != 50137) {
+    if (uniffi_xcelerate_checksum_method_browser_browser_contexts() != 59339) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_capabilities() != 7431) {
+    if (uniffi_xcelerate_checksum_method_browser_capabilities() != 7601) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_close() != 831) {
+    if (uniffi_xcelerate_checksum_method_browser_close() != 44553) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_cookies() != 36914) {
+    if (uniffi_xcelerate_checksum_method_browser_cookies() != 8530) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_delete_cookie() != 14366) {
+    if (uniffi_xcelerate_checksum_method_browser_delete_cookie() != 44579) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_event_names() != 44664) {
+    if (uniffi_xcelerate_checksum_method_browser_event_names() != 12570) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_grant_permissions() != 57820) {
+    if (uniffi_xcelerate_checksum_method_browser_grant_permissions() != 62168) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_is_connected() != 10958) {
+    if (uniffi_xcelerate_checksum_method_browser_is_connected() != 63934) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_listens_to() != 12245) {
+    if (uniffi_xcelerate_checksum_method_browser_listens_to() != 56113) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_load_plugin() != 5693) {
+    if (uniffi_xcelerate_checksum_method_browser_load_plugin() != 26734) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_new_context() != 28184) {
+    if (uniffi_xcelerate_checksum_method_browser_new_context() != 59309) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_new_page() != 31633) {
+    if (uniffi_xcelerate_checksum_method_browser_new_page() != 65142) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_on() != 2255) {
+    if (uniffi_xcelerate_checksum_method_browser_on() != 4402) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_once() != 22376) {
+    if (uniffi_xcelerate_checksum_method_browser_once() != 62023) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_plugin() != 11907) {
+    if (uniffi_xcelerate_checksum_method_browser_plugin() != 38553) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_plugin_names() != 58296) {
+    if (uniffi_xcelerate_checksum_method_browser_plugin_names() != 5716) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_remove_all_listeners() != 51158) {
+    if (uniffi_xcelerate_checksum_method_browser_remove_all_listeners() != 16672) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_remove_listener() != 41339) {
+    if (uniffi_xcelerate_checksum_method_browser_remove_listener() != 3101) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_reset_permissions() != 21496) {
+    if (uniffi_xcelerate_checksum_method_browser_reset_permissions() != 50876) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_set_cookie() != 6259) {
+    if (uniffi_xcelerate_checksum_method_browser_set_cookie() != 61323) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_set_download_behavior() != 23198) {
+    if (uniffi_xcelerate_checksum_method_browser_set_download_behavior() != 32642) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_start_tracing() != 14885) {
+    if (uniffi_xcelerate_checksum_method_browser_start_tracing() != 25818) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_stop_tracing() != 57049) {
+    if (uniffi_xcelerate_checksum_method_browser_stop_tracing() != 30224) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_targets() != 28936) {
+    if (uniffi_xcelerate_checksum_method_browser_targets() != 50695) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_use_plugin() != 20462) {
+    if (uniffi_xcelerate_checksum_method_browser_use_plugin() != 53288) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_user_agent() != 20558) {
+    if (uniffi_xcelerate_checksum_method_browser_user_agent() != 36639) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_version() != 64817) {
+    if (uniffi_xcelerate_checksum_method_browser_version() != 2891) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_wait_for_event() != 20884) {
+    if (uniffi_xcelerate_checksum_method_browser_wait_for_event() != 63537) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_wait_for_event_default() != 53096) {
+    if (uniffi_xcelerate_checksum_method_browser_wait_for_event_default() != 14198) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_browser_ws_endpoint() != 36520) {
+    if (uniffi_xcelerate_checksum_method_browser_ws_endpoint() != 63756) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_xcelerate_checksum_method_element_attribute() != 8836) {
@@ -5999,10 +6200,10 @@ private let initializationResult: InitializationResult = {
     if (uniffi_xcelerate_checksum_method_element_call_json() != 56720) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_element_call_on_selector() != 20589) {
+    if (uniffi_xcelerate_checksum_method_element_call_on_selector() != 53984) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_element_call_on_selector_all() != 58660) {
+    if (uniffi_xcelerate_checksum_method_element_call_on_selector_all() != 47977) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_xcelerate_checksum_method_element_call_string() != 1191) {
@@ -6011,7 +6212,7 @@ private let initializationResult: InitializationResult = {
     if (uniffi_xcelerate_checksum_method_element_click() != 26136) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_element_click_stealth() != 64888) {
+    if (uniffi_xcelerate_checksum_method_element_click_mouse() != 60796) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_xcelerate_checksum_method_element_count() != 40137) {
@@ -6035,13 +6236,13 @@ private let initializationResult: InitializationResult = {
     if (uniffi_xcelerate_checksum_method_element_focus() != 34225) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_element_get_by_label() != 41888) {
+    if (uniffi_xcelerate_checksum_method_element_get_by_label() != 29865) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_element_get_by_role() != 15624) {
+    if (uniffi_xcelerate_checksum_method_element_get_by_role() != 15953) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_element_get_by_text() != 11298) {
+    if (uniffi_xcelerate_checksum_method_element_get_by_text() != 18847) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_xcelerate_checksum_method_element_get_properties() != 28646) {
@@ -6050,7 +6251,7 @@ private let initializationResult: InitializationResult = {
     if (uniffi_xcelerate_checksum_method_element_hover() != 32638) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_element_hover_stealth() != 12397) {
+    if (uniffi_xcelerate_checksum_method_element_hover_mouse() != 47391) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_xcelerate_checksum_method_element_inner_html() != 63319) {
@@ -6059,16 +6260,16 @@ private let initializationResult: InitializationResult = {
     if (uniffi_xcelerate_checksum_method_element_press() != 13244) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_element_query_selector() != 59248) {
+    if (uniffi_xcelerate_checksum_method_element_query_selector() != 19454) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_element_query_selector_all() != 57750) {
+    if (uniffi_xcelerate_checksum_method_element_query_selector_all() != 65463) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_xcelerate_checksum_method_element_query_selector_attr() != 63681) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_element_query_selector_xpath() != 47775) {
+    if (uniffi_xcelerate_checksum_method_element_query_selector_xpath() != 11390) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_xcelerate_checksum_method_element_screenshot() != 55082) {
@@ -6089,7 +6290,7 @@ private let initializationResult: InitializationResult = {
     if (uniffi_xcelerate_checksum_method_element_type_text() != 45944) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_element_wait_for_selector() != 53340) {
+    if (uniffi_xcelerate_checksum_method_element_wait_for_selector() != 23551) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_xcelerate_checksum_method_page_activate() != 30852) {
@@ -6116,10 +6317,10 @@ private let initializationResult: InitializationResult = {
     if (uniffi_xcelerate_checksum_method_page_call_json() != 37033) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_page_call_on_selector() != 27164) {
+    if (uniffi_xcelerate_checksum_method_page_call_on_selector() != 902) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_page_call_on_selector_all() != 24130) {
+    if (uniffi_xcelerate_checksum_method_page_call_on_selector_all() != 9317) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_xcelerate_checksum_method_page_call_string() != 28160) {
@@ -6161,6 +6362,12 @@ private let initializationResult: InitializationResult = {
     if (uniffi_xcelerate_checksum_method_page_decode_base64() != 39526) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_xcelerate_checksum_method_page_default_timeout() != 18710) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_xcelerate_checksum_method_page_document_element() != 41358) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_xcelerate_checksum_method_page_emulate_idle_state() != 53017) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -6188,7 +6395,7 @@ private let initializationResult: InitializationResult = {
     if (uniffi_xcelerate_checksum_method_page_execute_cdp_cmd() != 20070) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_page_find_element() != 4260) {
+    if (uniffi_xcelerate_checksum_method_page_find_element() != 20082) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_xcelerate_checksum_method_page_frame() != 33986) {
@@ -6200,13 +6407,13 @@ private let initializationResult: InitializationResult = {
     if (uniffi_xcelerate_checksum_method_page_frames() != 13809) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_page_get_by_label() != 63689) {
+    if (uniffi_xcelerate_checksum_method_page_get_by_label() != 51936) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_page_get_by_role() != 32218) {
+    if (uniffi_xcelerate_checksum_method_page_get_by_role() != 32000) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_page_get_by_text() != 27497) {
+    if (uniffi_xcelerate_checksum_method_page_get_by_text() != 25448) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_xcelerate_checksum_method_page_get_default_timeout() != 57791) {
@@ -6272,10 +6479,10 @@ private let initializationResult: InitializationResult = {
     if (uniffi_xcelerate_checksum_method_page_press() != 21741) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_page_query_selector_all() != 64158) {
+    if (uniffi_xcelerate_checksum_method_page_query_selector_all() != 7778) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_page_query_selector_xpath() != 48442) {
+    if (uniffi_xcelerate_checksum_method_page_query_selector_xpath() != 64720) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_xcelerate_checksum_method_page_raw_window_bounds() != 13012) {
@@ -6326,7 +6533,7 @@ private let initializationResult: InitializationResult = {
     if (uniffi_xcelerate_checksum_method_page_set_content() != 60133) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_page_set_default_timeout() != 58523) {
+    if (uniffi_xcelerate_checksum_method_page_set_default_timeout() != 7299) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_xcelerate_checksum_method_page_set_drag_interception() != 35102) {
@@ -6407,7 +6614,7 @@ private let initializationResult: InitializationResult = {
     if (uniffi_xcelerate_checksum_method_page_wait_for_event() != 16279) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_page_wait_for_event_default() != 30417) {
+    if (uniffi_xcelerate_checksum_method_page_wait_for_event_default() != 7458) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_xcelerate_checksum_method_page_wait_for_function() != 39925) {
@@ -6416,7 +6623,7 @@ private let initializationResult: InitializationResult = {
     if (uniffi_xcelerate_checksum_method_page_wait_for_navigation() != 28813) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_method_page_wait_for_selector() != 58306) {
+    if (uniffi_xcelerate_checksum_method_page_wait_for_selector() != 8076) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_xcelerate_checksum_method_page_wait_for_xpath() != 14726) {
@@ -6443,7 +6650,7 @@ private let initializationResult: InitializationResult = {
     if (uniffi_xcelerate_checksum_method_pluginhandle_plugin_name() != 61258) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_xcelerate_checksum_constructor_browser_launch() != 45323) {
+    if (uniffi_xcelerate_checksum_constructor_browser_launch() != 47265) {
         return InitializationResult.apiChecksumMismatch
     }
 

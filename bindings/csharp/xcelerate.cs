@@ -1123,6 +1123,8 @@ static class _UniFFILib {
     
     
     
+    
+    
 
     static _UniFFILib() {
         _UniFFILib.uniffiCheckContractApiVersion();
@@ -1633,7 +1635,7 @@ static class _UniFFILib {
     [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
     public static extern
 #endif
-     ulong uniffi_xcelerate_fn_method_element_click_stealth(ulong @ptr
+     ulong uniffi_xcelerate_fn_method_element_click_mouse(ulong @ptr
     );
 
     #if NET8_0_OR_GREATER
@@ -1776,7 +1778,7 @@ static class _UniFFILib {
     [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
     public static extern
 #endif
-     ulong uniffi_xcelerate_fn_method_element_hover_stealth(ulong @ptr
+     ulong uniffi_xcelerate_fn_method_element_hover_mouse(ulong @ptr
     );
 
     #if NET8_0_OR_GREATER
@@ -2206,6 +2208,17 @@ static class _UniFFILib {
     public static extern
 #endif
      ulong uniffi_xcelerate_fn_method_page_default_timeout(ulong @ptr,ref UniffiRustCallStatus _uniffi_out_err
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ulong uniffi_xcelerate_fn_method_page_document_element(ulong @ptr
     );
 
     #if NET8_0_OR_GREATER
@@ -4284,7 +4297,7 @@ static class _UniFFILib {
     [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
     public static extern
 #endif
-     ushort uniffi_xcelerate_checksum_method_element_click_stealth(
+     ushort uniffi_xcelerate_checksum_method_element_click_mouse(
     );
 
     #if NET8_0_OR_GREATER
@@ -4427,7 +4440,7 @@ static class _UniFFILib {
     [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
     public static extern
 #endif
-     ushort uniffi_xcelerate_checksum_method_element_hover_stealth(
+     ushort uniffi_xcelerate_checksum_method_element_hover_mouse(
     );
 
     #if NET8_0_OR_GREATER
@@ -4835,6 +4848,17 @@ static class _UniFFILib {
     public static extern
 #endif
      ushort uniffi_xcelerate_checksum_method_page_default_timeout(
+    );
+
+    #if NET8_0_OR_GREATER
+    [LibraryImport("xcelerate")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    public static partial
+#else
+    [DllImport("xcelerate", CallingConvention = CallingConvention.Cdecl)]
+    public static extern
+#endif
+     ushort uniffi_xcelerate_checksum_method_page_document_element(
     );
 
     #if NET8_0_OR_GREATER
@@ -5904,200 +5928,200 @@ static class _UniFFILib {
     static void uniffiCheckApiChecksums() {
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_audit_log();
-            if (checksum != 37952) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_audit_log` checksum `37952`, library returned `{checksum}`");
+            if (checksum != 58417) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_audit_log` checksum `58417`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_audit_verify();
-            if (checksum != 5412) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_audit_verify` checksum `5412`, library returned `{checksum}`");
+            if (checksum != 56834) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_audit_verify` checksum `56834`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_available_plugins();
-            if (checksum != 9431) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_available_plugins` checksum `9431`, library returned `{checksum}`");
+            if (checksum != 13132) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_available_plugins` checksum `13132`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_browser_contexts();
-            if (checksum != 50137) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_browser_contexts` checksum `50137`, library returned `{checksum}`");
+            if (checksum != 59339) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_browser_contexts` checksum `59339`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_capabilities();
-            if (checksum != 7431) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_capabilities` checksum `7431`, library returned `{checksum}`");
+            if (checksum != 7601) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_capabilities` checksum `7601`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_close();
-            if (checksum != 831) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_close` checksum `831`, library returned `{checksum}`");
+            if (checksum != 44553) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_close` checksum `44553`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_cookies();
-            if (checksum != 36914) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_cookies` checksum `36914`, library returned `{checksum}`");
+            if (checksum != 8530) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_cookies` checksum `8530`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_delete_cookie();
-            if (checksum != 14366) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_delete_cookie` checksum `14366`, library returned `{checksum}`");
+            if (checksum != 44579) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_delete_cookie` checksum `44579`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_event_names();
-            if (checksum != 44664) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_event_names` checksum `44664`, library returned `{checksum}`");
+            if (checksum != 12570) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_event_names` checksum `12570`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_grant_permissions();
-            if (checksum != 57820) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_grant_permissions` checksum `57820`, library returned `{checksum}`");
+            if (checksum != 62168) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_grant_permissions` checksum `62168`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_is_connected();
-            if (checksum != 10958) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_is_connected` checksum `10958`, library returned `{checksum}`");
+            if (checksum != 63934) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_is_connected` checksum `63934`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_listens_to();
-            if (checksum != 12245) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_listens_to` checksum `12245`, library returned `{checksum}`");
+            if (checksum != 56113) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_listens_to` checksum `56113`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_load_plugin();
-            if (checksum != 5693) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_load_plugin` checksum `5693`, library returned `{checksum}`");
+            if (checksum != 26734) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_load_plugin` checksum `26734`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_new_context();
-            if (checksum != 28184) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_new_context` checksum `28184`, library returned `{checksum}`");
+            if (checksum != 59309) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_new_context` checksum `59309`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_new_page();
-            if (checksum != 31633) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_new_page` checksum `31633`, library returned `{checksum}`");
+            if (checksum != 65142) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_new_page` checksum `65142`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_on();
-            if (checksum != 2255) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_on` checksum `2255`, library returned `{checksum}`");
+            if (checksum != 4402) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_on` checksum `4402`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_once();
-            if (checksum != 22376) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_once` checksum `22376`, library returned `{checksum}`");
+            if (checksum != 62023) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_once` checksum `62023`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_plugin();
-            if (checksum != 11907) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_plugin` checksum `11907`, library returned `{checksum}`");
+            if (checksum != 38553) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_plugin` checksum `38553`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_plugin_names();
-            if (checksum != 58296) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_plugin_names` checksum `58296`, library returned `{checksum}`");
+            if (checksum != 5716) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_plugin_names` checksum `5716`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_remove_all_listeners();
-            if (checksum != 51158) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_remove_all_listeners` checksum `51158`, library returned `{checksum}`");
+            if (checksum != 16672) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_remove_all_listeners` checksum `16672`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_remove_listener();
-            if (checksum != 41339) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_remove_listener` checksum `41339`, library returned `{checksum}`");
+            if (checksum != 3101) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_remove_listener` checksum `3101`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_reset_permissions();
-            if (checksum != 21496) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_reset_permissions` checksum `21496`, library returned `{checksum}`");
+            if (checksum != 50876) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_reset_permissions` checksum `50876`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_set_cookie();
-            if (checksum != 6259) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_set_cookie` checksum `6259`, library returned `{checksum}`");
+            if (checksum != 61323) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_set_cookie` checksum `61323`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_set_download_behavior();
-            if (checksum != 23198) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_set_download_behavior` checksum `23198`, library returned `{checksum}`");
+            if (checksum != 32642) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_set_download_behavior` checksum `32642`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_start_tracing();
-            if (checksum != 14885) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_start_tracing` checksum `14885`, library returned `{checksum}`");
+            if (checksum != 25818) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_start_tracing` checksum `25818`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_stop_tracing();
-            if (checksum != 57049) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_stop_tracing` checksum `57049`, library returned `{checksum}`");
+            if (checksum != 30224) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_stop_tracing` checksum `30224`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_targets();
-            if (checksum != 28936) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_targets` checksum `28936`, library returned `{checksum}`");
+            if (checksum != 50695) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_targets` checksum `50695`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_use_plugin();
-            if (checksum != 20462) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_use_plugin` checksum `20462`, library returned `{checksum}`");
+            if (checksum != 53288) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_use_plugin` checksum `53288`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_user_agent();
-            if (checksum != 20558) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_user_agent` checksum `20558`, library returned `{checksum}`");
+            if (checksum != 36639) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_user_agent` checksum `36639`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_version();
-            if (checksum != 64817) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_version` checksum `64817`, library returned `{checksum}`");
+            if (checksum != 2891) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_version` checksum `2891`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_wait_for_event();
-            if (checksum != 20884) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_wait_for_event` checksum `20884`, library returned `{checksum}`");
+            if (checksum != 63537) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_wait_for_event` checksum `63537`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_wait_for_event_default();
-            if (checksum != 53096) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_wait_for_event_default` checksum `53096`, library returned `{checksum}`");
+            if (checksum != 14198) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_wait_for_event_default` checksum `14198`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_browser_ws_endpoint();
-            if (checksum != 36520) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_ws_endpoint` checksum `36520`, library returned `{checksum}`");
+            if (checksum != 63756) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_browser_ws_endpoint` checksum `63756`, library returned `{checksum}`");
             }
         }
         {
@@ -6120,14 +6144,14 @@ static class _UniFFILib {
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_element_call_on_selector();
-            if (checksum != 20589) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_call_on_selector` checksum `20589`, library returned `{checksum}`");
+            if (checksum != 53984) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_call_on_selector` checksum `53984`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_element_call_on_selector_all();
-            if (checksum != 58660) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_call_on_selector_all` checksum `58660`, library returned `{checksum}`");
+            if (checksum != 47977) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_call_on_selector_all` checksum `47977`, library returned `{checksum}`");
             }
         }
         {
@@ -6143,9 +6167,9 @@ static class _UniFFILib {
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_element_click_stealth();
-            if (checksum != 64888) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_click_stealth` checksum `64888`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_element_click_mouse();
+            if (checksum != 60796) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_click_mouse` checksum `60796`, library returned `{checksum}`");
             }
         }
         {
@@ -6192,20 +6216,20 @@ static class _UniFFILib {
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_element_get_by_label();
-            if (checksum != 41888) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_get_by_label` checksum `41888`, library returned `{checksum}`");
+            if (checksum != 29865) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_get_by_label` checksum `29865`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_element_get_by_role();
-            if (checksum != 15624) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_get_by_role` checksum `15624`, library returned `{checksum}`");
+            if (checksum != 15953) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_get_by_role` checksum `15953`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_element_get_by_text();
-            if (checksum != 11298) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_get_by_text` checksum `11298`, library returned `{checksum}`");
+            if (checksum != 18847) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_get_by_text` checksum `18847`, library returned `{checksum}`");
             }
         }
         {
@@ -6221,9 +6245,9 @@ static class _UniFFILib {
             }
         }
         {
-            var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_element_hover_stealth();
-            if (checksum != 12397) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_hover_stealth` checksum `12397`, library returned `{checksum}`");
+            var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_element_hover_mouse();
+            if (checksum != 47391) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_hover_mouse` checksum `47391`, library returned `{checksum}`");
             }
         }
         {
@@ -6240,14 +6264,14 @@ static class _UniFFILib {
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_element_query_selector();
-            if (checksum != 59248) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_query_selector` checksum `59248`, library returned `{checksum}`");
+            if (checksum != 19454) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_query_selector` checksum `19454`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_element_query_selector_all();
-            if (checksum != 57750) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_query_selector_all` checksum `57750`, library returned `{checksum}`");
+            if (checksum != 65463) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_query_selector_all` checksum `65463`, library returned `{checksum}`");
             }
         }
         {
@@ -6258,8 +6282,8 @@ static class _UniFFILib {
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_element_query_selector_xpath();
-            if (checksum != 47775) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_query_selector_xpath` checksum `47775`, library returned `{checksum}`");
+            if (checksum != 11390) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_query_selector_xpath` checksum `11390`, library returned `{checksum}`");
             }
         }
         {
@@ -6300,8 +6324,8 @@ static class _UniFFILib {
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_element_wait_for_selector();
-            if (checksum != 53340) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_wait_for_selector` checksum `53340`, library returned `{checksum}`");
+            if (checksum != 23551) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_element_wait_for_selector` checksum `23551`, library returned `{checksum}`");
             }
         }
         {
@@ -6354,14 +6378,14 @@ static class _UniFFILib {
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_page_call_on_selector();
-            if (checksum != 27164) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_call_on_selector` checksum `27164`, library returned `{checksum}`");
+            if (checksum != 902) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_call_on_selector` checksum `902`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_page_call_on_selector_all();
-            if (checksum != 24130) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_call_on_selector_all` checksum `24130`, library returned `{checksum}`");
+            if (checksum != 9317) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_call_on_selector_all` checksum `9317`, library returned `{checksum}`");
             }
         }
         {
@@ -6449,6 +6473,12 @@ static class _UniFFILib {
             }
         }
         {
+            var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_page_document_element();
+            if (checksum != 41358) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_document_element` checksum `41358`, library returned `{checksum}`");
+            }
+        }
+        {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_page_emulate_idle_state();
             if (checksum != 53017) {
                 throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_emulate_idle_state` checksum `53017`, library returned `{checksum}`");
@@ -6504,8 +6534,8 @@ static class _UniFFILib {
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_page_find_element();
-            if (checksum != 4260) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_find_element` checksum `4260`, library returned `{checksum}`");
+            if (checksum != 20082) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_find_element` checksum `20082`, library returned `{checksum}`");
             }
         }
         {
@@ -6528,20 +6558,20 @@ static class _UniFFILib {
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_page_get_by_label();
-            if (checksum != 63689) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_get_by_label` checksum `63689`, library returned `{checksum}`");
+            if (checksum != 51936) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_get_by_label` checksum `51936`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_page_get_by_role();
-            if (checksum != 32218) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_get_by_role` checksum `32218`, library returned `{checksum}`");
+            if (checksum != 32000) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_get_by_role` checksum `32000`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_page_get_by_text();
-            if (checksum != 27497) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_get_by_text` checksum `27497`, library returned `{checksum}`");
+            if (checksum != 25448) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_get_by_text` checksum `25448`, library returned `{checksum}`");
             }
         }
         {
@@ -6672,14 +6702,14 @@ static class _UniFFILib {
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_page_query_selector_all();
-            if (checksum != 64158) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_query_selector_all` checksum `64158`, library returned `{checksum}`");
+            if (checksum != 7778) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_query_selector_all` checksum `7778`, library returned `{checksum}`");
             }
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_page_query_selector_xpath();
-            if (checksum != 48442) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_query_selector_xpath` checksum `48442`, library returned `{checksum}`");
+            if (checksum != 64720) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_query_selector_xpath` checksum `64720`, library returned `{checksum}`");
             }
         }
         {
@@ -6960,8 +6990,8 @@ static class _UniFFILib {
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_method_page_wait_for_selector();
-            if (checksum != 58306) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_wait_for_selector` checksum `58306`, library returned `{checksum}`");
+            if (checksum != 8076) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_method_page_wait_for_selector` checksum `8076`, library returned `{checksum}`");
             }
         }
         {
@@ -7014,8 +7044,8 @@ static class _UniFFILib {
         }
         {
             var checksum = _UniFFILib.uniffi_xcelerate_checksum_constructor_browser_launch();
-            if (checksum != 45323) {
-                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_constructor_browser_launch` checksum `45323`, library returned `{checksum}`");
+            if (checksum != 47265) {
+                throw new UniffiContractChecksumException($"uniffi.xcelerate: uniffi bindings expected function `uniffi_xcelerate_checksum_constructor_browser_launch` checksum `47265`, library returned `{checksum}`");
             }
         }
     }
@@ -7201,7 +7231,7 @@ public class FfiConverterByteArray: FfiConverterRustBuffer<byte[]> {
 
 
 /// <summary>
-/// Represents a browser instance (e.g., Chrome or Edge).
+/// A running Chromium-family browser (Chrome, Chromium, Edge, Brave, …).
 /// </summary>
 public interface IBrowser {
     /// <summary>
@@ -7213,7 +7243,10 @@ public interface IBrowser {
     /// </summary>
     bool AuditVerify();
     /// <summary>
-    /// Names of all compiled-in first-party plugins (the catalog).
+    /// Names of the plugins currently available on this browser.
+    ///
+    /// Xcelerate ships **no** built-in plugins, so this lists the plugins that
+    /// have been installed or loaded on this instance.
     /// </summary>
     string[] AvailablePlugins();
     /// <summary>
@@ -7227,7 +7260,11 @@ public interface IBrowser {
     /// <exception cref="XcelerateException"></exception>
     Task<string> Capabilities();
     /// <summary>
-    /// Closes the browser and kills the process.
+    /// Closes the browser, letting it flush the profile, then kills it if needed.
+    ///
+    /// An attached browser (from [`Browser::connect`]) is not owned by this
+    /// handle, so this is a no-op: it never sends `Browser.close` and never
+    /// kills the process.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task Close();
@@ -7259,10 +7296,16 @@ public interface IBrowser {
     /// </summary>
     Task<bool> ListensTo(string @eventName);
     /// <summary>
-    /// Loads a third-party plugin. Not supported in this phase.
+    /// Loads a plugin from disk.
     ///
-    /// The sandboxed, out-of-process runner required for untrusted plugins does
-    /// not exist yet, so this always refuses rather than executing unknown code.
+    /// `path` may be a plugin directory (containing `plugin.json`) or a
+    /// `plugin.json` file. The manifest is validated, the `entrypoint` is
+    /// instantiated as a sandboxed WebAssembly component, and a `describe`
+    /// handshake wires up its ops. Dangerous capabilities stay denied unless
+    /// opted into via `XCELERATE_PLUGIN_ALLOW`.
+    ///
+    /// Once loaded, the plugin's ops are reachable through
+    /// `plugin(name).invoke(op, args_json)` in every language.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     string LoadPlugin(string @path);
@@ -7329,12 +7372,12 @@ public interface IBrowser {
     /// <exception cref="XcelerateException"></exception>
     Task<string> Targets();
     /// <summary>
-    /// Enables a compiled-in first-party plugin at runtime.
+    /// Enables an installed plugin at runtime.
     ///
     /// Launch-time contributions (such as binary patching) only take effect if
-    /// the plugin was enabled before the browser launched; enabling a plugin
+    /// the plugin was installed before the browser launched; enabling a plugin
     /// afterwards applies its runtime hooks to pages created from now on. This
-    /// is audited as a runtime enable. Unknown or third-party names are refused.
+    /// is audited as a runtime enable. Unknown names are refused.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task UsePlugin(string @name);
@@ -7364,7 +7407,7 @@ public interface IBrowser {
     string WsEndpoint();
 }
 /// <summary>
-/// Represents a browser instance (e.g., Chrome or Edge).
+/// A running Chromium-family browser (Chrome, Chromium, Edge, Brave, …).
 /// </summary>
 public class Browser : IBrowser, IDisposable {
     protected ulong pointer;
@@ -7478,7 +7521,10 @@ public class Browser : IBrowser, IDisposable {
     
     
     /// <summary>
-    /// Names of all compiled-in first-party plugins (the catalog).
+    /// Names of the plugins currently available on this browser.
+    ///
+    /// Xcelerate ships **no** built-in plugins, so this lists the plugins that
+    /// have been installed or loaded on this instance.
     /// </summary>
     public string[] AvailablePlugins() {
         return CallWithPointer(thisPtr => FfiConverterSequenceString.INSTANCE.Lift(
@@ -7539,7 +7585,11 @@ public class Browser : IBrowser, IDisposable {
     }
     
     /// <summary>
-    /// Closes the browser and kills the process.
+    /// Closes the browser, letting it flush the profile, then kills it if needed.
+    ///
+    /// An attached browser (from [`Browser::connect`]) is not owned by this
+    /// handle, so this is a no-op: it never sends `Browser.close` and never
+    /// kills the process.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task Close() {await _UniFFIAsync.UniffiRustCallAsync(
@@ -7702,10 +7752,16 @@ public class Browser : IBrowser, IDisposable {
     }
     
     /// <summary>
-    /// Loads a third-party plugin. Not supported in this phase.
+    /// Loads a plugin from disk.
     ///
-    /// The sandboxed, out-of-process runner required for untrusted plugins does
-    /// not exist yet, so this always refuses rather than executing unknown code.
+    /// `path` may be a plugin directory (containing `plugin.json`) or a
+    /// `plugin.json` file. The manifest is validated, the `entrypoint` is
+    /// instantiated as a sandboxed WebAssembly component, and a `describe`
+    /// handshake wires up its ops. Dangerous capabilities stay denied unless
+    /// opted into via `XCELERATE_PLUGIN_ALLOW`.
+    ///
+    /// Once loaded, the plugin's ops are reachable through
+    /// `plugin(name).invoke(op, args_json)` in every language.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public string LoadPlugin(string @path) {
@@ -8001,12 +8057,12 @@ public class Browser : IBrowser, IDisposable {
     }
     
     /// <summary>
-    /// Enables a compiled-in first-party plugin at runtime.
+    /// Enables an installed plugin at runtime.
     ///
     /// Launch-time contributions (such as binary patching) only take effect if
-    /// the plugin was enabled before the browser launched; enabling a plugin
+    /// the plugin was installed before the browser launched; enabling a plugin
     /// afterwards applies its runtime hooks to pages created from now on. This
-    /// is audited as a runtime enable. Unknown or third-party names are refused.
+    /// is audited as a runtime enable. Unknown names are refused.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task UsePlugin(string @name) {await _UniFFIAsync.UniffiRustCallAsync(
@@ -8209,11 +8265,17 @@ public interface IElement {
     Task<string> CallJson(string @function, string @argsJson);
     /// <summary>
     /// Runs a JS function against the first descendant matching `selector`.
+    ///
+    /// The descendant is resolved with the shadow-piercing selector first, so
+    /// the expression also runs against a match inside an open shadow root.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<string> CallOnSelector(string @selector, string @expression);
     /// <summary>
     /// Runs a JS function against every descendant matching `selector`.
+    ///
+    /// The descendants are resolved with the shadow-piercing selector first, so
+    /// matches inside open shadow roots are included too.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<string> CallOnSelectorAll(string @selector, string @expression);
@@ -8229,9 +8291,13 @@ public interface IElement {
     Task<Element> Click();
     /// <summary>
     /// Clicks the element using realistic mouse movement and CDP input events.
+    ///
+    /// Fails with [`XcelerateError::NotFound`] if the element is not actionable
+    /// (zero-size, `display:none`, `visibility:hidden` or fully transparent),
+    /// rather than dispatching a click at coordinates that nothing occupies.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
-    Task<Element> ClickStealth();
+    Task<Element> ClickMouse();
     /// <summary>
     /// Number of elements this handle represents (always 1).
     /// </summary>
@@ -8269,16 +8335,25 @@ public interface IElement {
     Task<Element> Focus();
     /// <summary>
     /// Finds a descendant form control by its `<label>` text.
+    ///
+    /// The `<label>` search pierces open shadow roots, and the associated control
+    /// is resolved from the label's own root so shadow-encapsulated controls work.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<Element> GetByLabel(string @label);
     /// <summary>
     /// Finds a descendant by ARIA role.
+    ///
+    /// Prefers an explicit `[role="..."]` match, then falls back to the role name
+    /// as a tag, since a native `<button>`/`<a>` carries its role implicitly.
+    /// Both searches pierce open shadow roots.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<Element> GetByRole(string @role);
     /// <summary>
     /// Finds a descendant whose text contains `text`.
+    ///
+    /// The search pierces open shadow roots.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<Element> GetByText(string @text);
@@ -8296,7 +8371,7 @@ public interface IElement {
     /// Hovers over the element using realistic mouse movement.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
-    Task<Element> HoverStealth();
+    Task<Element> HoverMouse();
     /// <summary>
     /// Returns the inner HTML of the element.
     /// </summary>
@@ -8309,14 +8384,16 @@ public interface IElement {
     Task Press(string @key);
     /// <summary>
     /// Returns the first descendant matching `selector` as an [`Element`].
+    ///
+    /// The search pierces open shadow roots, so web components are reachable.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<Element> QuerySelector(string @selector);
     /// <summary>
     /// Returns every descendant matching `selector`.
     ///
-    /// Resolves the whole node list with a single `Runtime.getProperties` call
-    /// rather than one `evaluate` per match.
+    /// The search pierces open shadow roots. Resolves the whole node list with a
+    /// single `Runtime.getProperties` call rather than one `evaluate` per match.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<Element[]> QuerySelectorAll(string @selector);
@@ -8327,6 +8404,12 @@ public interface IElement {
     Task<Element> QuerySelectorAttr(string @attribute, string @value);
     /// <summary>
     /// Finds a descendant matching an XPath expression.
+    ///
+    /// The expression is evaluated over the composed tree - open shadow roots and
+    /// same-origin iframe documents are searched - by a built-in subset evaluator.
+    /// Expressions outside that subset (unions, extra axes, `count()`, ...) fall
+    /// back to the browser's native `document.evaluate`, which handles the full
+    /// language but does not pierce shadow roots.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<Element> QuerySelectorXpath(string @xpath);
@@ -8359,6 +8442,11 @@ public interface IElement {
     Task<Element> TypeText(string @text);
     /// <summary>
     /// Waits for a descendant matching `selector` to appear.
+    ///
+    /// The wait happens inside the page in a single CDP call: a `MutationObserver`
+    /// resolves as soon as the node appears (and a slow rescan covers shadow
+    /// roots), instead of the caller polling `query_selector` over the wire every
+    /// 250ms. Times out after 30 seconds.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<Element> WaitForSelector(string @selector);
@@ -8532,6 +8620,9 @@ public class Element : IElement, IDisposable {
     
     /// <summary>
     /// Runs a JS function against the first descendant matching `selector`.
+    ///
+    /// The descendant is resolved with the shadow-piercing selector first, so
+    /// the expression also runs against a match inside an open shadow root.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<string> CallOnSelector(string @selector, string @expression) {
@@ -8557,6 +8648,9 @@ public class Element : IElement, IDisposable {
     
     /// <summary>
     /// Runs a JS function against every descendant matching `selector`.
+    ///
+    /// The descendants are resolved with the shadow-piercing selector first, so
+    /// matches inside open shadow roots are included too.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<string> CallOnSelectorAll(string @selector, string @expression) {
@@ -8632,13 +8726,17 @@ public class Element : IElement, IDisposable {
     
     /// <summary>
     /// Clicks the element using realistic mouse movement and CDP input events.
+    ///
+    /// Fails with [`XcelerateError::NotFound`] if the element is not actionable
+    /// (zero-size, `display:none`, `visibility:hidden` or fully transparent),
+    /// rather than dispatching a click at coordinates that nothing occupies.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
-    public async Task<Element> ClickStealth() {
+    public async Task<Element> ClickMouse() {
     return await _UniFFIAsync.UniffiRustCallAsync(
         // Get rust future
         CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_fn_method_element_click_stealth(thisPtr);
+            return _UniFFILib.uniffi_xcelerate_fn_method_element_click_mouse(thisPtr);
         }),
         // Poll
         (ulong future, IntPtr continuation, ulong data) => _UniFFILib.ffi_xcelerate_rust_future_poll_u64(future, continuation, data),
@@ -8828,6 +8926,9 @@ public class Element : IElement, IDisposable {
     
     /// <summary>
     /// Finds a descendant form control by its `<label>` text.
+    ///
+    /// The `<label>` search pierces open shadow roots, and the associated control
+    /// is resolved from the label's own root so shadow-encapsulated controls work.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<Element> GetByLabel(string @label) {
@@ -8853,6 +8954,10 @@ public class Element : IElement, IDisposable {
     
     /// <summary>
     /// Finds a descendant by ARIA role.
+    ///
+    /// Prefers an explicit `[role="..."]` match, then falls back to the role name
+    /// as a tag, since a native `<button>`/`<a>` carries its role implicitly.
+    /// Both searches pierce open shadow roots.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<Element> GetByRole(string @role) {
@@ -8878,6 +8983,8 @@ public class Element : IElement, IDisposable {
     
     /// <summary>
     /// Finds a descendant whose text contains `text`.
+    ///
+    /// The search pierces open shadow roots.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<Element> GetByText(string @text) {
@@ -8955,11 +9062,11 @@ public class Element : IElement, IDisposable {
     /// Hovers over the element using realistic mouse movement.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
-    public async Task<Element> HoverStealth() {
+    public async Task<Element> HoverMouse() {
     return await _UniFFIAsync.UniffiRustCallAsync(
         // Get rust future
         CallWithPointer(thisPtr => {
-            return _UniFFILib.uniffi_xcelerate_fn_method_element_hover_stealth(thisPtr);
+            return _UniFFILib.uniffi_xcelerate_fn_method_element_hover_mouse(thisPtr);
         }),
         // Poll
         (ulong future, IntPtr continuation, ulong data) => _UniFFILib.ffi_xcelerate_rust_future_poll_u64(future, continuation, data),
@@ -9024,6 +9131,8 @@ public class Element : IElement, IDisposable {
     
     /// <summary>
     /// Returns the first descendant matching `selector` as an [`Element`].
+    ///
+    /// The search pierces open shadow roots, so web components are reachable.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<Element> QuerySelector(string @selector) {
@@ -9050,8 +9159,8 @@ public class Element : IElement, IDisposable {
     /// <summary>
     /// Returns every descendant matching `selector`.
     ///
-    /// Resolves the whole node list with a single `Runtime.getProperties` call
-    /// rather than one `evaluate` per match.
+    /// The search pierces open shadow roots. Resolves the whole node list with a
+    /// single `Runtime.getProperties` call rather than one `evaluate` per match.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<Element[]> QuerySelectorAll(string @selector) {
@@ -9102,6 +9211,12 @@ public class Element : IElement, IDisposable {
     
     /// <summary>
     /// Finds a descendant matching an XPath expression.
+    ///
+    /// The expression is evaluated over the composed tree - open shadow roots and
+    /// same-origin iframe documents are searched - by a built-in subset evaluator.
+    /// Expressions outside that subset (unions, extra axes, `count()`, ...) fall
+    /// back to the browser's native `document.evaluate`, which handles the full
+    /// language but does not pierce shadow roots.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<Element> QuerySelectorXpath(string @xpath) {
@@ -9266,6 +9381,11 @@ public class Element : IElement, IDisposable {
     
     /// <summary>
     /// Waits for a descendant matching `selector` to appear.
+    ///
+    /// The wait happens inside the page in a single CDP call: a `MutationObserver`
+    /// resolves as soon as the node appears (and a slow rescan covers shadow
+    /// roots), instead of the caller polling `query_selector` over the wire every
+    /// 250ms. Times out after 30 seconds.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<Element> WaitForSelector(string @selector) {
@@ -9365,11 +9485,17 @@ public interface IPage {
     Task<string> CallJson(string @function, string @argsJson);
     /// <summary>
     /// Runs a JS function against the element matching `selector` (`$eval`).
+    ///
+    /// The element is resolved with the shadow-piercing selector first, so a
+    /// match inside an open shadow root is reachable.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<string> CallOnSelector(string @selector, string @expression);
     /// <summary>
     /// Runs a JS function against every element matching `selector` (`$$eval`).
+    ///
+    /// The elements are resolved with the shadow-piercing selector first, so
+    /// matches inside open shadow roots are included too.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<string> CallOnSelectorAll(string @selector, string @expression);
@@ -9440,6 +9566,13 @@ public interface IPage {
     /// </summary>
     ulong DefaultTimeout();
     /// <summary>
+    /// Wraps the page's `document` as an [`Element`] so the shadow-piercing
+    /// selector helpers on [`Element`] can be reused at the page level (with the
+    /// same `document.querySelectorAll` scope).
+    /// </summary>
+    /// <exception cref="XcelerateException"></exception>
+    Task<Element> DocumentElement();
+    /// <summary>
     /// Overrides the idle state.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
@@ -9484,6 +9617,8 @@ public interface IPage {
     Task<string> ExecuteCdpCmd(string @method, string @paramsJson);
     /// <summary>
     /// Finds an element matching the CSS selector.
+    ///
+    /// The search pierces open shadow roots, so web components are reachable.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<Element> FindElement(string @selector);
@@ -9504,16 +9639,25 @@ public interface IPage {
     Task<string> Frames();
     /// <summary>
     /// Finds a form control by its associated `<label>` text.
+    ///
+    /// Delegates to [`Element::get_by_label`], so the search pierces open shadow
+    /// roots.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<Element> GetByLabel(string @label);
     /// <summary>
-    /// Finds an element by ARIA role (falls back to a tag-name lookup).
+    /// Finds an element by ARIA role.
+    ///
+    /// Delegates to [`Element::get_by_role`], so the search pierces open shadow
+    /// roots.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<Element> GetByRole(string @role);
     /// <summary>
     /// Finds an element whose text content contains `text`.
+    ///
+    /// Delegates to [`Element::get_by_text`], so the search pierces open shadow
+    /// roots.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<Element> GetByText(string @text);
@@ -9615,13 +9759,16 @@ public interface IPage {
     /// <summary>
     /// Returns every element matching the CSS selector.
     ///
-    /// Uses two round trips (fetch the node list, then read its properties)
-    /// instead of one `evaluate` per match.
+    /// The search pierces open shadow roots. Uses two round trips (fetch the node
+    /// list, then read its properties) instead of one `evaluate` per match.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<Element[]> QuerySelectorAll(string @selector);
     /// <summary>
     /// Returns the first node matching an XPath expression as an [`Element`].
+    ///
+    /// The search pierces open shadow roots and same-origin frames (see
+    /// [`Element::query_selector_xpath`]).
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<Element> QuerySelectorXpath(string @xpath);
@@ -9850,6 +9997,9 @@ public interface IPage {
     Task WaitForNavigation();
     /// <summary>
     /// Waits for an element matching the selector to appear in the DOM.
+    ///
+    /// The search pierces open shadow roots. Polls until the page's default
+    /// timeout elapses.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     Task<Element> WaitForSelector(string @selector);
@@ -10154,6 +10304,9 @@ public class Page : IPage, IDisposable {
     
     /// <summary>
     /// Runs a JS function against the element matching `selector` (`$eval`).
+    ///
+    /// The element is resolved with the shadow-piercing selector first, so a
+    /// match inside an open shadow root is reachable.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<string> CallOnSelector(string @selector, string @expression) {
@@ -10179,6 +10332,9 @@ public class Page : IPage, IDisposable {
     
     /// <summary>
     /// Runs a JS function against every element matching `selector` (`$$eval`).
+    ///
+    /// The elements are resolved with the shadow-piercing selector first, so
+    /// matches inside open shadow roots are included too.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<string> CallOnSelectorAll(string @selector, string @expression) {
@@ -10508,6 +10664,33 @@ public class Page : IPage, IDisposable {
     
     
     /// <summary>
+    /// Wraps the page's `document` as an [`Element`] so the shadow-piercing
+    /// selector helpers on [`Element`] can be reused at the page level (with the
+    /// same `document.querySelectorAll` scope).
+    /// </summary>
+    /// <exception cref="XcelerateException"></exception>
+    public async Task<Element> DocumentElement() {
+    return await _UniFFIAsync.UniffiRustCallAsync(
+        // Get rust future
+        CallWithPointer(thisPtr => {
+            return _UniFFILib.uniffi_xcelerate_fn_method_page_document_element(thisPtr);
+        }),
+        // Poll
+        (ulong future, IntPtr continuation, ulong data) => _UniFFILib.ffi_xcelerate_rust_future_poll_u64(future, continuation, data),
+        // Complete
+        (ulong future, ref UniffiRustCallStatus status) => {
+            return _UniFFILib.ffi_xcelerate_rust_future_complete_u64(future, ref status);
+        },
+        // Free
+        (ulong future) => _UniFFILib.ffi_xcelerate_rust_future_free_u64(future),
+        // Lift
+        (result) => FfiConverterTypeElement.INSTANCE.Lift(result),
+        // Error
+        FfiConverterTypeXcelerateError.INSTANCE
+    );
+    }
+    
+    /// <summary>
     /// Overrides the idle state.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
@@ -10722,6 +10905,8 @@ public class Page : IPage, IDisposable {
     
     /// <summary>
     /// Finds an element matching the CSS selector.
+    ///
+    /// The search pierces open shadow roots, so web components are reachable.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<Element> FindElement(string @selector) {
@@ -10822,6 +11007,9 @@ public class Page : IPage, IDisposable {
     
     /// <summary>
     /// Finds a form control by its associated `<label>` text.
+    ///
+    /// Delegates to [`Element::get_by_label`], so the search pierces open shadow
+    /// roots.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<Element> GetByLabel(string @label) {
@@ -10846,7 +11034,10 @@ public class Page : IPage, IDisposable {
     }
     
     /// <summary>
-    /// Finds an element by ARIA role (falls back to a tag-name lookup).
+    /// Finds an element by ARIA role.
+    ///
+    /// Delegates to [`Element::get_by_role`], so the search pierces open shadow
+    /// roots.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<Element> GetByRole(string @role) {
@@ -10872,6 +11063,9 @@ public class Page : IPage, IDisposable {
     
     /// <summary>
     /// Finds an element whose text content contains `text`.
+    ///
+    /// Delegates to [`Element::get_by_text`], so the search pierces open shadow
+    /// roots.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<Element> GetByText(string @text) {
@@ -11373,8 +11567,8 @@ public class Page : IPage, IDisposable {
     /// <summary>
     /// Returns every element matching the CSS selector.
     ///
-    /// Uses two round trips (fetch the node list, then read its properties)
-    /// instead of one `evaluate` per match.
+    /// The search pierces open shadow roots. Uses two round trips (fetch the node
+    /// list, then read its properties) instead of one `evaluate` per match.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<Element[]> QuerySelectorAll(string @selector) {
@@ -11400,6 +11594,9 @@ public class Page : IPage, IDisposable {
     
     /// <summary>
     /// Returns the first node matching an XPath expression as an [`Element`].
+    ///
+    /// The search pierces open shadow roots and same-origin frames (see
+    /// [`Element::query_selector_xpath`]).
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<Element> QuerySelectorXpath(string @xpath) {
@@ -12417,6 +12614,9 @@ public class Page : IPage, IDisposable {
     
     /// <summary>
     /// Waits for an element matching the selector to appear in the DOM.
+    ///
+    /// The search pierces open shadow roots. Polls until the page's default
+    /// timeout elapses.
     /// </summary>
     /// <exception cref="XcelerateException"></exception>
     public async Task<Element> WaitForSelector(string @selector) {
@@ -12792,9 +12992,12 @@ public class FfiConverterTypePluginHandle: FfiConverter<PluginHandle, ulong> {
 /// Optional path to the browser executable.
 /// </param>
 /// <param name="Plugins">
-/// First-party plugins to enable for this browser (for example
-/// `["stealth", "human"]`). Default-deny: no plugin does anything unless
-/// listed here (or enabled afterwards with `Browser::use_plugin`).
+/// External plugins to load at launch. Each entry is a path to a plugin
+/// directory or a `plugin.json`.
+/// 
+/// Xcelerate ships **no** plugins built into the core. Default-deny: no
+/// plugin does anything unless it is listed here (or installed afterwards
+/// with `Browser::use_plugin` / `Browser::load_plugin`).
 /// </param>
 public record BrowserConfig (
     /// <summary>
@@ -12810,9 +13013,12 @@ public record BrowserConfig (
     /// </summary>
     string? ExecutablePath = null,
     /// <summary>
-    /// First-party plugins to enable for this browser (for example
-    /// `["stealth", "human"]`). Default-deny: no plugin does anything unless
-    /// listed here (or enabled afterwards with `Browser::use_plugin`).
+    /// External plugins to load at launch. Each entry is a path to a plugin
+    /// directory or a `plugin.json`.
+    ///
+    /// Xcelerate ships **no** plugins built into the core. Default-deny: no
+    /// plugin does anything unless it is listed here (or installed afterwards
+    /// with `Browser::use_plugin` / `Browser::load_plugin`).
     /// </summary>
     string[]? Plugins = null
 ) {

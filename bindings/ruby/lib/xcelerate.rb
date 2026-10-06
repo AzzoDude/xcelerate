@@ -400,6 +400,11 @@ class RustBufferStream
         readString()
       )
     end
+    if variant == 8
+      return XcelerateError::Plugin.new(
+        readString()
+      )
+    end
 
     raise InternalError, 'Unexpected variant tag for TypeXcelerateError'
   end
@@ -677,6 +682,7 @@ class XcelerateError
     NotFound = Class.new StandardError
     InternalError = Class.new StandardError
     Unsupported = Class.new StandardError
+    Plugin = Class.new StandardError
 
 end
 
@@ -890,7 +896,7 @@ module UniFFILib
   attach_function :uniffi_xcelerate_fn_method_element_click,
     [:uint64, RustCallStatus.by_ref],
     :uint64
-  attach_function :uniffi_xcelerate_fn_method_element_click_stealth,
+  attach_function :uniffi_xcelerate_fn_method_element_click_mouse,
     [:uint64, RustCallStatus.by_ref],
     :uint64
   attach_function :uniffi_xcelerate_fn_method_element_count,
@@ -929,7 +935,7 @@ module UniFFILib
   attach_function :uniffi_xcelerate_fn_method_element_hover,
     [:uint64, RustCallStatus.by_ref],
     :uint64
-  attach_function :uniffi_xcelerate_fn_method_element_hover_stealth,
+  attach_function :uniffi_xcelerate_fn_method_element_hover_mouse,
     [:uint64, RustCallStatus.by_ref],
     :uint64
   attach_function :uniffi_xcelerate_fn_method_element_inner_html,
@@ -1046,6 +1052,12 @@ module UniFFILib
   attach_function :uniffi_xcelerate_fn_method_page_decode_base64,
     [:uint64, RustBuffer.by_value, RustCallStatus.by_ref],
     RustBuffer.by_value
+  attach_function :uniffi_xcelerate_fn_method_page_default_timeout,
+    [:uint64, RustCallStatus.by_ref],
+    :uint64
+  attach_function :uniffi_xcelerate_fn_method_page_document_element,
+    [:uint64, RustCallStatus.by_ref],
+    :uint64
   attach_function :uniffi_xcelerate_fn_method_page_emulate_idle_state,
     [:uint64, :int8, :int8, RustCallStatus.by_ref],
     :uint64
@@ -1466,7 +1478,7 @@ module UniFFILib
   attach_function :uniffi_xcelerate_checksum_method_element_click,
     [RustCallStatus.by_ref],
     :uint16
-  attach_function :uniffi_xcelerate_checksum_method_element_click_stealth,
+  attach_function :uniffi_xcelerate_checksum_method_element_click_mouse,
     [RustCallStatus.by_ref],
     :uint16
   attach_function :uniffi_xcelerate_checksum_method_element_count,
@@ -1505,7 +1517,7 @@ module UniFFILib
   attach_function :uniffi_xcelerate_checksum_method_element_hover,
     [RustCallStatus.by_ref],
     :uint16
-  attach_function :uniffi_xcelerate_checksum_method_element_hover_stealth,
+  attach_function :uniffi_xcelerate_checksum_method_element_hover_mouse,
     [RustCallStatus.by_ref],
     :uint16
   attach_function :uniffi_xcelerate_checksum_method_element_inner_html,
@@ -1614,6 +1626,12 @@ module UniFFILib
     [RustCallStatus.by_ref],
     :uint16
   attach_function :uniffi_xcelerate_checksum_method_page_decode_base64,
+    [RustCallStatus.by_ref],
+    :uint16
+  attach_function :uniffi_xcelerate_checksum_method_page_default_timeout,
+    [RustCallStatus.by_ref],
+    :uint16
+  attach_function :uniffi_xcelerate_checksum_method_page_document_element,
     [RustCallStatus.by_ref],
     :uint16
   attach_function :uniffi_xcelerate_checksum_method_page_emulate_idle_state,
@@ -2259,8 +2277,8 @@ end
     result = Xcelerate.rust_call_with_error(XcelerateError,:uniffi_xcelerate_fn_method_element_click,uniffi_clone_handle(),)
     return Element.uniffi_allocate(result)
   end
-  def click_stealth()
-    result = Xcelerate.rust_call_with_error(XcelerateError,:uniffi_xcelerate_fn_method_element_click_stealth,uniffi_clone_handle(),)
+  def click_mouse()
+    result = Xcelerate.rust_call_with_error(XcelerateError,:uniffi_xcelerate_fn_method_element_click_mouse,uniffi_clone_handle(),)
     return Element.uniffi_allocate(result)
   end
   def count()
@@ -2325,8 +2343,8 @@ end
     result = Xcelerate.rust_call_with_error(XcelerateError,:uniffi_xcelerate_fn_method_element_hover,uniffi_clone_handle(),)
     return Element.uniffi_allocate(result)
   end
-  def hover_stealth()
-    result = Xcelerate.rust_call_with_error(XcelerateError,:uniffi_xcelerate_fn_method_element_hover_stealth,uniffi_clone_handle(),)
+  def hover_mouse()
+    result = Xcelerate.rust_call_with_error(XcelerateError,:uniffi_xcelerate_fn_method_element_hover_mouse,uniffi_clone_handle(),)
     return Element.uniffi_allocate(result)
   end
   def inner_html()
@@ -2578,6 +2596,14 @@ end
         
     result = Xcelerate.rust_call_with_error(XcelerateError,:uniffi_xcelerate_fn_method_page_decode_base64,uniffi_clone_handle(),RustBuffer.allocFromString(data))
     return result.consumeIntoBytes
+  end
+  def default_timeout()
+    result = Xcelerate.rust_call(:uniffi_xcelerate_fn_method_page_default_timeout,uniffi_clone_handle(),)
+    return result.to_i
+  end
+  def document_element()
+    result = Xcelerate.rust_call_with_error(XcelerateError,:uniffi_xcelerate_fn_method_page_document_element,uniffi_clone_handle(),)
+    return Element.uniffi_allocate(result)
   end
   def emulate_idle_state(is_user_active, is_screen_unlocked)
         is_user_active = is_user_active ? true : false

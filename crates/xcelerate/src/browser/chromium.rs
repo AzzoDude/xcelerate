@@ -278,7 +278,7 @@ impl Browser {
 
         let page = self.build_page(session.session_id.into_owned(), target_id.into_owned());
 
-        // 3. Run plugin page-created hooks (e.g. stealth payload injection).
+        // 3. Run plugin page-created hooks (e.g. payload injection).
         self.plugins
             .on_page_created(crate::plugin::page_host(Arc::clone(&page)))
             .await?;
@@ -760,7 +760,7 @@ impl Browser {
     /// target that already exists - the way a popup discovered with
     /// [`Page::wait_for_popup`] becomes drivable. Nothing is navigated, so the
     /// tab keeps whatever it is showing; plugin `on_page_created` hooks still
-    /// run, so stealth payloads are injected as usual.
+    /// run, so plugin payloads are injected as usual.
     ///
     /// Rust-only: it is intentionally not exposed through the language bindings,
     /// alongside [`Browser::connect`].

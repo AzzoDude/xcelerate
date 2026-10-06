@@ -14,6 +14,7 @@ public enum FfiConverterTypeXcelerateError implements FfiConverterRustBuffer<Xce
             case 5 -> new XcelerateException.NotFound(FfiConverterString.INSTANCE.read(buf));
             case 6 -> new XcelerateException.InternalException(FfiConverterString.INSTANCE.read(buf));
             case 7 -> new XcelerateException.Unsupported(FfiConverterString.INSTANCE.read(buf));
+            case 8 -> new XcelerateException.Plugin(FfiConverterString.INSTANCE.read(buf));
             default -> throw new java.lang.RuntimeException("invalid error enum value, something is very wrong!!");
         };
     }
@@ -46,6 +47,9 @@ public enum FfiConverterTypeXcelerateError implements FfiConverterRustBuffer<Xce
             }
             case XcelerateException.Unsupported x -> {
                 buf.putInt(7);
+            }
+            case XcelerateException.Plugin x -> {
+                buf.putInt(8);
             }
             default -> throw new java.lang.RuntimeException("invalid error enum value, something is very wrong!!");
         };

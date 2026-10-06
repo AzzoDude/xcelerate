@@ -723,7 +723,7 @@ external fun uniffi_xcelerate_checksum_method_element_call_string(
 ): Int
 external fun uniffi_xcelerate_checksum_method_element_click(
 ): Int
-external fun uniffi_xcelerate_checksum_method_element_click_stealth(
+external fun uniffi_xcelerate_checksum_method_element_click_mouse(
 ): Int
 external fun uniffi_xcelerate_checksum_method_element_count(
 ): Int
@@ -749,7 +749,7 @@ external fun uniffi_xcelerate_checksum_method_element_get_properties(
 ): Int
 external fun uniffi_xcelerate_checksum_method_element_hover(
 ): Int
-external fun uniffi_xcelerate_checksum_method_element_hover_stealth(
+external fun uniffi_xcelerate_checksum_method_element_hover_mouse(
 ): Int
 external fun uniffi_xcelerate_checksum_method_element_inner_html(
 ): Int
@@ -822,6 +822,10 @@ external fun uniffi_xcelerate_checksum_method_page_coverage_stop_js(
 external fun uniffi_xcelerate_checksum_method_page_create_pdf_stream(
 ): Int
 external fun uniffi_xcelerate_checksum_method_page_decode_base64(
+): Int
+external fun uniffi_xcelerate_checksum_method_page_default_timeout(
+): Int
+external fun uniffi_xcelerate_checksum_method_page_document_element(
 ): Int
 external fun uniffi_xcelerate_checksum_method_page_emulate_idle_state(
 ): Int
@@ -1121,7 +1125,7 @@ external fun uniffi_xcelerate_fn_method_element_call_string(`ptr`: Long,`functio
 ): Long
 external fun uniffi_xcelerate_fn_method_element_click(`ptr`: Long,
 ): Long
-external fun uniffi_xcelerate_fn_method_element_click_stealth(`ptr`: Long,
+external fun uniffi_xcelerate_fn_method_element_click_mouse(`ptr`: Long,
 ): Long
 external fun uniffi_xcelerate_fn_method_element_count(`ptr`: Long,
 ): Long
@@ -1147,7 +1151,7 @@ external fun uniffi_xcelerate_fn_method_element_get_properties(`ptr`: Long,
 ): Long
 external fun uniffi_xcelerate_fn_method_element_hover(`ptr`: Long,
 ): Long
-external fun uniffi_xcelerate_fn_method_element_hover_stealth(`ptr`: Long,
+external fun uniffi_xcelerate_fn_method_element_hover_mouse(`ptr`: Long,
 ): Long
 external fun uniffi_xcelerate_fn_method_element_inner_html(`ptr`: Long,
 ): Long
@@ -1225,6 +1229,10 @@ external fun uniffi_xcelerate_fn_method_page_create_pdf_stream(`ptr`: Long,
 ): Long
 external fun uniffi_xcelerate_fn_method_page_decode_base64(`ptr`: Long,`data`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
+external fun uniffi_xcelerate_fn_method_page_default_timeout(`ptr`: Long,uniffi_out_err: UniffiRustCallStatus, 
+): Long
+external fun uniffi_xcelerate_fn_method_page_document_element(`ptr`: Long,
+): Long
 external fun uniffi_xcelerate_fn_method_page_emulate_idle_state(`ptr`: Long,`isUserActive`: Byte,`isScreenUnlocked`: Byte,
 ): Long
 external fun uniffi_xcelerate_fn_method_page_emulate_media(`ptr`: Long,`media`: RustBuffer.ByValue,`colorScheme`: RustBuffer.ByValue,
@@ -1536,103 +1544,103 @@ private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
 }
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
-    if (lib.uniffi_xcelerate_checksum_method_browser_audit_log() != 37952) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_audit_log() != 58417) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_audit_verify() != 5412) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_audit_verify() != 56834) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_available_plugins() != 9431) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_available_plugins() != 13132) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_browser_contexts() != 50137) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_browser_contexts() != 59339) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_capabilities() != 7431) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_capabilities() != 7601) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_close() != 831) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_close() != 44553) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_cookies() != 36914) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_cookies() != 8530) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_delete_cookie() != 14366) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_delete_cookie() != 44579) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_event_names() != 44664) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_event_names() != 12570) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_grant_permissions() != 57820) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_grant_permissions() != 62168) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_is_connected() != 10958) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_is_connected() != 63934) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_listens_to() != 12245) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_listens_to() != 56113) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_load_plugin() != 5693) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_load_plugin() != 26734) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_new_context() != 28184) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_new_context() != 59309) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_new_page() != 31633) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_new_page() != 65142) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_on() != 2255) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_on() != 4402) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_once() != 22376) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_once() != 62023) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_plugin() != 11907) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_plugin() != 38553) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_plugin_names() != 58296) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_plugin_names() != 5716) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_remove_all_listeners() != 51158) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_remove_all_listeners() != 16672) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_remove_listener() != 41339) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_remove_listener() != 3101) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_reset_permissions() != 21496) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_reset_permissions() != 50876) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_set_cookie() != 6259) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_set_cookie() != 61323) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_set_download_behavior() != 23198) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_set_download_behavior() != 32642) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_start_tracing() != 14885) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_start_tracing() != 25818) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_stop_tracing() != 57049) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_stop_tracing() != 30224) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_targets() != 28936) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_targets() != 50695) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_use_plugin() != 20462) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_use_plugin() != 53288) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_user_agent() != 20558) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_user_agent() != 36639) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_version() != 64817) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_version() != 2891) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_wait_for_event() != 20884) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_wait_for_event() != 63537) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_wait_for_event_default() != 53096) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_wait_for_event_default() != 14198) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_browser_ws_endpoint() != 36520) {
+    if (lib.uniffi_xcelerate_checksum_method_browser_ws_endpoint() != 63756) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_element_attribute() != 8836) {
@@ -1644,10 +1652,10 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_xcelerate_checksum_method_element_call_json() != 56720) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_element_call_on_selector() != 20589) {
+    if (lib.uniffi_xcelerate_checksum_method_element_call_on_selector() != 53984) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_element_call_on_selector_all() != 58660) {
+    if (lib.uniffi_xcelerate_checksum_method_element_call_on_selector_all() != 47977) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_element_call_string() != 1191) {
@@ -1656,7 +1664,7 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_xcelerate_checksum_method_element_click() != 26136) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_element_click_stealth() != 64888) {
+    if (lib.uniffi_xcelerate_checksum_method_element_click_mouse() != 60796) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_element_count() != 40137) {
@@ -1680,13 +1688,13 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_xcelerate_checksum_method_element_focus() != 34225) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_element_get_by_label() != 41888) {
+    if (lib.uniffi_xcelerate_checksum_method_element_get_by_label() != 29865) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_element_get_by_role() != 15624) {
+    if (lib.uniffi_xcelerate_checksum_method_element_get_by_role() != 15953) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_element_get_by_text() != 11298) {
+    if (lib.uniffi_xcelerate_checksum_method_element_get_by_text() != 18847) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_element_get_properties() != 28646) {
@@ -1695,7 +1703,7 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_xcelerate_checksum_method_element_hover() != 32638) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_element_hover_stealth() != 12397) {
+    if (lib.uniffi_xcelerate_checksum_method_element_hover_mouse() != 47391) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_element_inner_html() != 63319) {
@@ -1704,16 +1712,16 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_xcelerate_checksum_method_element_press() != 13244) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_element_query_selector() != 59248) {
+    if (lib.uniffi_xcelerate_checksum_method_element_query_selector() != 19454) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_element_query_selector_all() != 57750) {
+    if (lib.uniffi_xcelerate_checksum_method_element_query_selector_all() != 65463) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_element_query_selector_attr() != 63681) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_element_query_selector_xpath() != 47775) {
+    if (lib.uniffi_xcelerate_checksum_method_element_query_selector_xpath() != 11390) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_element_screenshot() != 55082) {
@@ -1734,7 +1742,7 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_xcelerate_checksum_method_element_type_text() != 45944) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_element_wait_for_selector() != 53340) {
+    if (lib.uniffi_xcelerate_checksum_method_element_wait_for_selector() != 23551) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_page_activate() != 30852) {
@@ -1761,10 +1769,10 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_xcelerate_checksum_method_page_call_json() != 37033) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_page_call_on_selector() != 27164) {
+    if (lib.uniffi_xcelerate_checksum_method_page_call_on_selector() != 902) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_page_call_on_selector_all() != 24130) {
+    if (lib.uniffi_xcelerate_checksum_method_page_call_on_selector_all() != 9317) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_page_call_string() != 28160) {
@@ -1806,6 +1814,12 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_xcelerate_checksum_method_page_decode_base64() != 39526) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_xcelerate_checksum_method_page_default_timeout() != 18710) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_xcelerate_checksum_method_page_document_element() != 41358) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_xcelerate_checksum_method_page_emulate_idle_state() != 53017) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1833,7 +1847,7 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_xcelerate_checksum_method_page_execute_cdp_cmd() != 20070) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_page_find_element() != 4260) {
+    if (lib.uniffi_xcelerate_checksum_method_page_find_element() != 20082) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_page_frame() != 33986) {
@@ -1845,13 +1859,13 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_xcelerate_checksum_method_page_frames() != 13809) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_page_get_by_label() != 63689) {
+    if (lib.uniffi_xcelerate_checksum_method_page_get_by_label() != 51936) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_page_get_by_role() != 32218) {
+    if (lib.uniffi_xcelerate_checksum_method_page_get_by_role() != 32000) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_page_get_by_text() != 27497) {
+    if (lib.uniffi_xcelerate_checksum_method_page_get_by_text() != 25448) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_page_get_default_timeout() != 57791) {
@@ -1917,10 +1931,10 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_xcelerate_checksum_method_page_press() != 21741) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_page_query_selector_all() != 64158) {
+    if (lib.uniffi_xcelerate_checksum_method_page_query_selector_all() != 7778) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_page_query_selector_xpath() != 48442) {
+    if (lib.uniffi_xcelerate_checksum_method_page_query_selector_xpath() != 64720) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_page_raw_window_bounds() != 13012) {
@@ -1971,7 +1985,7 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_xcelerate_checksum_method_page_set_content() != 60133) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_page_set_default_timeout() != 58523) {
+    if (lib.uniffi_xcelerate_checksum_method_page_set_default_timeout() != 7299) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_page_set_drag_interception() != 35102) {
@@ -2052,7 +2066,7 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_xcelerate_checksum_method_page_wait_for_event() != 16279) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_page_wait_for_event_default() != 30417) {
+    if (lib.uniffi_xcelerate_checksum_method_page_wait_for_event_default() != 7458) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_page_wait_for_function() != 39925) {
@@ -2061,7 +2075,7 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_xcelerate_checksum_method_page_wait_for_navigation() != 28813) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_method_page_wait_for_selector() != 58306) {
+    if (lib.uniffi_xcelerate_checksum_method_page_wait_for_selector() != 8076) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_xcelerate_checksum_method_page_wait_for_xpath() != 14726) {
@@ -2088,7 +2102,7 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_xcelerate_checksum_method_pluginhandle_plugin_name() != 61258) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_xcelerate_checksum_constructor_browser_launch() != 45323) {
+    if (lib.uniffi_xcelerate_checksum_constructor_browser_launch() != 47265) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -2553,7 +2567,7 @@ public object FfiConverterByteArray: FfiConverterRustBuffer<ByteArray> {
 
 
 /**
- * Represents a browser instance (e.g., Chrome or Edge).
+ * A running Chromium-family browser (Chrome, Chromium, Edge, Brave, …).
  */
 public interface BrowserInterface {
     
@@ -2568,7 +2582,10 @@ public interface BrowserInterface {
     fun `auditVerify`(): kotlin.Boolean
     
     /**
-     * Names of all compiled-in first-party plugins (the catalog).
+     * Names of the plugins currently available on this browser.
+     *
+     * Xcelerate ships **no** built-in plugins, so this lists the plugins that
+     * have been installed or loaded on this instance.
      */
     fun `availablePlugins`(): List<kotlin.String>
     
@@ -2583,7 +2600,11 @@ public interface BrowserInterface {
     suspend fun `capabilities`(): kotlin.String
     
     /**
-     * Closes the browser and kills the process.
+     * Closes the browser, letting it flush the profile, then kills it if needed.
+     *
+     * An attached browser (from [`Browser::connect`]) is not owned by this
+     * handle, so this is a no-op: it never sends `Browser.close` and never
+     * kills the process.
      */
     suspend fun `closeBrowser`()
     
@@ -2618,10 +2639,16 @@ public interface BrowserInterface {
     suspend fun `listensTo`(`eventName`: kotlin.String): kotlin.Boolean
     
     /**
-     * Loads a third-party plugin. Not supported in this phase.
+     * Loads a plugin from disk.
      *
-     * The sandboxed, out-of-process runner required for untrusted plugins does
-     * not exist yet, so this always refuses rather than executing unknown code.
+     * `path` may be a plugin directory (containing `plugin.json`) or a
+     * `plugin.json` file. The manifest is validated, the `entrypoint` is
+     * instantiated as a sandboxed WebAssembly component, and a `describe`
+     * handshake wires up its ops. Dangerous capabilities stay denied unless
+     * opted into via `XCELERATE_PLUGIN_ALLOW`.
+     *
+     * Once loaded, the plugin's ops are reachable through
+     * `plugin(name).invoke(op, args_json)` in every language.
      */
     fun `loadPlugin`(`path`: kotlin.String): kotlin.String
     
@@ -2693,12 +2720,12 @@ public interface BrowserInterface {
     suspend fun `targets`(): kotlin.String
     
     /**
-     * Enables a compiled-in first-party plugin at runtime.
+     * Enables an installed plugin at runtime.
      *
      * Launch-time contributions (such as binary patching) only take effect if
-     * the plugin was enabled before the browser launched; enabling a plugin
+     * the plugin was installed before the browser launched; enabling a plugin
      * afterwards applies its runtime hooks to pages created from now on. This
-     * is audited as a runtime enable. Unknown or third-party names are refused.
+     * is audited as a runtime enable. Unknown names are refused.
      */
     suspend fun `usePlugin`(`name`: kotlin.String)
     
@@ -2731,7 +2758,7 @@ public interface BrowserInterface {
 }
 
 /**
- * Represents a browser instance (e.g., Chrome or Edge).
+ * A running Chromium-family browser (Chrome, Chromium, Edge, Brave, …).
  */
 open class Browser: Disposable, AutoCloseable, BrowserInterface
 {
@@ -2863,7 +2890,10 @@ open class Browser: Disposable, AutoCloseable, BrowserInterface
 
     
     /**
-     * Names of all compiled-in first-party plugins (the catalog).
+     * Names of the plugins currently available on this browser.
+     *
+     * Xcelerate ships **no** built-in plugins, so this lists the plugins that
+     * have been installed or loaded on this instance.
      */override fun `availablePlugins`(): List<kotlin.String> {
             return FfiConverterSequenceString.lift(
     callWithHandle {
@@ -2927,7 +2957,11 @@ open class Browser: Disposable, AutoCloseable, BrowserInterface
 
     
     /**
-     * Closes the browser and kills the process.
+     * Closes the browser, letting it flush the profile, then kills it if needed.
+     *
+     * An attached browser (from [`Browser::connect`]) is not owned by this
+     * handle, so this is a no-op: it never sends `Browser.close` and never
+     * kills the process.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -3095,10 +3129,16 @@ open class Browser: Disposable, AutoCloseable, BrowserInterface
 
     
     /**
-     * Loads a third-party plugin. Not supported in this phase.
+     * Loads a plugin from disk.
      *
-     * The sandboxed, out-of-process runner required for untrusted plugins does
-     * not exist yet, so this always refuses rather than executing unknown code.
+     * `path` may be a plugin directory (containing `plugin.json`) or a
+     * `plugin.json` file. The manifest is validated, the `entrypoint` is
+     * instantiated as a sandboxed WebAssembly component, and a `describe`
+     * handshake wires up its ops. Dangerous capabilities stay denied unless
+     * opted into via `XCELERATE_PLUGIN_ALLOW`.
+     *
+     * Once loaded, the plugin's ops are reachable through
+     * `plugin(name).invoke(op, args_json)` in every language.
      */
     @Throws(XcelerateException::class)override fun `loadPlugin`(`path`: kotlin.String): kotlin.String {
             return FfiConverterString.lift(
@@ -3438,12 +3478,12 @@ open class Browser: Disposable, AutoCloseable, BrowserInterface
 
     
     /**
-     * Enables a compiled-in first-party plugin at runtime.
+     * Enables an installed plugin at runtime.
      *
      * Launch-time contributions (such as binary patching) only take effect if
-     * the plugin was enabled before the browser launched; enabling a plugin
+     * the plugin was installed before the browser launched; enabling a plugin
      * afterwards applies its runtime hooks to pages created from now on. This
-     * is audited as a runtime enable. Unknown or third-party names are refused.
+     * is audited as a runtime enable. Unknown names are refused.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -3748,11 +3788,17 @@ public interface ElementInterface {
     
     /**
      * Runs a JS function against the first descendant matching `selector`.
+     *
+     * The descendant is resolved with the shadow-piercing selector first, so
+     * the expression also runs against a match inside an open shadow root.
      */
     suspend fun `callOnSelector`(`selector`: kotlin.String, `expression`: kotlin.String): kotlin.String
     
     /**
      * Runs a JS function against every descendant matching `selector`.
+     *
+     * The descendants are resolved with the shadow-piercing selector first, so
+     * matches inside open shadow roots are included too.
      */
     suspend fun `callOnSelectorAll`(`selector`: kotlin.String, `expression`: kotlin.String): kotlin.String
     
@@ -3768,8 +3814,12 @@ public interface ElementInterface {
     
     /**
      * Clicks the element using realistic mouse movement and CDP input events.
+     *
+     * Fails with [`XcelerateError::NotFound`] if the element is not actionable
+     * (zero-size, `display:none`, `visibility:hidden` or fully transparent),
+     * rather than dispatching a click at coordinates that nothing occupies.
      */
-    suspend fun `clickStealth`(): Element
+    suspend fun `clickMouse`(): Element
     
     /**
      * Number of elements this handle represents (always 1).
@@ -3808,16 +3858,25 @@ public interface ElementInterface {
     
     /**
      * Finds a descendant form control by its `<label>` text.
+     *
+     * The `<label>` search pierces open shadow roots, and the associated control
+     * is resolved from the label's own root so shadow-encapsulated controls work.
      */
     suspend fun `getByLabel`(`label`: kotlin.String): Element
     
     /**
      * Finds a descendant by ARIA role.
+     *
+     * Prefers an explicit `[role="..."]` match, then falls back to the role name
+     * as a tag, since a native `<button>`/`<a>` carries its role implicitly.
+     * Both searches pierce open shadow roots.
      */
     suspend fun `getByRole`(`role`: kotlin.String): Element
     
     /**
      * Finds a descendant whose text contains `text`.
+     *
+     * The search pierces open shadow roots.
      */
     suspend fun `getByText`(`text`: kotlin.String): Element
     
@@ -3834,7 +3893,7 @@ public interface ElementInterface {
     /**
      * Hovers over the element using realistic mouse movement.
      */
-    suspend fun `hoverStealth`(): Element
+    suspend fun `hoverMouse`(): Element
     
     /**
      * Returns the inner HTML of the element.
@@ -3848,14 +3907,16 @@ public interface ElementInterface {
     
     /**
      * Returns the first descendant matching `selector` as an [`Element`].
+     *
+     * The search pierces open shadow roots, so web components are reachable.
      */
     suspend fun `querySelector`(`selector`: kotlin.String): Element
     
     /**
      * Returns every descendant matching `selector`.
      *
-     * Resolves the whole node list with a single `Runtime.getProperties` call
-     * rather than one `evaluate` per match.
+     * The search pierces open shadow roots. Resolves the whole node list with a
+     * single `Runtime.getProperties` call rather than one `evaluate` per match.
      */
     suspend fun `querySelectorAll`(`selector`: kotlin.String): List<Element>
     
@@ -3866,6 +3927,12 @@ public interface ElementInterface {
     
     /**
      * Finds a descendant matching an XPath expression.
+     *
+     * The expression is evaluated over the composed tree - open shadow roots and
+     * same-origin iframe documents are searched - by a built-in subset evaluator.
+     * Expressions outside that subset (unions, extra axes, `count()`, ...) fall
+     * back to the browser's native `document.evaluate`, which handles the full
+     * language but does not pierce shadow roots.
      */
     suspend fun `querySelectorXpath`(`xpath`: kotlin.String): Element
     
@@ -3898,6 +3965,11 @@ public interface ElementInterface {
     
     /**
      * Waits for a descendant matching `selector` to appear.
+     *
+     * The wait happens inside the page in a single CDP call: a `MutationObserver`
+     * resolves as soon as the node appears (and a slow rescan covers shadow
+     * roots), instead of the caller polling `query_selector` over the wire every
+     * 250ms. Times out after 30 seconds.
      */
     suspend fun `waitForSelector`(`selector`: kotlin.String): Element
     
@@ -4078,6 +4150,9 @@ open class Element: Disposable, AutoCloseable, ElementInterface
     
     /**
      * Runs a JS function against the first descendant matching `selector`.
+     *
+     * The descendant is resolved with the shadow-piercing selector first, so
+     * the expression also runs against a match inside an open shadow root.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -4102,6 +4177,9 @@ open class Element: Disposable, AutoCloseable, ElementInterface
     
     /**
      * Runs a JS function against every descendant matching `selector`.
+     *
+     * The descendants are resolved with the shadow-piercing selector first, so
+     * matches inside open shadow roots are included too.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -4174,13 +4252,17 @@ open class Element: Disposable, AutoCloseable, ElementInterface
     
     /**
      * Clicks the element using realistic mouse movement and CDP input events.
+     *
+     * Fails with [`XcelerateError::NotFound`] if the element is not actionable
+     * (zero-size, `display:none`, `visibility:hidden` or fully transparent),
+     * rather than dispatching a click at coordinates that nothing occupies.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-    override suspend fun `clickStealth`() : Element {
+    override suspend fun `clickMouse`() : Element {
         return uniffiRustCallAsync(
         callWithHandle { uniffiHandle ->
-            UniffiLib.uniffi_xcelerate_fn_method_element_click_stealth(
+            UniffiLib.uniffi_xcelerate_fn_method_element_click_mouse(
                 uniffiHandle,
                 
             )
@@ -4367,6 +4449,9 @@ open class Element: Disposable, AutoCloseable, ElementInterface
     
     /**
      * Finds a descendant form control by its `<label>` text.
+     *
+     * The `<label>` search pierces open shadow roots, and the associated control
+     * is resolved from the label's own root so shadow-encapsulated controls work.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -4391,6 +4476,10 @@ open class Element: Disposable, AutoCloseable, ElementInterface
     
     /**
      * Finds a descendant by ARIA role.
+     *
+     * Prefers an explicit `[role="..."]` match, then falls back to the role name
+     * as a tag, since a native `<button>`/`<a>` carries its role implicitly.
+     * Both searches pierce open shadow roots.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -4415,6 +4504,8 @@ open class Element: Disposable, AutoCloseable, ElementInterface
     
     /**
      * Finds a descendant whose text contains `text`.
+     *
+     * The search pierces open shadow roots.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -4490,10 +4581,10 @@ open class Element: Disposable, AutoCloseable, ElementInterface
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-    override suspend fun `hoverStealth`() : Element {
+    override suspend fun `hoverMouse`() : Element {
         return uniffiRustCallAsync(
         callWithHandle { uniffiHandle ->
-            UniffiLib.uniffi_xcelerate_fn_method_element_hover_stealth(
+            UniffiLib.uniffi_xcelerate_fn_method_element_hover_mouse(
                 uniffiHandle,
                 
             )
@@ -4560,6 +4651,8 @@ open class Element: Disposable, AutoCloseable, ElementInterface
     
     /**
      * Returns the first descendant matching `selector` as an [`Element`].
+     *
+     * The search pierces open shadow roots, so web components are reachable.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -4585,8 +4678,8 @@ open class Element: Disposable, AutoCloseable, ElementInterface
     /**
      * Returns every descendant matching `selector`.
      *
-     * Resolves the whole node list with a single `Runtime.getProperties` call
-     * rather than one `evaluate` per match.
+     * The search pierces open shadow roots. Resolves the whole node list with a
+     * single `Runtime.getProperties` call rather than one `evaluate` per match.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -4635,6 +4728,12 @@ open class Element: Disposable, AutoCloseable, ElementInterface
     
     /**
      * Finds a descendant matching an XPath expression.
+     *
+     * The expression is evaluated over the composed tree - open shadow roots and
+     * same-origin iframe documents are searched - by a built-in subset evaluator.
+     * Expressions outside that subset (unions, extra axes, `count()`, ...) fall
+     * back to the browser's native `document.evaluate`, which handles the full
+     * language but does not pierce shadow roots.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -4802,6 +4901,11 @@ open class Element: Disposable, AutoCloseable, ElementInterface
     
     /**
      * Waits for a descendant matching `selector` to appear.
+     *
+     * The wait happens inside the page in a single CDP call: a `MutationObserver`
+     * resolves as soon as the node appears (and a slow rescan covers shadow
+     * roots), instead of the caller polling `query_selector` over the wire every
+     * 250ms. Times out after 30 seconds.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -5004,11 +5108,17 @@ public interface PageInterface {
     
     /**
      * Runs a JS function against the element matching `selector` (`$eval`).
+     *
+     * The element is resolved with the shadow-piercing selector first, so a
+     * match inside an open shadow root is reachable.
      */
     suspend fun `callOnSelector`(`selector`: kotlin.String, `expression`: kotlin.String): kotlin.String
     
     /**
      * Runs a JS function against every element matching `selector` (`$$eval`).
+     *
+     * The elements are resolved with the shadow-piercing selector first, so
+     * matches inside open shadow roots are included too.
      */
     suspend fun `callOnSelectorAll`(`selector`: kotlin.String, `expression`: kotlin.String): kotlin.String
     
@@ -5075,6 +5185,19 @@ public interface PageInterface {
     fun `decodeBase64`(`data`: kotlin.String): kotlin.ByteArray
     
     /**
+     * The default timeout (ms) used by the waiting helpers. A stored value of
+     * `0` means "no timeout" and is mapped to the largest representable wait.
+     */
+    fun `defaultTimeout`(): kotlin.ULong
+    
+    /**
+     * Wraps the page's `document` as an [`Element`] so the shadow-piercing
+     * selector helpers on [`Element`] can be reused at the page level (with the
+     * same `document.querySelectorAll` scope).
+     */
+    suspend fun `documentElement`(): Element
+    
+    /**
      * Overrides the idle state.
      */
     suspend fun `emulateIdleState`(`isUserActive`: kotlin.Boolean, `isScreenUnlocked`: kotlin.Boolean)
@@ -5121,6 +5244,8 @@ public interface PageInterface {
     
     /**
      * Finds an element matching the CSS selector.
+     *
+     * The search pierces open shadow roots, so web components are reachable.
      */
     suspend fun `findElement`(`selector`: kotlin.String): Element
     
@@ -5141,16 +5266,25 @@ public interface PageInterface {
     
     /**
      * Finds a form control by its associated `<label>` text.
+     *
+     * Delegates to [`Element::get_by_label`], so the search pierces open shadow
+     * roots.
      */
     suspend fun `getByLabel`(`label`: kotlin.String): Element
     
     /**
-     * Finds an element by ARIA role (falls back to a tag-name lookup).
+     * Finds an element by ARIA role.
+     *
+     * Delegates to [`Element::get_by_role`], so the search pierces open shadow
+     * roots.
      */
     suspend fun `getByRole`(`role`: kotlin.String): Element
     
     /**
      * Finds an element whose text content contains `text`.
+     *
+     * Delegates to [`Element::get_by_text`], so the search pierces open shadow
+     * roots.
      */
     suspend fun `getByText`(`text`: kotlin.String): Element
     
@@ -5256,13 +5390,16 @@ public interface PageInterface {
     /**
      * Returns every element matching the CSS selector.
      *
-     * Uses two round trips (fetch the node list, then read its properties)
-     * instead of one `evaluate` per match.
+     * The search pierces open shadow roots. Uses two round trips (fetch the node
+     * list, then read its properties) instead of one `evaluate` per match.
      */
     suspend fun `querySelectorAll`(`selector`: kotlin.String): List<Element>
     
     /**
      * Returns the first node matching an XPath expression as an [`Element`].
+     *
+     * The search pierces open shadow roots and same-origin frames (see
+     * [`Element::query_selector_xpath`]).
      */
     suspend fun `querySelectorXpath`(`xpath`: kotlin.String): Element
     
@@ -5338,7 +5475,9 @@ public interface PageInterface {
     suspend fun `setContent`(`html`: kotlin.String)
     
     /**
-     * Stores a default timeout (ms) for adapter compatibility.
+     * Sets the default timeout (ms) applied by [`Page::wait_for_selector`],
+     * [`Page::wait_for_navigation`], and [`Page::wait_for_event_default`].
+     * As in Playwright, `0` disables the timeout.
      */
     suspend fun `setDefaultTimeout`(`milliseconds`: kotlin.Double)
     
@@ -5476,7 +5615,7 @@ public interface PageInterface {
     suspend fun `waitForEvent`(`eventName`: kotlin.String, `timeoutMs`: kotlin.ULong): kotlin.String
     
     /**
-     * [`Page::wait_for_event`] with the default 30s timeout.
+     * [`Page::wait_for_event`] with the page's default timeout.
      */
     suspend fun `waitForEventDefault`(`eventName`: kotlin.String): kotlin.String
     
@@ -5492,6 +5631,9 @@ public interface PageInterface {
     
     /**
      * Waits for an element matching the selector to appear in the DOM.
+     *
+     * The search pierces open shadow roots. Polls until the page's default
+     * timeout elapses.
      */
     suspend fun `waitForSelector`(`selector`: kotlin.String): Element
     
@@ -5818,6 +5960,9 @@ open class Page: Disposable, AutoCloseable, PageInterface
     
     /**
      * Runs a JS function against the element matching `selector` (`$eval`).
+     *
+     * The element is resolved with the shadow-piercing selector first, so a
+     * match inside an open shadow root is reachable.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -5842,6 +5987,9 @@ open class Page: Disposable, AutoCloseable, PageInterface
     
     /**
      * Runs a JS function against every element matching `selector` (`$$eval`).
+     *
+     * The elements are resolved with the shadow-piercing selector first, so
+     * matches inside open shadow roots are included too.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -6170,6 +6318,49 @@ open class Page: Disposable, AutoCloseable, PageInterface
 
     
     /**
+     * The default timeout (ms) used by the waiting helpers. A stored value of
+     * `0` means "no timeout" and is mapped to the largest representable wait.
+     */override fun `defaultTimeout`(): kotlin.ULong {
+            return FfiConverterULong.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_xcelerate_fn_method_page_default_timeout(
+        it,
+        _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Wraps the page's `document` as an [`Element`] so the shadow-piercing
+     * selector helpers on [`Element`] can be reused at the page level (with the
+     * same `document.querySelectorAll` scope).
+     */
+    @Throws(XcelerateException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `documentElement`() : Element {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_xcelerate_fn_method_page_document_element(
+                uniffiHandle,
+                
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_xcelerate_rust_future_poll_u64(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_xcelerate_rust_future_complete_u64(future, continuation) },
+        { future -> UniffiLib.ffi_xcelerate_rust_future_free_u64(future) },
+        // lift function
+        { FfiConverterTypeElement.lift(it) },
+        // Error FFI converter
+        XcelerateException.ErrorHandler,
+    )
+    }
+
+    
+    /**
      * Overrides the idle state.
      */
     @Throws(XcelerateException::class)
@@ -6388,6 +6579,8 @@ open class Page: Disposable, AutoCloseable, PageInterface
     
     /**
      * Finds an element matching the CSS selector.
+     *
+     * The search pierces open shadow roots, so web components are reachable.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -6484,6 +6677,9 @@ open class Page: Disposable, AutoCloseable, PageInterface
     
     /**
      * Finds a form control by its associated `<label>` text.
+     *
+     * Delegates to [`Element::get_by_label`], so the search pierces open shadow
+     * roots.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -6507,7 +6703,10 @@ open class Page: Disposable, AutoCloseable, PageInterface
 
     
     /**
-     * Finds an element by ARIA role (falls back to a tag-name lookup).
+     * Finds an element by ARIA role.
+     *
+     * Delegates to [`Element::get_by_role`], so the search pierces open shadow
+     * roots.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -6532,6 +6731,9 @@ open class Page: Disposable, AutoCloseable, PageInterface
     
     /**
      * Finds an element whose text content contains `text`.
+     *
+     * Delegates to [`Element::get_by_text`], so the search pierces open shadow
+     * roots.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -7062,8 +7264,8 @@ open class Page: Disposable, AutoCloseable, PageInterface
     /**
      * Returns every element matching the CSS selector.
      *
-     * Uses two round trips (fetch the node list, then read its properties)
-     * instead of one `evaluate` per match.
+     * The search pierces open shadow roots. Uses two round trips (fetch the node
+     * list, then read its properties) instead of one `evaluate` per match.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -7088,6 +7290,9 @@ open class Page: Disposable, AutoCloseable, PageInterface
     
     /**
      * Returns the first node matching an XPath expression as an [`Element`].
+     *
+     * The search pierces open shadow roots and same-origin frames (see
+     * [`Element::query_selector_xpath`]).
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -7495,7 +7700,9 @@ open class Page: Disposable, AutoCloseable, PageInterface
 
     
     /**
-     * Stores a default timeout (ms) for adapter compatibility.
+     * Sets the default timeout (ms) applied by [`Page::wait_for_selector`],
+     * [`Page::wait_for_navigation`], and [`Page::wait_for_event_default`].
+     * As in Playwright, `0` disables the timeout.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -8160,7 +8367,7 @@ open class Page: Disposable, AutoCloseable, PageInterface
 
     
     /**
-     * [`Page::wait_for_event`] with the default 30s timeout.
+     * [`Page::wait_for_event`] with the page's default timeout.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -8235,6 +8442,9 @@ open class Page: Disposable, AutoCloseable, PageInterface
     
     /**
      * Waits for an element matching the selector to appear in the DOM.
+     *
+     * The search pierces open shadow roots. Polls until the page's default
+     * timeout elapses.
      */
     @Throws(XcelerateException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -8745,9 +8955,12 @@ data class BrowserConfig (
     var `executablePath`: kotlin.String? = null
     , 
     /**
-     * First-party plugins to enable for this browser (for example
-     * `["stealth", "human"]`). Default-deny: no plugin does anything unless
-     * listed here (or enabled afterwards with `Browser::use_plugin`).
+     * External plugins to load at launch. Each entry is a path to a plugin
+     * directory or a `plugin.json`.
+     *
+     * Xcelerate ships **no** plugins built into the core. Default-deny: no
+     * plugin does anything unless it is listed here (or installed afterwards
+     * with `Browser::use_plugin` / `Browser::load_plugin`).
      */
     var `plugins`: List<kotlin.String>? = null
     
@@ -8808,6 +9021,8 @@ sealed class XcelerateException(message: String): kotlin.Exception(message) {
         
         class Unsupported(message: String) : XcelerateException(message)
         
+        class Plugin(message: String) : XcelerateException(message)
+        
 
     companion object ErrorHandler : UniffiRustCallStatusErrorHandler<XcelerateException> {
         override fun lift(error_buf: RustBuffer.ByValue): XcelerateException = FfiConverterTypeXcelerateError.lift(error_buf)
@@ -8828,6 +9043,7 @@ public object FfiConverterTypeXcelerateError : FfiConverterRustBuffer<XcelerateE
             5 -> XcelerateException.NotFound(FfiConverterString.read(buf))
             6 -> XcelerateException.InternalException(FfiConverterString.read(buf))
             7 -> XcelerateException.Unsupported(FfiConverterString.read(buf))
+            8 -> XcelerateException.Plugin(FfiConverterString.read(buf))
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
         
@@ -8865,6 +9081,10 @@ public object FfiConverterTypeXcelerateError : FfiConverterRustBuffer<XcelerateE
             }
             is XcelerateException.Unsupported -> {
                 buf.putInt(7)
+                Unit
+            }
+            is XcelerateException.Plugin -> {
+                buf.putInt(8)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }

@@ -50,5 +50,11 @@ public class XcelerateException extends java.lang.Exception {
       }
     }
     
+    public static class Plugin extends XcelerateException {
+      public Plugin(java.lang.String message) {
+        super(message);
+      }
+    }
+    
 }
 

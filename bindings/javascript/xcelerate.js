@@ -404,6 +404,14 @@ export class XcelerateErrorUnsupported extends XcelerateError {
   }
 }
 
+export class XcelerateErrorPlugin extends XcelerateError {
+  constructor(message = undefined) {
+    super("Plugin", message ?? "Plugin");
+    this.name = "XcelerateErrorPlugin";
+    this.message = message ?? "Plugin";
+  }
+}
+
 const FfiConverterBrowserConfig = new (class extends AbstractFfiConverterByteArray {
   allocationSize(value) {
     const recordValue = uniffiRequireRecordObject("BrowserConfig", value);
@@ -450,7 +458,10 @@ const FfiConverterXcelerateError = new (class extends AbstractFfiConverterByteAr
     if (value instanceof XcelerateErrorUnsupported) {
       return 4;
     }
-    throw new TypeError("XcelerateError values must be instances of XcelerateErrorWsError, XcelerateErrorSerdeError, XcelerateErrorCdpResponseError, XcelerateErrorHttpError, XcelerateErrorNotFound, XcelerateErrorInternalError, XcelerateErrorUnsupported.");
+    if (value instanceof XcelerateErrorPlugin) {
+      return 4;
+    }
+    throw new TypeError("XcelerateError values must be instances of XcelerateErrorWsError, XcelerateErrorSerdeError, XcelerateErrorCdpResponseError, XcelerateErrorHttpError, XcelerateErrorNotFound, XcelerateErrorInternalError, XcelerateErrorUnsupported, XcelerateErrorPlugin.");
   }
 
   write(value, writer) {
@@ -482,7 +493,11 @@ const FfiConverterXcelerateError = new (class extends AbstractFfiConverterByteAr
       writer.writeInt32(7);
       return;
     }
-    throw new TypeError("XcelerateError values must be instances of XcelerateErrorWsError, XcelerateErrorSerdeError, XcelerateErrorCdpResponseError, XcelerateErrorHttpError, XcelerateErrorNotFound, XcelerateErrorInternalError, XcelerateErrorUnsupported.");
+    if (value instanceof XcelerateErrorPlugin) {
+      writer.writeInt32(8);
+      return;
+    }
+    throw new TypeError("XcelerateError values must be instances of XcelerateErrorWsError, XcelerateErrorSerdeError, XcelerateErrorCdpResponseError, XcelerateErrorHttpError, XcelerateErrorNotFound, XcelerateErrorInternalError, XcelerateErrorUnsupported, XcelerateErrorPlugin.");
   }
 
   read(reader) {
@@ -502,6 +517,8 @@ const FfiConverterXcelerateError = new (class extends AbstractFfiConverterByteAr
         return new XcelerateErrorInternalError(FfiConverterString.read(reader));
       case 7:
         return new XcelerateErrorUnsupported(FfiConverterString.read(reader));
+      case 8:
+        return new XcelerateErrorPlugin(FfiConverterString.read(reader));
       default:
         throw new UnexpectedEnumCase(`Unexpected XcelerateError case ${String(enumTag)}.`);
     }
@@ -536,7 +553,7 @@ configureRuntimeHooks({
 });
 
 /**
- * Represents a browser instance (e.g., Chrome or Edge).
+ * A running Chromium-family browser (Chrome, Chromium, Edge, Brave, …).
  */
 export class Browser extends UniffiObjectBase {
   constructor() {
@@ -607,7 +624,10 @@ export class Browser extends UniffiObjectBase {
   }
 
   /**
-   * Names of all compiled-in first-party plugins (the catalog).
+   * Names of the plugins currently available on this browser.
+   *
+   * Xcelerate ships **no** built-in plugins, so this lists the plugins that
+   * have been installed or loaded on this instance.
    */
   availablePlugins() {
     const loweredSelf = uniffiBrowserObjectFactory.cloneHandle(this);
@@ -665,7 +685,11 @@ export class Browser extends UniffiObjectBase {
   }
 
   /**
-   * Closes the browser and kills the process.
+   * Closes the browser, letting it flush the profile, then kills it if needed.
+   *
+   * An attached browser (from [`Browser::connect`]) is not owned by this
+   * handle, so this is a no-op: it never sends `Browser.close` and never
+   * kills the process.
    */
   async close() {
     const loweredSelf = uniffiBrowserObjectFactory.cloneHandle(this);
@@ -816,10 +840,16 @@ export class Browser extends UniffiObjectBase {
   }
 
   /**
-   * Loads a third-party plugin. Not supported in this phase.
+   * Loads a plugin from disk.
    *
-   * The sandboxed, out-of-process runner required for untrusted plugins does
-   * not exist yet, so this always refuses rather than executing unknown code.
+   * `path` may be a plugin directory (containing `plugin.json`) or a
+   * `plugin.json` file. The manifest is validated, the `entrypoint` is
+   * instantiated as a sandboxed WebAssembly component, and a `describe`
+   * handshake wires up its ops. Dangerous capabilities stay denied unless
+   * opted into via `XCELERATE_PLUGIN_ALLOW`.
+   *
+   * Once loaded, the plugin's ops are reachable through
+   * `plugin(name).invoke(op, args_json)` in every language.
    */
   loadPlugin(path) {
     const loweredSelf = uniffiBrowserObjectFactory.cloneHandle(this);
@@ -1132,12 +1162,12 @@ export class Browser extends UniffiObjectBase {
   }
 
   /**
-   * Enables a compiled-in first-party plugin at runtime.
+   * Enables an installed plugin at runtime.
    *
    * Launch-time contributions (such as binary patching) only take effect if
-   * the plugin was enabled before the browser launched; enabling a plugin
+   * the plugin was installed before the browser launched; enabling a plugin
    * afterwards applies its runtime hooks to pages created from now on. This
-   * is audited as a runtime enable. Unknown or third-party names are refused.
+   * is audited as a runtime enable. Unknown names are refused.
    */
   async usePlugin(name) {
     const loweredSelf = uniffiBrowserObjectFactory.cloneHandle(this);
@@ -1400,6 +1430,9 @@ export class Element extends UniffiObjectBase {
 
   /**
    * Runs a JS function against the first descendant matching `selector`.
+   *
+   * The descendant is resolved with the shadow-piercing selector first, so
+   * the expression also runs against a match inside an open shadow root.
    */
   async call_on_selector(selector, expression) {
     const loweredSelf = uniffiElementObjectFactory.cloneHandle(this);
@@ -1423,6 +1456,9 @@ export class Element extends UniffiObjectBase {
 
   /**
    * Runs a JS function against every descendant matching `selector`.
+   *
+   * The descendants are resolved with the shadow-piercing selector first, so
+   * matches inside open shadow roots are included too.
    */
   async call_on_selector_all(selector, expression) {
     const loweredSelf = uniffiElementObjectFactory.cloneHandle(this);
@@ -1498,13 +1534,17 @@ export class Element extends UniffiObjectBase {
 
   /**
    * Clicks the element using realistic mouse movement and CDP input events.
+   *
+   * Fails with [`XcelerateError::NotFound`] if the element is not actionable
+   * (zero-size, `display:none`, `visibility:hidden` or fully transparent),
+   * rather than dispatching a click at coordinates that nothing occupies.
    */
-  async click_stealth() {
+  async click_mouse() {
     const loweredSelf = uniffiElementObjectFactory.cloneHandle(this);
     const ffiMethod =
       uniffiElementObjectFactory.usesGenericAbi(this)
-        ? ffiFunctions.uniffi_xcelerate_fn_method_element_click_stealth_generic_abi
-        : ffiFunctions.uniffi_xcelerate_fn_method_element_click_stealth;
+        ? ffiFunctions.uniffi_xcelerate_fn_method_element_click_mouse_generic_abi
+        : ffiFunctions.uniffi_xcelerate_fn_method_element_click_mouse;
     const completePointer = uniffiGetCachedLibraryFunction(
       "complete:ffi_xcelerate_rust_future_complete_u64",
       (bindings) => bindings.library.func(
@@ -1694,6 +1734,9 @@ export class Element extends UniffiObjectBase {
 
   /**
    * Finds a descendant form control by its `<label>` text.
+   *
+   * The `<label>` search pierces open shadow roots, and the associated control
+   * is resolved from the label's own root so shadow-encapsulated controls work.
    */
   async get_by_label(label) {
     const loweredSelf = uniffiElementObjectFactory.cloneHandle(this);
@@ -1724,6 +1767,10 @@ export class Element extends UniffiObjectBase {
 
   /**
    * Finds a descendant by ARIA role.
+   *
+   * Prefers an explicit `[role="..."]` match, then falls back to the role name
+   * as a tag, since a native `<button>`/`<a>` carries its role implicitly.
+   * Both searches pierce open shadow roots.
    */
   async get_by_role(role) {
     const loweredSelf = uniffiElementObjectFactory.cloneHandle(this);
@@ -1754,6 +1801,8 @@ export class Element extends UniffiObjectBase {
 
   /**
    * Finds a descendant whose text contains `text`.
+   *
+   * The search pierces open shadow roots.
    */
   async get_by_text(text) {
     const loweredSelf = uniffiElementObjectFactory.cloneHandle(this);
@@ -1835,12 +1884,12 @@ export class Element extends UniffiObjectBase {
   /**
    * Hovers over the element using realistic mouse movement.
    */
-  async hover_stealth() {
+  async hover_mouse() {
     const loweredSelf = uniffiElementObjectFactory.cloneHandle(this);
     const ffiMethod =
       uniffiElementObjectFactory.usesGenericAbi(this)
-        ? ffiFunctions.uniffi_xcelerate_fn_method_element_hover_stealth_generic_abi
-        : ffiFunctions.uniffi_xcelerate_fn_method_element_hover_stealth;
+        ? ffiFunctions.uniffi_xcelerate_fn_method_element_hover_mouse_generic_abi
+        : ffiFunctions.uniffi_xcelerate_fn_method_element_hover_mouse;
     const completePointer = uniffiGetCachedLibraryFunction(
       "complete:ffi_xcelerate_rust_future_complete_u64",
       (bindings) => bindings.library.func(
@@ -1906,6 +1955,8 @@ export class Element extends UniffiObjectBase {
 
   /**
    * Returns the first descendant matching `selector` as an [`Element`].
+   *
+   * The search pierces open shadow roots, so web components are reachable.
    */
   async query_selector(selector) {
     const loweredSelf = uniffiElementObjectFactory.cloneHandle(this);
@@ -1937,8 +1988,8 @@ export class Element extends UniffiObjectBase {
   /**
    * Returns every descendant matching `selector`.
    *
-   * Resolves the whole node list with a single `Runtime.getProperties` call
-   * rather than one `evaluate` per match.
+   * The search pierces open shadow roots. Resolves the whole node list with a
+   * single `Runtime.getProperties` call rather than one `evaluate` per match.
    */
   async query_selector_all(selector) {
     const loweredSelf = uniffiElementObjectFactory.cloneHandle(this);
@@ -1992,6 +2043,12 @@ export class Element extends UniffiObjectBase {
 
   /**
    * Finds a descendant matching an XPath expression.
+   *
+   * The expression is evaluated over the composed tree - open shadow roots and
+   * same-origin iframe documents are searched - by a built-in subset evaluator.
+   * Expressions outside that subset (unions, extra axes, `count()`, ...) fall
+   * back to the browser's native `document.evaluate`, which handles the full
+   * language but does not pierce shadow roots.
    */
   async query_selector_xpath(xpath) {
     const loweredSelf = uniffiElementObjectFactory.cloneHandle(this);
@@ -2156,6 +2213,11 @@ export class Element extends UniffiObjectBase {
 
   /**
    * Waits for a descendant matching `selector` to appear.
+   *
+   * The wait happens inside the page in a single CDP call: a `MutationObserver`
+   * resolves as soon as the node appears (and a slow rescan covers shadow
+   * roots), instead of the caller polling `query_selector` over the wire every
+   * 250ms. Times out after 30 seconds.
    */
   async waitForSelector(selector) {
     const loweredSelf = uniffiElementObjectFactory.cloneHandle(this);
@@ -2432,6 +2494,9 @@ export class Page extends UniffiObjectBase {
 
   /**
    * Runs a JS function against the element matching `selector` (`$eval`).
+   *
+   * The element is resolved with the shadow-piercing selector first, so a
+   * match inside an open shadow root is reachable.
    */
   async call_on_selector(selector, expression) {
     const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);
@@ -2455,6 +2520,9 @@ export class Page extends UniffiObjectBase {
 
   /**
    * Runs a JS function against every element matching `selector` (`$$eval`).
+   *
+   * The elements are resolved with the shadow-piercing selector first, so
+   * matches inside open shadow roots are included too.
    */
   async call_on_selector_all(selector, expression) {
     const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);
@@ -2756,6 +2824,54 @@ export class Page extends UniffiObjectBase {
   }
 
   /**
+   * The default timeout (ms) used by the waiting helpers. A stored value of
+   * `0` means "no timeout" and is mapped to the largest representable wait.
+   */
+  default_timeout() {
+    const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);
+    const ffiMethod =
+      uniffiPageObjectFactory.usesGenericAbi(this)
+        ? ffiFunctions.uniffi_xcelerate_fn_method_page_default_timeout_generic_abi
+        : ffiFunctions.uniffi_xcelerate_fn_method_page_default_timeout;
+    const uniffiResult = uniffiRustCaller.rustCall(
+      (status) => ffiMethod(loweredSelf, status),
+      uniffiRustCallOptions(),
+    );
+    return FfiConverterUInt64.lift(uniffiResult);
+  }
+
+  /**
+   * Wraps the page's `document` as an [`Element`] so the shadow-piercing
+   * selector helpers on [`Element`] can be reused at the page level (with the
+   * same `document.querySelectorAll` scope).
+   */
+  async document_element() {
+    const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);
+    const ffiMethod =
+      uniffiPageObjectFactory.usesGenericAbi(this)
+        ? ffiFunctions.uniffi_xcelerate_fn_method_page_document_element_generic_abi
+        : ffiFunctions.uniffi_xcelerate_fn_method_page_document_element;
+    const completePointer = uniffiGetCachedLibraryFunction(
+      "complete:ffi_xcelerate_rust_future_complete_u64",
+      (bindings) => bindings.library.func(
+        "ffi_xcelerate_rust_future_complete_u64",
+        bindings.ffiTypes.VoidPointer,
+        [bindings.ffiTypes.UniffiHandle, koffi.pointer(bindings.ffiTypes.RustCallStatus)],
+      ),
+    );
+    const completeFunc = (rustFuture, status) => completePointer(rustFuture, status);
+    return rustCallAsync({
+      rustFutureFunc: () => ffiMethod(loweredSelf),
+      pollFunc: (rustFuture, _continuationCallback, continuationHandle) => ffiFunctions.ffi_xcelerate_rust_future_poll_u64(rustFuture, uniffiGetRustFutureContinuationPointer(), continuationHandle),
+      cancelFunc: (rustFuture) => ffiFunctions.ffi_xcelerate_rust_future_cancel_u64(rustFuture),
+      completeFunc,
+      freeFunc: (rustFuture) => ffiFunctions.ffi_xcelerate_rust_future_free_u64(rustFuture),
+      liftFunc: (uniffiResult) => uniffiElementObjectFactory.createRawExternal(uniffiResult),
+      ...uniffiRustCallOptions(FfiConverterXcelerateError),
+    });
+  }
+
+  /**
    * Overrides the idle state.
    */
   async emulate_idle_state(is_user_active, is_screen_unlocked) {
@@ -2964,6 +3080,8 @@ export class Page extends UniffiObjectBase {
 
   /**
    * Finds an element matching the CSS selector.
+   *
+   * The search pierces open shadow roots, so web components are reachable.
    */
   async findElement(selector) {
     const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);
@@ -3058,6 +3176,9 @@ export class Page extends UniffiObjectBase {
 
   /**
    * Finds a form control by its associated `<label>` text.
+   *
+   * Delegates to [`Element::get_by_label`], so the search pierces open shadow
+   * roots.
    */
   async get_by_label(label) {
     const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);
@@ -3087,7 +3208,10 @@ export class Page extends UniffiObjectBase {
   }
 
   /**
-   * Finds an element by ARIA role (falls back to a tag-name lookup).
+   * Finds an element by ARIA role.
+   *
+   * Delegates to [`Element::get_by_role`], so the search pierces open shadow
+   * roots.
    */
   async get_by_role(role) {
     const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);
@@ -3118,6 +3242,9 @@ export class Page extends UniffiObjectBase {
 
   /**
    * Finds an element whose text content contains `text`.
+   *
+   * Delegates to [`Element::get_by_text`], so the search pierces open shadow
+   * roots.
    */
   async get_by_text(text) {
     const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);
@@ -3625,8 +3752,8 @@ export class Page extends UniffiObjectBase {
   /**
    * Returns every element matching the CSS selector.
    *
-   * Uses two round trips (fetch the node list, then read its properties)
-   * instead of one `evaluate` per match.
+   * The search pierces open shadow roots. Uses two round trips (fetch the node
+   * list, then read its properties) instead of one `evaluate` per match.
    */
   async query_selector_all(selector) {
     const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);
@@ -3649,6 +3776,9 @@ export class Page extends UniffiObjectBase {
 
   /**
    * Returns the first node matching an XPath expression as an [`Element`].
+   *
+   * The search pierces open shadow roots and same-origin frames (see
+   * [`Element::query_selector_xpath`]).
    */
   async query_selector_xpath(xpath) {
     const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);
@@ -4020,7 +4150,9 @@ export class Page extends UniffiObjectBase {
   }
 
   /**
-   * Stores a default timeout (ms) for adapter compatibility.
+   * Sets the default timeout (ms) applied by [`Page::wait_for_selector`],
+   * [`Page::wait_for_navigation`], and [`Page::wait_for_event_default`].
+   * As in Playwright, `0` disables the timeout.
    */
   async set_default_timeout(milliseconds) {
     const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);
@@ -4613,7 +4745,7 @@ export class Page extends UniffiObjectBase {
   }
 
   /**
-   * [`Page::wait_for_event`] with the default 30s timeout.
+   * [`Page::wait_for_event`] with the page's default timeout.
    */
   async wait_for_event_default(event_name) {
     const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);
@@ -4680,6 +4812,9 @@ export class Page extends UniffiObjectBase {
 
   /**
    * Waits for an element matching the selector to appear in the DOM.
+   *
+   * The search pierces open shadow roots. Polls until the page's default
+   * timeout elapses.
    */
   async waitForSelector(selector) {
     const loweredSelf = uniffiPageObjectFactory.cloneHandle(this);

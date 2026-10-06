@@ -36,71 +36,71 @@ export const ffiIntegrity = Object.freeze({
   expectedContractVersion: 30,
   checksums: Object.freeze({
 
-    "uniffi_xcelerate_checksum_method_browser_audit_log": 37952,
+    "uniffi_xcelerate_checksum_method_browser_audit_log": 58417,
 
-    "uniffi_xcelerate_checksum_method_browser_audit_verify": 5412,
+    "uniffi_xcelerate_checksum_method_browser_audit_verify": 56834,
 
-    "uniffi_xcelerate_checksum_method_browser_available_plugins": 9431,
+    "uniffi_xcelerate_checksum_method_browser_available_plugins": 13132,
 
-    "uniffi_xcelerate_checksum_method_browser_browser_contexts": 50137,
+    "uniffi_xcelerate_checksum_method_browser_browser_contexts": 59339,
 
-    "uniffi_xcelerate_checksum_method_browser_capabilities": 7431,
+    "uniffi_xcelerate_checksum_method_browser_capabilities": 7601,
 
-    "uniffi_xcelerate_checksum_method_browser_close": 831,
+    "uniffi_xcelerate_checksum_method_browser_close": 44553,
 
-    "uniffi_xcelerate_checksum_method_browser_cookies": 36914,
+    "uniffi_xcelerate_checksum_method_browser_cookies": 8530,
 
-    "uniffi_xcelerate_checksum_method_browser_delete_cookie": 14366,
+    "uniffi_xcelerate_checksum_method_browser_delete_cookie": 44579,
 
-    "uniffi_xcelerate_checksum_method_browser_event_names": 44664,
+    "uniffi_xcelerate_checksum_method_browser_event_names": 12570,
 
-    "uniffi_xcelerate_checksum_method_browser_grant_permissions": 57820,
+    "uniffi_xcelerate_checksum_method_browser_grant_permissions": 62168,
 
-    "uniffi_xcelerate_checksum_method_browser_is_connected": 10958,
+    "uniffi_xcelerate_checksum_method_browser_is_connected": 63934,
 
-    "uniffi_xcelerate_checksum_method_browser_listens_to": 12245,
+    "uniffi_xcelerate_checksum_method_browser_listens_to": 56113,
 
-    "uniffi_xcelerate_checksum_method_browser_load_plugin": 5693,
+    "uniffi_xcelerate_checksum_method_browser_load_plugin": 26734,
 
-    "uniffi_xcelerate_checksum_method_browser_new_context": 28184,
+    "uniffi_xcelerate_checksum_method_browser_new_context": 59309,
 
-    "uniffi_xcelerate_checksum_method_browser_new_page": 31633,
+    "uniffi_xcelerate_checksum_method_browser_new_page": 65142,
 
-    "uniffi_xcelerate_checksum_method_browser_on": 2255,
+    "uniffi_xcelerate_checksum_method_browser_on": 4402,
 
-    "uniffi_xcelerate_checksum_method_browser_once": 22376,
+    "uniffi_xcelerate_checksum_method_browser_once": 62023,
 
-    "uniffi_xcelerate_checksum_method_browser_plugin": 11907,
+    "uniffi_xcelerate_checksum_method_browser_plugin": 38553,
 
-    "uniffi_xcelerate_checksum_method_browser_plugin_names": 58296,
+    "uniffi_xcelerate_checksum_method_browser_plugin_names": 5716,
 
-    "uniffi_xcelerate_checksum_method_browser_remove_all_listeners": 51158,
+    "uniffi_xcelerate_checksum_method_browser_remove_all_listeners": 16672,
 
-    "uniffi_xcelerate_checksum_method_browser_remove_listener": 41339,
+    "uniffi_xcelerate_checksum_method_browser_remove_listener": 3101,
 
-    "uniffi_xcelerate_checksum_method_browser_reset_permissions": 21496,
+    "uniffi_xcelerate_checksum_method_browser_reset_permissions": 50876,
 
-    "uniffi_xcelerate_checksum_method_browser_set_cookie": 6259,
+    "uniffi_xcelerate_checksum_method_browser_set_cookie": 61323,
 
-    "uniffi_xcelerate_checksum_method_browser_set_download_behavior": 23198,
+    "uniffi_xcelerate_checksum_method_browser_set_download_behavior": 32642,
 
-    "uniffi_xcelerate_checksum_method_browser_start_tracing": 14885,
+    "uniffi_xcelerate_checksum_method_browser_start_tracing": 25818,
 
-    "uniffi_xcelerate_checksum_method_browser_stop_tracing": 57049,
+    "uniffi_xcelerate_checksum_method_browser_stop_tracing": 30224,
 
-    "uniffi_xcelerate_checksum_method_browser_targets": 28936,
+    "uniffi_xcelerate_checksum_method_browser_targets": 50695,
 
-    "uniffi_xcelerate_checksum_method_browser_use_plugin": 20462,
+    "uniffi_xcelerate_checksum_method_browser_use_plugin": 53288,
 
-    "uniffi_xcelerate_checksum_method_browser_user_agent": 20558,
+    "uniffi_xcelerate_checksum_method_browser_user_agent": 36639,
 
-    "uniffi_xcelerate_checksum_method_browser_version": 64817,
+    "uniffi_xcelerate_checksum_method_browser_version": 2891,
 
-    "uniffi_xcelerate_checksum_method_browser_wait_for_event": 20884,
+    "uniffi_xcelerate_checksum_method_browser_wait_for_event": 63537,
 
-    "uniffi_xcelerate_checksum_method_browser_wait_for_event_default": 53096,
+    "uniffi_xcelerate_checksum_method_browser_wait_for_event_default": 14198,
 
-    "uniffi_xcelerate_checksum_method_browser_ws_endpoint": 36520,
+    "uniffi_xcelerate_checksum_method_browser_ws_endpoint": 63756,
 
     "uniffi_xcelerate_checksum_method_element_attribute": 8836,
 
@@ -108,15 +108,15 @@ export const ffiIntegrity = Object.freeze({
 
     "uniffi_xcelerate_checksum_method_element_call_json": 56720,
 
-    "uniffi_xcelerate_checksum_method_element_call_on_selector": 20589,
+    "uniffi_xcelerate_checksum_method_element_call_on_selector": 53984,
 
-    "uniffi_xcelerate_checksum_method_element_call_on_selector_all": 58660,
+    "uniffi_xcelerate_checksum_method_element_call_on_selector_all": 47977,
 
     "uniffi_xcelerate_checksum_method_element_call_string": 1191,
 
     "uniffi_xcelerate_checksum_method_element_click": 26136,
 
-    "uniffi_xcelerate_checksum_method_element_click_stealth": 64888,
+    "uniffi_xcelerate_checksum_method_element_click_mouse": 60796,
 
     "uniffi_xcelerate_checksum_method_element_count": 40137,
 
@@ -132,29 +132,29 @@ export const ffiIntegrity = Object.freeze({
 
     "uniffi_xcelerate_checksum_method_element_focus": 34225,
 
-    "uniffi_xcelerate_checksum_method_element_get_by_label": 41888,
+    "uniffi_xcelerate_checksum_method_element_get_by_label": 29865,
 
-    "uniffi_xcelerate_checksum_method_element_get_by_role": 15624,
+    "uniffi_xcelerate_checksum_method_element_get_by_role": 15953,
 
-    "uniffi_xcelerate_checksum_method_element_get_by_text": 11298,
+    "uniffi_xcelerate_checksum_method_element_get_by_text": 18847,
 
     "uniffi_xcelerate_checksum_method_element_get_properties": 28646,
 
     "uniffi_xcelerate_checksum_method_element_hover": 32638,
 
-    "uniffi_xcelerate_checksum_method_element_hover_stealth": 12397,
+    "uniffi_xcelerate_checksum_method_element_hover_mouse": 47391,
 
     "uniffi_xcelerate_checksum_method_element_inner_html": 63319,
 
     "uniffi_xcelerate_checksum_method_element_press": 13244,
 
-    "uniffi_xcelerate_checksum_method_element_query_selector": 59248,
+    "uniffi_xcelerate_checksum_method_element_query_selector": 19454,
 
-    "uniffi_xcelerate_checksum_method_element_query_selector_all": 57750,
+    "uniffi_xcelerate_checksum_method_element_query_selector_all": 65463,
 
     "uniffi_xcelerate_checksum_method_element_query_selector_attr": 63681,
 
-    "uniffi_xcelerate_checksum_method_element_query_selector_xpath": 47775,
+    "uniffi_xcelerate_checksum_method_element_query_selector_xpath": 11390,
 
     "uniffi_xcelerate_checksum_method_element_screenshot": 55082,
 
@@ -168,7 +168,7 @@ export const ffiIntegrity = Object.freeze({
 
     "uniffi_xcelerate_checksum_method_element_type_text": 45944,
 
-    "uniffi_xcelerate_checksum_method_element_wait_for_selector": 53340,
+    "uniffi_xcelerate_checksum_method_element_wait_for_selector": 23551,
 
     "uniffi_xcelerate_checksum_method_page_activate": 30852,
 
@@ -186,9 +186,9 @@ export const ffiIntegrity = Object.freeze({
 
     "uniffi_xcelerate_checksum_method_page_call_json": 37033,
 
-    "uniffi_xcelerate_checksum_method_page_call_on_selector": 27164,
+    "uniffi_xcelerate_checksum_method_page_call_on_selector": 902,
 
-    "uniffi_xcelerate_checksum_method_page_call_on_selector_all": 24130,
+    "uniffi_xcelerate_checksum_method_page_call_on_selector_all": 9317,
 
     "uniffi_xcelerate_checksum_method_page_call_string": 28160,
 
@@ -216,6 +216,10 @@ export const ffiIntegrity = Object.freeze({
 
     "uniffi_xcelerate_checksum_method_page_decode_base64": 39526,
 
+    "uniffi_xcelerate_checksum_method_page_default_timeout": 18710,
+
+    "uniffi_xcelerate_checksum_method_page_document_element": 41358,
+
     "uniffi_xcelerate_checksum_method_page_emulate_idle_state": 53017,
 
     "uniffi_xcelerate_checksum_method_page_emulate_media": 27664,
@@ -234,7 +238,7 @@ export const ffiIntegrity = Object.freeze({
 
     "uniffi_xcelerate_checksum_method_page_execute_cdp_cmd": 20070,
 
-    "uniffi_xcelerate_checksum_method_page_find_element": 4260,
+    "uniffi_xcelerate_checksum_method_page_find_element": 20082,
 
     "uniffi_xcelerate_checksum_method_page_frame": 33986,
 
@@ -242,11 +246,11 @@ export const ffiIntegrity = Object.freeze({
 
     "uniffi_xcelerate_checksum_method_page_frames": 13809,
 
-    "uniffi_xcelerate_checksum_method_page_get_by_label": 63689,
+    "uniffi_xcelerate_checksum_method_page_get_by_label": 51936,
 
-    "uniffi_xcelerate_checksum_method_page_get_by_role": 32218,
+    "uniffi_xcelerate_checksum_method_page_get_by_role": 32000,
 
-    "uniffi_xcelerate_checksum_method_page_get_by_text": 27497,
+    "uniffi_xcelerate_checksum_method_page_get_by_text": 25448,
 
     "uniffi_xcelerate_checksum_method_page_get_default_timeout": 57791,
 
@@ -290,9 +294,9 @@ export const ffiIntegrity = Object.freeze({
 
     "uniffi_xcelerate_checksum_method_page_press": 21741,
 
-    "uniffi_xcelerate_checksum_method_page_query_selector_all": 64158,
+    "uniffi_xcelerate_checksum_method_page_query_selector_all": 7778,
 
-    "uniffi_xcelerate_checksum_method_page_query_selector_xpath": 48442,
+    "uniffi_xcelerate_checksum_method_page_query_selector_xpath": 64720,
 
     "uniffi_xcelerate_checksum_method_page_raw_window_bounds": 13012,
 
@@ -326,7 +330,7 @@ export const ffiIntegrity = Object.freeze({
 
     "uniffi_xcelerate_checksum_method_page_set_content": 60133,
 
-    "uniffi_xcelerate_checksum_method_page_set_default_timeout": 58523,
+    "uniffi_xcelerate_checksum_method_page_set_default_timeout": 7299,
 
     "uniffi_xcelerate_checksum_method_page_set_drag_interception": 35102,
 
@@ -380,13 +384,13 @@ export const ffiIntegrity = Object.freeze({
 
     "uniffi_xcelerate_checksum_method_page_wait_for_event": 16279,
 
-    "uniffi_xcelerate_checksum_method_page_wait_for_event_default": 30417,
+    "uniffi_xcelerate_checksum_method_page_wait_for_event_default": 7458,
 
     "uniffi_xcelerate_checksum_method_page_wait_for_function": 39925,
 
     "uniffi_xcelerate_checksum_method_page_wait_for_navigation": 28813,
 
-    "uniffi_xcelerate_checksum_method_page_wait_for_selector": 58306,
+    "uniffi_xcelerate_checksum_method_page_wait_for_selector": 8076,
 
     "uniffi_xcelerate_checksum_method_page_wait_for_xpath": 14726,
 
@@ -404,7 +408,7 @@ export const ffiIntegrity = Object.freeze({
 
     "uniffi_xcelerate_checksum_method_pluginhandle_plugin_name": 61258,
 
-    "uniffi_xcelerate_checksum_constructor_browser_launch": 45323,
+    "uniffi_xcelerate_checksum_constructor_browser_launch": 47265,
 
   }),
 });
@@ -971,9 +975,9 @@ function createBindingCore(libraryPath) {
     uniffi_xcelerate_fn_method_element_click_generic_abi: library.func("uniffi_xcelerate_fn_method_element_click", ffiTypes.UniffiHandle, [ffiTypes.UniffiHandle]),
 
 
-    uniffi_xcelerate_fn_method_element_click_stealth: library.func("uniffi_xcelerate_fn_method_element_click_stealth", ffiTypes.UniffiHandle, [ffiTypes.UniffiHandle]),
+    uniffi_xcelerate_fn_method_element_click_mouse: library.func("uniffi_xcelerate_fn_method_element_click_mouse", ffiTypes.UniffiHandle, [ffiTypes.UniffiHandle]),
 
-    uniffi_xcelerate_fn_method_element_click_stealth_generic_abi: library.func("uniffi_xcelerate_fn_method_element_click_stealth", ffiTypes.UniffiHandle, [ffiTypes.UniffiHandle]),
+    uniffi_xcelerate_fn_method_element_click_mouse_generic_abi: library.func("uniffi_xcelerate_fn_method_element_click_mouse", ffiTypes.UniffiHandle, [ffiTypes.UniffiHandle]),
 
 
     uniffi_xcelerate_fn_method_element_count: library.func("uniffi_xcelerate_fn_method_element_count", ffiTypes.UniffiHandle, [ffiTypes.UniffiHandle]),
@@ -1036,9 +1040,9 @@ function createBindingCore(libraryPath) {
     uniffi_xcelerate_fn_method_element_hover_generic_abi: library.func("uniffi_xcelerate_fn_method_element_hover", ffiTypes.UniffiHandle, [ffiTypes.UniffiHandle]),
 
 
-    uniffi_xcelerate_fn_method_element_hover_stealth: library.func("uniffi_xcelerate_fn_method_element_hover_stealth", ffiTypes.UniffiHandle, [ffiTypes.UniffiHandle]),
+    uniffi_xcelerate_fn_method_element_hover_mouse: library.func("uniffi_xcelerate_fn_method_element_hover_mouse", ffiTypes.UniffiHandle, [ffiTypes.UniffiHandle]),
 
-    uniffi_xcelerate_fn_method_element_hover_stealth_generic_abi: library.func("uniffi_xcelerate_fn_method_element_hover_stealth", ffiTypes.UniffiHandle, [ffiTypes.UniffiHandle]),
+    uniffi_xcelerate_fn_method_element_hover_mouse_generic_abi: library.func("uniffi_xcelerate_fn_method_element_hover_mouse", ffiTypes.UniffiHandle, [ffiTypes.UniffiHandle]),
 
 
     uniffi_xcelerate_fn_method_element_inner_html: library.func("uniffi_xcelerate_fn_method_element_inner_html", ffiTypes.UniffiHandle, [ffiTypes.UniffiHandle]),
@@ -1229,6 +1233,16 @@ function createBindingCore(libraryPath) {
     uniffi_xcelerate_fn_method_page_decode_base64: library.func("uniffi_xcelerate_fn_method_page_decode_base64", ffiTypes.RustBuffer, [ffiTypes.UniffiHandle, ffiTypes.RustBuffer, koffi.pointer(ffiTypes.RustCallStatus)]),
 
     uniffi_xcelerate_fn_method_page_decode_base64_generic_abi: library.func("uniffi_xcelerate_fn_method_page_decode_base64", ffiTypes.RustBuffer, [ffiTypes.UniffiHandle, ffiTypes.RustBuffer, koffi.pointer(ffiTypes.RustCallStatus)]),
+
+
+    uniffi_xcelerate_fn_method_page_default_timeout: library.func("uniffi_xcelerate_fn_method_page_default_timeout", "uint64_t", [ffiTypes.UniffiHandle, koffi.pointer(ffiTypes.RustCallStatus)]),
+
+    uniffi_xcelerate_fn_method_page_default_timeout_generic_abi: library.func("uniffi_xcelerate_fn_method_page_default_timeout", "uint64_t", [ffiTypes.UniffiHandle, koffi.pointer(ffiTypes.RustCallStatus)]),
+
+
+    uniffi_xcelerate_fn_method_page_document_element: library.func("uniffi_xcelerate_fn_method_page_document_element", ffiTypes.UniffiHandle, [ffiTypes.UniffiHandle]),
+
+    uniffi_xcelerate_fn_method_page_document_element_generic_abi: library.func("uniffi_xcelerate_fn_method_page_document_element", ffiTypes.UniffiHandle, [ffiTypes.UniffiHandle]),
 
 
     uniffi_xcelerate_fn_method_page_emulate_idle_state: library.func("uniffi_xcelerate_fn_method_page_emulate_idle_state", ffiTypes.UniffiHandle, [ffiTypes.UniffiHandle, "int8_t", "int8_t"]),
@@ -2083,7 +2097,7 @@ function createBindingCore(libraryPath) {
     uniffi_xcelerate_checksum_method_element_click: library.func("uniffi_xcelerate_checksum_method_element_click", "uint16_t", []),
 
 
-    uniffi_xcelerate_checksum_method_element_click_stealth: library.func("uniffi_xcelerate_checksum_method_element_click_stealth", "uint16_t", []),
+    uniffi_xcelerate_checksum_method_element_click_mouse: library.func("uniffi_xcelerate_checksum_method_element_click_mouse", "uint16_t", []),
 
 
     uniffi_xcelerate_checksum_method_element_count: library.func("uniffi_xcelerate_checksum_method_element_count", "uint16_t", []),
@@ -2122,7 +2136,7 @@ function createBindingCore(libraryPath) {
     uniffi_xcelerate_checksum_method_element_hover: library.func("uniffi_xcelerate_checksum_method_element_hover", "uint16_t", []),
 
 
-    uniffi_xcelerate_checksum_method_element_hover_stealth: library.func("uniffi_xcelerate_checksum_method_element_hover_stealth", "uint16_t", []),
+    uniffi_xcelerate_checksum_method_element_hover_mouse: library.func("uniffi_xcelerate_checksum_method_element_hover_mouse", "uint16_t", []),
 
 
     uniffi_xcelerate_checksum_method_element_inner_html: library.func("uniffi_xcelerate_checksum_method_element_inner_html", "uint16_t", []),
@@ -2231,6 +2245,12 @@ function createBindingCore(libraryPath) {
 
 
     uniffi_xcelerate_checksum_method_page_decode_base64: library.func("uniffi_xcelerate_checksum_method_page_decode_base64", "uint16_t", []),
+
+
+    uniffi_xcelerate_checksum_method_page_default_timeout: library.func("uniffi_xcelerate_checksum_method_page_default_timeout", "uint16_t", []),
+
+
+    uniffi_xcelerate_checksum_method_page_document_element: library.func("uniffi_xcelerate_checksum_method_page_document_element", "uint16_t", []),
 
 
     uniffi_xcelerate_checksum_method_page_emulate_idle_state: library.func("uniffi_xcelerate_checksum_method_page_emulate_idle_state", "uint16_t", []),
@@ -2789,7 +2809,7 @@ export function getChecksums(bindings = getFfiBindings()) {
 
     "uniffi_xcelerate_checksum_method_element_click": bindings.ffiFunctions.uniffi_xcelerate_checksum_method_element_click(),
 
-    "uniffi_xcelerate_checksum_method_element_click_stealth": bindings.ffiFunctions.uniffi_xcelerate_checksum_method_element_click_stealth(),
+    "uniffi_xcelerate_checksum_method_element_click_mouse": bindings.ffiFunctions.uniffi_xcelerate_checksum_method_element_click_mouse(),
 
     "uniffi_xcelerate_checksum_method_element_count": bindings.ffiFunctions.uniffi_xcelerate_checksum_method_element_count(),
 
@@ -2815,7 +2835,7 @@ export function getChecksums(bindings = getFfiBindings()) {
 
     "uniffi_xcelerate_checksum_method_element_hover": bindings.ffiFunctions.uniffi_xcelerate_checksum_method_element_hover(),
 
-    "uniffi_xcelerate_checksum_method_element_hover_stealth": bindings.ffiFunctions.uniffi_xcelerate_checksum_method_element_hover_stealth(),
+    "uniffi_xcelerate_checksum_method_element_hover_mouse": bindings.ffiFunctions.uniffi_xcelerate_checksum_method_element_hover_mouse(),
 
     "uniffi_xcelerate_checksum_method_element_inner_html": bindings.ffiFunctions.uniffi_xcelerate_checksum_method_element_inner_html(),
 
@@ -2888,6 +2908,10 @@ export function getChecksums(bindings = getFfiBindings()) {
     "uniffi_xcelerate_checksum_method_page_create_pdf_stream": bindings.ffiFunctions.uniffi_xcelerate_checksum_method_page_create_pdf_stream(),
 
     "uniffi_xcelerate_checksum_method_page_decode_base64": bindings.ffiFunctions.uniffi_xcelerate_checksum_method_page_decode_base64(),
+
+    "uniffi_xcelerate_checksum_method_page_default_timeout": bindings.ffiFunctions.uniffi_xcelerate_checksum_method_page_default_timeout(),
+
+    "uniffi_xcelerate_checksum_method_page_document_element": bindings.ffiFunctions.uniffi_xcelerate_checksum_method_page_document_element(),
 
     "uniffi_xcelerate_checksum_method_page_emulate_idle_state": bindings.ffiFunctions.uniffi_xcelerate_checksum_method_page_emulate_idle_state(),
 
@@ -3606,10 +3630,10 @@ export function validateChecksums(bindings = getFfiBindings()) {
   }
 
   {
-    const expected = ffiIntegrity.checksums["uniffi_xcelerate_checksum_method_element_click_stealth"];
-    const actual = actualChecksums["uniffi_xcelerate_checksum_method_element_click_stealth"];
+    const expected = ffiIntegrity.checksums["uniffi_xcelerate_checksum_method_element_click_mouse"];
+    const actual = actualChecksums["uniffi_xcelerate_checksum_method_element_click_mouse"];
     if (actual !== expected) {
-      throw new ChecksumMismatchError("uniffi_xcelerate_checksum_method_element_click_stealth", expected, actual, {
+      throw new ChecksumMismatchError("uniffi_xcelerate_checksum_method_element_click_mouse", expected, actual, {
         details: {
           libraryPath: bindings.libraryPath,
           packageRelativePath: bindings.packageRelativePath,
@@ -3775,10 +3799,10 @@ export function validateChecksums(bindings = getFfiBindings()) {
   }
 
   {
-    const expected = ffiIntegrity.checksums["uniffi_xcelerate_checksum_method_element_hover_stealth"];
-    const actual = actualChecksums["uniffi_xcelerate_checksum_method_element_hover_stealth"];
+    const expected = ffiIntegrity.checksums["uniffi_xcelerate_checksum_method_element_hover_mouse"];
+    const actual = actualChecksums["uniffi_xcelerate_checksum_method_element_hover_mouse"];
     if (actual !== expected) {
-      throw new ChecksumMismatchError("uniffi_xcelerate_checksum_method_element_hover_stealth", expected, actual, {
+      throw new ChecksumMismatchError("uniffi_xcelerate_checksum_method_element_hover_mouse", expected, actual, {
         details: {
           libraryPath: bindings.libraryPath,
           packageRelativePath: bindings.packageRelativePath,
@@ -4247,6 +4271,32 @@ export function validateChecksums(bindings = getFfiBindings()) {
     const actual = actualChecksums["uniffi_xcelerate_checksum_method_page_decode_base64"];
     if (actual !== expected) {
       throw new ChecksumMismatchError("uniffi_xcelerate_checksum_method_page_decode_base64", expected, actual, {
+        details: {
+          libraryPath: bindings.libraryPath,
+          packageRelativePath: bindings.packageRelativePath,
+        },
+      });
+    }
+  }
+
+  {
+    const expected = ffiIntegrity.checksums["uniffi_xcelerate_checksum_method_page_default_timeout"];
+    const actual = actualChecksums["uniffi_xcelerate_checksum_method_page_default_timeout"];
+    if (actual !== expected) {
+      throw new ChecksumMismatchError("uniffi_xcelerate_checksum_method_page_default_timeout", expected, actual, {
+        details: {
+          libraryPath: bindings.libraryPath,
+          packageRelativePath: bindings.packageRelativePath,
+        },
+      });
+    }
+  }
+
+  {
+    const expected = ffiIntegrity.checksums["uniffi_xcelerate_checksum_method_page_document_element"];
+    const actual = actualChecksums["uniffi_xcelerate_checksum_method_page_document_element"];
+    if (actual !== expected) {
+      throw new ChecksumMismatchError("uniffi_xcelerate_checksum_method_page_document_element", expected, actual, {
         details: {
           libraryPath: bindings.libraryPath,
           packageRelativePath: bindings.packageRelativePath,
@@ -6207,16 +6257,16 @@ export const ffiFunctions = Object.freeze({
   },
 
 
-  uniffi_xcelerate_fn_method_element_click_stealth(...args) {
-    const result = getLoadedFfiFunctions().uniffi_xcelerate_fn_method_element_click_stealth(...args);
+  uniffi_xcelerate_fn_method_element_click_mouse(...args) {
+    const result = getLoadedFfiFunctions().uniffi_xcelerate_fn_method_element_click_mouse(...args);
 
     return normalizeHandle(result);
 
   },
 
 
-  uniffi_xcelerate_fn_method_element_click_stealth_generic_abi(...args) {
-    const result = getLoadedFfiFunctions().uniffi_xcelerate_fn_method_element_click_stealth_generic_abi(...args);
+  uniffi_xcelerate_fn_method_element_click_mouse_generic_abi(...args) {
+    const result = getLoadedFfiFunctions().uniffi_xcelerate_fn_method_element_click_mouse_generic_abi(...args);
 
     return normalizeHandle(result);
 
@@ -6415,16 +6465,16 @@ export const ffiFunctions = Object.freeze({
   },
 
 
-  uniffi_xcelerate_fn_method_element_hover_stealth(...args) {
-    const result = getLoadedFfiFunctions().uniffi_xcelerate_fn_method_element_hover_stealth(...args);
+  uniffi_xcelerate_fn_method_element_hover_mouse(...args) {
+    const result = getLoadedFfiFunctions().uniffi_xcelerate_fn_method_element_hover_mouse(...args);
 
     return normalizeHandle(result);
 
   },
 
 
-  uniffi_xcelerate_fn_method_element_hover_stealth_generic_abi(...args) {
-    const result = getLoadedFfiFunctions().uniffi_xcelerate_fn_method_element_hover_stealth_generic_abi(...args);
+  uniffi_xcelerate_fn_method_element_hover_mouse_generic_abi(...args) {
+    const result = getLoadedFfiFunctions().uniffi_xcelerate_fn_method_element_hover_mouse_generic_abi(...args);
 
     return normalizeHandle(result);
 
@@ -7035,6 +7085,38 @@ export const ffiFunctions = Object.freeze({
     const result = getLoadedFfiFunctions().uniffi_xcelerate_fn_method_page_decode_base64_generic_abi(...args);
 
     return normalizeRustBuffer(result);
+
+  },
+
+
+  uniffi_xcelerate_fn_method_page_default_timeout(...args) {
+    const result = getLoadedFfiFunctions().uniffi_xcelerate_fn_method_page_default_timeout(...args);
+
+    return normalizeUInt64(result);
+
+  },
+
+
+  uniffi_xcelerate_fn_method_page_default_timeout_generic_abi(...args) {
+    const result = getLoadedFfiFunctions().uniffi_xcelerate_fn_method_page_default_timeout_generic_abi(...args);
+
+    return normalizeUInt64(result);
+
+  },
+
+
+  uniffi_xcelerate_fn_method_page_document_element(...args) {
+    const result = getLoadedFfiFunctions().uniffi_xcelerate_fn_method_page_document_element(...args);
+
+    return normalizeHandle(result);
+
+  },
+
+
+  uniffi_xcelerate_fn_method_page_document_element_generic_abi(...args) {
+    const result = getLoadedFfiFunctions().uniffi_xcelerate_fn_method_page_document_element_generic_abi(...args);
+
+    return normalizeHandle(result);
 
   },
 
@@ -9695,8 +9777,8 @@ export const ffiFunctions = Object.freeze({
   },
 
 
-  uniffi_xcelerate_checksum_method_element_click_stealth(...args) {
-    const result = getLoadedFfiFunctions().uniffi_xcelerate_checksum_method_element_click_stealth(...args);
+  uniffi_xcelerate_checksum_method_element_click_mouse(...args) {
+    const result = getLoadedFfiFunctions().uniffi_xcelerate_checksum_method_element_click_mouse(...args);
 
     return result;
 
@@ -9799,8 +9881,8 @@ export const ffiFunctions = Object.freeze({
   },
 
 
-  uniffi_xcelerate_checksum_method_element_hover_stealth(...args) {
-    const result = getLoadedFfiFunctions().uniffi_xcelerate_checksum_method_element_hover_stealth(...args);
+  uniffi_xcelerate_checksum_method_element_hover_mouse(...args) {
+    const result = getLoadedFfiFunctions().uniffi_xcelerate_checksum_method_element_hover_mouse(...args);
 
     return result;
 
@@ -10089,6 +10171,22 @@ export const ffiFunctions = Object.freeze({
 
   uniffi_xcelerate_checksum_method_page_decode_base64(...args) {
     const result = getLoadedFfiFunctions().uniffi_xcelerate_checksum_method_page_decode_base64(...args);
+
+    return result;
+
+  },
+
+
+  uniffi_xcelerate_checksum_method_page_default_timeout(...args) {
+    const result = getLoadedFfiFunctions().uniffi_xcelerate_checksum_method_page_default_timeout(...args);
+
+    return result;
+
+  },
+
+
+  uniffi_xcelerate_checksum_method_page_document_element(...args) {
+    const result = getLoadedFfiFunctions().uniffi_xcelerate_checksum_method_page_document_element(...args);
 
     return result;
 
@@ -11356,13 +11454,13 @@ export function uniffi_xcelerate_fn_method_element_click_generic_abi(...args) {
 
 
 
-export function uniffi_xcelerate_fn_method_element_click_stealth(...args) {
-  return ffiFunctions.uniffi_xcelerate_fn_method_element_click_stealth(...args);
+export function uniffi_xcelerate_fn_method_element_click_mouse(...args) {
+  return ffiFunctions.uniffi_xcelerate_fn_method_element_click_mouse(...args);
 }
 
 
-export function uniffi_xcelerate_fn_method_element_click_stealth_generic_abi(...args) {
-  return ffiFunctions.uniffi_xcelerate_fn_method_element_click_stealth_generic_abi(...args);
+export function uniffi_xcelerate_fn_method_element_click_mouse_generic_abi(...args) {
+  return ffiFunctions.uniffi_xcelerate_fn_method_element_click_mouse_generic_abi(...args);
 }
 
 
@@ -11499,13 +11597,13 @@ export function uniffi_xcelerate_fn_method_element_hover_generic_abi(...args) {
 
 
 
-export function uniffi_xcelerate_fn_method_element_hover_stealth(...args) {
-  return ffiFunctions.uniffi_xcelerate_fn_method_element_hover_stealth(...args);
+export function uniffi_xcelerate_fn_method_element_hover_mouse(...args) {
+  return ffiFunctions.uniffi_xcelerate_fn_method_element_hover_mouse(...args);
 }
 
 
-export function uniffi_xcelerate_fn_method_element_hover_stealth_generic_abi(...args) {
-  return ffiFunctions.uniffi_xcelerate_fn_method_element_hover_stealth_generic_abi(...args);
+export function uniffi_xcelerate_fn_method_element_hover_mouse_generic_abi(...args) {
+  return ffiFunctions.uniffi_xcelerate_fn_method_element_hover_mouse_generic_abi(...args);
 }
 
 
@@ -11924,6 +12022,28 @@ export function uniffi_xcelerate_fn_method_page_decode_base64(...args) {
 
 export function uniffi_xcelerate_fn_method_page_decode_base64_generic_abi(...args) {
   return ffiFunctions.uniffi_xcelerate_fn_method_page_decode_base64_generic_abi(...args);
+}
+
+
+
+export function uniffi_xcelerate_fn_method_page_default_timeout(...args) {
+  return ffiFunctions.uniffi_xcelerate_fn_method_page_default_timeout(...args);
+}
+
+
+export function uniffi_xcelerate_fn_method_page_default_timeout_generic_abi(...args) {
+  return ffiFunctions.uniffi_xcelerate_fn_method_page_default_timeout_generic_abi(...args);
+}
+
+
+
+export function uniffi_xcelerate_fn_method_page_document_element(...args) {
+  return ffiFunctions.uniffi_xcelerate_fn_method_page_document_element(...args);
+}
+
+
+export function uniffi_xcelerate_fn_method_page_document_element_generic_abi(...args) {
+  return ffiFunctions.uniffi_xcelerate_fn_method_page_document_element_generic_abi(...args);
 }
 
 
@@ -13776,8 +13896,8 @@ export function uniffi_xcelerate_checksum_method_element_click(...args) {
 
 
 
-export function uniffi_xcelerate_checksum_method_element_click_stealth(...args) {
-  return ffiFunctions.uniffi_xcelerate_checksum_method_element_click_stealth(...args);
+export function uniffi_xcelerate_checksum_method_element_click_mouse(...args) {
+  return ffiFunctions.uniffi_xcelerate_checksum_method_element_click_mouse(...args);
 }
 
 
@@ -13854,8 +13974,8 @@ export function uniffi_xcelerate_checksum_method_element_hover(...args) {
 
 
 
-export function uniffi_xcelerate_checksum_method_element_hover_stealth(...args) {
-  return ffiFunctions.uniffi_xcelerate_checksum_method_element_hover_stealth(...args);
+export function uniffi_xcelerate_checksum_method_element_hover_mouse(...args) {
+  return ffiFunctions.uniffi_xcelerate_checksum_method_element_hover_mouse(...args);
 }
 
 
@@ -14072,6 +14192,18 @@ export function uniffi_xcelerate_checksum_method_page_create_pdf_stream(...args)
 
 export function uniffi_xcelerate_checksum_method_page_decode_base64(...args) {
   return ffiFunctions.uniffi_xcelerate_checksum_method_page_decode_base64(...args);
+}
+
+
+
+export function uniffi_xcelerate_checksum_method_page_default_timeout(...args) {
+  return ffiFunctions.uniffi_xcelerate_checksum_method_page_default_timeout(...args);
+}
+
+
+
+export function uniffi_xcelerate_checksum_method_page_document_element(...args) {
+  return ffiFunctions.uniffi_xcelerate_checksum_method_page_document_element(...args);
 }
 
 

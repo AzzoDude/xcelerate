@@ -425,12 +425,12 @@ final class UniffiLib {
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
-    // uniffi_xcelerate_fn_method_element_click_stealth
-    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_element_click_stealth = findDowncallHandle("uniffi_xcelerate_fn_method_element_click_stealth", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.JAVA_LONG));
+    // uniffi_xcelerate_fn_method_element_click_mouse
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_element_click_mouse = findDowncallHandle("uniffi_xcelerate_fn_method_element_click_mouse", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.JAVA_LONG));
 
-    static long uniffi_xcelerate_fn_method_element_click_stealth(long ptr) {
+    static long uniffi_xcelerate_fn_method_element_click_mouse(long ptr) {
         try {
-            return (long) MH_uniffi_xcelerate_fn_method_element_click_stealth.invokeExact(ptr);
+            return (long) MH_uniffi_xcelerate_fn_method_element_click_mouse.invokeExact(ptr);
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
@@ -542,12 +542,12 @@ final class UniffiLib {
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
-    // uniffi_xcelerate_fn_method_element_hover_stealth
-    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_element_hover_stealth = findDowncallHandle("uniffi_xcelerate_fn_method_element_hover_stealth", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.JAVA_LONG));
+    // uniffi_xcelerate_fn_method_element_hover_mouse
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_element_hover_mouse = findDowncallHandle("uniffi_xcelerate_fn_method_element_hover_mouse", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.JAVA_LONG));
 
-    static long uniffi_xcelerate_fn_method_element_hover_stealth(long ptr) {
+    static long uniffi_xcelerate_fn_method_element_hover_mouse(long ptr) {
         try {
-            return (long) MH_uniffi_xcelerate_fn_method_element_hover_stealth.invokeExact(ptr);
+            return (long) MH_uniffi_xcelerate_fn_method_element_hover_mouse.invokeExact(ptr);
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
@@ -890,6 +890,24 @@ final class UniffiLib {
     static java.lang.foreign.MemorySegment uniffi_xcelerate_fn_method_page_decode_base64(java.lang.foreign.SegmentAllocator _allocator, long ptr, java.lang.foreign.MemorySegment data, java.lang.foreign.MemorySegment uniffiOutErr) {
         try {
             return (java.lang.foreign.MemorySegment) MH_uniffi_xcelerate_fn_method_page_decode_base64.invokeExact(_allocator, ptr, data, uniffiOutErr);
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_fn_method_page_default_timeout
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_page_default_timeout = findDowncallHandle("uniffi_xcelerate_fn_method_page_default_timeout", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.ADDRESS));
+
+    static long uniffi_xcelerate_fn_method_page_default_timeout(long ptr, java.lang.foreign.MemorySegment uniffiOutErr) {
+        try {
+            return (long) MH_uniffi_xcelerate_fn_method_page_default_timeout.invokeExact(ptr, uniffiOutErr);
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_fn_method_page_document_element
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_fn_method_page_document_element = findDowncallHandle("uniffi_xcelerate_fn_method_page_document_element", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_LONG, java.lang.foreign.ValueLayout.JAVA_LONG));
+
+    static long uniffi_xcelerate_fn_method_page_document_element(long ptr) {
+        try {
+            return (long) MH_uniffi_xcelerate_fn_method_page_document_element.invokeExact(ptr);
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
@@ -2585,12 +2603,12 @@ final class UniffiLib {
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
-    // uniffi_xcelerate_checksum_method_element_click_stealth
-    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_element_click_stealth = findDowncallHandle("uniffi_xcelerate_checksum_method_element_click_stealth", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
+    // uniffi_xcelerate_checksum_method_element_click_mouse
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_element_click_mouse = findDowncallHandle("uniffi_xcelerate_checksum_method_element_click_mouse", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
 
-    static short uniffi_xcelerate_checksum_method_element_click_stealth() {
+    static short uniffi_xcelerate_checksum_method_element_click_mouse() {
         try {
-            return (short) MH_uniffi_xcelerate_checksum_method_element_click_stealth.invokeExact();
+            return (short) MH_uniffi_xcelerate_checksum_method_element_click_mouse.invokeExact();
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
@@ -2702,12 +2720,12 @@ final class UniffiLib {
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
-    // uniffi_xcelerate_checksum_method_element_hover_stealth
-    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_element_hover_stealth = findDowncallHandle("uniffi_xcelerate_checksum_method_element_hover_stealth", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
+    // uniffi_xcelerate_checksum_method_element_hover_mouse
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_element_hover_mouse = findDowncallHandle("uniffi_xcelerate_checksum_method_element_hover_mouse", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
 
-    static short uniffi_xcelerate_checksum_method_element_hover_stealth() {
+    static short uniffi_xcelerate_checksum_method_element_hover_mouse() {
         try {
-            return (short) MH_uniffi_xcelerate_checksum_method_element_hover_stealth.invokeExact();
+            return (short) MH_uniffi_xcelerate_checksum_method_element_hover_mouse.invokeExact();
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 
@@ -3032,6 +3050,24 @@ final class UniffiLib {
     static short uniffi_xcelerate_checksum_method_page_decode_base64() {
         try {
             return (short) MH_uniffi_xcelerate_checksum_method_page_decode_base64.invokeExact();
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_checksum_method_page_default_timeout
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_page_default_timeout = findDowncallHandle("uniffi_xcelerate_checksum_method_page_default_timeout", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
+
+    static short uniffi_xcelerate_checksum_method_page_default_timeout() {
+        try {
+            return (short) MH_uniffi_xcelerate_checksum_method_page_default_timeout.invokeExact();
+        } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
+    }
+
+    // uniffi_xcelerate_checksum_method_page_document_element
+    private static final java.lang.invoke.MethodHandle MH_uniffi_xcelerate_checksum_method_page_document_element = findDowncallHandle("uniffi_xcelerate_checksum_method_page_document_element", java.lang.foreign.FunctionDescriptor.of(java.lang.foreign.ValueLayout.JAVA_SHORT));
+
+    static short uniffi_xcelerate_checksum_method_page_document_element() {
+        try {
+            return (short) MH_uniffi_xcelerate_checksum_method_page_document_element.invokeExact();
         } catch (Throwable _ex) { throw new AssertionError("invokeExact failed", _ex); }
     }
 

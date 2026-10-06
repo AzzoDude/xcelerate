@@ -595,9 +595,9 @@ uint64_t uniffi_xcelerate_fn_method_element_call_string(uint64_t ptr, RustBuffer
 uint64_t uniffi_xcelerate_fn_method_element_click(uint64_t ptr
 );
 #endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_XCELERATE_FN_METHOD_ELEMENT_CLICK_STEALTH
-#define UNIFFI_FFIDEF_UNIFFI_XCELERATE_FN_METHOD_ELEMENT_CLICK_STEALTH
-uint64_t uniffi_xcelerate_fn_method_element_click_stealth(uint64_t ptr
+#ifndef UNIFFI_FFIDEF_UNIFFI_XCELERATE_FN_METHOD_ELEMENT_CLICK_MOUSE
+#define UNIFFI_FFIDEF_UNIFFI_XCELERATE_FN_METHOD_ELEMENT_CLICK_MOUSE
+uint64_t uniffi_xcelerate_fn_method_element_click_mouse(uint64_t ptr
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_XCELERATE_FN_METHOD_ELEMENT_COUNT
@@ -660,9 +660,9 @@ uint64_t uniffi_xcelerate_fn_method_element_get_properties(uint64_t ptr
 uint64_t uniffi_xcelerate_fn_method_element_hover(uint64_t ptr
 );
 #endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_XCELERATE_FN_METHOD_ELEMENT_HOVER_STEALTH
-#define UNIFFI_FFIDEF_UNIFFI_XCELERATE_FN_METHOD_ELEMENT_HOVER_STEALTH
-uint64_t uniffi_xcelerate_fn_method_element_hover_stealth(uint64_t ptr
+#ifndef UNIFFI_FFIDEF_UNIFFI_XCELERATE_FN_METHOD_ELEMENT_HOVER_MOUSE
+#define UNIFFI_FFIDEF_UNIFFI_XCELERATE_FN_METHOD_ELEMENT_HOVER_MOUSE
+uint64_t uniffi_xcelerate_fn_method_element_hover_mouse(uint64_t ptr
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_XCELERATE_FN_METHOD_ELEMENT_INNER_HTML
@@ -853,6 +853,16 @@ uint64_t uniffi_xcelerate_fn_method_page_create_pdf_stream(uint64_t ptr
 #ifndef UNIFFI_FFIDEF_UNIFFI_XCELERATE_FN_METHOD_PAGE_DECODE_BASE64
 #define UNIFFI_FFIDEF_UNIFFI_XCELERATE_FN_METHOD_PAGE_DECODE_BASE64
 RustBuffer uniffi_xcelerate_fn_method_page_decode_base64(uint64_t ptr, RustBuffer data, RustCallStatus *out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_XCELERATE_FN_METHOD_PAGE_DEFAULT_TIMEOUT
+#define UNIFFI_FFIDEF_UNIFFI_XCELERATE_FN_METHOD_PAGE_DEFAULT_TIMEOUT
+uint64_t uniffi_xcelerate_fn_method_page_default_timeout(uint64_t ptr, RustCallStatus *out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_XCELERATE_FN_METHOD_PAGE_DOCUMENT_ELEMENT
+#define UNIFFI_FFIDEF_UNIFFI_XCELERATE_FN_METHOD_PAGE_DOCUMENT_ELEMENT
+uint64_t uniffi_xcelerate_fn_method_page_document_element(uint64_t ptr
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_XCELERATE_FN_METHOD_PAGE_EMULATE_IDLE_STATE
@@ -1835,9 +1845,9 @@ uint16_t uniffi_xcelerate_checksum_method_element_click(void
     
 );
 #endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_XCELERATE_CHECKSUM_METHOD_ELEMENT_CLICK_STEALTH
-#define UNIFFI_FFIDEF_UNIFFI_XCELERATE_CHECKSUM_METHOD_ELEMENT_CLICK_STEALTH
-uint16_t uniffi_xcelerate_checksum_method_element_click_stealth(void
+#ifndef UNIFFI_FFIDEF_UNIFFI_XCELERATE_CHECKSUM_METHOD_ELEMENT_CLICK_MOUSE
+#define UNIFFI_FFIDEF_UNIFFI_XCELERATE_CHECKSUM_METHOD_ELEMENT_CLICK_MOUSE
+uint16_t uniffi_xcelerate_checksum_method_element_click_mouse(void
     
 );
 #endif
@@ -1913,9 +1923,9 @@ uint16_t uniffi_xcelerate_checksum_method_element_hover(void
     
 );
 #endif
-#ifndef UNIFFI_FFIDEF_UNIFFI_XCELERATE_CHECKSUM_METHOD_ELEMENT_HOVER_STEALTH
-#define UNIFFI_FFIDEF_UNIFFI_XCELERATE_CHECKSUM_METHOD_ELEMENT_HOVER_STEALTH
-uint16_t uniffi_xcelerate_checksum_method_element_hover_stealth(void
+#ifndef UNIFFI_FFIDEF_UNIFFI_XCELERATE_CHECKSUM_METHOD_ELEMENT_HOVER_MOUSE
+#define UNIFFI_FFIDEF_UNIFFI_XCELERATE_CHECKSUM_METHOD_ELEMENT_HOVER_MOUSE
+uint16_t uniffi_xcelerate_checksum_method_element_hover_mouse(void
     
 );
 #endif
@@ -2132,6 +2142,18 @@ uint16_t uniffi_xcelerate_checksum_method_page_create_pdf_stream(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_XCELERATE_CHECKSUM_METHOD_PAGE_DECODE_BASE64
 #define UNIFFI_FFIDEF_UNIFFI_XCELERATE_CHECKSUM_METHOD_PAGE_DECODE_BASE64
 uint16_t uniffi_xcelerate_checksum_method_page_decode_base64(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_XCELERATE_CHECKSUM_METHOD_PAGE_DEFAULT_TIMEOUT
+#define UNIFFI_FFIDEF_UNIFFI_XCELERATE_CHECKSUM_METHOD_PAGE_DEFAULT_TIMEOUT
+uint16_t uniffi_xcelerate_checksum_method_page_default_timeout(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_XCELERATE_CHECKSUM_METHOD_PAGE_DOCUMENT_ELEMENT
+#define UNIFFI_FFIDEF_UNIFFI_XCELERATE_CHECKSUM_METHOD_PAGE_DOCUMENT_ELEMENT
+uint16_t uniffi_xcelerate_checksum_method_page_document_element(void
     
 );
 #endif

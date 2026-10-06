@@ -136,7 +136,7 @@ export declare function uniffi_xcelerate_fn_method_element_call_string(...args: 
 
 export declare function uniffi_xcelerate_fn_method_element_click(...args: any[]): any;
 
-export declare function uniffi_xcelerate_fn_method_element_click_stealth(...args: any[]): any;
+export declare function uniffi_xcelerate_fn_method_element_click_mouse(...args: any[]): any;
 
 export declare function uniffi_xcelerate_fn_method_element_count(...args: any[]): any;
 
@@ -162,7 +162,7 @@ export declare function uniffi_xcelerate_fn_method_element_get_properties(...arg
 
 export declare function uniffi_xcelerate_fn_method_element_hover(...args: any[]): any;
 
-export declare function uniffi_xcelerate_fn_method_element_hover_stealth(...args: any[]): any;
+export declare function uniffi_xcelerate_fn_method_element_hover_mouse(...args: any[]): any;
 
 export declare function uniffi_xcelerate_fn_method_element_inner_html(...args: any[]): any;
 
@@ -239,6 +239,10 @@ export declare function uniffi_xcelerate_fn_method_page_coverage_stop_js(...args
 export declare function uniffi_xcelerate_fn_method_page_create_pdf_stream(...args: any[]): any;
 
 export declare function uniffi_xcelerate_fn_method_page_decode_base64(...args: any[]): any;
+
+export declare function uniffi_xcelerate_fn_method_page_default_timeout(...args: any[]): any;
+
+export declare function uniffi_xcelerate_fn_method_page_document_element(...args: any[]): any;
 
 export declare function uniffi_xcelerate_fn_method_page_emulate_idle_state(...args: any[]): any;
 
@@ -616,7 +620,7 @@ export declare function uniffi_xcelerate_checksum_method_element_call_string(...
 
 export declare function uniffi_xcelerate_checksum_method_element_click(...args: any[]): any;
 
-export declare function uniffi_xcelerate_checksum_method_element_click_stealth(...args: any[]): any;
+export declare function uniffi_xcelerate_checksum_method_element_click_mouse(...args: any[]): any;
 
 export declare function uniffi_xcelerate_checksum_method_element_count(...args: any[]): any;
 
@@ -642,7 +646,7 @@ export declare function uniffi_xcelerate_checksum_method_element_get_properties(
 
 export declare function uniffi_xcelerate_checksum_method_element_hover(...args: any[]): any;
 
-export declare function uniffi_xcelerate_checksum_method_element_hover_stealth(...args: any[]): any;
+export declare function uniffi_xcelerate_checksum_method_element_hover_mouse(...args: any[]): any;
 
 export declare function uniffi_xcelerate_checksum_method_element_inner_html(...args: any[]): any;
 
@@ -715,6 +719,10 @@ export declare function uniffi_xcelerate_checksum_method_page_coverage_stop_js(.
 export declare function uniffi_xcelerate_checksum_method_page_create_pdf_stream(...args: any[]): any;
 
 export declare function uniffi_xcelerate_checksum_method_page_decode_base64(...args: any[]): any;
+
+export declare function uniffi_xcelerate_checksum_method_page_default_timeout(...args: any[]): any;
+
+export declare function uniffi_xcelerate_checksum_method_page_document_element(...args: any[]): any;
 
 export declare function uniffi_xcelerate_checksum_method_page_emulate_idle_state(...args: any[]): any;
 

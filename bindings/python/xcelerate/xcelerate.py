@@ -479,73 +479,73 @@ def _uniffi_check_contract_api_version(lib):
         raise InternalError("UniFFI contract version mismatch: try cleaning and rebuilding your project")
 
 def _uniffi_check_api_checksums(lib):
-    if lib.uniffi_xcelerate_checksum_constructor_browser_launch() != 45323:
+    if lib.uniffi_xcelerate_checksum_constructor_browser_launch() != 47265:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_audit_log() != 37952:
+    if lib.uniffi_xcelerate_checksum_method_browser_audit_log() != 58417:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_audit_verify() != 5412:
+    if lib.uniffi_xcelerate_checksum_method_browser_audit_verify() != 56834:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_available_plugins() != 9431:
+    if lib.uniffi_xcelerate_checksum_method_browser_available_plugins() != 13132:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_browser_contexts() != 50137:
+    if lib.uniffi_xcelerate_checksum_method_browser_browser_contexts() != 59339:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_capabilities() != 7431:
+    if lib.uniffi_xcelerate_checksum_method_browser_capabilities() != 7601:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_close() != 831:
+    if lib.uniffi_xcelerate_checksum_method_browser_close() != 44553:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_cookies() != 36914:
+    if lib.uniffi_xcelerate_checksum_method_browser_cookies() != 8530:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_delete_cookie() != 14366:
+    if lib.uniffi_xcelerate_checksum_method_browser_delete_cookie() != 44579:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_event_names() != 44664:
+    if lib.uniffi_xcelerate_checksum_method_browser_event_names() != 12570:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_grant_permissions() != 57820:
+    if lib.uniffi_xcelerate_checksum_method_browser_grant_permissions() != 62168:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_is_connected() != 10958:
+    if lib.uniffi_xcelerate_checksum_method_browser_is_connected() != 63934:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_listens_to() != 12245:
+    if lib.uniffi_xcelerate_checksum_method_browser_listens_to() != 56113:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_load_plugin() != 5693:
+    if lib.uniffi_xcelerate_checksum_method_browser_load_plugin() != 26734:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_new_context() != 28184:
+    if lib.uniffi_xcelerate_checksum_method_browser_new_context() != 59309:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_new_page() != 31633:
+    if lib.uniffi_xcelerate_checksum_method_browser_new_page() != 65142:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_on() != 2255:
+    if lib.uniffi_xcelerate_checksum_method_browser_on() != 4402:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_once() != 22376:
+    if lib.uniffi_xcelerate_checksum_method_browser_once() != 62023:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_plugin() != 11907:
+    if lib.uniffi_xcelerate_checksum_method_browser_plugin() != 38553:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_plugin_names() != 58296:
+    if lib.uniffi_xcelerate_checksum_method_browser_plugin_names() != 5716:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_remove_all_listeners() != 51158:
+    if lib.uniffi_xcelerate_checksum_method_browser_remove_all_listeners() != 16672:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_remove_listener() != 41339:
+    if lib.uniffi_xcelerate_checksum_method_browser_remove_listener() != 3101:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_reset_permissions() != 21496:
+    if lib.uniffi_xcelerate_checksum_method_browser_reset_permissions() != 50876:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_set_cookie() != 6259:
+    if lib.uniffi_xcelerate_checksum_method_browser_set_cookie() != 61323:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_set_download_behavior() != 23198:
+    if lib.uniffi_xcelerate_checksum_method_browser_set_download_behavior() != 32642:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_start_tracing() != 14885:
+    if lib.uniffi_xcelerate_checksum_method_browser_start_tracing() != 25818:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_stop_tracing() != 57049:
+    if lib.uniffi_xcelerate_checksum_method_browser_stop_tracing() != 30224:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_targets() != 28936:
+    if lib.uniffi_xcelerate_checksum_method_browser_targets() != 50695:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_use_plugin() != 20462:
+    if lib.uniffi_xcelerate_checksum_method_browser_use_plugin() != 53288:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_user_agent() != 20558:
+    if lib.uniffi_xcelerate_checksum_method_browser_user_agent() != 36639:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_version() != 64817:
+    if lib.uniffi_xcelerate_checksum_method_browser_version() != 2891:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_wait_for_event() != 20884:
+    if lib.uniffi_xcelerate_checksum_method_browser_wait_for_event() != 63537:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_wait_for_event_default() != 53096:
+    if lib.uniffi_xcelerate_checksum_method_browser_wait_for_event_default() != 14198:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_browser_ws_endpoint() != 36520:
+    if lib.uniffi_xcelerate_checksum_method_browser_ws_endpoint() != 63756:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_element_attribute() != 8836:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -553,15 +553,15 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_element_call_json() != 56720:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_element_call_on_selector() != 20589:
+    if lib.uniffi_xcelerate_checksum_method_element_call_on_selector() != 53984:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_element_call_on_selector_all() != 58660:
+    if lib.uniffi_xcelerate_checksum_method_element_call_on_selector_all() != 47977:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_element_call_string() != 1191:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_element_click() != 26136:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_element_click_stealth() != 64888:
+    if lib.uniffi_xcelerate_checksum_method_element_click_mouse() != 60796:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_element_count() != 40137:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -577,29 +577,29 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_element_focus() != 34225:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_element_get_by_label() != 41888:
+    if lib.uniffi_xcelerate_checksum_method_element_get_by_label() != 29865:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_element_get_by_role() != 15624:
+    if lib.uniffi_xcelerate_checksum_method_element_get_by_role() != 15953:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_element_get_by_text() != 11298:
+    if lib.uniffi_xcelerate_checksum_method_element_get_by_text() != 18847:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_element_get_properties() != 28646:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_element_hover() != 32638:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_element_hover_stealth() != 12397:
+    if lib.uniffi_xcelerate_checksum_method_element_hover_mouse() != 47391:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_element_inner_html() != 63319:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_element_press() != 13244:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_element_query_selector() != 59248:
+    if lib.uniffi_xcelerate_checksum_method_element_query_selector() != 19454:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_element_query_selector_all() != 57750:
+    if lib.uniffi_xcelerate_checksum_method_element_query_selector_all() != 65463:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_element_query_selector_attr() != 63681:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_element_query_selector_xpath() != 47775:
+    if lib.uniffi_xcelerate_checksum_method_element_query_selector_xpath() != 11390:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_element_screenshot() != 55082:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -613,7 +613,7 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_element_type_text() != 45944:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_element_wait_for_selector() != 53340:
+    if lib.uniffi_xcelerate_checksum_method_element_wait_for_selector() != 23551:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_activate() != 30852:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -631,9 +631,9 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_call_json() != 37033:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_page_call_on_selector() != 27164:
+    if lib.uniffi_xcelerate_checksum_method_page_call_on_selector() != 902:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_page_call_on_selector_all() != 24130:
+    if lib.uniffi_xcelerate_checksum_method_page_call_on_selector_all() != 9317:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_call_string() != 28160:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -663,6 +663,8 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_default_timeout() != 18710:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_xcelerate_checksum_method_page_document_element() != 41358:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_emulate_idle_state() != 53017:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_emulate_media() != 27664:
@@ -681,7 +683,7 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_execute_cdp_cmd() != 20070:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_page_find_element() != 4260:
+    if lib.uniffi_xcelerate_checksum_method_page_find_element() != 20082:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_frame() != 33986:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -689,11 +691,11 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_frames() != 13809:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_page_get_by_label() != 63689:
+    if lib.uniffi_xcelerate_checksum_method_page_get_by_label() != 51936:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_page_get_by_role() != 32218:
+    if lib.uniffi_xcelerate_checksum_method_page_get_by_role() != 32000:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_page_get_by_text() != 27497:
+    if lib.uniffi_xcelerate_checksum_method_page_get_by_text() != 25448:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_get_default_timeout() != 57791:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -737,9 +739,9 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_press() != 21741:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_page_query_selector_all() != 64158:
+    if lib.uniffi_xcelerate_checksum_method_page_query_selector_all() != 7778:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_page_query_selector_xpath() != 48442:
+    if lib.uniffi_xcelerate_checksum_method_page_query_selector_xpath() != 64720:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_raw_window_bounds() != 13012:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -833,7 +835,7 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_wait_for_navigation() != 28813:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_xcelerate_checksum_method_page_wait_for_selector() != 58306:
+    if lib.uniffi_xcelerate_checksum_method_page_wait_for_selector() != 8076:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_xcelerate_checksum_method_page_wait_for_xpath() != 14726:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -1352,10 +1354,10 @@ _UniffiLib.uniffi_xcelerate_fn_method_element_click.argtypes = (
     ctypes.c_uint64,
 )
 _UniffiLib.uniffi_xcelerate_fn_method_element_click.restype = ctypes.c_uint64
-_UniffiLib.uniffi_xcelerate_fn_method_element_click_stealth.argtypes = (
+_UniffiLib.uniffi_xcelerate_fn_method_element_click_mouse.argtypes = (
     ctypes.c_uint64,
 )
-_UniffiLib.uniffi_xcelerate_fn_method_element_click_stealth.restype = ctypes.c_uint64
+_UniffiLib.uniffi_xcelerate_fn_method_element_click_mouse.restype = ctypes.c_uint64
 _UniffiLib.uniffi_xcelerate_fn_method_element_count.argtypes = (
     ctypes.c_uint64,
 )
@@ -1411,10 +1413,10 @@ _UniffiLib.uniffi_xcelerate_fn_method_element_hover.argtypes = (
     ctypes.c_uint64,
 )
 _UniffiLib.uniffi_xcelerate_fn_method_element_hover.restype = ctypes.c_uint64
-_UniffiLib.uniffi_xcelerate_fn_method_element_hover_stealth.argtypes = (
+_UniffiLib.uniffi_xcelerate_fn_method_element_hover_mouse.argtypes = (
     ctypes.c_uint64,
 )
-_UniffiLib.uniffi_xcelerate_fn_method_element_hover_stealth.restype = ctypes.c_uint64
+_UniffiLib.uniffi_xcelerate_fn_method_element_hover_mouse.restype = ctypes.c_uint64
 _UniffiLib.uniffi_xcelerate_fn_method_element_inner_html.argtypes = (
     ctypes.c_uint64,
 )
@@ -1594,6 +1596,10 @@ _UniffiLib.uniffi_xcelerate_fn_method_page_default_timeout.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_xcelerate_fn_method_page_default_timeout.restype = ctypes.c_uint64
+_UniffiLib.uniffi_xcelerate_fn_method_page_document_element.argtypes = (
+    ctypes.c_uint64,
+)
+_UniffiLib.uniffi_xcelerate_fn_method_page_document_element.restype = ctypes.c_uint64
 _UniffiLib.uniffi_xcelerate_fn_method_page_emulate_idle_state.argtypes = (
     ctypes.c_uint64,
     ctypes.c_int8,
@@ -2184,9 +2190,9 @@ _UniffiLib.uniffi_xcelerate_checksum_method_element_call_string.restype = ctypes
 _UniffiLib.uniffi_xcelerate_checksum_method_element_click.argtypes = (
 )
 _UniffiLib.uniffi_xcelerate_checksum_method_element_click.restype = ctypes.c_uint16
-_UniffiLib.uniffi_xcelerate_checksum_method_element_click_stealth.argtypes = (
+_UniffiLib.uniffi_xcelerate_checksum_method_element_click_mouse.argtypes = (
 )
-_UniffiLib.uniffi_xcelerate_checksum_method_element_click_stealth.restype = ctypes.c_uint16
+_UniffiLib.uniffi_xcelerate_checksum_method_element_click_mouse.restype = ctypes.c_uint16
 _UniffiLib.uniffi_xcelerate_checksum_method_element_count.argtypes = (
 )
 _UniffiLib.uniffi_xcelerate_checksum_method_element_count.restype = ctypes.c_uint16
@@ -2223,9 +2229,9 @@ _UniffiLib.uniffi_xcelerate_checksum_method_element_get_properties.restype = cty
 _UniffiLib.uniffi_xcelerate_checksum_method_element_hover.argtypes = (
 )
 _UniffiLib.uniffi_xcelerate_checksum_method_element_hover.restype = ctypes.c_uint16
-_UniffiLib.uniffi_xcelerate_checksum_method_element_hover_stealth.argtypes = (
+_UniffiLib.uniffi_xcelerate_checksum_method_element_hover_mouse.argtypes = (
 )
-_UniffiLib.uniffi_xcelerate_checksum_method_element_hover_stealth.restype = ctypes.c_uint16
+_UniffiLib.uniffi_xcelerate_checksum_method_element_hover_mouse.restype = ctypes.c_uint16
 _UniffiLib.uniffi_xcelerate_checksum_method_element_inner_html.argtypes = (
 )
 _UniffiLib.uniffi_xcelerate_checksum_method_element_inner_html.restype = ctypes.c_uint16
@@ -2337,6 +2343,9 @@ _UniffiLib.uniffi_xcelerate_checksum_method_page_decode_base64.restype = ctypes.
 _UniffiLib.uniffi_xcelerate_checksum_method_page_default_timeout.argtypes = (
 )
 _UniffiLib.uniffi_xcelerate_checksum_method_page_default_timeout.restype = ctypes.c_uint16
+_UniffiLib.uniffi_xcelerate_checksum_method_page_document_element.argtypes = (
+)
+_UniffiLib.uniffi_xcelerate_checksum_method_page_document_element.restype = ctypes.c_uint16
 _UniffiLib.uniffi_xcelerate_checksum_method_page_emulate_idle_state.argtypes = (
 )
 _UniffiLib.uniffi_xcelerate_checksum_method_page_emulate_idle_state.restype = ctypes.c_uint16
@@ -3097,11 +3106,17 @@ class ElementProtocol(typing.Protocol):
     async def call_on_selector(self, selector: str,expression: str) -> str:
         """
         Runs a JS function against the first descendant matching `selector`.
+
+        The descendant is resolved with the shadow-piercing selector first, so
+        the expression also runs against a match inside an open shadow root.
 """
         raise NotImplementedError
     async def call_on_selector_all(self, selector: str,expression: str) -> str:
         """
         Runs a JS function against every descendant matching `selector`.
+
+        The descendants are resolved with the shadow-piercing selector first, so
+        matches inside open shadow roots are included too.
 """
         raise NotImplementedError
     async def call_string(self, function: str,args_json: str) -> str:
@@ -3114,9 +3129,13 @@ class ElementProtocol(typing.Protocol):
         Clicks the element.
 """
         raise NotImplementedError
-    async def click_stealth(self, ) -> Element:
+    async def click_mouse(self, ) -> Element:
         """
         Clicks the element using realistic mouse movement and CDP input events.
+
+        Fails with [`XcelerateError::NotFound`] if the element is not actionable
+        (zero-size, `display:none`, `visibility:hidden` or fully transparent),
+        rather than dispatching a click at coordinates that nothing occupies.
 """
         raise NotImplementedError
     async def count(self, ) -> int:
@@ -3157,16 +3176,25 @@ class ElementProtocol(typing.Protocol):
     async def get_by_label(self, label: str) -> Element:
         """
         Finds a descendant form control by its `<label>` text.
+
+        The `<label>` search pierces open shadow roots, and the associated control
+        is resolved from the label's own root so shadow-encapsulated controls work.
 """
         raise NotImplementedError
     async def get_by_role(self, role: str) -> Element:
         """
         Finds a descendant by ARIA role.
+
+        Prefers an explicit `[role="..."]` match, then falls back to the role name
+        as a tag, since a native `<button>`/`<a>` carries its role implicitly.
+        Both searches pierce open shadow roots.
 """
         raise NotImplementedError
     async def get_by_text(self, text: str) -> Element:
         """
         Finds a descendant whose text contains `text`.
+
+        The search pierces open shadow roots.
 """
         raise NotImplementedError
     async def get_properties(self, ) -> str:
@@ -3179,7 +3207,7 @@ class ElementProtocol(typing.Protocol):
         Hovers over the element.
 """
         raise NotImplementedError
-    async def hover_stealth(self, ) -> Element:
+    async def hover_mouse(self, ) -> Element:
         """
         Hovers over the element using realistic mouse movement.
 """
@@ -3197,14 +3225,16 @@ class ElementProtocol(typing.Protocol):
     async def query_selector(self, selector: str) -> Element:
         """
         Returns the first descendant matching `selector` as an [`Element`].
+
+        The search pierces open shadow roots, so web components are reachable.
 """
         raise NotImplementedError
     async def query_selector_all(self, selector: str) -> typing.List[Element]:
         """
         Returns every descendant matching `selector`.
 
-        Resolves the whole node list with a single `Runtime.getProperties` call
-        rather than one `evaluate` per match.
+        The search pierces open shadow roots. Resolves the whole node list with a
+        single `Runtime.getProperties` call rather than one `evaluate` per match.
 """
         raise NotImplementedError
     async def query_selector_attr(self, attribute: str,value: str) -> Element:
@@ -3215,6 +3245,12 @@ class ElementProtocol(typing.Protocol):
     async def query_selector_xpath(self, xpath: str) -> Element:
         """
         Finds a descendant matching an XPath expression.
+
+        The expression is evaluated over the composed tree - open shadow roots and
+        same-origin iframe documents are searched - by a built-in subset evaluator.
+        Expressions outside that subset (unions, extra axes, `count()`, ...) fall
+        back to the browser's native `document.evaluate`, which handles the full
+        language but does not pierce shadow roots.
 """
         raise NotImplementedError
     async def screenshot(self, ) -> bytes:
@@ -3247,6 +3283,11 @@ class ElementProtocol(typing.Protocol):
     async def wait_for_selector(self, selector: str) -> Element:
         """
         Waits for a descendant matching `selector` to appear.
+
+        The wait happens inside the page in a single CDP call: a `MutationObserver`
+        resolves as soon as the node appears (and a slow rescan covers shadow
+        roots), instead of the caller polling `query_selector` over the wire every
+        250ms. Times out after 30 seconds.
 """
         raise NotImplementedError
 
@@ -3346,6 +3387,9 @@ class Element(ElementProtocol):
     async def call_on_selector(self, selector: str,expression: str) -> str:
         """
         Runs a JS function against the first descendant matching `selector`.
+
+        The descendant is resolved with the shadow-piercing selector first, so
+        the expression also runs against a match inside an open shadow root.
 """
         
         _UniffiFfiConverterString.check_lower(selector)
@@ -3369,6 +3413,9 @@ class Element(ElementProtocol):
     async def call_on_selector_all(self, selector: str,expression: str) -> str:
         """
         Runs a JS function against every descendant matching `selector`.
+
+        The descendants are resolved with the shadow-piercing selector first, so
+        matches inside open shadow roots are included too.
 """
         
         _UniffiFfiConverterString.check_lower(selector)
@@ -3429,9 +3476,13 @@ class Element(ElementProtocol):
             _uniffi_lift_return,
             _uniffi_error_converter,
         )
-    async def click_stealth(self, ) -> Element:
+    async def click_mouse(self, ) -> Element:
         """
         Clicks the element using realistic mouse movement and CDP input events.
+
+        Fails with [`XcelerateError::NotFound`] if the element is not actionable
+        (zero-size, `display:none`, `visibility:hidden` or fully transparent),
+        rather than dispatching a click at coordinates that nothing occupies.
 """
         _uniffi_lowered_args = (
             self._uniffi_clone_handle(),
@@ -3439,7 +3490,7 @@ class Element(ElementProtocol):
         _uniffi_lift_return = _UniffiFfiConverterTypeElement.lift
         _uniffi_error_converter = _UniffiFfiConverterTypeXcelerateError
         return await _uniffi_rust_call_async(
-            _UniffiLib.uniffi_xcelerate_fn_method_element_click_stealth(*_uniffi_lowered_args),
+            _UniffiLib.uniffi_xcelerate_fn_method_element_click_mouse(*_uniffi_lowered_args),
             _UniffiLib.ffi_xcelerate_rust_future_poll_u64,
             _UniffiLib.ffi_xcelerate_rust_future_complete_u64,
             _UniffiLib.ffi_xcelerate_rust_future_free_u64,
@@ -3580,6 +3631,9 @@ class Element(ElementProtocol):
     async def get_by_label(self, label: str) -> Element:
         """
         Finds a descendant form control by its `<label>` text.
+
+        The `<label>` search pierces open shadow roots, and the associated control
+        is resolved from the label's own root so shadow-encapsulated controls work.
 """
         
         _UniffiFfiConverterString.check_lower(label)
@@ -3600,6 +3654,10 @@ class Element(ElementProtocol):
     async def get_by_role(self, role: str) -> Element:
         """
         Finds a descendant by ARIA role.
+
+        Prefers an explicit `[role="..."]` match, then falls back to the role name
+        as a tag, since a native `<button>`/`<a>` carries its role implicitly.
+        Both searches pierce open shadow roots.
 """
         
         _UniffiFfiConverterString.check_lower(role)
@@ -3620,6 +3678,8 @@ class Element(ElementProtocol):
     async def get_by_text(self, text: str) -> Element:
         """
         Finds a descendant whose text contains `text`.
+
+        The search pierces open shadow roots.
 """
         
         _UniffiFfiConverterString.check_lower(text)
@@ -3671,7 +3731,7 @@ class Element(ElementProtocol):
             _uniffi_lift_return,
             _uniffi_error_converter,
         )
-    async def hover_stealth(self, ) -> Element:
+    async def hover_mouse(self, ) -> Element:
         """
         Hovers over the element using realistic mouse movement.
 """
@@ -3681,7 +3741,7 @@ class Element(ElementProtocol):
         _uniffi_lift_return = _UniffiFfiConverterTypeElement.lift
         _uniffi_error_converter = _UniffiFfiConverterTypeXcelerateError
         return await _uniffi_rust_call_async(
-            _UniffiLib.uniffi_xcelerate_fn_method_element_hover_stealth(*_uniffi_lowered_args),
+            _UniffiLib.uniffi_xcelerate_fn_method_element_hover_mouse(*_uniffi_lowered_args),
             _UniffiLib.ffi_xcelerate_rust_future_poll_u64,
             _UniffiLib.ffi_xcelerate_rust_future_complete_u64,
             _UniffiLib.ffi_xcelerate_rust_future_free_u64,
@@ -3728,6 +3788,8 @@ class Element(ElementProtocol):
     async def query_selector(self, selector: str) -> Element:
         """
         Returns the first descendant matching `selector` as an [`Element`].
+
+        The search pierces open shadow roots, so web components are reachable.
 """
         
         _UniffiFfiConverterString.check_lower(selector)
@@ -3749,8 +3811,8 @@ class Element(ElementProtocol):
         """
         Returns every descendant matching `selector`.
 
-        Resolves the whole node list with a single `Runtime.getProperties` call
-        rather than one `evaluate` per match.
+        The search pierces open shadow roots. Resolves the whole node list with a
+        single `Runtime.getProperties` call rather than one `evaluate` per match.
 """
         
         _UniffiFfiConverterString.check_lower(selector)
@@ -3794,6 +3856,12 @@ class Element(ElementProtocol):
     async def query_selector_xpath(self, xpath: str) -> Element:
         """
         Finds a descendant matching an XPath expression.
+
+        The expression is evaluated over the composed tree - open shadow roots and
+        same-origin iframe documents are searched - by a built-in subset evaluator.
+        Expressions outside that subset (unions, extra axes, `count()`, ...) fall
+        back to the browser's native `document.evaluate`, which handles the full
+        language but does not pierce shadow roots.
 """
         
         _UniffiFfiConverterString.check_lower(xpath)
@@ -3922,6 +3990,11 @@ class Element(ElementProtocol):
     async def wait_for_selector(self, selector: str) -> Element:
         """
         Waits for a descendant matching `selector` to appear.
+
+        The wait happens inside the page in a single CDP call: a `MutationObserver`
+        resolves as soon as the node appears (and a slow rescan covers shadow
+        roots), instead of the caller polling `query_selector` over the wire every
+        250ms. Times out after 30 seconds.
 """
         
         _UniffiFfiConverterString.check_lower(selector)
@@ -4018,11 +4091,17 @@ class PageProtocol(typing.Protocol):
     async def call_on_selector(self, selector: str,expression: str) -> str:
         """
         Runs a JS function against the element matching `selector` (`$eval`).
+
+        The element is resolved with the shadow-piercing selector first, so a
+        match inside an open shadow root is reachable.
 """
         raise NotImplementedError
     async def call_on_selector_all(self, selector: str,expression: str) -> str:
         """
         Runs a JS function against every element matching `selector` (`$$eval`).
+
+        The elements are resolved with the shadow-piercing selector first, so
+        matches inside open shadow roots are included too.
 """
         raise NotImplementedError
     async def call_string(self, function: str,args_json: str) -> str:
@@ -4093,6 +4172,13 @@ class PageProtocol(typing.Protocol):
         `0` means "no timeout" and is mapped to the largest representable wait.
 """
         raise NotImplementedError
+    async def document_element(self, ) -> Element:
+        """
+        Wraps the page's `document` as an [`Element`] so the shadow-piercing
+        selector helpers on [`Element`] can be reused at the page level (with the
+        same `document.querySelectorAll` scope).
+"""
+        raise NotImplementedError
     async def emulate_idle_state(self, is_user_active: bool,is_screen_unlocked: bool) -> None:
         """
         Overrides the idle state.
@@ -4141,6 +4227,8 @@ class PageProtocol(typing.Protocol):
     async def find_element(self, selector: str) -> Element:
         """
         Finds an element matching the CSS selector.
+
+        The search pierces open shadow roots, so web components are reachable.
 """
         raise NotImplementedError
     async def frame(self, frame_id: str) -> str:
@@ -4161,16 +4249,25 @@ class PageProtocol(typing.Protocol):
     async def get_by_label(self, label: str) -> Element:
         """
         Finds a form control by its associated `<label>` text.
+
+        Delegates to [`Element::get_by_label`], so the search pierces open shadow
+        roots.
 """
         raise NotImplementedError
     async def get_by_role(self, role: str) -> Element:
         """
-        Finds an element by ARIA role (falls back to a tag-name lookup).
+        Finds an element by ARIA role.
+
+        Delegates to [`Element::get_by_role`], so the search pierces open shadow
+        roots.
 """
         raise NotImplementedError
     async def get_by_text(self, text: str) -> Element:
         """
         Finds an element whose text content contains `text`.
+
+        Delegates to [`Element::get_by_text`], so the search pierces open shadow
+        roots.
 """
         raise NotImplementedError
     async def get_default_timeout(self, ) -> float:
@@ -4276,13 +4373,16 @@ class PageProtocol(typing.Protocol):
         """
         Returns every element matching the CSS selector.
 
-        Uses two round trips (fetch the node list, then read its properties)
-        instead of one `evaluate` per match.
+        The search pierces open shadow roots. Uses two round trips (fetch the node
+        list, then read its properties) instead of one `evaluate` per match.
 """
         raise NotImplementedError
     async def query_selector_xpath(self, xpath: str) -> Element:
         """
         Returns the first node matching an XPath expression as an [`Element`].
+
+        The search pierces open shadow roots and same-origin frames (see
+        [`Element::query_selector_xpath`]).
 """
         raise NotImplementedError
     async def raw_window_bounds(self, ) -> str:
@@ -4514,6 +4614,9 @@ class PageProtocol(typing.Protocol):
     async def wait_for_selector(self, selector: str) -> Element:
         """
         Waits for an element matching the selector to appear in the DOM.
+
+        The search pierces open shadow roots. Polls until the page's default
+        timeout elapses.
 """
         raise NotImplementedError
     async def wait_for_xpath(self, xpath: str,timeout_ms: int) -> Element:
@@ -4732,6 +4835,9 @@ class Page(PageProtocol):
     async def call_on_selector(self, selector: str,expression: str) -> str:
         """
         Runs a JS function against the element matching `selector` (`$eval`).
+
+        The element is resolved with the shadow-piercing selector first, so a
+        match inside an open shadow root is reachable.
 """
         
         _UniffiFfiConverterString.check_lower(selector)
@@ -4755,6 +4861,9 @@ class Page(PageProtocol):
     async def call_on_selector_all(self, selector: str,expression: str) -> str:
         """
         Runs a JS function against every element matching `selector` (`$$eval`).
+
+        The elements are resolved with the shadow-piercing selector first, so
+        matches inside open shadow roots are included too.
 """
         
         _UniffiFfiConverterString.check_lower(selector)
@@ -5025,6 +5134,25 @@ class Page(PageProtocol):
             *_uniffi_lowered_args,
         )
         return _uniffi_lift_return(_uniffi_ffi_result)
+    async def document_element(self, ) -> Element:
+        """
+        Wraps the page's `document` as an [`Element`] so the shadow-piercing
+        selector helpers on [`Element`] can be reused at the page level (with the
+        same `document.querySelectorAll` scope).
+"""
+        _uniffi_lowered_args = (
+            self._uniffi_clone_handle(),
+        )
+        _uniffi_lift_return = _UniffiFfiConverterTypeElement.lift
+        _uniffi_error_converter = _UniffiFfiConverterTypeXcelerateError
+        return await _uniffi_rust_call_async(
+            _UniffiLib.uniffi_xcelerate_fn_method_page_document_element(*_uniffi_lowered_args),
+            _UniffiLib.ffi_xcelerate_rust_future_poll_u64,
+            _UniffiLib.ffi_xcelerate_rust_future_complete_u64,
+            _UniffiLib.ffi_xcelerate_rust_future_free_u64,
+            _uniffi_lift_return,
+            _uniffi_error_converter,
+        )
     async def emulate_idle_state(self, is_user_active: bool,is_screen_unlocked: bool) -> None:
         """
         Overrides the idle state.
@@ -5211,6 +5339,8 @@ class Page(PageProtocol):
     async def find_element(self, selector: str) -> Element:
         """
         Finds an element matching the CSS selector.
+
+        The search pierces open shadow roots, so web components are reachable.
 """
         
         _UniffiFfiConverterString.check_lower(selector)
@@ -5285,6 +5415,9 @@ class Page(PageProtocol):
     async def get_by_label(self, label: str) -> Element:
         """
         Finds a form control by its associated `<label>` text.
+
+        Delegates to [`Element::get_by_label`], so the search pierces open shadow
+        roots.
 """
         
         _UniffiFfiConverterString.check_lower(label)
@@ -5304,7 +5437,10 @@ class Page(PageProtocol):
         )
     async def get_by_role(self, role: str) -> Element:
         """
-        Finds an element by ARIA role (falls back to a tag-name lookup).
+        Finds an element by ARIA role.
+
+        Delegates to [`Element::get_by_role`], so the search pierces open shadow
+        roots.
 """
         
         _UniffiFfiConverterString.check_lower(role)
@@ -5325,6 +5461,9 @@ class Page(PageProtocol):
     async def get_by_text(self, text: str) -> Element:
         """
         Finds an element whose text content contains `text`.
+
+        Delegates to [`Element::get_by_text`], so the search pierces open shadow
+        roots.
 """
         
         _UniffiFfiConverterString.check_lower(text)
@@ -5748,8 +5887,8 @@ class Page(PageProtocol):
         """
         Returns every element matching the CSS selector.
 
-        Uses two round trips (fetch the node list, then read its properties)
-        instead of one `evaluate` per match.
+        The search pierces open shadow roots. Uses two round trips (fetch the node
+        list, then read its properties) instead of one `evaluate` per match.
 """
         
         _UniffiFfiConverterString.check_lower(selector)
@@ -5770,6 +5909,9 @@ class Page(PageProtocol):
     async def query_selector_xpath(self, xpath: str) -> Element:
         """
         Returns the first node matching an XPath expression as an [`Element`].
+
+        The search pierces open shadow roots and same-origin frames (see
+        [`Element::query_selector_xpath`]).
 """
         
         _UniffiFfiConverterString.check_lower(xpath)
@@ -6704,6 +6846,9 @@ class Page(PageProtocol):
     async def wait_for_selector(self, selector: str) -> Element:
         """
         Waits for an element matching the selector to appear in the DOM.
+
+        The search pierces open shadow roots. Polls until the page's default
+        timeout elapses.
 """
         
         _UniffiFfiConverterString.check_lower(selector)
@@ -6974,7 +7119,7 @@ class _UniffiFfiConverterTypePluginHandle:
 
 class BrowserProtocol(typing.Protocol):
     """
-    Represents a browser instance (e.g., Chrome or Edge).
+    A running Chromium-family browser (Chrome, Chromium, Edge, Brave, …).
 """
     
     def audit_log(self, ) -> str:
@@ -6989,7 +7134,10 @@ class BrowserProtocol(typing.Protocol):
         raise NotImplementedError
     def available_plugins(self, ) -> typing.List[str]:
         """
-        Names of all compiled-in first-party plugins (the catalog).
+        Names of the plugins currently available on this browser.
+
+        Xcelerate ships **no** built-in plugins, so this lists the plugins that
+        have been installed or loaded on this instance.
 """
         raise NotImplementedError
     async def browser_contexts(self, ) -> str:
@@ -7004,7 +7152,11 @@ class BrowserProtocol(typing.Protocol):
         raise NotImplementedError
     async def close(self, ) -> None:
         """
-        Closes the browser and kills the process.
+        Closes the browser, letting it flush the profile, then kills it if needed.
+
+        An attached browser (from [`Browser::connect`]) is not owned by this
+        handle, so this is a no-op: it never sends `Browser.close` and never
+        kills the process.
 """
         raise NotImplementedError
     async def cookies(self, ) -> str:
@@ -7039,10 +7191,16 @@ class BrowserProtocol(typing.Protocol):
         raise NotImplementedError
     def load_plugin(self, path: str) -> str:
         """
-        Loads a third-party plugin. Not supported in this phase.
+        Loads a plugin from disk.
 
-        The sandboxed, out-of-process runner required for untrusted plugins does
-        not exist yet, so this always refuses rather than executing unknown code.
+        `path` may be a plugin directory (containing `plugin.json`) or a
+        `plugin.json` file. The manifest is validated, the `entrypoint` is
+        instantiated as a sandboxed WebAssembly component, and a `describe`
+        handshake wires up its ops. Dangerous capabilities stay denied unless
+        opted into via `XCELERATE_PLUGIN_ALLOW`.
+
+        Once loaded, the plugin's ops are reachable through
+        `plugin(name).invoke(op, args_json)` in every language.
 """
         raise NotImplementedError
     async def new_context(self, ) -> str:
@@ -7114,12 +7272,12 @@ class BrowserProtocol(typing.Protocol):
         raise NotImplementedError
     async def use_plugin(self, name: str) -> None:
         """
-        Enables a compiled-in first-party plugin at runtime.
+        Enables an installed plugin at runtime.
 
         Launch-time contributions (such as binary patching) only take effect if
-        the plugin was enabled before the browser launched; enabling a plugin
+        the plugin was installed before the browser launched; enabling a plugin
         afterwards applies its runtime hooks to pages created from now on. This
-        is audited as a runtime enable. Unknown or third-party names are refused.
+        is audited as a runtime enable. Unknown names are refused.
 """
         raise NotImplementedError
     async def user_agent(self, ) -> str:
@@ -7150,7 +7308,7 @@ class BrowserProtocol(typing.Protocol):
 
 class Browser(BrowserProtocol):
     """
-    Represents a browser instance (e.g., Chrome or Edge).
+    A running Chromium-family browser (Chrome, Chromium, Edge, Brave, …).
 """
     
     _handle: ctypes.c_uint64
@@ -7224,7 +7382,10 @@ class Browser(BrowserProtocol):
         return _uniffi_lift_return(_uniffi_ffi_result)
     def available_plugins(self, ) -> typing.List[str]:
         """
-        Names of all compiled-in first-party plugins (the catalog).
+        Names of the plugins currently available on this browser.
+
+        Xcelerate ships **no** built-in plugins, so this lists the plugins that
+        have been installed or loaded on this instance.
 """
         _uniffi_lowered_args = (
             self._uniffi_clone_handle(),
@@ -7273,7 +7434,11 @@ class Browser(BrowserProtocol):
         )
     async def close(self, ) -> None:
         """
-        Closes the browser and kills the process.
+        Closes the browser, letting it flush the profile, then kills it if needed.
+
+        An attached browser (from [`Browser::connect`]) is not owned by this
+        handle, so this is a no-op: it never sends `Browser.close` and never
+        kills the process.
 """
         _uniffi_lowered_args = (
             self._uniffi_clone_handle(),
@@ -7404,10 +7569,16 @@ class Browser(BrowserProtocol):
         )
     def load_plugin(self, path: str) -> str:
         """
-        Loads a third-party plugin. Not supported in this phase.
+        Loads a plugin from disk.
 
-        The sandboxed, out-of-process runner required for untrusted plugins does
-        not exist yet, so this always refuses rather than executing unknown code.
+        `path` may be a plugin directory (containing `plugin.json`) or a
+        `plugin.json` file. The manifest is validated, the `entrypoint` is
+        instantiated as a sandboxed WebAssembly component, and a `describe`
+        handshake wires up its ops. Dangerous capabilities stay denied unless
+        opted into via `XCELERATE_PLUGIN_ALLOW`.
+
+        Once loaded, the plugin's ops are reachable through
+        `plugin(name).invoke(op, args_json)` in every language.
 """
         
         _UniffiFfiConverterString.check_lower(path)
@@ -7677,12 +7848,12 @@ class Browser(BrowserProtocol):
         )
     async def use_plugin(self, name: str) -> None:
         """
-        Enables a compiled-in first-party plugin at runtime.
+        Enables an installed plugin at runtime.
 
         Launch-time contributions (such as binary patching) only take effect if
-        the plugin was enabled before the browser launched; enabling a plugin
+        the plugin was installed before the browser launched; enabling a plugin
         afterwards applies its runtime hooks to pages created from now on. This
-        is audited as a runtime enable. Unknown or third-party names are refused.
+        is audited as a runtime enable. Unknown names are refused.
 """
         
         _UniffiFfiConverterString.check_lower(name)

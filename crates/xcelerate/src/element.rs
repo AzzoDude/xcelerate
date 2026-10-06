@@ -146,7 +146,7 @@ impl Element {
     /// Fails with [`XcelerateError::NotFound`] if the element is not actionable
     /// (zero-size, `display:none`, `visibility:hidden` or fully transparent),
     /// rather than dispatching a click at coordinates that nothing occupies.
-    pub async fn click_stealth(self: Arc<Self>) -> XcelerateResult<Arc<Self>> {
+    pub async fn click_mouse(self: Arc<Self>) -> XcelerateResult<Arc<Self>> {
         let js = "function() {
             this.scrollIntoView({ block: 'center', inline: 'center' });
             const rect = this.getBoundingClientRect();
@@ -199,7 +199,7 @@ impl Element {
     }
 
     /// Hovers over the element using realistic mouse movement.
-    pub async fn hover_stealth(self: Arc<Self>) -> XcelerateResult<Arc<Self>> {
+    pub async fn hover_mouse(self: Arc<Self>) -> XcelerateResult<Arc<Self>> {
         let js = "function() {
             this.scrollIntoView({ block: 'center', inline: 'center' });
             const rect = this.getBoundingClientRect();

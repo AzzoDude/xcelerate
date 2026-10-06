@@ -17,9 +17,12 @@ public class BrowserConfig {
      */
     private java.lang.String executablePath;
     /**
-     * First-party plugins to enable for this browser (for example
-     * `["stealth", "human"]`). Default-deny: no plugin does anything unless
-     * listed here (or enabled afterwards with `Browser::use_plugin`).
+     * External plugins to load at launch. Each entry is a path to a plugin
+     * directory or a `plugin.json`.
+     *
+     * Xcelerate ships **no** plugins built into the core. Default-deny: no
+     * plugin does anything unless it is listed here (or installed afterwards
+     * with `Browser::use_plugin` / `Browser::load_plugin`).
      */
     private java.util.List<java.lang.String> plugins;
 

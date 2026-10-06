@@ -32,16 +32,16 @@ try
     string? typedValue = await searchInput.Attribute("value");
     Console.WriteLine($"Typed Input Value: {typedValue}");
 
-    Console.WriteLine("[TEST 4] Stealth Pointer Interactions...");
+    Console.WriteLine("[TEST 4] Pointer Interactions...");
     // Find the submit button
     var searchButton = await page.FindElement("button[type=\"submit\"]");
     
-    // Test HoverStealth and ClickStealth
-    Console.WriteLine("Performing Stealth Hover...");
-    await searchButton.HoverStealth();
+    // Test HoverMouse and ClickMouse
+    Console.WriteLine("Performing Hover with the mouse...");
+    await searchButton.HoverMouse();
     
-    Console.WriteLine("Performing Stealth Click...");
-    await searchButton.ClickStealth();
+    Console.WriteLine("Performing Click with the mouse...");
+    await searchButton.ClickMouse();
 
     Console.WriteLine("Waiting for navigation after submit...");
     await page.WaitForNavigation();

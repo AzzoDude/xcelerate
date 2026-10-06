@@ -33,9 +33,12 @@ export interface BrowserConfig {
    */
   "executable_path": string | undefined;
   /**
-   * First-party plugins to enable for this browser (for example
-   * `["stealth", "human"]`). Default-deny: no plugin does anything unless
-   * listed here (or enabled afterwards with `Browser::use_plugin`).
+   * External plugins to load at launch. Each entry is a path to a plugin
+   * directory or a `plugin.json`.
+   *
+   * Xcelerate ships **no** plugins built into the core. Default-deny: no
+   * plugin does anything unless it is listed here (or installed afterwards
+   * with `Browser::use_plugin` / `Browser::load_plugin`).
    */
   "plugins": Array<string> | undefined;
 }
@@ -80,8 +83,13 @@ export declare class XcelerateErrorUnsupported extends XcelerateError {
   constructor(message?: string);
 }
 
+export declare class XcelerateErrorPlugin extends XcelerateError {
+  readonly tag: "Plugin";
+  constructor(message?: string);
+}
+
 /**
- * Represents a browser instance (e.g., Chrome or Edge).
+ * A running Chromium-family browser (Chrome, Chromium, Edge, Brave, …).
  */
 export declare class Browser extends UniffiObjectBase {
   protected constructor();
@@ -95,7 +103,10 @@ export declare class Browser extends UniffiObjectBase {
    */
   audit_verify(): boolean;
   /**
-   * Names of all compiled-in first-party plugins (the catalog).
+   * Names of the plugins currently available on this browser.
+   *
+   * Xcelerate ships **no** built-in plugins, so this lists the plugins that
+   * have been installed or loaded on this instance.
    */
   available_plugins(): Array<string>;
   /**
@@ -107,7 +118,11 @@ export declare class Browser extends UniffiObjectBase {
    */
   capabilities(): Promise<string>;
   /**
-   * Closes the browser and kills the process.
+   * Closes the browser, letting it flush the profile, then kills it if needed.
+   *
+   * An attached browser (from [`Browser::connect`]) is not owned by this
+   * handle, so this is a no-op: it never sends `Browser.close` and never
+   * kills the process.
    */
   close(): Promise<void>;
   /**
@@ -135,10 +150,16 @@ export declare class Browser extends UniffiObjectBase {
    */
   listens_to(event_name: string): Promise<boolean>;
   /**
-   * Loads a third-party plugin. Not supported in this phase.
+   * Loads a plugin from disk.
    *
-   * The sandboxed, out-of-process runner required for untrusted plugins does
-   * not exist yet, so this always refuses rather than executing unknown code.
+   * `path` may be a plugin directory (containing `plugin.json`) or a
+   * `plugin.json` file. The manifest is validated, the `entrypoint` is
+   * instantiated as a sandboxed WebAssembly component, and a `describe`
+   * handshake wires up its ops. Dangerous capabilities stay denied unless
+   * opted into via `XCELERATE_PLUGIN_ALLOW`.
+   *
+   * Once loaded, the plugin's ops are reachable through
+   * `plugin(name).invoke(op, args_json)` in every language.
    */
   load_plugin(path: string): string;
   /**
@@ -195,12 +216,12 @@ export declare class Browser extends UniffiObjectBase {
    */
   targets(): Promise<string>;
   /**
-   * Enables a compiled-in first-party plugin at runtime.
+   * Enables an installed plugin at runtime.
    *
    * Launch-time contributions (such as binary patching) only take effect if
-   * the plugin was enabled before the browser launched; enabling a plugin
+   * the plugin was installed before the browser launched; enabling a plugin
    * afterwards applies its runtime hooks to pages created from now on. This
-   * is audited as a runtime enable. Unknown or third-party names are refused.
+   * is audited as a runtime enable. Unknown names are refused.
    */
   use_plugin(name: string): Promise<void>;
   /**
@@ -244,10 +265,16 @@ export declare class Element extends UniffiObjectBase {
   call_json(function_: string, args_json: string): Promise<string>;
   /**
    * Runs a JS function against the first descendant matching `selector`.
+   *
+   * The descendant is resolved with the shadow-piercing selector first, so
+   * the expression also runs against a match inside an open shadow root.
    */
   call_on_selector(selector: string, expression: string): Promise<string>;
   /**
    * Runs a JS function against every descendant matching `selector`.
+   *
+   * The descendants are resolved with the shadow-piercing selector first, so
+   * matches inside open shadow roots are included too.
    */
   call_on_selector_all(selector: string, expression: string): Promise<string>;
   /**
@@ -260,8 +287,12 @@ export declare class Element extends UniffiObjectBase {
   click(): Promise<Element>;
   /**
    * Clicks the element using realistic mouse movement and CDP input events.
+   *
+   * Fails with [`XcelerateError::NotFound`] if the element is not actionable
+   * (zero-size, `display:none`, `visibility:hidden` or fully transparent),
+   * rather than dispatching a click at coordinates that nothing occupies.
    */
-  click_stealth(): Promise<Element>;
+  click_mouse(): Promise<Element>;
   /**
    * Number of elements this handle represents (always 1).
    */
@@ -292,14 +323,23 @@ export declare class Element extends UniffiObjectBase {
   focus(): Promise<Element>;
   /**
    * Finds a descendant form control by its `<label>` text.
+   *
+   * The `<label>` search pierces open shadow roots, and the associated control
+   * is resolved from the label's own root so shadow-encapsulated controls work.
    */
   get_by_label(label: string): Promise<Element>;
   /**
    * Finds a descendant by ARIA role.
+   *
+   * Prefers an explicit `[role="..."]` match, then falls back to the role name
+   * as a tag, since a native `<button>`/`<a>` carries its role implicitly.
+   * Both searches pierce open shadow roots.
    */
   get_by_role(role: string): Promise<Element>;
   /**
    * Finds a descendant whose text contains `text`.
+   *
+   * The search pierces open shadow roots.
    */
   get_by_text(text: string): Promise<Element>;
   /**
@@ -313,7 +353,7 @@ export declare class Element extends UniffiObjectBase {
   /**
    * Hovers over the element using realistic mouse movement.
    */
-  hover_stealth(): Promise<Element>;
+  hover_mouse(): Promise<Element>;
   /**
    * Returns the inner HTML of the element.
    */
@@ -324,13 +364,15 @@ export declare class Element extends UniffiObjectBase {
   press(key: string): Promise<void>;
   /**
    * Returns the first descendant matching `selector` as an [`Element`].
+   *
+   * The search pierces open shadow roots, so web components are reachable.
    */
   query_selector(selector: string): Promise<Element>;
   /**
    * Returns every descendant matching `selector`.
    *
-   * Resolves the whole node list with a single `Runtime.getProperties` call
-   * rather than one `evaluate` per match.
+   * The search pierces open shadow roots. Resolves the whole node list with a
+   * single `Runtime.getProperties` call rather than one `evaluate` per match.
    */
   query_selector_all(selector: string): Promise<Array<Element>>;
   /**
@@ -339,6 +381,12 @@ export declare class Element extends UniffiObjectBase {
   query_selector_attr(attribute: string, value: string): Promise<Element>;
   /**
    * Finds a descendant matching an XPath expression.
+   *
+   * The expression is evaluated over the composed tree - open shadow roots and
+   * same-origin iframe documents are searched - by a built-in subset evaluator.
+   * Expressions outside that subset (unions, extra axes, `count()`, ...) fall
+   * back to the browser's native `document.evaluate`, which handles the full
+   * language but does not pierce shadow roots.
    */
   query_selector_xpath(xpath: string): Promise<Element>;
   /**
@@ -364,6 +412,11 @@ export declare class Element extends UniffiObjectBase {
   type_text(text: string): Promise<Element>;
   /**
    * Waits for a descendant matching `selector` to appear.
+   *
+   * The wait happens inside the page in a single CDP call: a `MutationObserver`
+   * resolves as soon as the node appears (and a slow rescan covers shadow
+   * roots), instead of the caller polling `query_selector` over the wire every
+   * 250ms. Times out after 30 seconds.
    */
   wait_for_selector(selector: string): Promise<Element>;
 }
@@ -407,10 +460,16 @@ export declare class Page extends UniffiObjectBase {
   call_json(function_: string, args_json: string): Promise<string>;
   /**
    * Runs a JS function against the element matching `selector` (`$eval`).
+   *
+   * The element is resolved with the shadow-piercing selector first, so a
+   * match inside an open shadow root is reachable.
    */
   call_on_selector(selector: string, expression: string): Promise<string>;
   /**
    * Runs a JS function against every element matching `selector` (`$$eval`).
+   *
+   * The elements are resolved with the shadow-piercing selector first, so
+   * matches inside open shadow roots are included too.
    */
   call_on_selector_all(selector: string, expression: string): Promise<string>;
   /**
@@ -463,6 +522,17 @@ export declare class Page extends UniffiObjectBase {
   create_pdf_stream(): Promise<string>;
   decode_base64(data: string): Uint8Array;
   /**
+   * The default timeout (ms) used by the waiting helpers. A stored value of
+   * `0` means "no timeout" and is mapped to the largest representable wait.
+   */
+  default_timeout(): bigint | number;
+  /**
+   * Wraps the page's `document` as an [`Element`] so the shadow-piercing
+   * selector helpers on [`Element`] can be reused at the page level (with the
+   * same `document.querySelectorAll` scope).
+   */
+  document_element(): Promise<Element>;
+  /**
    * Overrides the idle state.
    */
   emulate_idle_state(is_user_active: boolean, is_screen_unlocked: boolean): Promise<void>;
@@ -500,6 +570,8 @@ export declare class Page extends UniffiObjectBase {
   execute_cdp_cmd(method: string, params_json: string): Promise<string>;
   /**
    * Finds an element matching the CSS selector.
+   *
+   * The search pierces open shadow roots, so web components are reachable.
    */
   find_element(selector: string): Promise<Element>;
   /**
@@ -516,14 +588,23 @@ export declare class Page extends UniffiObjectBase {
   frames(): Promise<string>;
   /**
    * Finds a form control by its associated `<label>` text.
+   *
+   * Delegates to [`Element::get_by_label`], so the search pierces open shadow
+   * roots.
    */
   get_by_label(label: string): Promise<Element>;
   /**
-   * Finds an element by ARIA role (falls back to a tag-name lookup).
+   * Finds an element by ARIA role.
+   *
+   * Delegates to [`Element::get_by_role`], so the search pierces open shadow
+   * roots.
    */
   get_by_role(role: string): Promise<Element>;
   /**
    * Finds an element whose text content contains `text`.
+   *
+   * Delegates to [`Element::get_by_text`], so the search pierces open shadow
+   * roots.
    */
   get_by_text(text: string): Promise<Element>;
   /**
@@ -607,12 +688,15 @@ export declare class Page extends UniffiObjectBase {
   /**
    * Returns every element matching the CSS selector.
    *
-   * Uses two round trips (fetch the node list, then read its properties)
-   * instead of one `evaluate` per match.
+   * The search pierces open shadow roots. Uses two round trips (fetch the node
+   * list, then read its properties) instead of one `evaluate` per match.
    */
   query_selector_all(selector: string): Promise<Array<Element>>;
   /**
    * Returns the first node matching an XPath expression as an [`Element`].
+   *
+   * The search pierces open shadow roots and same-origin frames (see
+   * [`Element::query_selector_xpath`]).
    */
   query_selector_xpath(xpath: string): Promise<Element>;
   raw_window_bounds(): Promise<string>;
@@ -671,7 +755,9 @@ export declare class Page extends UniffiObjectBase {
    */
   set_content(html: string): Promise<void>;
   /**
-   * Stores a default timeout (ms) for adapter compatibility.
+   * Sets the default timeout (ms) applied by [`Page::wait_for_selector`],
+   * [`Page::wait_for_navigation`], and [`Page::wait_for_event_default`].
+   * As in Playwright, `0` disables the timeout.
    */
   set_default_timeout(milliseconds: number): Promise<void>;
   /**
@@ -782,7 +868,7 @@ export declare class Page extends UniffiObjectBase {
    */
   wait_for_event(event_name: string, timeout_ms: bigint | number): Promise<string>;
   /**
-   * [`Page::wait_for_event`] with the default 30s timeout.
+   * [`Page::wait_for_event`] with the page's default timeout.
    */
   wait_for_event_default(event_name: string): Promise<string>;
   /**
@@ -795,6 +881,9 @@ export declare class Page extends UniffiObjectBase {
   wait_for_navigation(): Promise<void>;
   /**
    * Waits for an element matching the selector to appear in the DOM.
+   *
+   * The search pierces open shadow roots. Polls until the page's default
+   * timeout elapses.
    */
   wait_for_selector(selector: string): Promise<Element>;
   /**

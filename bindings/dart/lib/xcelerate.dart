@@ -107,9 +107,12 @@ class BrowserConfig {
     /// Optional path to the browser executable.
     required this.executablePath,
 
-    /// Built-in plugins to enable for this browser (for example
-    /// `["stealth", "human"]`). Default-deny: no plugin does anything unless
-    /// listed here (or enabled afterwards with `Browser::use_plugin`).
+    /// External plugins to load at launch. Each entry is a path to a plugin
+    /// directory or a `plugin.json`.
+    ///
+    /// Xcelerate ships **no** plugins built into the core. Default-deny: no
+    /// plugin does anything unless it is listed here (or installed afterwards
+    /// with `Browser::use_plugin` / `Browser::load_plugin`).
     required this.plugins,
   });
 
@@ -122,9 +125,12 @@ class BrowserConfig {
   /// Optional path to the browser executable.
   final String? executablePath;
 
-  /// Built-in plugins to enable for this browser (for example
-  /// `["stealth", "human"]`). Default-deny: no plugin does anything unless
-  /// listed here (or enabled afterwards with `Browser::use_plugin`).
+  /// External plugins to load at launch. Each entry is a path to a plugin
+  /// directory or a `plugin.json`.
+  ///
+  /// Xcelerate ships **no** plugins built into the core. Default-deny: no
+  /// plugin does anything unless it is listed here (or installed afterwards
+  /// with `Browser::use_plugin` / `Browser::load_plugin`).
   final List<String>? plugins;
 
   Map<String, dynamic> toJson() {
@@ -945,9 +951,9 @@ class XcelerateFfi {
       throw StateError(
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_audit_log`: $err');
     }
-    if (_checksum_uniffi_xcelerate_checksum_method_browser_audit_log != 37952) {
+    if (_checksum_uniffi_xcelerate_checksum_method_browser_audit_log != 58417) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_audit_log`: expected 37952, got $_checksum_uniffi_xcelerate_checksum_method_browser_audit_log');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_audit_log`: expected 58417, got $_checksum_uniffi_xcelerate_checksum_method_browser_audit_log');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_audit_verify;
     try {
@@ -961,9 +967,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_audit_verify`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_audit_verify !=
-        5412) {
+        56834) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_audit_verify`: expected 5412, got $_checksum_uniffi_xcelerate_checksum_method_browser_audit_verify');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_audit_verify`: expected 56834, got $_checksum_uniffi_xcelerate_checksum_method_browser_audit_verify');
     }
     final int
         _checksum_uniffi_xcelerate_checksum_method_browser_available_plugins;
@@ -978,9 +984,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_available_plugins`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_available_plugins !=
-        34369) {
+        13132) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_available_plugins`: expected 34369, got $_checksum_uniffi_xcelerate_checksum_method_browser_available_plugins');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_available_plugins`: expected 13132, got $_checksum_uniffi_xcelerate_checksum_method_browser_available_plugins');
     }
     final int
         _checksum_uniffi_xcelerate_checksum_method_browser_browser_contexts;
@@ -995,9 +1001,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_browser_contexts`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_browser_contexts !=
-        50137) {
+        59339) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_browser_contexts`: expected 50137, got $_checksum_uniffi_xcelerate_checksum_method_browser_browser_contexts');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_browser_contexts`: expected 59339, got $_checksum_uniffi_xcelerate_checksum_method_browser_browser_contexts');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_capabilities;
     try {
@@ -1011,9 +1017,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_capabilities`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_capabilities !=
-        7431) {
+        7601) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_capabilities`: expected 7431, got $_checksum_uniffi_xcelerate_checksum_method_browser_capabilities');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_capabilities`: expected 7601, got $_checksum_uniffi_xcelerate_checksum_method_browser_capabilities');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_close;
     try {
@@ -1025,9 +1031,9 @@ class XcelerateFfi {
       throw StateError(
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_close`: $err');
     }
-    if (_checksum_uniffi_xcelerate_checksum_method_browser_close != 63597) {
+    if (_checksum_uniffi_xcelerate_checksum_method_browser_close != 44553) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_close`: expected 63597, got $_checksum_uniffi_xcelerate_checksum_method_browser_close');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_close`: expected 44553, got $_checksum_uniffi_xcelerate_checksum_method_browser_close');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_cookies;
     try {
@@ -1039,9 +1045,9 @@ class XcelerateFfi {
       throw StateError(
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_cookies`: $err');
     }
-    if (_checksum_uniffi_xcelerate_checksum_method_browser_cookies != 36914) {
+    if (_checksum_uniffi_xcelerate_checksum_method_browser_cookies != 8530) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_cookies`: expected 36914, got $_checksum_uniffi_xcelerate_checksum_method_browser_cookies');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_cookies`: expected 8530, got $_checksum_uniffi_xcelerate_checksum_method_browser_cookies');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_delete_cookie;
     try {
@@ -1055,9 +1061,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_delete_cookie`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_delete_cookie !=
-        14366) {
+        44579) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_delete_cookie`: expected 14366, got $_checksum_uniffi_xcelerate_checksum_method_browser_delete_cookie');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_delete_cookie`: expected 44579, got $_checksum_uniffi_xcelerate_checksum_method_browser_delete_cookie');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_event_names;
     try {
@@ -1071,9 +1077,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_event_names`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_event_names !=
-        44664) {
+        12570) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_event_names`: expected 44664, got $_checksum_uniffi_xcelerate_checksum_method_browser_event_names');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_event_names`: expected 12570, got $_checksum_uniffi_xcelerate_checksum_method_browser_event_names');
     }
     final int
         _checksum_uniffi_xcelerate_checksum_method_browser_grant_permissions;
@@ -1088,9 +1094,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_grant_permissions`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_grant_permissions !=
-        57820) {
+        62168) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_grant_permissions`: expected 57820, got $_checksum_uniffi_xcelerate_checksum_method_browser_grant_permissions');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_grant_permissions`: expected 62168, got $_checksum_uniffi_xcelerate_checksum_method_browser_grant_permissions');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_is_connected;
     try {
@@ -1104,9 +1110,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_is_connected`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_is_connected !=
-        10958) {
+        63934) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_is_connected`: expected 10958, got $_checksum_uniffi_xcelerate_checksum_method_browser_is_connected');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_is_connected`: expected 63934, got $_checksum_uniffi_xcelerate_checksum_method_browser_is_connected');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_listens_to;
     try {
@@ -1120,9 +1126,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_listens_to`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_listens_to !=
-        12245) {
+        56113) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_listens_to`: expected 12245, got $_checksum_uniffi_xcelerate_checksum_method_browser_listens_to');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_listens_to`: expected 56113, got $_checksum_uniffi_xcelerate_checksum_method_browser_listens_to');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_load_plugin;
     try {
@@ -1136,9 +1142,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_load_plugin`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_load_plugin !=
-        15107) {
+        26734) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_load_plugin`: expected 15107, got $_checksum_uniffi_xcelerate_checksum_method_browser_load_plugin');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_load_plugin`: expected 26734, got $_checksum_uniffi_xcelerate_checksum_method_browser_load_plugin');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_new_context;
     try {
@@ -1152,9 +1158,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_new_context`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_new_context !=
-        28184) {
+        59309) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_new_context`: expected 28184, got $_checksum_uniffi_xcelerate_checksum_method_browser_new_context');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_new_context`: expected 59309, got $_checksum_uniffi_xcelerate_checksum_method_browser_new_context');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_new_page;
     try {
@@ -1167,9 +1173,9 @@ class XcelerateFfi {
       throw StateError(
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_new_page`: $err');
     }
-    if (_checksum_uniffi_xcelerate_checksum_method_browser_new_page != 31633) {
+    if (_checksum_uniffi_xcelerate_checksum_method_browser_new_page != 65142) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_new_page`: expected 31633, got $_checksum_uniffi_xcelerate_checksum_method_browser_new_page');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_new_page`: expected 65142, got $_checksum_uniffi_xcelerate_checksum_method_browser_new_page');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_on;
     try {
@@ -1181,9 +1187,9 @@ class XcelerateFfi {
       throw StateError(
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_on`: $err');
     }
-    if (_checksum_uniffi_xcelerate_checksum_method_browser_on != 2255) {
+    if (_checksum_uniffi_xcelerate_checksum_method_browser_on != 4402) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_on`: expected 2255, got $_checksum_uniffi_xcelerate_checksum_method_browser_on');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_on`: expected 4402, got $_checksum_uniffi_xcelerate_checksum_method_browser_on');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_once;
     try {
@@ -1195,9 +1201,9 @@ class XcelerateFfi {
       throw StateError(
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_once`: $err');
     }
-    if (_checksum_uniffi_xcelerate_checksum_method_browser_once != 22376) {
+    if (_checksum_uniffi_xcelerate_checksum_method_browser_once != 62023) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_once`: expected 22376, got $_checksum_uniffi_xcelerate_checksum_method_browser_once');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_once`: expected 62023, got $_checksum_uniffi_xcelerate_checksum_method_browser_once');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_plugin;
     try {
@@ -1209,9 +1215,9 @@ class XcelerateFfi {
       throw StateError(
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_plugin`: $err');
     }
-    if (_checksum_uniffi_xcelerate_checksum_method_browser_plugin != 11907) {
+    if (_checksum_uniffi_xcelerate_checksum_method_browser_plugin != 38553) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_plugin`: expected 11907, got $_checksum_uniffi_xcelerate_checksum_method_browser_plugin');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_plugin`: expected 38553, got $_checksum_uniffi_xcelerate_checksum_method_browser_plugin');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_plugin_names;
     try {
@@ -1225,9 +1231,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_plugin_names`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_plugin_names !=
-        58296) {
+        5716) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_plugin_names`: expected 58296, got $_checksum_uniffi_xcelerate_checksum_method_browser_plugin_names');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_plugin_names`: expected 5716, got $_checksum_uniffi_xcelerate_checksum_method_browser_plugin_names');
     }
     final int
         _checksum_uniffi_xcelerate_checksum_method_browser_remove_all_listeners;
@@ -1242,9 +1248,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_remove_all_listeners`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_remove_all_listeners !=
-        51158) {
+        16672) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_remove_all_listeners`: expected 51158, got $_checksum_uniffi_xcelerate_checksum_method_browser_remove_all_listeners');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_remove_all_listeners`: expected 16672, got $_checksum_uniffi_xcelerate_checksum_method_browser_remove_all_listeners');
     }
     final int
         _checksum_uniffi_xcelerate_checksum_method_browser_remove_listener;
@@ -1259,9 +1265,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_remove_listener`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_remove_listener !=
-        41339) {
+        3101) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_remove_listener`: expected 41339, got $_checksum_uniffi_xcelerate_checksum_method_browser_remove_listener');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_remove_listener`: expected 3101, got $_checksum_uniffi_xcelerate_checksum_method_browser_remove_listener');
     }
     final int
         _checksum_uniffi_xcelerate_checksum_method_browser_reset_permissions;
@@ -1276,9 +1282,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_reset_permissions`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_reset_permissions !=
-        21496) {
+        50876) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_reset_permissions`: expected 21496, got $_checksum_uniffi_xcelerate_checksum_method_browser_reset_permissions');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_reset_permissions`: expected 50876, got $_checksum_uniffi_xcelerate_checksum_method_browser_reset_permissions');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_set_cookie;
     try {
@@ -1291,9 +1297,10 @@ class XcelerateFfi {
       throw StateError(
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_set_cookie`: $err');
     }
-    if (_checksum_uniffi_xcelerate_checksum_method_browser_set_cookie != 6259) {
+    if (_checksum_uniffi_xcelerate_checksum_method_browser_set_cookie !=
+        61323) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_set_cookie`: expected 6259, got $_checksum_uniffi_xcelerate_checksum_method_browser_set_cookie');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_set_cookie`: expected 61323, got $_checksum_uniffi_xcelerate_checksum_method_browser_set_cookie');
     }
     final int
         _checksum_uniffi_xcelerate_checksum_method_browser_set_download_behavior;
@@ -1308,9 +1315,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_set_download_behavior`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_set_download_behavior !=
-        23198) {
+        32642) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_set_download_behavior`: expected 23198, got $_checksum_uniffi_xcelerate_checksum_method_browser_set_download_behavior');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_set_download_behavior`: expected 32642, got $_checksum_uniffi_xcelerate_checksum_method_browser_set_download_behavior');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_start_tracing;
     try {
@@ -1324,9 +1331,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_start_tracing`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_start_tracing !=
-        14885) {
+        25818) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_start_tracing`: expected 14885, got $_checksum_uniffi_xcelerate_checksum_method_browser_start_tracing');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_start_tracing`: expected 25818, got $_checksum_uniffi_xcelerate_checksum_method_browser_start_tracing');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_stop_tracing;
     try {
@@ -1340,9 +1347,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_stop_tracing`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_stop_tracing !=
-        57049) {
+        30224) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_stop_tracing`: expected 57049, got $_checksum_uniffi_xcelerate_checksum_method_browser_stop_tracing');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_stop_tracing`: expected 30224, got $_checksum_uniffi_xcelerate_checksum_method_browser_stop_tracing');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_targets;
     try {
@@ -1354,9 +1361,9 @@ class XcelerateFfi {
       throw StateError(
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_targets`: $err');
     }
-    if (_checksum_uniffi_xcelerate_checksum_method_browser_targets != 28936) {
+    if (_checksum_uniffi_xcelerate_checksum_method_browser_targets != 50695) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_targets`: expected 28936, got $_checksum_uniffi_xcelerate_checksum_method_browser_targets');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_targets`: expected 50695, got $_checksum_uniffi_xcelerate_checksum_method_browser_targets');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_use_plugin;
     try {
@@ -1370,9 +1377,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_use_plugin`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_use_plugin !=
-        48901) {
+        53288) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_use_plugin`: expected 48901, got $_checksum_uniffi_xcelerate_checksum_method_browser_use_plugin');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_use_plugin`: expected 53288, got $_checksum_uniffi_xcelerate_checksum_method_browser_use_plugin');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_user_agent;
     try {
@@ -1386,9 +1393,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_user_agent`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_user_agent !=
-        20558) {
+        36639) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_user_agent`: expected 20558, got $_checksum_uniffi_xcelerate_checksum_method_browser_user_agent');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_user_agent`: expected 36639, got $_checksum_uniffi_xcelerate_checksum_method_browser_user_agent');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_version;
     try {
@@ -1400,9 +1407,9 @@ class XcelerateFfi {
       throw StateError(
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_version`: $err');
     }
-    if (_checksum_uniffi_xcelerate_checksum_method_browser_version != 64817) {
+    if (_checksum_uniffi_xcelerate_checksum_method_browser_version != 2891) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_version`: expected 64817, got $_checksum_uniffi_xcelerate_checksum_method_browser_version');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_version`: expected 2891, got $_checksum_uniffi_xcelerate_checksum_method_browser_version');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_wait_for_event;
     try {
@@ -1416,9 +1423,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_wait_for_event`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_wait_for_event !=
-        20884) {
+        63537) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_wait_for_event`: expected 20884, got $_checksum_uniffi_xcelerate_checksum_method_browser_wait_for_event');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_wait_for_event`: expected 63537, got $_checksum_uniffi_xcelerate_checksum_method_browser_wait_for_event');
     }
     final int
         _checksum_uniffi_xcelerate_checksum_method_browser_wait_for_event_default;
@@ -1433,9 +1440,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_wait_for_event_default`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_wait_for_event_default !=
-        53096) {
+        14198) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_wait_for_event_default`: expected 53096, got $_checksum_uniffi_xcelerate_checksum_method_browser_wait_for_event_default');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_wait_for_event_default`: expected 14198, got $_checksum_uniffi_xcelerate_checksum_method_browser_wait_for_event_default');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_browser_ws_endpoint;
     try {
@@ -1449,9 +1456,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_browser_ws_endpoint`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_browser_ws_endpoint !=
-        36520) {
+        63756) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_ws_endpoint`: expected 36520, got $_checksum_uniffi_xcelerate_checksum_method_browser_ws_endpoint');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_browser_ws_endpoint`: expected 63756, got $_checksum_uniffi_xcelerate_checksum_method_browser_ws_endpoint');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_element_attribute;
     try {
@@ -1511,9 +1518,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_element_call_on_selector`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_element_call_on_selector !=
-        20589) {
+        53984) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_call_on_selector`: expected 20589, got $_checksum_uniffi_xcelerate_checksum_method_element_call_on_selector');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_call_on_selector`: expected 53984, got $_checksum_uniffi_xcelerate_checksum_method_element_call_on_selector');
     }
     final int
         _checksum_uniffi_xcelerate_checksum_method_element_call_on_selector_all;
@@ -1528,9 +1535,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_element_call_on_selector_all`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_element_call_on_selector_all !=
-        58660) {
+        47977) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_call_on_selector_all`: expected 58660, got $_checksum_uniffi_xcelerate_checksum_method_element_call_on_selector_all');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_call_on_selector_all`: expected 47977, got $_checksum_uniffi_xcelerate_checksum_method_element_call_on_selector_all');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_element_call_string;
     try {
@@ -1562,21 +1569,21 @@ class XcelerateFfi {
       throw StateError(
           'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_click`: expected 26136, got $_checksum_uniffi_xcelerate_checksum_method_element_click');
     }
-    final int _checksum_uniffi_xcelerate_checksum_method_element_click_stealth;
+    final int _checksum_uniffi_xcelerate_checksum_method_element_click_mouse;
     try {
       final int Function() checksumFn =
           lib.lookupFunction<ffi.Uint16 Function(), int Function()>(
-              'uniffi_xcelerate_checksum_method_element_click_stealth');
-      _checksum_uniffi_xcelerate_checksum_method_element_click_stealth =
+              'uniffi_xcelerate_checksum_method_element_click_mouse');
+      _checksum_uniffi_xcelerate_checksum_method_element_click_mouse =
           checksumFn();
     } catch (err) {
       throw StateError(
-          'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_element_click_stealth`: $err');
+          'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_element_click_mouse`: $err');
     }
-    if (_checksum_uniffi_xcelerate_checksum_method_element_click_stealth !=
-        64888) {
+    if (_checksum_uniffi_xcelerate_checksum_method_element_click_mouse !=
+        60796) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_click_stealth`: expected 64888, got $_checksum_uniffi_xcelerate_checksum_method_element_click_stealth');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_click_mouse`: expected 60796, got $_checksum_uniffi_xcelerate_checksum_method_element_click_mouse');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_element_count;
     try {
@@ -1698,9 +1705,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_element_get_by_label`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_element_get_by_label !=
-        41888) {
+        29865) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_get_by_label`: expected 41888, got $_checksum_uniffi_xcelerate_checksum_method_element_get_by_label');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_get_by_label`: expected 29865, got $_checksum_uniffi_xcelerate_checksum_method_element_get_by_label');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_element_get_by_role;
     try {
@@ -1714,9 +1721,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_element_get_by_role`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_element_get_by_role !=
-        15624) {
+        15953) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_get_by_role`: expected 15624, got $_checksum_uniffi_xcelerate_checksum_method_element_get_by_role');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_get_by_role`: expected 15953, got $_checksum_uniffi_xcelerate_checksum_method_element_get_by_role');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_element_get_by_text;
     try {
@@ -1730,9 +1737,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_element_get_by_text`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_element_get_by_text !=
-        11298) {
+        18847) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_get_by_text`: expected 11298, got $_checksum_uniffi_xcelerate_checksum_method_element_get_by_text');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_get_by_text`: expected 18847, got $_checksum_uniffi_xcelerate_checksum_method_element_get_by_text');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_element_get_properties;
     try {
@@ -1764,21 +1771,21 @@ class XcelerateFfi {
       throw StateError(
           'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_hover`: expected 32638, got $_checksum_uniffi_xcelerate_checksum_method_element_hover');
     }
-    final int _checksum_uniffi_xcelerate_checksum_method_element_hover_stealth;
+    final int _checksum_uniffi_xcelerate_checksum_method_element_hover_mouse;
     try {
       final int Function() checksumFn =
           lib.lookupFunction<ffi.Uint16 Function(), int Function()>(
-              'uniffi_xcelerate_checksum_method_element_hover_stealth');
-      _checksum_uniffi_xcelerate_checksum_method_element_hover_stealth =
+              'uniffi_xcelerate_checksum_method_element_hover_mouse');
+      _checksum_uniffi_xcelerate_checksum_method_element_hover_mouse =
           checksumFn();
     } catch (err) {
       throw StateError(
-          'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_element_hover_stealth`: $err');
+          'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_element_hover_mouse`: $err');
     }
-    if (_checksum_uniffi_xcelerate_checksum_method_element_hover_stealth !=
-        12397) {
+    if (_checksum_uniffi_xcelerate_checksum_method_element_hover_mouse !=
+        47391) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_hover_stealth`: expected 12397, got $_checksum_uniffi_xcelerate_checksum_method_element_hover_stealth');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_hover_mouse`: expected 47391, got $_checksum_uniffi_xcelerate_checksum_method_element_hover_mouse');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_element_inner_html;
     try {
@@ -1822,9 +1829,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_element_query_selector`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_element_query_selector !=
-        59248) {
+        19454) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_query_selector`: expected 59248, got $_checksum_uniffi_xcelerate_checksum_method_element_query_selector');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_query_selector`: expected 19454, got $_checksum_uniffi_xcelerate_checksum_method_element_query_selector');
     }
     final int
         _checksum_uniffi_xcelerate_checksum_method_element_query_selector_all;
@@ -1839,9 +1846,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_element_query_selector_all`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_element_query_selector_all !=
-        57750) {
+        65463) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_query_selector_all`: expected 57750, got $_checksum_uniffi_xcelerate_checksum_method_element_query_selector_all');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_query_selector_all`: expected 65463, got $_checksum_uniffi_xcelerate_checksum_method_element_query_selector_all');
     }
     final int
         _checksum_uniffi_xcelerate_checksum_method_element_query_selector_attr;
@@ -1873,9 +1880,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_element_query_selector_xpath`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_element_query_selector_xpath !=
-        47775) {
+        11390) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_query_selector_xpath`: expected 47775, got $_checksum_uniffi_xcelerate_checksum_method_element_query_selector_xpath');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_query_selector_xpath`: expected 11390, got $_checksum_uniffi_xcelerate_checksum_method_element_query_selector_xpath');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_element_screenshot;
     try {
@@ -1985,9 +1992,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_element_wait_for_selector`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_element_wait_for_selector !=
-        53340) {
+        23551) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_wait_for_selector`: expected 53340, got $_checksum_uniffi_xcelerate_checksum_method_element_wait_for_selector');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_element_wait_for_selector`: expected 23551, got $_checksum_uniffi_xcelerate_checksum_method_element_wait_for_selector');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_page_activate;
     try {
@@ -2122,9 +2129,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_page_call_on_selector`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_page_call_on_selector !=
-        27164) {
+        902) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_call_on_selector`: expected 27164, got $_checksum_uniffi_xcelerate_checksum_method_page_call_on_selector');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_call_on_selector`: expected 902, got $_checksum_uniffi_xcelerate_checksum_method_page_call_on_selector');
     }
     final int
         _checksum_uniffi_xcelerate_checksum_method_page_call_on_selector_all;
@@ -2139,9 +2146,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_page_call_on_selector_all`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_page_call_on_selector_all !=
-        24130) {
+        9317) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_call_on_selector_all`: expected 24130, got $_checksum_uniffi_xcelerate_checksum_method_page_call_on_selector_all');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_call_on_selector_all`: expected 9317, got $_checksum_uniffi_xcelerate_checksum_method_page_call_on_selector_all');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_page_call_string;
     try {
@@ -2358,6 +2365,22 @@ class XcelerateFfi {
       throw StateError(
           'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_default_timeout`: expected 18710, got $_checksum_uniffi_xcelerate_checksum_method_page_default_timeout');
     }
+    final int _checksum_uniffi_xcelerate_checksum_method_page_document_element;
+    try {
+      final int Function() checksumFn =
+          lib.lookupFunction<ffi.Uint16 Function(), int Function()>(
+              'uniffi_xcelerate_checksum_method_page_document_element');
+      _checksum_uniffi_xcelerate_checksum_method_page_document_element =
+          checksumFn();
+    } catch (err) {
+      throw StateError(
+          'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_page_document_element`: $err');
+    }
+    if (_checksum_uniffi_xcelerate_checksum_method_page_document_element !=
+        41358) {
+      throw StateError(
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_document_element`: expected 41358, got $_checksum_uniffi_xcelerate_checksum_method_page_document_element');
+    }
     final int
         _checksum_uniffi_xcelerate_checksum_method_page_emulate_idle_state;
     try {
@@ -2514,9 +2537,9 @@ class XcelerateFfi {
       throw StateError(
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_page_find_element`: $err');
     }
-    if (_checksum_uniffi_xcelerate_checksum_method_page_find_element != 4260) {
+    if (_checksum_uniffi_xcelerate_checksum_method_page_find_element != 20082) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_find_element`: expected 4260, got $_checksum_uniffi_xcelerate_checksum_method_page_find_element');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_find_element`: expected 20082, got $_checksum_uniffi_xcelerate_checksum_method_page_find_element');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_page_frame;
     try {
@@ -2571,9 +2594,9 @@ class XcelerateFfi {
       throw StateError(
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_page_get_by_label`: $err');
     }
-    if (_checksum_uniffi_xcelerate_checksum_method_page_get_by_label != 63689) {
+    if (_checksum_uniffi_xcelerate_checksum_method_page_get_by_label != 51936) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_get_by_label`: expected 63689, got $_checksum_uniffi_xcelerate_checksum_method_page_get_by_label');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_get_by_label`: expected 51936, got $_checksum_uniffi_xcelerate_checksum_method_page_get_by_label');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_page_get_by_role;
     try {
@@ -2586,9 +2609,9 @@ class XcelerateFfi {
       throw StateError(
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_page_get_by_role`: $err');
     }
-    if (_checksum_uniffi_xcelerate_checksum_method_page_get_by_role != 32218) {
+    if (_checksum_uniffi_xcelerate_checksum_method_page_get_by_role != 32000) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_get_by_role`: expected 32218, got $_checksum_uniffi_xcelerate_checksum_method_page_get_by_role');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_get_by_role`: expected 32000, got $_checksum_uniffi_xcelerate_checksum_method_page_get_by_role');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_page_get_by_text;
     try {
@@ -2601,9 +2624,9 @@ class XcelerateFfi {
       throw StateError(
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_page_get_by_text`: $err');
     }
-    if (_checksum_uniffi_xcelerate_checksum_method_page_get_by_text != 27497) {
+    if (_checksum_uniffi_xcelerate_checksum_method_page_get_by_text != 25448) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_get_by_text`: expected 27497, got $_checksum_uniffi_xcelerate_checksum_method_page_get_by_text');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_get_by_text`: expected 25448, got $_checksum_uniffi_xcelerate_checksum_method_page_get_by_text');
     }
     final int
         _checksum_uniffi_xcelerate_checksum_method_page_get_default_timeout;
@@ -2928,9 +2951,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_page_query_selector_all`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_page_query_selector_all !=
-        64158) {
+        7778) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_query_selector_all`: expected 64158, got $_checksum_uniffi_xcelerate_checksum_method_page_query_selector_all');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_query_selector_all`: expected 7778, got $_checksum_uniffi_xcelerate_checksum_method_page_query_selector_all');
     }
     final int
         _checksum_uniffi_xcelerate_checksum_method_page_query_selector_xpath;
@@ -2945,9 +2968,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_page_query_selector_xpath`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_page_query_selector_xpath !=
-        48442) {
+        64720) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_query_selector_xpath`: expected 48442, got $_checksum_uniffi_xcelerate_checksum_method_page_query_selector_xpath');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_query_selector_xpath`: expected 64720, got $_checksum_uniffi_xcelerate_checksum_method_page_query_selector_xpath');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_page_raw_window_bounds;
     try {
@@ -3680,9 +3703,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_method_page_wait_for_selector`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_method_page_wait_for_selector !=
-        58306) {
+        8076) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_wait_for_selector`: expected 58306, got $_checksum_uniffi_xcelerate_checksum_method_page_wait_for_selector');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_method_page_wait_for_selector`: expected 8076, got $_checksum_uniffi_xcelerate_checksum_method_page_wait_for_selector');
     }
     final int _checksum_uniffi_xcelerate_checksum_method_page_wait_for_xpath;
     try {
@@ -3820,9 +3843,9 @@ class XcelerateFfi {
           'Missing or invalid UniFFI checksum symbol `uniffi_xcelerate_checksum_constructor_browser_launch`: $err');
     }
     if (_checksum_uniffi_xcelerate_checksum_constructor_browser_launch !=
-        45323) {
+        47265) {
       throw StateError(
-          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_constructor_browser_launch`: expected 45323, got $_checksum_uniffi_xcelerate_checksum_constructor_browser_launch');
+          'UniFFI API checksum mismatch for `uniffi_xcelerate_checksum_constructor_browser_launch`: expected 47265, got $_checksum_uniffi_xcelerate_checksum_constructor_browser_launch');
     }
   }
 
@@ -12094,17 +12117,17 @@ class XcelerateFfi {
 
   late final void Function(ffi.Pointer<_UniFfiFfiBufferElement> argPtr,
           ffi.Pointer<_UniFfiFfiBufferElement> returnPtr)
-      _elementClickStealthFfiBuffer = _lib.lookupFunction<
+      _elementClickMouseFfiBuffer = _lib.lookupFunction<
               ffi.Void Function(ffi.Pointer<_UniFfiFfiBufferElement> argPtr,
                   ffi.Pointer<_UniFfiFfiBufferElement> returnPtr),
               void Function(ffi.Pointer<_UniFfiFfiBufferElement> argPtr,
                   ffi.Pointer<_UniFfiFfiBufferElement> returnPtr)>(
-          'uniffi_ffibuffer_xcelerate_fn_method_element_click_stealth');
+          'uniffi_ffibuffer_xcelerate_fn_method_element_click_mouse');
   late final void Function(
           int handle,
           ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Uint64 callbackData, ffi.Int8 pollResult)>>
               callback,
-          int callbackData) _elementClickStealthFfiBufferRustFuturePoll =
+          int callbackData) _elementClickMouseFfiBufferRustFuturePoll =
       _lib.lookupFunction<
           ffi.Void Function(
               ffi.Uint64 handle,
@@ -12117,23 +12140,23 @@ class XcelerateFfi {
                   callback,
               int callbackData)>('ffi_xcelerate_rust_future_poll_u64');
   late final void Function(int handle)
-      _elementClickStealthFfiBufferRustFutureCancel = _lib.lookupFunction<
+      _elementClickMouseFfiBufferRustFutureCancel = _lib.lookupFunction<
           ffi.Void Function(ffi.Uint64 handle),
           void Function(int handle)>('ffi_xcelerate_rust_future_cancel_u64');
   late final int Function(
           int handle, ffi.Pointer<_UniFfiRustCallStatus> outStatus)
-      _elementClickStealthFfiBufferRustFutureComplete = _lib.lookupFunction<
+      _elementClickMouseFfiBufferRustFutureComplete = _lib.lookupFunction<
               ffi.Uint64 Function(ffi.Uint64 handle,
                   ffi.Pointer<_UniFfiRustCallStatus> outStatus),
               int Function(
                   int handle, ffi.Pointer<_UniFfiRustCallStatus> outStatus)>(
           'ffi_xcelerate_rust_future_complete_u64');
   late final void Function(int handle)
-      _elementClickStealthFfiBufferRustFutureFree = _lib.lookupFunction<
+      _elementClickMouseFfiBufferRustFutureFree = _lib.lookupFunction<
           ffi.Void Function(ffi.Uint64 handle),
           void Function(int handle)>('ffi_xcelerate_rust_future_free_u64');
 
-  Future<Element> elementInvokeClickStealth(int handle) async {
+  Future<Element> elementInvokeClickMouse(int handle) async {
     final ffi.Pointer<_UniFfiFfiBufferElement> argBuf =
         calloc<_UniFfiFfiBufferElement>(1);
     final ffi.Pointer<_UniFfiFfiBufferElement> returnBuf =
@@ -12160,7 +12183,7 @@ class XcelerateFfi {
         }
       }
       (argBuf + 0).ref.u64 = clonedHandle;
-      _elementClickStealthFfiBuffer(argBuf, returnBuf);
+      _elementClickMouseFfiBuffer(argBuf, returnBuf);
       final int statusCode = (returnBuf + 1).ref.i8;
       if (statusCode != _uniFfiRustCallStatusSuccess) {
         final ffi.Pointer<_UniFfiRustBuffer> errBufPtr =
@@ -12182,7 +12205,7 @@ class XcelerateFfi {
         pollEvents.add(pollResult);
       });
       try {
-        _elementClickStealthFfiBufferRustFuturePoll(
+        _elementClickMouseFfiBufferRustFuturePoll(
             futureHandle, callback.nativeFunction, 0);
         while (true) {
           final int pollResult = await pollEvents.stream.first;
@@ -12190,12 +12213,12 @@ class XcelerateFfi {
             break;
           }
           if (pollResult == _rustFuturePollWake) {
-            _elementClickStealthFfiBufferRustFuturePoll(
+            _elementClickMouseFfiBufferRustFuturePoll(
                 futureHandle, callback.nativeFunction, 0);
             continue;
           }
           throw StateError(
-              'Rust future poll returned invalid status for click_stealth: $pollResult');
+              'Rust future poll returned invalid status for click_mouse: $pollResult');
         }
         final ffi.Pointer<_UniFfiRustCallStatus> outStatusPtr =
             calloc<_UniFfiRustCallStatus>();
@@ -12205,15 +12228,14 @@ class XcelerateFfi {
           ..len = 0
           ..data = ffi.nullptr;
         try {
-          final int resultValue =
-              _elementClickStealthFfiBufferRustFutureComplete(
-                  futureHandle, outStatusPtr);
+          final int resultValue = _elementClickMouseFfiBufferRustFutureComplete(
+              futureHandle, outStatusPtr);
           final int completeStatusCode = outStatusPtr.ref.code;
           if (completeStatusCode == _uniFfiRustCallStatusSuccess) {
             return Element._(this, resultValue);
           }
           if (completeStatusCode == _uniFfiRustCallStatusCancelled) {
-            throw StateError('Rust future was cancelled for click_stealth');
+            throw StateError('Rust future was cancelled for click_mouse');
           }
           final _UniFfiRustBuffer errorBuf = outStatusPtr.ref.errorBuf;
           if (!(errorBuf.data == ffi.nullptr &&
@@ -12239,17 +12261,17 @@ class XcelerateFfi {
             }
           }
           throw StateError(
-              'Rust future failed for click_stealth with status code: $completeStatusCode');
+              'Rust future failed for click_mouse with status code: $completeStatusCode');
         } finally {
           calloc.free(outStatusPtr);
         }
       } catch (_) {
-        _elementClickStealthFfiBufferRustFutureCancel(futureHandle);
+        _elementClickMouseFfiBufferRustFutureCancel(futureHandle);
         rethrow;
       } finally {
         await pollEvents.close();
         callback.close();
-        _elementClickStealthFfiBufferRustFutureFree(futureHandle);
+        _elementClickMouseFfiBufferRustFutureFree(futureHandle);
       }
     } finally {
       for (final ptr in foreignArgPtrs) {
@@ -14837,17 +14859,17 @@ class XcelerateFfi {
 
   late final void Function(ffi.Pointer<_UniFfiFfiBufferElement> argPtr,
           ffi.Pointer<_UniFfiFfiBufferElement> returnPtr)
-      _elementHoverStealthFfiBuffer = _lib.lookupFunction<
+      _elementHoverMouseFfiBuffer = _lib.lookupFunction<
               ffi.Void Function(ffi.Pointer<_UniFfiFfiBufferElement> argPtr,
                   ffi.Pointer<_UniFfiFfiBufferElement> returnPtr),
               void Function(ffi.Pointer<_UniFfiFfiBufferElement> argPtr,
                   ffi.Pointer<_UniFfiFfiBufferElement> returnPtr)>(
-          'uniffi_ffibuffer_xcelerate_fn_method_element_hover_stealth');
+          'uniffi_ffibuffer_xcelerate_fn_method_element_hover_mouse');
   late final void Function(
           int handle,
           ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Uint64 callbackData, ffi.Int8 pollResult)>>
               callback,
-          int callbackData) _elementHoverStealthFfiBufferRustFuturePoll =
+          int callbackData) _elementHoverMouseFfiBufferRustFuturePoll =
       _lib.lookupFunction<
           ffi.Void Function(
               ffi.Uint64 handle,
@@ -14860,23 +14882,23 @@ class XcelerateFfi {
                   callback,
               int callbackData)>('ffi_xcelerate_rust_future_poll_u64');
   late final void Function(int handle)
-      _elementHoverStealthFfiBufferRustFutureCancel = _lib.lookupFunction<
+      _elementHoverMouseFfiBufferRustFutureCancel = _lib.lookupFunction<
           ffi.Void Function(ffi.Uint64 handle),
           void Function(int handle)>('ffi_xcelerate_rust_future_cancel_u64');
   late final int Function(
           int handle, ffi.Pointer<_UniFfiRustCallStatus> outStatus)
-      _elementHoverStealthFfiBufferRustFutureComplete = _lib.lookupFunction<
+      _elementHoverMouseFfiBufferRustFutureComplete = _lib.lookupFunction<
               ffi.Uint64 Function(ffi.Uint64 handle,
                   ffi.Pointer<_UniFfiRustCallStatus> outStatus),
               int Function(
                   int handle, ffi.Pointer<_UniFfiRustCallStatus> outStatus)>(
           'ffi_xcelerate_rust_future_complete_u64');
   late final void Function(int handle)
-      _elementHoverStealthFfiBufferRustFutureFree = _lib.lookupFunction<
+      _elementHoverMouseFfiBufferRustFutureFree = _lib.lookupFunction<
           ffi.Void Function(ffi.Uint64 handle),
           void Function(int handle)>('ffi_xcelerate_rust_future_free_u64');
 
-  Future<Element> elementInvokeHoverStealth(int handle) async {
+  Future<Element> elementInvokeHoverMouse(int handle) async {
     final ffi.Pointer<_UniFfiFfiBufferElement> argBuf =
         calloc<_UniFfiFfiBufferElement>(1);
     final ffi.Pointer<_UniFfiFfiBufferElement> returnBuf =
@@ -14903,7 +14925,7 @@ class XcelerateFfi {
         }
       }
       (argBuf + 0).ref.u64 = clonedHandle;
-      _elementHoverStealthFfiBuffer(argBuf, returnBuf);
+      _elementHoverMouseFfiBuffer(argBuf, returnBuf);
       final int statusCode = (returnBuf + 1).ref.i8;
       if (statusCode != _uniFfiRustCallStatusSuccess) {
         final ffi.Pointer<_UniFfiRustBuffer> errBufPtr =
@@ -14925,7 +14947,7 @@ class XcelerateFfi {
         pollEvents.add(pollResult);
       });
       try {
-        _elementHoverStealthFfiBufferRustFuturePoll(
+        _elementHoverMouseFfiBufferRustFuturePoll(
             futureHandle, callback.nativeFunction, 0);
         while (true) {
           final int pollResult = await pollEvents.stream.first;
@@ -14933,12 +14955,12 @@ class XcelerateFfi {
             break;
           }
           if (pollResult == _rustFuturePollWake) {
-            _elementHoverStealthFfiBufferRustFuturePoll(
+            _elementHoverMouseFfiBufferRustFuturePoll(
                 futureHandle, callback.nativeFunction, 0);
             continue;
           }
           throw StateError(
-              'Rust future poll returned invalid status for hover_stealth: $pollResult');
+              'Rust future poll returned invalid status for hover_mouse: $pollResult');
         }
         final ffi.Pointer<_UniFfiRustCallStatus> outStatusPtr =
             calloc<_UniFfiRustCallStatus>();
@@ -14948,15 +14970,14 @@ class XcelerateFfi {
           ..len = 0
           ..data = ffi.nullptr;
         try {
-          final int resultValue =
-              _elementHoverStealthFfiBufferRustFutureComplete(
-                  futureHandle, outStatusPtr);
+          final int resultValue = _elementHoverMouseFfiBufferRustFutureComplete(
+              futureHandle, outStatusPtr);
           final int completeStatusCode = outStatusPtr.ref.code;
           if (completeStatusCode == _uniFfiRustCallStatusSuccess) {
             return Element._(this, resultValue);
           }
           if (completeStatusCode == _uniFfiRustCallStatusCancelled) {
-            throw StateError('Rust future was cancelled for hover_stealth');
+            throw StateError('Rust future was cancelled for hover_mouse');
           }
           final _UniFfiRustBuffer errorBuf = outStatusPtr.ref.errorBuf;
           if (!(errorBuf.data == ffi.nullptr &&
@@ -14982,17 +15003,17 @@ class XcelerateFfi {
             }
           }
           throw StateError(
-              'Rust future failed for hover_stealth with status code: $completeStatusCode');
+              'Rust future failed for hover_mouse with status code: $completeStatusCode');
         } finally {
           calloc.free(outStatusPtr);
         }
       } catch (_) {
-        _elementHoverStealthFfiBufferRustFutureCancel(futureHandle);
+        _elementHoverMouseFfiBufferRustFutureCancel(futureHandle);
         rethrow;
       } finally {
         await pollEvents.close();
         callback.close();
-        _elementHoverStealthFfiBufferRustFutureFree(futureHandle);
+        _elementHoverMouseFfiBufferRustFutureFree(futureHandle);
       }
     } finally {
       for (final ptr in foreignArgPtrs) {
@@ -23077,6 +23098,193 @@ class XcelerateFfi {
             'UniFFI ffibuffer call failed with status $statusCode');
       }
       return (returnBuf + 0).ref.u64;
+    } finally {
+      for (final ptr in foreignArgPtrs) {
+        if (ptr != ffi.nullptr) {
+          calloc.free(ptr);
+        }
+      }
+      for (final bufPtr in rustRetBufferPtrs) {
+        if (bufPtr.ref.data == ffi.nullptr &&
+            bufPtr.ref.len == 0 &&
+            bufPtr.ref.capacity == 0) {
+          continue;
+        }
+        final ffi.Pointer<_UniFfiRustCallStatus> freeStatusPtr =
+            calloc<_UniFfiRustCallStatus>();
+        freeStatusPtr.ref.code = _uniFfiRustCallStatusSuccess;
+        freeStatusPtr.ref.errorBuf
+          ..capacity = 0
+          ..len = 0
+          ..data = ffi.nullptr;
+        _uniFfiRustBufferFree(bufPtr.ref, freeStatusPtr);
+        calloc.free(freeStatusPtr);
+        calloc.free(bufPtr);
+      }
+      calloc.free(argBuf);
+      calloc.free(returnBuf);
+    }
+  }
+
+  late final void Function(ffi.Pointer<_UniFfiFfiBufferElement> argPtr,
+          ffi.Pointer<_UniFfiFfiBufferElement> returnPtr)
+      _pageDocumentElementFfiBuffer = _lib.lookupFunction<
+              ffi.Void Function(ffi.Pointer<_UniFfiFfiBufferElement> argPtr,
+                  ffi.Pointer<_UniFfiFfiBufferElement> returnPtr),
+              void Function(ffi.Pointer<_UniFfiFfiBufferElement> argPtr,
+                  ffi.Pointer<_UniFfiFfiBufferElement> returnPtr)>(
+          'uniffi_ffibuffer_xcelerate_fn_method_page_document_element');
+  late final void Function(
+          int handle,
+          ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Uint64 callbackData, ffi.Int8 pollResult)>>
+              callback,
+          int callbackData) _pageDocumentElementFfiBufferRustFuturePoll =
+      _lib.lookupFunction<
+          ffi.Void Function(
+              ffi.Uint64 handle,
+              ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Uint64 callbackData, ffi.Int8 pollResult)>>
+                  callback,
+              ffi.Uint64 callbackData),
+          void Function(
+              int handle,
+              ffi.Pointer<ffi.NativeFunction<ffi.Void Function(ffi.Uint64 callbackData, ffi.Int8 pollResult)>>
+                  callback,
+              int callbackData)>('ffi_xcelerate_rust_future_poll_u64');
+  late final void Function(int handle)
+      _pageDocumentElementFfiBufferRustFutureCancel = _lib.lookupFunction<
+          ffi.Void Function(ffi.Uint64 handle),
+          void Function(int handle)>('ffi_xcelerate_rust_future_cancel_u64');
+  late final int Function(
+          int handle, ffi.Pointer<_UniFfiRustCallStatus> outStatus)
+      _pageDocumentElementFfiBufferRustFutureComplete = _lib.lookupFunction<
+              ffi.Uint64 Function(ffi.Uint64 handle,
+                  ffi.Pointer<_UniFfiRustCallStatus> outStatus),
+              int Function(
+                  int handle, ffi.Pointer<_UniFfiRustCallStatus> outStatus)>(
+          'ffi_xcelerate_rust_future_complete_u64');
+  late final void Function(int handle)
+      _pageDocumentElementFfiBufferRustFutureFree = _lib.lookupFunction<
+          ffi.Void Function(ffi.Uint64 handle),
+          void Function(int handle)>('ffi_xcelerate_rust_future_free_u64');
+
+  Future<Element> pageInvokeDocumentElement(int handle) async {
+    final ffi.Pointer<_UniFfiFfiBufferElement> argBuf =
+        calloc<_UniFfiFfiBufferElement>(1);
+    final ffi.Pointer<_UniFfiFfiBufferElement> returnBuf =
+        calloc<_UniFfiFfiBufferElement>(5);
+    final foreignArgPtrs = <ffi.Pointer<ffi.Uint8>>[];
+    final rustRetBufferPtrs = <ffi.Pointer<_UniFfiRustBuffer>>[];
+    try {
+      final int clonedHandle;
+      {
+        final cloneStatusPtr = calloc<_UniFfiRustCallStatus>();
+        try {
+          cloneStatusPtr.ref.code = _uniFfiRustCallStatusSuccess;
+          cloneStatusPtr.ref.errorBuf
+            ..capacity = 0
+            ..len = 0
+            ..data = ffi.nullptr;
+          clonedHandle = _pageClone(handle, cloneStatusPtr);
+          if (cloneStatusPtr.ref.code != _uniFfiRustCallStatusSuccess) {
+            throw StateError(
+                'UniFFI clone failed with status ${cloneStatusPtr.ref.code}');
+          }
+        } finally {
+          calloc.free(cloneStatusPtr);
+        }
+      }
+      (argBuf + 0).ref.u64 = clonedHandle;
+      _pageDocumentElementFfiBuffer(argBuf, returnBuf);
+      final int statusCode = (returnBuf + 1).ref.i8;
+      if (statusCode != _uniFfiRustCallStatusSuccess) {
+        final ffi.Pointer<_UniFfiRustBuffer> errBufPtr =
+            calloc<_UniFfiRustBuffer>();
+        errBufPtr.ref
+          ..capacity = (returnBuf + 2).ref.u64
+          ..len = (returnBuf + 3).ref.u64
+          ..data = (returnBuf + 4).ref.ptr.cast<ffi.Uint8>();
+        rustRetBufferPtrs.add(errBufPtr);
+        throw StateError(
+            'UniFFI ffibuffer async start failed with status $statusCode');
+      }
+      final int futureHandle = (returnBuf + 0).ref.u64;
+      final StreamController<int> pollEvents =
+          StreamController<int>.broadcast();
+      final callback =
+          ffi.NativeCallable<ffi.Void Function(ffi.Uint64, ffi.Int8)>.listener(
+              (int _, int pollResult) {
+        pollEvents.add(pollResult);
+      });
+      try {
+        _pageDocumentElementFfiBufferRustFuturePoll(
+            futureHandle, callback.nativeFunction, 0);
+        while (true) {
+          final int pollResult = await pollEvents.stream.first;
+          if (pollResult == _rustFuturePollReady) {
+            break;
+          }
+          if (pollResult == _rustFuturePollWake) {
+            _pageDocumentElementFfiBufferRustFuturePoll(
+                futureHandle, callback.nativeFunction, 0);
+            continue;
+          }
+          throw StateError(
+              'Rust future poll returned invalid status for document_element: $pollResult');
+        }
+        final ffi.Pointer<_UniFfiRustCallStatus> outStatusPtr =
+            calloc<_UniFfiRustCallStatus>();
+        outStatusPtr.ref.code = _uniFfiRustCallStatusSuccess;
+        outStatusPtr.ref.errorBuf
+          ..capacity = 0
+          ..len = 0
+          ..data = ffi.nullptr;
+        try {
+          final int resultValue =
+              _pageDocumentElementFfiBufferRustFutureComplete(
+                  futureHandle, outStatusPtr);
+          final int completeStatusCode = outStatusPtr.ref.code;
+          if (completeStatusCode == _uniFfiRustCallStatusSuccess) {
+            return Element._(this, resultValue);
+          }
+          if (completeStatusCode == _uniFfiRustCallStatusCancelled) {
+            throw StateError('Rust future was cancelled for document_element');
+          }
+          final _UniFfiRustBuffer errorBuf = outStatusPtr.ref.errorBuf;
+          if (!(errorBuf.data == ffi.nullptr &&
+              errorBuf.len == 0 &&
+              errorBuf.capacity == 0)) {
+            final ffi.Pointer<_UniFfiRustBuffer> errorBufPtr =
+                calloc<_UniFfiRustBuffer>();
+            errorBufPtr.ref
+              ..capacity = errorBuf.capacity
+              ..len = errorBuf.len
+              ..data = errorBuf.data;
+            rustRetBufferPtrs.add(errorBufPtr);
+            final Uint8List errorBytes = errorBufPtr.ref.len == 0
+                ? Uint8List(0)
+                : Uint8List.fromList(
+                    errorBufPtr.ref.data.asTypedList(errorBufPtr.ref.len));
+            if (completeStatusCode == _uniFfiRustCallStatusError &&
+                errorBytes.isNotEmpty) {
+              throw _uniffiLiftXcelerateErrorException(errorBytes);
+            }
+            if (errorBytes.isNotEmpty) {
+              throw StateError(utf8.decode(errorBytes, allowMalformed: true));
+            }
+          }
+          throw StateError(
+              'Rust future failed for document_element with status code: $completeStatusCode');
+        } finally {
+          calloc.free(outStatusPtr);
+        }
+      } catch (_) {
+        _pageDocumentElementFfiBufferRustFutureCancel(futureHandle);
+        rethrow;
+      } finally {
+        await pollEvents.close();
+        callback.close();
+        _pageDocumentElementFfiBufferRustFutureFree(futureHandle);
+      }
     } finally {
       for (final ptr in foreignArgPtrs) {
         if (ptr != ffi.nullptr) {
@@ -43203,7 +43411,7 @@ final class _BrowserFinalizerToken {
   final int handle;
 }
 
-/// Represents a browser instance (e.g., Chrome or Edge).
+/// A running Chromium-family browser (Chrome, Chromium, Edge, Brave, …).
 final class Browser {
   Browser._(this._ffi, this._handle) {
     _finalizer.attach(this, _BrowserFinalizerToken(_ffi._browserFree, _handle),
@@ -43252,7 +43460,10 @@ final class Browser {
     return _ffi.browserInvokeAuditVerify(_handle);
   }
 
-  /// Names of all compiled-in built-in plugins (the catalog).
+  /// Names of the plugins currently available on this browser.
+  ///
+  /// Xcelerate ships **no** built-in plugins, so this lists the plugins that
+  /// have been installed or loaded on this instance.
   List<String> availablePlugins() {
     _ensureOpen();
     return _ffi.browserInvokeAvailablePlugins(_handle);
@@ -43271,6 +43482,10 @@ final class Browser {
   }
 
   /// Closes the browser, letting it flush the profile, then kills it if needed.
+  ///
+  /// An attached browser (from [`Browser::connect`]) is not owned by this
+  /// handle, so this is a no-op: it never sends `Browser.close` and never
+  /// kills the process.
   Future<void> closeBrowser() {
     _ensureOpen();
     return _ffi.browserInvokeClose(_handle);
@@ -43321,8 +43536,7 @@ final class Browser {
   /// opted into via `XCELERATE_PLUGIN_ALLOW`.
   ///
   /// Once loaded, the plugin's ops are reachable through
-  /// `plugin(name).invoke(op, args_json)` in every language, exactly like a
-  /// built-in plugin.
+  /// `plugin(name).invoke(op, args_json)` in every language.
   String loadPlugin(String path) {
     _ensureOpen();
     return _ffi.browserInvokeLoadPlugin(_handle, path);
@@ -43411,10 +43625,10 @@ final class Browser {
     return _ffi.browserInvokeTargets(_handle);
   }
 
-  /// Enables a built-in plugin at runtime.
+  /// Enables an installed plugin at runtime.
   ///
   /// Launch-time contributions (such as binary patching) only take effect if
-  /// the plugin was enabled before the browser launched; enabling a plugin
+  /// the plugin was installed before the browser launched; enabling a plugin
   /// afterwards applies its runtime hooks to pages created from now on. This
   /// is audited as a runtime enable. Unknown names are refused.
   Future<void> usePlugin(String name) {
@@ -43520,12 +43734,18 @@ final class Element {
   }
 
   /// Runs a JS function against the first descendant matching `selector`.
+  ///
+  /// The descendant is resolved with the shadow-piercing selector first, so
+  /// the expression also runs against a match inside an open shadow root.
   Future<String> callOnSelector(String selector, String expression) {
     _ensureOpen();
     return _ffi.elementInvokeCallOnSelector(_handle, selector, expression);
   }
 
   /// Runs a JS function against every descendant matching `selector`.
+  ///
+  /// The descendants are resolved with the shadow-piercing selector first, so
+  /// matches inside open shadow roots are included too.
   Future<String> callOnSelectorAll(String selector, String expression) {
     _ensureOpen();
     return _ffi.elementInvokeCallOnSelectorAll(_handle, selector, expression);
@@ -43544,9 +43764,13 @@ final class Element {
   }
 
   /// Clicks the element using realistic mouse movement and CDP input events.
-  Future<Element> clickStealth() {
+  ///
+  /// Fails with [`XcelerateError::NotFound`] if the element is not actionable
+  /// (zero-size, `display:none`, `visibility:hidden` or fully transparent),
+  /// rather than dispatching a click at coordinates that nothing occupies.
+  Future<Element> clickMouse() {
     _ensureOpen();
-    return _ffi.elementInvokeClickStealth(_handle);
+    return _ffi.elementInvokeClickMouse(_handle);
   }
 
   /// Number of elements this handle represents (always 1).
@@ -43592,18 +43816,27 @@ final class Element {
   }
 
   /// Finds a descendant form control by its `<label>` text.
+  ///
+  /// The `<label>` search pierces open shadow roots, and the associated control
+  /// is resolved from the label's own root so shadow-encapsulated controls work.
   Future<Element> getByLabel(String label) {
     _ensureOpen();
     return _ffi.elementInvokeGetByLabel(_handle, label);
   }
 
   /// Finds a descendant by ARIA role.
+  ///
+  /// Prefers an explicit `[role="..."]` match, then falls back to the role name
+  /// as a tag, since a native `<button>`/`<a>` carries its role implicitly.
+  /// Both searches pierce open shadow roots.
   Future<Element> getByRole(String role) {
     _ensureOpen();
     return _ffi.elementInvokeGetByRole(_handle, role);
   }
 
   /// Finds a descendant whose text contains `text`.
+  ///
+  /// The search pierces open shadow roots.
   Future<Element> getByText(String text) {
     _ensureOpen();
     return _ffi.elementInvokeGetByText(_handle, text);
@@ -43622,9 +43855,9 @@ final class Element {
   }
 
   /// Hovers over the element using realistic mouse movement.
-  Future<Element> hoverStealth() {
+  Future<Element> hoverMouse() {
     _ensureOpen();
-    return _ffi.elementInvokeHoverStealth(_handle);
+    return _ffi.elementInvokeHoverMouse(_handle);
   }
 
   /// Returns the inner HTML of the element.
@@ -43640,6 +43873,8 @@ final class Element {
   }
 
   /// Returns the first descendant matching `selector` as an [`Element`].
+  ///
+  /// The search pierces open shadow roots, so web components are reachable.
   Future<Element> querySelector(String selector) {
     _ensureOpen();
     return _ffi.elementInvokeQuerySelector(_handle, selector);
@@ -43647,8 +43882,8 @@ final class Element {
 
   /// Returns every descendant matching `selector`.
   ///
-  /// Resolves the whole node list with a single `Runtime.getProperties` call
-  /// rather than one `evaluate` per match.
+  /// The search pierces open shadow roots. Resolves the whole node list with a
+  /// single `Runtime.getProperties` call rather than one `evaluate` per match.
   Future<List<Element>> querySelectorAll(String selector) {
     _ensureOpen();
     return Future(() => _ffi.elementInvokeQuerySelectorAll(_handle, selector));
@@ -43661,6 +43896,12 @@ final class Element {
   }
 
   /// Finds a descendant matching an XPath expression.
+  ///
+  /// The expression is evaluated over the composed tree - open shadow roots and
+  /// same-origin iframe documents are searched - by a built-in subset evaluator.
+  /// Expressions outside that subset (unions, extra axes, `count()`, ...) fall
+  /// back to the browser's native `document.evaluate`, which handles the full
+  /// language but does not pierce shadow roots.
   Future<Element> querySelectorXpath(String xpath) {
     _ensureOpen();
     return _ffi.elementInvokeQuerySelectorXpath(_handle, xpath);
@@ -43702,6 +43943,11 @@ final class Element {
   }
 
   /// Waits for a descendant matching `selector` to appear.
+  ///
+  /// The wait happens inside the page in a single CDP call: a `MutationObserver`
+  /// resolves as soon as the node appears (and a slow rescan covers shadow
+  /// roots), instead of the caller polling `query_selector` over the wire every
+  /// 250ms. Times out after 30 seconds.
   Future<Element> waitForSelector(String selector) {
     _ensureOpen();
     return _ffi.elementInvokeWaitForSelector(_handle, selector);
@@ -43805,12 +44051,18 @@ final class Page {
   }
 
   /// Runs a JS function against the element matching `selector` (`$eval`).
+  ///
+  /// The element is resolved with the shadow-piercing selector first, so a
+  /// match inside an open shadow root is reachable.
   Future<String> callOnSelector(String selector, String expression) {
     _ensureOpen();
     return _ffi.pageInvokeCallOnSelector(_handle, selector, expression);
   }
 
   /// Runs a JS function against every element matching `selector` (`$$eval`).
+  ///
+  /// The elements are resolved with the shadow-piercing selector first, so
+  /// matches inside open shadow roots are included too.
   Future<String> callOnSelectorAll(String selector, String expression) {
     _ensureOpen();
     return _ffi.pageInvokeCallOnSelectorAll(_handle, selector, expression);
@@ -43900,6 +44152,14 @@ final class Page {
     return _ffi.pageInvokeDefaultTimeout(_handle);
   }
 
+  /// Wraps the page's `document` as an [`Element`] so the shadow-piercing
+  /// selector helpers on [`Element`] can be reused at the page level (with the
+  /// same `document.querySelectorAll` scope).
+  Future<Element> documentElement() {
+    _ensureOpen();
+    return _ffi.pageInvokeDocumentElement(_handle);
+  }
+
   /// Overrides the idle state.
   Future<void> emulateIdleState(bool isUserActive, bool isScreenUnlocked) {
     _ensureOpen();
@@ -43958,6 +44218,8 @@ final class Page {
   }
 
   /// Finds an element matching the CSS selector.
+  ///
+  /// The search pierces open shadow roots, so web components are reachable.
   Future<Element> findElement(String selector) {
     _ensureOpen();
     return _ffi.pageInvokeFindElement(_handle, selector);
@@ -43982,18 +44244,27 @@ final class Page {
   }
 
   /// Finds a form control by its associated `<label>` text.
+  ///
+  /// Delegates to [`Element::get_by_label`], so the search pierces open shadow
+  /// roots.
   Future<Element> getByLabel(String label) {
     _ensureOpen();
     return _ffi.pageInvokeGetByLabel(_handle, label);
   }
 
-  /// Finds an element by ARIA role (falls back to a tag-name lookup).
+  /// Finds an element by ARIA role.
+  ///
+  /// Delegates to [`Element::get_by_role`], so the search pierces open shadow
+  /// roots.
   Future<Element> getByRole(String role) {
     _ensureOpen();
     return _ffi.pageInvokeGetByRole(_handle, role);
   }
 
   /// Finds an element whose text content contains `text`.
+  ///
+  /// Delegates to [`Element::get_by_text`], so the search pierces open shadow
+  /// roots.
   Future<Element> getByText(String text) {
     _ensureOpen();
     return _ffi.pageInvokeGetByText(_handle, text);
@@ -44125,14 +44396,17 @@ final class Page {
 
   /// Returns every element matching the CSS selector.
   ///
-  /// Uses two round trips (fetch the node list, then read its properties)
-  /// instead of one `evaluate` per match.
+  /// The search pierces open shadow roots. Uses two round trips (fetch the node
+  /// list, then read its properties) instead of one `evaluate` per match.
   Future<List<Element>> querySelectorAll(String selector) {
     _ensureOpen();
     return Future(() => _ffi.pageInvokeQuerySelectorAll(_handle, selector));
   }
 
   /// Returns the first node matching an XPath expression as an [`Element`].
+  ///
+  /// The search pierces open shadow roots and same-origin frames (see
+  /// [`Element::query_selector_xpath`]).
   Future<Element> querySelectorXpath(String xpath) {
     _ensureOpen();
     return _ffi.pageInvokeQuerySelectorXpath(_handle, xpath);
@@ -44418,6 +44692,9 @@ final class Page {
   }
 
   /// Waits for an element matching the selector to appear in the DOM.
+  ///
+  /// The search pierces open shadow roots. Polls until the page's default
+  /// timeout elapses.
   Future<Element> waitForSelector(String selector) {
     _ensureOpen();
     return _ffi.pageInvokeWaitForSelector(_handle, selector);

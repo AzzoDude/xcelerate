@@ -1,7 +1,7 @@
 package uniffi.xcelerate;
 
 /**
- * Represents a browser instance (e.g., Chrome or Edge).
+ * A running Chromium-family browser (Chrome, Chromium, Edge, Brave, …).
  */
 public interface BrowserInterface {
     
@@ -14,7 +14,10 @@ public interface BrowserInterface {
      */public boolean auditVerify();
     
     /**
-     * Names of all compiled-in first-party plugins (the catalog).
+     * Names of the plugins currently available on this browser.
+     *
+     * Xcelerate ships **no** built-in plugins, so this lists the plugins that
+     * have been installed or loaded on this instance.
      */public java.util.List<java.lang.String> availablePlugins();
     
     /**
@@ -26,7 +29,11 @@ public interface BrowserInterface {
      */public java.util.concurrent.CompletableFuture<java.lang.String> capabilities() ;
     
     /**
-     * Closes the browser and kills the process.
+     * Closes the browser, letting it flush the profile, then kills it if needed.
+     *
+     * An attached browser (from [`Browser::connect`]) is not owned by this
+     * handle, so this is a no-op: it never sends `Browser.close` and never
+     * kills the process.
      */public java.util.concurrent.CompletableFuture<java.lang.Void> closeBrowser() ;
     
     /**
@@ -54,10 +61,16 @@ public interface BrowserInterface {
      */public java.util.concurrent.CompletableFuture<java.lang.Boolean> listensTo(java.lang.String eventName);
     
     /**
-     * Loads a third-party plugin. Not supported in this phase.
+     * Loads a plugin from disk.
      *
-     * The sandboxed, out-of-process runner required for untrusted plugins does
-     * not exist yet, so this always refuses rather than executing unknown code.
+     * `path` may be a plugin directory (containing `plugin.json`) or a
+     * `plugin.json` file. The manifest is validated, the `entrypoint` is
+     * instantiated as a sandboxed WebAssembly component, and a `describe`
+     * handshake wires up its ops. Dangerous capabilities stay denied unless
+     * opted into via `XCELERATE_PLUGIN_ALLOW`.
+     *
+     * Once loaded, the plugin's ops are reachable through
+     * `plugin(name).invoke(op, args_json)` in every language.
      */public java.lang.String loadPlugin(java.lang.String path) throws XcelerateException;
     
     /**
@@ -114,12 +127,12 @@ public interface BrowserInterface {
      */public java.util.concurrent.CompletableFuture<java.lang.String> targets() ;
     
     /**
-     * Enables a compiled-in first-party plugin at runtime.
+     * Enables an installed plugin at runtime.
      *
      * Launch-time contributions (such as binary patching) only take effect if
-     * the plugin was enabled before the browser launched; enabling a plugin
+     * the plugin was installed before the browser launched; enabling a plugin
      * afterwards applies its runtime hooks to pages created from now on. This
-     * is audited as a runtime enable. Unknown or third-party names are refused.
+     * is audited as a runtime enable. Unknown names are refused.
      */public java.util.concurrent.CompletableFuture<java.lang.Void> usePlugin(java.lang.String name) ;
     
     /**

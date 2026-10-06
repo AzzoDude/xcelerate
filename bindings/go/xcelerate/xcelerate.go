@@ -385,7 +385,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_audit_log()
 	})
-	if checksum != 37952 {
+	if checksum != 58417 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_audit_log: UniFFI API checksum mismatch")
 	}
@@ -394,7 +394,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_audit_verify()
 	})
-	if checksum != 5412 {
+	if checksum != 56834 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_audit_verify: UniFFI API checksum mismatch")
 	}
@@ -403,7 +403,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_available_plugins()
 	})
-	if checksum != 9431 {
+	if checksum != 13132 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_available_plugins: UniFFI API checksum mismatch")
 	}
@@ -412,7 +412,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_browser_contexts()
 	})
-	if checksum != 50137 {
+	if checksum != 59339 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_browser_contexts: UniFFI API checksum mismatch")
 	}
@@ -421,7 +421,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_capabilities()
 	})
-	if checksum != 7431 {
+	if checksum != 7601 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_capabilities: UniFFI API checksum mismatch")
 	}
@@ -430,7 +430,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_close()
 	})
-	if checksum != 831 {
+	if checksum != 44553 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_close: UniFFI API checksum mismatch")
 	}
@@ -439,7 +439,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_cookies()
 	})
-	if checksum != 36914 {
+	if checksum != 8530 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_cookies: UniFFI API checksum mismatch")
 	}
@@ -448,7 +448,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_delete_cookie()
 	})
-	if checksum != 14366 {
+	if checksum != 44579 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_delete_cookie: UniFFI API checksum mismatch")
 	}
@@ -457,7 +457,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_event_names()
 	})
-	if checksum != 44664 {
+	if checksum != 12570 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_event_names: UniFFI API checksum mismatch")
 	}
@@ -466,7 +466,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_grant_permissions()
 	})
-	if checksum != 57820 {
+	if checksum != 62168 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_grant_permissions: UniFFI API checksum mismatch")
 	}
@@ -475,7 +475,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_is_connected()
 	})
-	if checksum != 10958 {
+	if checksum != 63934 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_is_connected: UniFFI API checksum mismatch")
 	}
@@ -484,7 +484,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_listens_to()
 	})
-	if checksum != 12245 {
+	if checksum != 56113 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_listens_to: UniFFI API checksum mismatch")
 	}
@@ -493,7 +493,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_load_plugin()
 	})
-	if checksum != 5693 {
+	if checksum != 26734 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_load_plugin: UniFFI API checksum mismatch")
 	}
@@ -502,7 +502,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_new_context()
 	})
-	if checksum != 28184 {
+	if checksum != 59309 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_new_context: UniFFI API checksum mismatch")
 	}
@@ -511,7 +511,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_new_page()
 	})
-	if checksum != 31633 {
+	if checksum != 65142 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_new_page: UniFFI API checksum mismatch")
 	}
@@ -520,7 +520,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_on()
 	})
-	if checksum != 2255 {
+	if checksum != 4402 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_on: UniFFI API checksum mismatch")
 	}
@@ -529,7 +529,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_once()
 	})
-	if checksum != 22376 {
+	if checksum != 62023 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_once: UniFFI API checksum mismatch")
 	}
@@ -538,7 +538,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_plugin()
 	})
-	if checksum != 11907 {
+	if checksum != 38553 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_plugin: UniFFI API checksum mismatch")
 	}
@@ -547,7 +547,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_plugin_names()
 	})
-	if checksum != 58296 {
+	if checksum != 5716 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_plugin_names: UniFFI API checksum mismatch")
 	}
@@ -556,7 +556,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_remove_all_listeners()
 	})
-	if checksum != 51158 {
+	if checksum != 16672 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_remove_all_listeners: UniFFI API checksum mismatch")
 	}
@@ -565,7 +565,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_remove_listener()
 	})
-	if checksum != 41339 {
+	if checksum != 3101 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_remove_listener: UniFFI API checksum mismatch")
 	}
@@ -574,7 +574,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_reset_permissions()
 	})
-	if checksum != 21496 {
+	if checksum != 50876 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_reset_permissions: UniFFI API checksum mismatch")
 	}
@@ -583,7 +583,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_set_cookie()
 	})
-	if checksum != 6259 {
+	if checksum != 61323 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_set_cookie: UniFFI API checksum mismatch")
 	}
@@ -592,7 +592,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_set_download_behavior()
 	})
-	if checksum != 23198 {
+	if checksum != 32642 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_set_download_behavior: UniFFI API checksum mismatch")
 	}
@@ -601,7 +601,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_start_tracing()
 	})
-	if checksum != 14885 {
+	if checksum != 25818 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_start_tracing: UniFFI API checksum mismatch")
 	}
@@ -610,7 +610,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_stop_tracing()
 	})
-	if checksum != 57049 {
+	if checksum != 30224 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_stop_tracing: UniFFI API checksum mismatch")
 	}
@@ -619,7 +619,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_targets()
 	})
-	if checksum != 28936 {
+	if checksum != 50695 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_targets: UniFFI API checksum mismatch")
 	}
@@ -628,7 +628,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_use_plugin()
 	})
-	if checksum != 20462 {
+	if checksum != 53288 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_use_plugin: UniFFI API checksum mismatch")
 	}
@@ -637,7 +637,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_user_agent()
 	})
-	if checksum != 20558 {
+	if checksum != 36639 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_user_agent: UniFFI API checksum mismatch")
 	}
@@ -646,7 +646,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_version()
 	})
-	if checksum != 64817 {
+	if checksum != 2891 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_version: UniFFI API checksum mismatch")
 	}
@@ -655,7 +655,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_wait_for_event()
 	})
-	if checksum != 20884 {
+	if checksum != 63537 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_wait_for_event: UniFFI API checksum mismatch")
 	}
@@ -664,7 +664,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_wait_for_event_default()
 	})
-	if checksum != 53096 {
+	if checksum != 14198 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_wait_for_event_default: UniFFI API checksum mismatch")
 	}
@@ -673,7 +673,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_browser_ws_endpoint()
 	})
-	if checksum != 36520 {
+	if checksum != 63756 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_browser_ws_endpoint: UniFFI API checksum mismatch")
 	}
@@ -709,7 +709,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_element_call_on_selector()
 	})
-	if checksum != 20589 {
+	if checksum != 53984 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_element_call_on_selector: UniFFI API checksum mismatch")
 	}
@@ -718,7 +718,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_element_call_on_selector_all()
 	})
-	if checksum != 58660 {
+	if checksum != 47977 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_element_call_on_selector_all: UniFFI API checksum mismatch")
 	}
@@ -743,11 +743,11 @@ func uniffiCheckChecksums() {
 	}
 	{
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
-		return C.uniffi_xcelerate_checksum_method_element_click_stealth()
+		return C.uniffi_xcelerate_checksum_method_element_click_mouse()
 	})
-	if checksum != 64888 {
+	if checksum != 60796 {
 		// If this happens try cleaning and rebuilding your project
-		panic("xcelerate: uniffi_xcelerate_checksum_method_element_click_stealth: UniFFI API checksum mismatch")
+		panic("xcelerate: uniffi_xcelerate_checksum_method_element_click_mouse: UniFFI API checksum mismatch")
 	}
 	}
 	{
@@ -817,7 +817,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_element_get_by_label()
 	})
-	if checksum != 41888 {
+	if checksum != 29865 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_element_get_by_label: UniFFI API checksum mismatch")
 	}
@@ -826,7 +826,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_element_get_by_role()
 	})
-	if checksum != 15624 {
+	if checksum != 15953 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_element_get_by_role: UniFFI API checksum mismatch")
 	}
@@ -835,7 +835,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_element_get_by_text()
 	})
-	if checksum != 11298 {
+	if checksum != 18847 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_element_get_by_text: UniFFI API checksum mismatch")
 	}
@@ -860,11 +860,11 @@ func uniffiCheckChecksums() {
 	}
 	{
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
-		return C.uniffi_xcelerate_checksum_method_element_hover_stealth()
+		return C.uniffi_xcelerate_checksum_method_element_hover_mouse()
 	})
-	if checksum != 12397 {
+	if checksum != 47391 {
 		// If this happens try cleaning and rebuilding your project
-		panic("xcelerate: uniffi_xcelerate_checksum_method_element_hover_stealth: UniFFI API checksum mismatch")
+		panic("xcelerate: uniffi_xcelerate_checksum_method_element_hover_mouse: UniFFI API checksum mismatch")
 	}
 	}
 	{
@@ -889,7 +889,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_element_query_selector()
 	})
-	if checksum != 59248 {
+	if checksum != 19454 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_element_query_selector: UniFFI API checksum mismatch")
 	}
@@ -898,7 +898,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_element_query_selector_all()
 	})
-	if checksum != 57750 {
+	if checksum != 65463 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_element_query_selector_all: UniFFI API checksum mismatch")
 	}
@@ -916,7 +916,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_element_query_selector_xpath()
 	})
-	if checksum != 47775 {
+	if checksum != 11390 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_element_query_selector_xpath: UniFFI API checksum mismatch")
 	}
@@ -979,7 +979,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_element_wait_for_selector()
 	})
-	if checksum != 53340 {
+	if checksum != 23551 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_element_wait_for_selector: UniFFI API checksum mismatch")
 	}
@@ -1060,7 +1060,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_page_call_on_selector()
 	})
-	if checksum != 27164 {
+	if checksum != 902 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_page_call_on_selector: UniFFI API checksum mismatch")
 	}
@@ -1069,7 +1069,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_page_call_on_selector_all()
 	})
-	if checksum != 24130 {
+	if checksum != 9317 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_page_call_on_selector_all: UniFFI API checksum mismatch")
 	}
@@ -1193,6 +1193,24 @@ func uniffiCheckChecksums() {
 	}
 	{
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
+		return C.uniffi_xcelerate_checksum_method_page_default_timeout()
+	})
+	if checksum != 18710 {
+		// If this happens try cleaning and rebuilding your project
+		panic("xcelerate: uniffi_xcelerate_checksum_method_page_default_timeout: UniFFI API checksum mismatch")
+	}
+	}
+	{
+	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
+		return C.uniffi_xcelerate_checksum_method_page_document_element()
+	})
+	if checksum != 41358 {
+		// If this happens try cleaning and rebuilding your project
+		panic("xcelerate: uniffi_xcelerate_checksum_method_page_document_element: UniFFI API checksum mismatch")
+	}
+	}
+	{
+	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_page_emulate_idle_state()
 	})
 	if checksum != 53017 {
@@ -1276,7 +1294,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_page_find_element()
 	})
-	if checksum != 4260 {
+	if checksum != 20082 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_page_find_element: UniFFI API checksum mismatch")
 	}
@@ -1312,7 +1330,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_page_get_by_label()
 	})
-	if checksum != 63689 {
+	if checksum != 51936 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_page_get_by_label: UniFFI API checksum mismatch")
 	}
@@ -1321,7 +1339,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_page_get_by_role()
 	})
-	if checksum != 32218 {
+	if checksum != 32000 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_page_get_by_role: UniFFI API checksum mismatch")
 	}
@@ -1330,7 +1348,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_page_get_by_text()
 	})
-	if checksum != 27497 {
+	if checksum != 25448 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_page_get_by_text: UniFFI API checksum mismatch")
 	}
@@ -1528,7 +1546,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_page_query_selector_all()
 	})
-	if checksum != 64158 {
+	if checksum != 7778 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_page_query_selector_all: UniFFI API checksum mismatch")
 	}
@@ -1537,7 +1555,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_page_query_selector_xpath()
 	})
-	if checksum != 48442 {
+	if checksum != 64720 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_page_query_selector_xpath: UniFFI API checksum mismatch")
 	}
@@ -1690,7 +1708,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_page_set_default_timeout()
 	})
-	if checksum != 58523 {
+	if checksum != 7299 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_page_set_default_timeout: UniFFI API checksum mismatch")
 	}
@@ -1933,7 +1951,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_page_wait_for_event_default()
 	})
-	if checksum != 30417 {
+	if checksum != 7458 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_page_wait_for_event_default: UniFFI API checksum mismatch")
 	}
@@ -1960,7 +1978,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_method_page_wait_for_selector()
 	})
-	if checksum != 58306 {
+	if checksum != 8076 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_method_page_wait_for_selector: UniFFI API checksum mismatch")
 	}
@@ -2041,7 +2059,7 @@ func uniffiCheckChecksums() {
 	checksum := rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint16_t {
 		return C.uniffi_xcelerate_checksum_constructor_browser_launch()
 	})
-	if checksum != 45323 {
+	if checksum != 47265 {
 		// If this happens try cleaning and rebuilding your project
 		panic("xcelerate: uniffi_xcelerate_checksum_constructor_browser_launch: UniFFI API checksum mismatch")
 	}
@@ -2322,19 +2340,26 @@ func (ffiObject *FfiObject)freeRustArcPtr() {
 		return 0
 	})
 }
-// Represents a browser instance (e.g., Chrome or Edge).
+// A running Chromium-family browser (Chrome, Chromium, Edge, Brave, …).
 type BrowserInterface interface {
 	// Returns the plugin audit log as a JSON array (no secrets are recorded).
 	AuditLog() string
 	// Verifies the integrity of the append-only plugin audit log.
 	AuditVerify() bool
-	// Names of all compiled-in first-party plugins (the catalog).
+	// Names of the plugins currently available on this browser.
+	//
+	// Xcelerate ships **no** built-in plugins, so this lists the plugins that
+	// have been installed or loaded on this instance.
 	AvailablePlugins() []string
 	// Returns the browser context ids as a JSON array.
 	BrowserContexts() (string, error)
 	// Returns the browser version info as JSON.
 	Capabilities() (string, error)
-	// Closes the browser and kills the process.
+	// Closes the browser, letting it flush the profile, then kills it if needed.
+	//
+	// An attached browser (from [`Browser::connect`]) is not owned by this
+	// handle, so this is a no-op: it never sends `Browser.close` and never
+	// kills the process.
 	Close() error
 	// Returns all browser cookies as a JSON array.
 	Cookies() (string, error)
@@ -2348,10 +2373,16 @@ type BrowserInterface interface {
 	IsConnected() bool
 	// Whether an event name is registered.
 	ListensTo(eventName string) bool
-	// Loads a third-party plugin. Not supported in this phase.
+	// Loads a plugin from disk.
 	//
-	// The sandboxed, out-of-process runner required for untrusted plugins does
-	// not exist yet, so this always refuses rather than executing unknown code.
+	// `path` may be a plugin directory (containing `plugin.json`) or a
+	// `plugin.json` file. The manifest is validated, the `entrypoint` is
+	// instantiated as a sandboxed WebAssembly component, and a `describe`
+	// handshake wires up its ops. Dangerous capabilities stay denied unless
+	// opted into via `XCELERATE_PLUGIN_ALLOW`.
+	//
+	// Once loaded, the plugin's ops are reachable through
+	// `plugin(name).invoke(op, args_json)` in every language.
 	LoadPlugin(path string) (string, error)
 	// Creates a new (incognito) browser context and returns its id.
 	NewContext() (string, error)
@@ -2380,12 +2411,12 @@ type BrowserInterface interface {
 	StopTracing() error
 	// Returns the current targets as a JSON array (`Target.getTargets`).
 	Targets() (string, error)
-	// Enables a compiled-in first-party plugin at runtime.
+	// Enables an installed plugin at runtime.
 	//
 	// Launch-time contributions (such as binary patching) only take effect if
-	// the plugin was enabled before the browser launched; enabling a plugin
+	// the plugin was installed before the browser launched; enabling a plugin
 	// afterwards applies its runtime hooks to pages created from now on. This
-	// is audited as a runtime enable. Unknown or third-party names are refused.
+	// is audited as a runtime enable. Unknown names are refused.
 	UsePlugin(name string) error
 	// Returns the browser's user agent.
 	UserAgent() (string, error)
@@ -2398,7 +2429,7 @@ type BrowserInterface interface {
 	// The WebSocket endpoint Chrome was launched with.
 	WsEndpoint() string
 }
-// Represents a browser instance (e.g., Chrome or Edge).
+// A running Chromium-family browser (Chrome, Chromium, Edge, Brave, …).
 type Browser struct {
 	ffiObject FfiObject
 }
@@ -2458,7 +2489,10 @@ func (_self *Browser) AuditVerify() bool {
 	}))
 }
 
-// Names of all compiled-in first-party plugins (the catalog).
+// Names of the plugins currently available on this browser.
+//
+// Xcelerate ships **no** built-in plugins, so this lists the plugins that
+// have been installed or loaded on this instance.
 func (_self *Browser) AvailablePlugins() []string {
 	_pointer := _self.ffiObject.incrementPointer("*Browser")
 	defer _self.ffiObject.decrementPointer()
@@ -2542,7 +2576,11 @@ func (_self *Browser) Capabilities() (string, error) {
 	return res, err 
 }
 
-// Closes the browser and kills the process.
+// Closes the browser, letting it flush the profile, then kills it if needed.
+//
+// An attached browser (from [`Browser::connect`]) is not owned by this
+// handle, so this is a no-op: it never sends `Browser.close` and never
+// kills the process.
 func (_self *Browser) Close() error {
 	_pointer := _self.ffiObject.incrementPointer("*Browser")
 	defer _self.ffiObject.decrementPointer()
@@ -2772,10 +2810,16 @@ func (_self *Browser) ListensTo(eventName string) bool {
 	return res 
 }
 
-// Loads a third-party plugin. Not supported in this phase.
+// Loads a plugin from disk.
 //
-// The sandboxed, out-of-process runner required for untrusted plugins does
-// not exist yet, so this always refuses rather than executing unknown code.
+// `path` may be a plugin directory (containing `plugin.json`) or a
+// `plugin.json` file. The manifest is validated, the `entrypoint` is
+// instantiated as a sandboxed WebAssembly component, and a `describe`
+// handshake wires up its ops. Dangerous capabilities stay denied unless
+// opted into via `XCELERATE_PLUGIN_ALLOW`.
+//
+// Once loaded, the plugin's ops are reachable through
+// `plugin(name).invoke(op, args_json)` in every language.
 func (_self *Browser) LoadPlugin(path string) (string, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Browser")
 	defer _self.ffiObject.decrementPointer()
@@ -3206,12 +3250,12 @@ func (_self *Browser) Targets() (string, error) {
 	return res, err 
 }
 
-// Enables a compiled-in first-party plugin at runtime.
+// Enables an installed plugin at runtime.
 //
 // Launch-time contributions (such as binary patching) only take effect if
-// the plugin was enabled before the browser launched; enabling a plugin
+// the plugin was installed before the browser launched; enabling a plugin
 // afterwards applies its runtime hooks to pages created from now on. This
-// is audited as a runtime enable. Unknown or third-party names are refused.
+// is audited as a runtime enable. Unknown names are refused.
 func (_self *Browser) UsePlugin(name string) error {
 	_pointer := _self.ffiObject.incrementPointer("*Browser")
 	defer _self.ffiObject.decrementPointer()
@@ -3466,15 +3510,25 @@ type ElementInterface interface {
 	// Calls a JS function on this element with JSON-encoded arguments.
 	CallJson(function string, argsJson string) (string, error)
 	// Runs a JS function against the first descendant matching `selector`.
+	//
+	// The descendant is resolved with the shadow-piercing selector first, so
+	// the expression also runs against a match inside an open shadow root.
 	CallOnSelector(selector string, expression string) (string, error)
 	// Runs a JS function against every descendant matching `selector`.
+	//
+	// The descendants are resolved with the shadow-piercing selector first, so
+	// matches inside open shadow roots are included too.
 	CallOnSelectorAll(selector string, expression string) (string, error)
 	// Like [`Element::call_json`] but coerces the result to a string.
 	CallString(function string, argsJson string) (string, error)
 	// Clicks the element.
 	Click() (*Element, error)
 	// Clicks the element using realistic mouse movement and CDP input events.
-	ClickStealth() (*Element, error)
+	//
+	// Fails with [`XcelerateError::NotFound`] if the element is not actionable
+	// (zero-size, `display:none`, `visibility:hidden` or fully transparent),
+	// rather than dispatching a click at coordinates that nothing occupies.
+	ClickMouse() (*Element, error)
 	// Number of elements this handle represents (always 1).
 	Count() (int64, error)
 	// Releases the underlying remote object handle.
@@ -3490,31 +3544,48 @@ type ElementInterface interface {
 	// Focuses the element.
 	Focus() (*Element, error)
 	// Finds a descendant form control by its `<label>` text.
+	//
+	// The `<label>` search pierces open shadow roots, and the associated control
+	// is resolved from the label's own root so shadow-encapsulated controls work.
 	GetByLabel(label string) (*Element, error)
 	// Finds a descendant by ARIA role.
+	//
+	// Prefers an explicit `[role="..."]` match, then falls back to the role name
+	// as a tag, since a native `<button>`/`<a>` carries its role implicitly.
+	// Both searches pierce open shadow roots.
 	GetByRole(role string) (*Element, error)
 	// Finds a descendant whose text contains `text`.
+	//
+	// The search pierces open shadow roots.
 	GetByText(text string) (*Element, error)
 	// Returns this element's enumerable properties as a JSON object.
 	GetProperties() (string, error)
 	// Hovers over the element.
 	Hover() (*Element, error)
 	// Hovers over the element using realistic mouse movement.
-	HoverStealth() (*Element, error)
+	HoverMouse() (*Element, error)
 	// Returns the inner HTML of the element.
 	InnerHtml() (string, error)
 	// Focuses the element and presses a key.
 	Press(key string) error
 	// Returns the first descendant matching `selector` as an [`Element`].
+	//
+	// The search pierces open shadow roots, so web components are reachable.
 	QuerySelector(selector string) (*Element, error)
 	// Returns every descendant matching `selector`.
 	//
-	// Resolves the whole node list with a single `Runtime.getProperties` call
-	// rather than one `evaluate` per match.
+	// The search pierces open shadow roots. Resolves the whole node list with a
+	// single `Runtime.getProperties` call rather than one `evaluate` per match.
 	QuerySelectorAll(selector string) ([]*Element, error)
 	// Finds a descendant by attribute value.
 	QuerySelectorAttr(attribute string, value string) (*Element, error)
 	// Finds a descendant matching an XPath expression.
+	//
+	// The expression is evaluated over the composed tree - open shadow roots and
+	// same-origin iframe documents are searched - by a built-in subset evaluator.
+	// Expressions outside that subset (unions, extra axes, `count()`, ...) fall
+	// back to the browser's native `document.evaluate`, which handles the full
+	// language but does not pierce shadow roots.
 	QuerySelectorXpath(xpath string) (*Element, error)
 	// Captures a PNG screenshot cropped to this element.
 	Screenshot() ([]byte, error)
@@ -3528,6 +3599,11 @@ type ElementInterface interface {
 	Text() (string, error)
 	TypeText(text string) (*Element, error)
 	// Waits for a descendant matching `selector` to appear.
+	//
+	// The wait happens inside the page in a single CDP call: a `MutationObserver`
+	// resolves as soon as the node appears (and a slow rescan covers shadow
+	// roots), instead of the caller polling `query_selector` over the wire every
+	// 250ms. Times out after 30 seconds.
 	WaitForSelector(selector string) (*Element, error)
 }
 // Represents an HTML element in the DOM.
@@ -3645,6 +3721,9 @@ func (_self *Element) CallJson(function string, argsJson string) (string, error)
 }
 
 // Runs a JS function against the first descendant matching `selector`.
+//
+// The descendant is resolved with the shadow-piercing selector first, so
+// the expression also runs against a match inside an open shadow root.
 func (_self *Element) CallOnSelector(selector string, expression string) (string, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Element")
 	defer _self.ffiObject.decrementPointer()
@@ -3681,6 +3760,9 @@ func (_self *Element) CallOnSelector(selector string, expression string) (string
 }
 
 // Runs a JS function against every descendant matching `selector`.
+//
+// The descendants are resolved with the shadow-piercing selector first, so
+// matches inside open shadow roots are included too.
 func (_self *Element) CallOnSelectorAll(selector string, expression string) (string, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Element")
 	defer _self.ffiObject.decrementPointer()
@@ -3787,7 +3869,11 @@ func (_self *Element) Click() (*Element, error) {
 }
 
 // Clicks the element using realistic mouse movement and CDP input events.
-func (_self *Element) ClickStealth() (*Element, error) {
+//
+// Fails with [`XcelerateError::NotFound`] if the element is not actionable
+// (zero-size, `display:none`, `visibility:hidden` or fully transparent),
+// rather than dispatching a click at coordinates that nothing occupies.
+func (_self *Element) ClickMouse() (*Element, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Element")
 	defer _self.ffiObject.decrementPointer()
 	 res, err :=uniffiRustCallAsync[*XcelerateError](
@@ -3801,7 +3887,7 @@ func (_self *Element) ClickStealth() (*Element, error) {
 		func(ffi C.uint64_t) *Element {
 			return FfiConverterElementINSTANCE.Lift(ffi)
 		},
-		C.uniffi_xcelerate_fn_method_element_click_stealth(
+		C.uniffi_xcelerate_fn_method_element_click_mouse(
 		_pointer,),
 		// pollFn
 		func (handle C.uint64_t, continuation C.UniffiRustFutureContinuationCallback, data C.uint64_t) {
@@ -4061,6 +4147,9 @@ func (_self *Element) Focus() (*Element, error) {
 }
 
 // Finds a descendant form control by its `<label>` text.
+//
+// The `<label>` search pierces open shadow roots, and the associated control
+// is resolved from the label's own root so shadow-encapsulated controls work.
 func (_self *Element) GetByLabel(label string) (*Element, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Element")
 	defer _self.ffiObject.decrementPointer()
@@ -4095,6 +4184,10 @@ func (_self *Element) GetByLabel(label string) (*Element, error) {
 }
 
 // Finds a descendant by ARIA role.
+//
+// Prefers an explicit `[role="..."]` match, then falls back to the role name
+// as a tag, since a native `<button>`/`<a>` carries its role implicitly.
+// Both searches pierce open shadow roots.
 func (_self *Element) GetByRole(role string) (*Element, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Element")
 	defer _self.ffiObject.decrementPointer()
@@ -4129,6 +4222,8 @@ func (_self *Element) GetByRole(role string) (*Element, error) {
 }
 
 // Finds a descendant whose text contains `text`.
+//
+// The search pierces open shadow roots.
 func (_self *Element) GetByText(text string) (*Element, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Element")
 	defer _self.ffiObject.decrementPointer()
@@ -4233,7 +4328,7 @@ func (_self *Element) Hover() (*Element, error) {
 }
 
 // Hovers over the element using realistic mouse movement.
-func (_self *Element) HoverStealth() (*Element, error) {
+func (_self *Element) HoverMouse() (*Element, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Element")
 	defer _self.ffiObject.decrementPointer()
 	 res, err :=uniffiRustCallAsync[*XcelerateError](
@@ -4247,7 +4342,7 @@ func (_self *Element) HoverStealth() (*Element, error) {
 		func(ffi C.uint64_t) *Element {
 			return FfiConverterElementINSTANCE.Lift(ffi)
 		},
-		C.uniffi_xcelerate_fn_method_element_hover_stealth(
+		C.uniffi_xcelerate_fn_method_element_hover_mouse(
 		_pointer,),
 		// pollFn
 		func (handle C.uint64_t, continuation C.UniffiRustFutureContinuationCallback, data C.uint64_t) {
@@ -4335,6 +4430,8 @@ func (_self *Element) Press(key string) error {
 }
 
 // Returns the first descendant matching `selector` as an [`Element`].
+//
+// The search pierces open shadow roots, so web components are reachable.
 func (_self *Element) QuerySelector(selector string) (*Element, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Element")
 	defer _self.ffiObject.decrementPointer()
@@ -4370,8 +4467,8 @@ func (_self *Element) QuerySelector(selector string) (*Element, error) {
 
 // Returns every descendant matching `selector`.
 //
-// Resolves the whole node list with a single `Runtime.getProperties` call
-// rather than one `evaluate` per match.
+// The search pierces open shadow roots. Resolves the whole node list with a
+// single `Runtime.getProperties` call rather than one `evaluate` per match.
 func (_self *Element) QuerySelectorAll(selector string) ([]*Element, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Element")
 	defer _self.ffiObject.decrementPointer()
@@ -4442,6 +4539,12 @@ func (_self *Element) QuerySelectorAttr(attribute string, value string) (*Elemen
 }
 
 // Finds a descendant matching an XPath expression.
+//
+// The expression is evaluated over the composed tree - open shadow roots and
+// same-origin iframe documents are searched - by a built-in subset evaluator.
+// Expressions outside that subset (unions, extra axes, `count()`, ...) fall
+// back to the browser's native `document.evaluate`, which handles the full
+// language but does not pierce shadow roots.
 func (_self *Element) QuerySelectorXpath(xpath string) (*Element, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Element")
 	defer _self.ffiObject.decrementPointer()
@@ -4681,6 +4784,11 @@ func (_self *Element) TypeText(text string) (*Element, error) {
 }
 
 // Waits for a descendant matching `selector` to appear.
+//
+// The wait happens inside the page in a single CDP call: a `MutationObserver`
+// resolves as soon as the node appears (and a slow rescan covers shadow
+// roots), instead of the caller polling `query_selector` over the wire every
+// 250ms. Times out after 30 seconds.
 func (_self *Element) WaitForSelector(selector string) (*Element, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Element")
 	defer _self.ffiObject.decrementPointer()
@@ -4793,8 +4901,14 @@ type PageInterface interface {
 	// as data (a function body per method) rather than a core method per member.
 	CallJson(function string, argsJson string) (string, error)
 	// Runs a JS function against the element matching `selector` (`$eval`).
+	//
+	// The element is resolved with the shadow-piercing selector first, so a
+	// match inside an open shadow root is reachable.
 	CallOnSelector(selector string, expression string) (string, error)
 	// Runs a JS function against every element matching `selector` (`$$eval`).
+	//
+	// The elements are resolved with the shadow-piercing selector first, so
+	// matches inside open shadow roots are included too.
 	CallOnSelectorAll(selector string, expression string) (string, error)
 	// Like [`Page::call_json`] but coerces the result to a string.
 	CallString(function string, argsJson string) (string, error)
@@ -4821,6 +4935,13 @@ type PageInterface interface {
 	// Returns the page PDF as a base64 string.
 	CreatePdfStream() (string, error)
 	DecodeBase64(data string) ([]byte, error)
+	// The default timeout (ms) used by the waiting helpers. A stored value of
+	// `0` means "no timeout" and is mapped to the largest representable wait.
+	DefaultTimeout() uint64
+	// Wraps the page's `document` as an [`Element`] so the shadow-piercing
+	// selector helpers on [`Element`] can be reused at the page level (with the
+	// same `document.querySelectorAll` scope).
+	DocumentElement() (*Element, error)
 	// Overrides the idle state.
 	EmulateIdleState(isUserActive bool, isScreenUnlocked bool) error
 	// Emulates a media type and/or colour scheme.
@@ -4842,6 +4963,8 @@ type PageInterface interface {
 	// (a method name + parameter template), keeping the core surface small.
 	ExecuteCdpCmd(method string, paramsJson string) (string, error)
 	// Finds an element matching the CSS selector.
+	//
+	// The search pierces open shadow roots, so web components are reachable.
 	FindElement(selector string) (*Element, error)
 	// Returns the frame matching an id or name as JSON (or null).
 	Frame(frameId string) (string, error)
@@ -4850,10 +4973,19 @@ type PageInterface interface {
 	// Returns every frame in the page as a JSON array.
 	Frames() (string, error)
 	// Finds a form control by its associated `<label>` text.
+	//
+	// Delegates to [`Element::get_by_label`], so the search pierces open shadow
+	// roots.
 	GetByLabel(label string) (*Element, error)
-	// Finds an element by ARIA role (falls back to a tag-name lookup).
+	// Finds an element by ARIA role.
+	//
+	// Delegates to [`Element::get_by_role`], so the search pierces open shadow
+	// roots.
 	GetByRole(role string) (*Element, error)
 	// Finds an element whose text content contains `text`.
+	//
+	// Delegates to [`Element::get_by_text`], so the search pierces open shadow
+	// roots.
 	GetByText(text string) (*Element, error)
 	// Returns the stored default timeout (ms).
 	GetDefaultTimeout() (float64, error)
@@ -4897,10 +5029,13 @@ type PageInterface interface {
 	Press(selector string, key string) error
 	// Returns every element matching the CSS selector.
 	//
-	// Uses two round trips (fetch the node list, then read its properties)
-	// instead of one `evaluate` per match.
+	// The search pierces open shadow roots. Uses two round trips (fetch the node
+	// list, then read its properties) instead of one `evaluate` per match.
 	QuerySelectorAll(selector string) ([]*Element, error)
 	// Returns the first node matching an XPath expression as an [`Element`].
+	//
+	// The search pierces open shadow roots and same-origin frames (see
+	// [`Element::query_selector_xpath`]).
 	QuerySelectorXpath(xpath string) (*Element, error)
 	RawWindowBounds() (string, error)
 	// Reloads the page.
@@ -4931,7 +5066,9 @@ type PageInterface interface {
 	SetCacheEnabled(enabled bool) error
 	// Replaces the document content.
 	SetContent(html string) error
-	// Stores a default timeout (ms) for adapter compatibility.
+	// Sets the default timeout (ms) applied by [`Page::wait_for_selector`],
+	// [`Page::wait_for_navigation`], and [`Page::wait_for_event_default`].
+	// As in Playwright, `0` disables the timeout.
 	SetDefaultTimeout(milliseconds float64) error
 	// Enables or disables input drag interception.
 	SetDragInterception(enabled bool) error
@@ -4988,13 +5125,16 @@ type PageInterface interface {
 	// The relevant domain is enabled first (best effort), so callers do not
 	// have to.
 	WaitForEvent(eventName string, timeoutMs uint64) (string, error)
-	// [`Page::wait_for_event`] with the default 30s timeout.
+	// [`Page::wait_for_event`] with the page's default timeout.
 	WaitForEventDefault(eventName string) (string, error)
 	// Polls `expression` until it evaluates truthy or `timeout_ms` elapses.
 	WaitForFunction(expression string, timeoutMs uint64) error
 	// Waits for the page to finish loading.
 	WaitForNavigation() error
 	// Waits for an element matching the selector to appear in the DOM.
+	//
+	// The search pierces open shadow roots. Polls until the page's default
+	// timeout elapses.
 	WaitForSelector(selector string) (*Element, error)
 	// Waits for the first XPath match to appear.
 	WaitForXpath(xpath string, timeoutMs uint64) (*Element, error)
@@ -5287,6 +5427,9 @@ func (_self *Page) CallJson(function string, argsJson string) (string, error) {
 }
 
 // Runs a JS function against the element matching `selector` (`$eval`).
+//
+// The element is resolved with the shadow-piercing selector first, so a
+// match inside an open shadow root is reachable.
 func (_self *Page) CallOnSelector(selector string, expression string) (string, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Page")
 	defer _self.ffiObject.decrementPointer()
@@ -5323,6 +5466,9 @@ func (_self *Page) CallOnSelector(selector string, expression string) (string, e
 }
 
 // Runs a JS function against every element matching `selector` (`$$eval`).
+//
+// The elements are resolved with the shadow-piercing selector first, so
+// matches inside open shadow roots are included too.
 func (_self *Page) CallOnSelectorAll(selector string, expression string) (string, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Page")
 	defer _self.ffiObject.decrementPointer()
@@ -5787,6 +5933,53 @@ func (_self *Page) DecodeBase64(data string) ([]byte, error) {
 		}
 }
 
+// The default timeout (ms) used by the waiting helpers. A stored value of
+// `0` means "no timeout" and is mapped to the largest representable wait.
+func (_self *Page) DefaultTimeout() uint64 {
+	_pointer := _self.ffiObject.incrementPointer("*Page")
+	defer _self.ffiObject.decrementPointer()
+	return FfiConverterUint64INSTANCE.Lift(rustCall(func(_uniffiStatus *C.RustCallStatus) C.uint64_t {
+		return C.uniffi_xcelerate_fn_method_page_default_timeout(
+		_pointer,_uniffiStatus)
+	}))
+}
+
+// Wraps the page's `document` as an [`Element`] so the shadow-piercing
+// selector helpers on [`Element`] can be reused at the page level (with the
+// same `document.querySelectorAll` scope).
+func (_self *Page) DocumentElement() (*Element, error) {
+	_pointer := _self.ffiObject.incrementPointer("*Page")
+	defer _self.ffiObject.decrementPointer()
+	 res, err :=uniffiRustCallAsync[*XcelerateError](
+        FfiConverterXcelerateErrorINSTANCE,
+		// completeFn
+		func(handle C.uint64_t, status *C.RustCallStatus) C.uint64_t {
+			res := C.ffi_xcelerate_rust_future_complete_u64(handle, status)
+			return res
+		},
+		// liftFn
+		func(ffi C.uint64_t) *Element {
+			return FfiConverterElementINSTANCE.Lift(ffi)
+		},
+		C.uniffi_xcelerate_fn_method_page_document_element(
+		_pointer,),
+		// pollFn
+		func (handle C.uint64_t, continuation C.UniffiRustFutureContinuationCallback, data C.uint64_t) {
+			C.ffi_xcelerate_rust_future_poll_u64(handle, continuation, data)
+		},
+		// freeFn
+		func (handle C.uint64_t) {
+			C.ffi_xcelerate_rust_future_free_u64(handle)
+		},
+	)
+
+	if err == nil {
+		return res, nil
+	}
+
+	return res, err 
+}
+
 // Overrides the idle state.
 func (_self *Page) EmulateIdleState(isUserActive bool, isScreenUnlocked bool) error {
 	_pointer := _self.ffiObject.incrementPointer("*Page")
@@ -6094,6 +6287,8 @@ func (_self *Page) ExecuteCdpCmd(method string, paramsJson string) (string, erro
 }
 
 // Finds an element matching the CSS selector.
+//
+// The search pierces open shadow roots, so web components are reachable.
 func (_self *Page) FindElement(selector string) (*Element, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Page")
 	defer _self.ffiObject.decrementPointer()
@@ -6236,6 +6431,9 @@ func (_self *Page) Frames() (string, error) {
 }
 
 // Finds a form control by its associated `<label>` text.
+//
+// Delegates to [`Element::get_by_label`], so the search pierces open shadow
+// roots.
 func (_self *Page) GetByLabel(label string) (*Element, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Page")
 	defer _self.ffiObject.decrementPointer()
@@ -6269,7 +6467,10 @@ func (_self *Page) GetByLabel(label string) (*Element, error) {
 	return res, err 
 }
 
-// Finds an element by ARIA role (falls back to a tag-name lookup).
+// Finds an element by ARIA role.
+//
+// Delegates to [`Element::get_by_role`], so the search pierces open shadow
+// roots.
 func (_self *Page) GetByRole(role string) (*Element, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Page")
 	defer _self.ffiObject.decrementPointer()
@@ -6304,6 +6505,9 @@ func (_self *Page) GetByRole(role string) (*Element, error) {
 }
 
 // Finds an element whose text content contains `text`.
+//
+// Delegates to [`Element::get_by_text`], so the search pierces open shadow
+// roots.
 func (_self *Page) GetByText(text string) (*Element, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Page")
 	defer _self.ffiObject.decrementPointer()
@@ -7029,8 +7233,8 @@ func (_self *Page) Press(selector string, key string) error {
 
 // Returns every element matching the CSS selector.
 //
-// Uses two round trips (fetch the node list, then read its properties)
-// instead of one `evaluate` per match.
+// The search pierces open shadow roots. Uses two round trips (fetch the node
+// list, then read its properties) instead of one `evaluate` per match.
 func (_self *Page) QuerySelectorAll(selector string) ([]*Element, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Page")
 	defer _self.ffiObject.decrementPointer()
@@ -7067,6 +7271,9 @@ func (_self *Page) QuerySelectorAll(selector string) ([]*Element, error) {
 }
 
 // Returns the first node matching an XPath expression as an [`Element`].
+//
+// The search pierces open shadow roots and same-origin frames (see
+// [`Element::query_selector_xpath`]).
 func (_self *Page) QuerySelectorXpath(xpath string) (*Element, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Page")
 	defer _self.ffiObject.decrementPointer()
@@ -7625,7 +7832,9 @@ func (_self *Page) SetContent(html string) error {
 	return err 
 }
 
-// Stores a default timeout (ms) for adapter compatibility.
+// Sets the default timeout (ms) applied by [`Page::wait_for_selector`],
+// [`Page::wait_for_navigation`], and [`Page::wait_for_event_default`].
+// As in Playwright, `0` disables the timeout.
 func (_self *Page) SetDefaultTimeout(milliseconds float64) error {
 	_pointer := _self.ffiObject.incrementPointer("*Page")
 	defer _self.ffiObject.decrementPointer()
@@ -8488,7 +8697,7 @@ func (_self *Page) WaitForEvent(eventName string, timeoutMs uint64) (string, err
 	return res, err 
 }
 
-// [`Page::wait_for_event`] with the default 30s timeout.
+// [`Page::wait_for_event`] with the page's default timeout.
 func (_self *Page) WaitForEventDefault(eventName string) (string, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Page")
 	defer _self.ffiObject.decrementPointer()
@@ -8589,6 +8798,9 @@ func (_self *Page) WaitForNavigation() error {
 }
 
 // Waits for an element matching the selector to appear in the DOM.
+//
+// The search pierces open shadow roots. Polls until the page's default
+// timeout elapses.
 func (_self *Page) WaitForSelector(selector string) (*Element, error) {
 	_pointer := _self.ffiObject.incrementPointer("*Page")
 	defer _self.ffiObject.decrementPointer()
@@ -8998,9 +9210,12 @@ type BrowserConfig struct {
 	Detached bool
 	// Optional path to the browser executable.
 	ExecutablePath *string
-	// First-party plugins to enable for this browser (for example
-	// `["stealth", "human"]`). Default-deny: no plugin does anything unless
-	// listed here (or enabled afterwards with `Browser::use_plugin`).
+	// External plugins to load at launch. Each entry is a path to a plugin
+	// directory or a `plugin.json`.
+	//
+	// Xcelerate ships **no** plugins built into the core. Default-deny: no
+	// plugin does anything unless it is listed here (or installed afterwards
+	// with `Browser::use_plugin` / `Browser::load_plugin`).
 	Plugins *[]string
 }
 
@@ -9078,6 +9293,7 @@ var ErrXcelerateErrorHttpError = fmt.Errorf("XcelerateErrorHttpError")
 var ErrXcelerateErrorNotFound = fmt.Errorf("XcelerateErrorNotFound")
 var ErrXcelerateErrorInternalError = fmt.Errorf("XcelerateErrorInternalError")
 var ErrXcelerateErrorUnsupported = fmt.Errorf("XcelerateErrorUnsupported")
+var ErrXcelerateErrorPlugin = fmt.Errorf("XcelerateErrorPlugin")
 
 // Variant structs
 type XcelerateErrorWsError struct {
@@ -9213,6 +9429,25 @@ func (err XcelerateErrorUnsupported) Error() string {
 func (self XcelerateErrorUnsupported) Is(target error) bool {
 	return target == ErrXcelerateErrorUnsupported
 }
+type XcelerateErrorPlugin struct {
+	message string
+}
+func NewXcelerateErrorPlugin(
+) *XcelerateError {
+	return &XcelerateError { err: &XcelerateErrorPlugin {} }
+}
+
+func (e XcelerateErrorPlugin) destroy() {
+}
+
+
+func (err XcelerateErrorPlugin) Error() string {
+	return fmt.Sprintf("Plugin: %s", err.message)
+}
+
+func (self XcelerateErrorPlugin) Is(target error) bool {
+	return target == ErrXcelerateErrorPlugin
+}
 
 type FfiConverterXcelerateError struct{}
 
@@ -9249,6 +9484,8 @@ func (c FfiConverterXcelerateError) Read(reader io.Reader) *XcelerateError {
 		return &XcelerateError{ &XcelerateErrorInternalError{message}}
 	case 7:
 		return &XcelerateError{ &XcelerateErrorUnsupported{message}}
+	case 8:
+		return &XcelerateError{ &XcelerateErrorPlugin{message}}
 	default:
 		panic(fmt.Sprintf("Unknown error code %d in FfiConverterXcelerateError.Read()", errorID))
 	}
@@ -9272,6 +9509,8 @@ func (c FfiConverterXcelerateError) Write(writer io.Writer, value *XcelerateErro
 			writeInt32(writer, 6)
 		case *XcelerateErrorUnsupported:
 			writeInt32(writer, 7)
+		case *XcelerateErrorPlugin:
+			writeInt32(writer, 8)
 		default:
 			_ = variantValue
 			panic(fmt.Sprintf("invalid error value `%v` in FfiConverterXcelerateError.Write", value))
@@ -9295,6 +9534,8 @@ func (_ FfiDestroyerXcelerateError) Destroy(value *XcelerateError) {
 		case XcelerateErrorInternalError:
 			variantValue.destroy()
 		case XcelerateErrorUnsupported:
+			variantValue.destroy()
+		case XcelerateErrorPlugin:
 			variantValue.destroy()
 		default:
 			_ = variantValue
