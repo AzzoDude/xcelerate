@@ -37,7 +37,7 @@ jobs:
         with:
           python-version: '3.13'
 
-      - run: pip install semgrep
+      - run: pip install --require-hashes -r .github/requirements/semgrep.txt
 
       - name: Scan
         run: |

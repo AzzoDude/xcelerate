@@ -6,10 +6,10 @@ name: Python Quality
 on:
   push:
     branches: [main, master]
-    paths: ['scripts/**', 'adapters/**', 'plugins/**/*.py', '.github/workflows/python-quality.yml']
+    paths: ['scripts/**', 'adapters/**', 'plugins/**/*.py', '.github/requirements/python-quality.txt', '.github/workflows/python-quality.yml']
   pull_request:
     branches: [main, master]
-    paths: ['scripts/**', 'adapters/**', 'plugins/**/*.py']
+    paths: ['scripts/**', 'adapters/**', 'plugins/**/*.py', '.github/requirements/python-quality.txt']
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,7 +34,7 @@ jobs:
         with:
           python-version: '3.13'
 
-      - run: pip install ruff bandit
+      - run: pip install --require-hashes -r .github/requirements/python-quality.txt
 
       - name: ruff (lint)
         continue-on-error: true

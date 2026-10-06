@@ -1,0 +1,13 @@
+# Input for `.github/requirements/semgrep.txt`.
+#
+# Regenerate after changing this:
+#   python -m piptools compile --generate-hashes \
+#     --output-file .github/requirements/semgrep.txt \
+#     .github/requirements/semgrep.in
+semgrep
+
+# pywin32 arrives as a transitive dependency without a platform marker, so
+# pip-compile resolves it on Windows and emits an entry that has no Linux
+# distribution at all — which makes the compiled file unusable on the Linux
+# runners. Declaring the marker here is what keeps it out of the Linux install.
+pywin32 ; sys_platform == "win32"

@@ -1,0 +1,7 @@
+# Input for `.github/requirements/zizmor.txt`.
+#
+# Regenerate after changing this:
+#   python -m piptools compile --generate-hashes \
+#     --output-file .github/requirements/zizmor.txt \
+#     .github/requirements/zizmor.in
+zizmor

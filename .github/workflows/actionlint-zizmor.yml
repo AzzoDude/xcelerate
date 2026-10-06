@@ -5,10 +5,10 @@ name: Workflow Lint
 on:
   push:
     branches: [main, master]
-    paths: ['.github/workflows/**', '.github/dependabot.yml']
+    paths: ['.github/workflows/**', '.github/actions/**', '.github/requirements/**', '.github/dependabot.yml']
   pull_request:
     branches: [main, master]
-    paths: ['.github/workflows/**', '.github/dependabot.yml']
+    paths: ['.github/workflows/**', '.github/actions/**', '.github/requirements/**', '.github/dependabot.yml']
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -47,7 +47,7 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.13'
-      - run: pip install zizmor
+      - run: pip install --require-hashes -r .github/requirements/zizmor.txt
       - name: Run zizmor
         run: zizmor --format sarif .github > zizmor.sarif || true
       - name: Upload SARIF
