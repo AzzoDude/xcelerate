@@ -2803,6 +2803,7 @@ name = "xcelerate-mcp"
 version = "1.0.12"
 dependencies = [
  "base64",
+ "mimalloc",
  "serde_json",
  "tokio",
  "xcelerate",
