@@ -1,0 +1,50 @@
+# Publish the Go module.
+#
+# Go modules are served from git tags via the module proxy, so "publishing" is
+# just pushing `bindings/go/vX.Y.Z`. Because the module lives in `bindings/go`,
+# the tag must carry the module-directory prefix.
+name: "Publish · Go"
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  go-module:
+    name: Go module tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # pushing the module tag
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: 'stable'
+
+      - name: Validate the module
+        working-directory: bindings/go
+        run: |
+          go mod tidy
+          go build ./...
+          go vet ./...
+
+      - name: Tag the module
+        run: |
+          VERSION=$(grep -oP '^version = "\K[^"]+' Cargo.toml | head -n 1)
+          TAG="bindings/go/v${VERSION}"
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "$TAG already exists; nothing to do."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "xcelerate Go bindings v${VERSION}"
+          git push origin "$TAG"
+          echo "Pushed $TAG; pkg.go.dev will index it shortly."

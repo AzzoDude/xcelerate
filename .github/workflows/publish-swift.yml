@@ -1,0 +1,46 @@
+# Publish the Swift package.
+#
+# SwiftPM has no central registry: a package is a git repository whose root
+# contains `Package.swift`. `bindings/swift` is split onto a branch and pushed
+# to a dedicated repository, then tagged.
+#
+# Secrets: SWIFT_REMOTE_URL — a git URL with an embedded token, e.g.
+#   https://x-access-token:<token>@github.com/ChaoswareHQ/xcelerate-swift.git
+name: "Publish · Swift"
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  swiftpm:
+    name: SwiftPM repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Split bindings/swift
+        id: split
+        run: |
+          git subtree split -P bindings/swift -b swift-release
+          echo "commit=$(git rev-parse swift-release)" >> "$GITHUB_OUTPUT"
+
+      - name: Push to the SwiftPM repository
+        env:
+          SWIFT_REMOTE_URL: ${{ secrets.SWIFT_REMOTE_URL }}
+        run: |
+          VERSION=$(grep -oP '^version = "\K[^"]+' Cargo.toml | head -n 1)
+          if [ -z "$SWIFT_REMOTE_URL" ]; then
+            echo "::warning::SWIFT_REMOTE_URL not set; skipping the SwiftPM push."
+            exit 0
+          fi
+          git remote add swift "$SWIFT_REMOTE_URL"
+          git push --force swift swift-release:main
+          git tag -a "$VERSION" -m "xcelerate Swift SDK $VERSION" || true
+          git push swift "$VERSION" || echo "::warning::Could not push tag $VERSION; skipping."

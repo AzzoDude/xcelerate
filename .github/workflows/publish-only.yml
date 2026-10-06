@@ -1,3 +1,8 @@
+# Publish Only (From Existing Artifacts)
+#
+# DEPRECATED: superseded by `publish.yml`, which fans out to one workflow per
+# language (`publish-rust.yml`, `publish-python.yml`, ...). Kept for now as a
+# single-shot fallback; remove once the split has published successfully.
 name: Publish Only (From Existing Artifacts)
 
 on:
@@ -47,8 +52,6 @@ jobs:
             echo "Found latest successful run: $RUN_ID"
             echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
           fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download Artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4

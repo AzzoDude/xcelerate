@@ -1,0 +1,69 @@
+# Shared by every `publish-*.yml` workflow: resolve the "Build Packages" run to
+# publish from and download artifacts from it.
+#
+# Kept as a composite action so the resolver + download logic lives in exactly
+# one place instead of being copy-pasted into each language workflow. Contents
+# are always merged directly into `path` (no per-artifact subdirectories).
+name: Download build artifacts
+description: Resolve a Build Packages run and download artifacts from it.
+
+inputs:
+  run_id:
+    description: >-
+      Run ID of the "Build Packages" workflow to download from. When empty, the
+      latest successful run is used.
+    required: false
+    default: ''
+  pattern:
+    description: Artifact-name glob to download (e.g. `language-packages`).
+    required: false
+    default: language-packages
+  path:
+    description: Directory the artifact contents are extracted into.
+    required: false
+    default: dist-packages
+  workflow:
+    description: Workflow name to resolve when `run_id` is empty.
+    required: false
+    default: Build Packages (Core + Bindings)
+  token:
+    description: Token used for the GitHub API lookup and the artifact download.
+    required: true
+
+outputs:
+  run_id:
+    description: The resolved run ID.
+    value: ${{ steps.resolve.outputs.run_id }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve run ID
+      id: resolve
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        INPUT_RUN_ID: ${{ inputs.run_id }}
+        WORKFLOW: ${{ inputs.workflow }}
+      run: |
+        if [ -n "$INPUT_RUN_ID" ]; then
+          echo "run_id=$INPUT_RUN_ID" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        RUN_ID=$(gh run list --workflow "$WORKFLOW" --status success --limit 1 \
+          --json databaseId --jq '.[0].databaseId')
+        if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+          echo "::error::No successful '$WORKFLOW' runs found."
+          exit 1
+        fi
+        echo "Resolved latest successful '$WORKFLOW' run: $RUN_ID"
+        echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+    - name: Download ${{ inputs.pattern }}
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      with:
+        pattern: ${{ inputs.pattern }}
+        path: ${{ inputs.path }}
+        merge-multiple: true
+        run-id: ${{ steps.resolve.outputs.run_id }}
+        github-token: ${{ inputs.token }}

@@ -1,0 +1,38 @@
+# Publish the PowerShell module to the PowerShell Gallery.
+#
+# Secrets: PSGALLERY_API_KEY (a GUID from powershellgallery.com/account/apikeys).
+name: "Publish · PowerShell"
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  psgallery:
+    name: PowerShell Gallery
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Publish to the PowerShell Gallery
+        env:
+          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
+          PSGALLERY_REPOSITORY: PSGallery
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrEmpty($env:PSGALLERY_API_KEY)) {
+            Write-Warning 'PSGALLERY_API_KEY not set; skipping the PowerShell Gallery.'
+            exit 0
+          }
+          $module = 'bindings/powershell'
+          if (Get-Command Publish-PSResource -ErrorAction SilentlyContinue) {
+            Publish-PSResource -Path $module -Repository $env:PSGALLERY_REPOSITORY -ApiKey $env:PSGALLERY_API_KEY
+          } else {
+            Publish-Module -Path $module -Repository $env:PSGALLERY_REPOSITORY -NuGetApiKey $env:PSGALLERY_API_KEY
+          }

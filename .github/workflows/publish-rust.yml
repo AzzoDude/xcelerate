@@ -1,0 +1,51 @@
+# Publish the Xcelerate Rust crates to crates.io.
+#
+# Split out of publish-only.yml so each language has its own workflow:
+# run it directly (Actions → Run workflow) or via the `publish.yml` dispatcher.
+name: "Publish · Rust"
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  crates-io:
+    name: crates.io
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+
+      - name: Publish crates (dependency order)
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          VERSION=$(grep -oP '^version = "\K[^"]+' Cargo.toml | head -n 1)
+          for CRATE in xcelerate-core xcelerate-plugin-api xcelerate-plugin-stealth xcelerate-plugin-human xcelerate-plugins xcelerate; do
+            if cargo search "$CRATE" --limit 1 | grep -q "\"$VERSION\""; then
+              echo "$CRATE $VERSION already published. Skipping."
+              continue
+            fi
+            published=false
+            for attempt in 1 2 3; do
+              echo "Attempt $attempt: publishing $CRATE $VERSION..."
+              if cargo publish -p "$CRATE" --token "$CARGO_REGISTRY_TOKEN" --allow-dirty; then
+                published=true
+                break
+              fi
+              sleep 15
+            done
+            if [ "$published" != "true" ]; then
+              echo "::warning::Could not publish $CRATE $VERSION to crates.io. Skipping."
+              continue
+            fi
+            for i in $(seq 1 30); do
+              if cargo search "$CRATE" --limit 1 | grep -q "\"$VERSION\""; then break; fi
+              sleep 5
+            done
+          done

@@ -1,0 +1,105 @@
+# One entry point that fans out to the per-language publish workflows.
+#
+# Everything is driven by the `Build Packages (Core + Bindings)` artifacts, so
+# run that workflow first (or let this resolve the latest successful run).
+#
+# Tip: publish a single target by setting `only` — handy for re-publishing one
+# registry after a partial failure.
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Build Packages run ID to publish from (empty = latest successful run)'
+        required: false
+        default: ''
+      only:
+        description: 'Publish only this target (default: all)'
+        type: choice
+        required: false
+        default: all
+        options:
+          - all
+          - rust
+          - python
+          - javascript
+          - dotnet
+          - java
+          - ruby
+          - dart
+          - go
+          - powershell
+          - swift
+          - release
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    if: ${{ inputs.only == 'all' || inputs.only == 'rust' }}
+    uses: ./.github/workflows/publish-rust.yml
+    secrets: inherit
+
+  python:
+    if: ${{ inputs.only == 'all' || inputs.only == 'python' }}
+    uses: ./.github/workflows/publish-python.yml
+    with:
+      run_id: ${{ inputs.run_id }}
+    secrets: inherit
+
+  javascript:
+    if: ${{ inputs.only == 'all' || inputs.only == 'javascript' }}
+    uses: ./.github/workflows/publish-javascript.yml
+    with:
+      run_id: ${{ inputs.run_id }}
+    secrets: inherit
+
+  dotnet:
+    if: ${{ inputs.only == 'all' || inputs.only == 'dotnet' }}
+    uses: ./.github/workflows/publish-dotnet.yml
+    with:
+      run_id: ${{ inputs.run_id }}
+    secrets: inherit
+
+  java:
+    if: ${{ inputs.only == 'all' || inputs.only == 'java' }}
+    uses: ./.github/workflows/publish-java.yml
+    with:
+      run_id: ${{ inputs.run_id }}
+    secrets: inherit
+
+  ruby:
+    if: ${{ inputs.only == 'all' || inputs.only == 'ruby' }}
+    uses: ./.github/workflows/publish-ruby.yml
+    with:
+      run_id: ${{ inputs.run_id }}
+    secrets: inherit
+
+  dart:
+    if: ${{ inputs.only == 'all' || inputs.only == 'dart' }}
+    uses: ./.github/workflows/publish-dart.yml
+    secrets: inherit
+
+  go:
+    if: ${{ inputs.only == 'all' || inputs.only == 'go' }}
+    uses: ./.github/workflows/publish-go.yml
+    secrets: inherit
+
+  powershell:
+    if: ${{ inputs.only == 'all' || inputs.only == 'powershell' }}
+    uses: ./.github/workflows/publish-powershell.yml
+    secrets: inherit
+
+  swift:
+    if: ${{ inputs.only == 'all' || inputs.only == 'swift' }}
+    uses: ./.github/workflows/publish-swift.yml
+    secrets: inherit
+
+  release:
+    if: ${{ inputs.only == 'all' || inputs.only == 'release' }}
+    uses: ./.github/workflows/publish-release.yml
+    with:
+      run_id: ${{ inputs.run_id }}
+    secrets: inherit

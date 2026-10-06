@@ -1,0 +1,60 @@
+# Publish the Python wheels/sdist to PyPI (Trusted Publishing / OIDC).
+#
+# Run directly (Actions → Publish · Python → Run workflow) or through the
+# `publish.yml` dispatcher. Requires the `language-packages` artifact produced
+# by the "Build Packages (Core + Bindings)" workflow.
+name: "Publish · Python"
+
+on:
+  workflow_call:
+    inputs:
+      run_id:
+        type: string
+        required: false
+        default: ''
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Build Packages run ID (empty = latest successful run)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  pypi:
+    name: PyPI
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # OIDC trusted publishing
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/download-language-packages
+        with:
+          run_id: ${{ inputs.run_id }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Collect PyPI artifacts
+        id: prep
+        run: |
+          mkdir -p dist-pypi
+          cp dist-packages/*.whl dist-pypi/ 2>/dev/null || true
+          cp dist-packages/*.tar.gz dist-pypi/ 2>/dev/null || true
+          if [ -n "$(ls -A dist-pypi)" ]; then
+            echo "has_artifacts=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_artifacts=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish to PyPI
+        if: steps.prep.outputs.has_artifacts == 'true'
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+        with:
+          packages-dir: dist-pypi/
+          skip-existing: true
