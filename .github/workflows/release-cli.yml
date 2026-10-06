@@ -9,6 +9,11 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
+# A release in flight must not be cancelled by a later tag.
+concurrency:
+  group: release-cli-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 

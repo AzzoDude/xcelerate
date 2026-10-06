@@ -10,6 +10,10 @@ on:
     branches: [main, master]
     paths: ['crates/**', 'Cargo.*']
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

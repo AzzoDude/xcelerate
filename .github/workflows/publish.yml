@@ -54,6 +54,12 @@ on:
           - swift
           - release
 
+# Serialize publishes: two runs touching the same version would race on the
+# registries, so never cancel one in progress.
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
 permissions:
   contents: read
 

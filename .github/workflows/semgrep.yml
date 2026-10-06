@@ -6,10 +6,17 @@ name: Semgrep
 on:
   push:
     branches: [main, master]
+    # Documentation-only changes cannot introduce anything Semgrep looks for.
+    paths-ignore: ['**/*.md', 'docs/**', 'LICENSE*']
   pull_request:
     branches: [main, master]
+    paths-ignore: ['**/*.md', 'docs/**', 'LICENSE*']
   schedule:
     - cron: '0 7 * * 1'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
