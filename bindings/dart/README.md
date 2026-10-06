@@ -24,12 +24,14 @@ target, so the sources are generated with the external
 
 ## Requirements
 
-- Dart SDK 3.1+ or Flutter
-- The `uniffi-bindgen-dart` generator: `cargo install uniffi-bindgen-dart`
-- The native xcelerate library, shipped as `xcelerate.dll` / `libxcelerate.so`
-  / `libxcelerate.dylib` (copied by the script). It must be built with UniFFI's
+- Dart SDK 3.2+ or Flutter
+- The native xcelerate core, which the published package bundles for macOS
+  (arm64/x64), Windows (x64) and Linux (x64) — no build step is needed to use it.
+  From a source checkout, build it as below. It must be built with UniFFI's
   `scaffolding-ffi-buffer-fns` feature (enabled in the workspace `Cargo.toml`),
   which exports the `uniffi_ffibuffer_*` entry points this binding calls.
+- To regenerate the bindings: the `uniffi-bindgen-dart` generator
+  (`cargo install uniffi-bindgen-dart`).
 
 ## Generate / build
 
@@ -39,13 +41,15 @@ cargo install uniffi-bindgen-dart      # once
 python scripts/generate_bindings/dart.py
 ```
 
-The script assembles a pub package:
+The script assembles a pub package. For a source checkout it stages the host
+library under its own `src/<os>-<arch>/` token so local runs use the same lookup
+as a published package; a release stages the other platforms in CI:
 
 ```
 bindings/dart/
   pubspec.yaml
   lib/xcelerate.dart
-  src/xcelerate.dll / libxcelerate.so / libxcelerate.dylib   # local only
+  src/<os>-<arch>/xcelerate.dll | libxcelerate.so | libxcelerate.dylib
 ```
 
 or, once generated, inside this directory:
@@ -57,8 +61,9 @@ dart analyze
 
 ## Usage
 
-The generated binding loads the native library by name (`xcelerate`); pass
-`libraryPath` when the loader cannot find it:
+The binding loads the native library the package bundles for the current
+platform. If it is missing (an unlisted platform), it falls back to the OS
+search path; pass `libraryPath` to name a library explicitly:
 
 ```dart
 import 'package:xcelerate/xcelerate.dart';
@@ -88,11 +93,12 @@ git tag vX.Y.Z && git push origin vX.Y.Z
 Pushing a `vX.Y.Z` tag runs `.github/workflows/publish-dart.yml`, which publishes
 through pub.dev's OIDC automated publishing (the `pub.dev` environment) with no
 token involved. To publish by hand, run `dart pub publish` inside `bindings/dart`;
-that authenticates with a Google account (OAuth on first run). The published
-package is **source-only**: the native library
-is platform-specific, so it is not bundled in the pub package - bundle it with
-your app and pass `libraryPath` (or place it where `DynamicLibrary.open` finds
-it). The generator still copies the host library under `src/` for local runs.
+that authenticates with a Google account (OAuth on first run). The package
+**bundles a prebuilt native library** for macOS (arm64/x64), Windows (x64) and
+Linux (x64) under `src/<os>-<arch>/`, so `dart pub add xcelerate` works with no
+build step; on an unlisted platform the loader falls back to the OS search path
+(`libraryPath` overrides it). Those binaries are staged by CI and are not
+committed to git.
 
 ## License
 

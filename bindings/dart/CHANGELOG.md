@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.12
+
+- The package now bundles prebuilt native libraries for macOS (arm64/x64),
+  Windows (x64) and Linux (x64), so `dart pub add xcelerate` works with no build
+  step. The loader resolves them from `src/<os>-<arch>/` through the package URI
+  (correct under Flutter) and falls back to the OS search path; `libraryPath`
+  still overrides both.
+- Requires Dart SDK 3.2+ (`Isolate.resolvePackageUriSync`).
+
 ## 1.0.10
 
 - Make the binding usable: the previous release could not start a browser.

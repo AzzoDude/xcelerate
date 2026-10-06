@@ -5,6 +5,7 @@ library xcelerate;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
+import 'dart:isolate';
 import 'package:ffi/ffi.dart';
 import 'dart:typed_data';
 
@@ -861,7 +862,60 @@ class XcelerateFfi {
     if (provided != null) {
       return provided;
     }
-    return ffi.DynamicLibrary.open(_libraryPath ?? libraryName);
+    final explicit = _libraryPath;
+    if (explicit != null) {
+      return ffi.DynamicLibrary.open(explicit);
+    }
+    final bundled = _bundledLibraryPath();
+    if (bundled != null) {
+      try {
+        return ffi.DynamicLibrary.open(bundled);
+      } on ArgumentError {
+        // Not there, or not loadable. Fall through to the OS search path so an
+        // app that ships the library next to its executable still works.
+      }
+    }
+    return ffi.DynamicLibrary.open(libraryName);
+  }
+
+  /// `<os>-<arch>` directory and file name of the prebuilt library this package
+  /// ships for the current process, or `null` when this platform has no binary.
+  ///
+  /// This layout is staged by `.github/workflows/publish-dart.yml`.
+  static (String, String)? _bundle() {
+    final ffi.Abi abi = ffi.Abi.current();
+    if (abi == ffi.Abi.macosArm64) {
+      return ('macos-arm64', 'lib$libraryName.dylib');
+    }
+    if (abi == ffi.Abi.macosX64) {
+      return ('macos-x64', 'lib$libraryName.dylib');
+    }
+    if (abi == ffi.Abi.windowsX64) {
+      return ('windows-x64', '$libraryName.dll');
+    }
+    if (abi == ffi.Abi.windowsArm64) {
+      return ('windows-arm64', '$libraryName.dll');
+    }
+    if (abi == ffi.Abi.linuxX64) {
+      return ('linux-x64', 'lib$libraryName.so');
+    }
+    if (abi == ffi.Abi.linuxArm64) {
+      return ('linux-arm64', 'lib$libraryName.so');
+    }
+    return null;
+  }
+
+  static String? _bundledLibraryPath() {
+    final bundle = _bundle();
+    if (bundle == null) {
+      return null;
+    }
+    final Uri? libUri =
+        Isolate.resolvePackageUriSync(Uri.parse('package:$libraryName/'));
+    if (libUri == null) {
+      return null;
+    }
+    return libUri.resolve('../src/${bundle.$1}/${bundle.$2}').toFilePath();
   }
 
   void _ensureApiIntegrity(ffi.DynamicLibrary lib) {

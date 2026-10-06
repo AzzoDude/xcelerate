@@ -1,6 +1,7 @@
 // A minimal end-to-end example for the xcelerate Dart bindings.
 //
-// Build the native library first (see the package README), then run:
+// The published package bundles the native library, so this runs as-is. From a
+// source checkout, generate the bindings first (see the package README):
 //
 //   dart run example/example.dart
 import 'package:xcelerate/xcelerate.dart';

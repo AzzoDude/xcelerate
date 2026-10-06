@@ -807,6 +807,14 @@ bindings/ruby/pkg/
 *.dylib
 *.pdb
 *.exe
+
+# ...except the Dart package's prebuilt payload, which ships inside the pub
+# package. `dart pub publish` silently drops any file that git ignores (even a
+# checked-in one), so this path has to be un-ignored here. The binaries are
+# staged by .github/workflows/publish-dart.yml and never committed, which keeps
+# ~80 MB per release out of git history.
+!bindings/dart/src/**
+
 target/
 src/bin/uniffi-bindgen
 dist-packages/

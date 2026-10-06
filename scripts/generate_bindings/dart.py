@@ -8,8 +8,9 @@ generator emits a single ``xcelerate.dart``. It is invoked with
 Rust crate (``xcelerate.dll`` / ``libxcelerate.so`` / ``libxcelerate.dylib``,
 which is what ``DynamicLibrary.open`` looks for); the core must be built with
 UniFFI's ``scaffolding-ffi-buffer-fns`` feature, which the generator assumes.
-This script places the binding under ``lib/``, writes a ``pubspec.yaml``, copies
-the native library, and patches the generator's known codegen bugs.
+This script places the binding under ``lib/``, writes a ``pubspec.yaml``, stages
+the host native library under the bundled ``src/<os>-<arch>/`` layout, and
+patches the generator's known codegen bugs (including the native-library loader).
 
 Building/analyzing needs the Dart SDK (``dart``/``flutter`` on ``PATH``); the
 script skips with a hint if it is missing.
@@ -48,16 +49,36 @@ except ImportError:  # pragma: no cover - executed as a standalone script
         write_file,
     )
 
-# (source name in target/release, destination name for Dart FFI)
-#
-# The binding is generated with `--crate xcelerate`, so `DynamicLibrary.open`
-# loads the library by that name. Keep the on-disk names identical so the
-# generated loader finds them without a `libraryPath` override.
-NATIVE_LIBS = (
-    ("xcelerate.dll", "xcelerate.dll"),
-    ("libxcelerate.so", "libxcelerate.so"),
-    ("libxcelerate.dylib", "libxcelerate.dylib"),
-)
+# The library the package bundles for each platform, keyed by the
+# `<os>-<arch>` directory the generated loader looks in
+# (`XcelerateFfi._bundledLibraryPath`). The file name is the crate name (the
+# binding is generated with `--crate xcelerate`). The generator stages only the
+# host library so local runs exercise the same lookup as a published package;
+# `.github/workflows/publish-dart.yml` stages the other platforms for a release.
+BUNDLED_LIBS = {
+    "macos-arm64": "libxcelerate.dylib",
+    "macos-x64": "libxcelerate.dylib",
+    "windows-x64": "xcelerate.dll",
+    "windows-arm64": "xcelerate.dll",
+    "linux-x64": "libxcelerate.so",
+    "linux-arm64": "libxcelerate.so",
+}
+
+
+def host_bundle_token() -> str | None:
+    """The ``BUNDLED_LIBS`` key for the host, or ``None`` on an unlisted OS."""
+    import platform
+
+    machine = platform.machine().lower()
+    arch = "arm64" if machine in ("arm64", "aarch64") else "x64"
+    system = platform.system()
+    if system == "Darwin":
+        return f"macos-{arch}"
+    if system == "Windows":
+        return f"windows-{arch}"
+    if system == "Linux":
+        return f"linux-{arch}"
+    return None
 
 
 def pubspec(version: str) -> str:
@@ -69,7 +90,7 @@ version: {version}
 homepage: https://github.com/AzzoDude/xcelerate
 repository: https://github.com/AzzoDude/xcelerate
 environment:
-  sdk: ">=3.1.0 <4.0.0"
+  sdk: ">=3.2.0 <4.0.0"
 dependencies:
   ffi: ^2.1.0
 """
@@ -333,6 +354,78 @@ class XcelerateFfi {"""
 _BYTES_RETURN = re.compile(r"return resultBytes;")
 
 
+# The generator stubs native-library discovery to
+# `DynamicLibrary.open(_libraryPath ?? libraryName)` - the bare OS search path.
+# The published package bundles one prebuilt library per platform under
+# `src/<os>-<arch>/`, so resolve that through the package URI first (correct for
+# Flutter, where the library is not next to the executable) and fall back to the
+# OS search path, which lets an app ship the library beside its own binary.
+_LOADER_ANCHOR = re.compile(
+    r"    return ffi\.DynamicLibrary\.open\(_libraryPath \?\? libraryName\);\n"
+)
+
+_LOADER = """    final explicit = _libraryPath;
+    if (explicit != null) {
+      return ffi.DynamicLibrary.open(explicit);
+    }
+    final bundled = _bundledLibraryPath();
+    if (bundled != null) {
+      try {
+        return ffi.DynamicLibrary.open(bundled);
+      } on ArgumentError {
+        // Not there, or not loadable. Fall through to the OS search path so an
+        // app that ships the library next to its executable still works.
+      }
+    }
+    return ffi.DynamicLibrary.open(libraryName);
+  }
+
+  /// `<os>-<arch>` directory and file name of the prebuilt library this package
+  /// ships for the current process, or `null` when this platform has no binary.
+  ///
+  /// This layout is staged by `.github/workflows/publish-dart.yml`.
+  static (String, String)? _bundle() {
+    final ffi.Abi abi = ffi.Abi.current();
+    if (abi == ffi.Abi.macosArm64) {
+      return ('macos-arm64', 'lib$libraryName.dylib');
+    }
+    if (abi == ffi.Abi.macosX64) {
+      return ('macos-x64', 'lib$libraryName.dylib');
+    }
+    if (abi == ffi.Abi.windowsX64) {
+      return ('windows-x64', '$libraryName.dll');
+    }
+    if (abi == ffi.Abi.windowsArm64) {
+      return ('windows-arm64', '$libraryName.dll');
+    }
+    if (abi == ffi.Abi.linuxX64) {
+      return ('linux-x64', 'lib$libraryName.so');
+    }
+    if (abi == ffi.Abi.linuxArm64) {
+      return ('linux-arm64', 'lib$libraryName.so');
+    }
+    return null;
+  }
+
+  static String? _bundledLibraryPath() {
+    final bundle = _bundle();
+    if (bundle == null) {
+      return null;
+    }
+    final Uri? libUri =
+        Isolate.resolvePackageUriSync(Uri.parse('package:$libraryName/'));
+    if (libUri == null) {
+      return null;
+    }
+    return libUri.resolve('../src/${bundle.$1}/${bundle.$2}').toFilePath();
+"""
+
+# `Isolate.resolvePackageUriSync` (used by the loader above) needs `dart:isolate`.
+_FFI_IMPORT = re.compile(r"import 'dart:ffi' as ffi;\n")
+
+_FFI_IMPORT_WITH_ISOLATE = "import 'dart:ffi' as ffi;\nimport 'dart:isolate';\n"
+
+
 # The generator emits snake_case `_checksum_...` fields, which trip the
 # `non_constant_identifier_names` lint. They are generated identifiers, so add
 # the rule to the file's existing ignore directive.
@@ -372,6 +465,12 @@ def _patch(content: str) -> tuple[str, dict[str, int]]:
     )
     content, counts["bytes decode"] = _BYTES_RETURN.subn(
         "return _uniffiDecodeBytes(resultBytes);", content
+    )
+    content, counts["isolate import"] = _FFI_IMPORT.subn(
+        _FFI_IMPORT_WITH_ISOLATE, content
+    )
+    content, counts["native loader"] = _LOADER_ANCHOR.subn(
+        lambda _match: _LOADER, content
     )
 
     def rename_close(match: re.Match) -> str:
@@ -452,7 +551,12 @@ def main():
         log("WARNING", "dart not found; skipping source formatting")
 
     print("--- 2. Distributing native libraries ---")
-    copy_native_libs(src_dir, NATIVE_LIBS)
+    token = host_bundle_token()
+    if token is None:
+        log("WARNING", "unknown host OS; skipping native library staging")
+    else:
+        lib_name = BUNDLED_LIBS[token]
+        copy_native_libs(os.path.join(src_dir, token), [(lib_name, lib_name)])
 
     print("--- 3. Fetching deps and analyzing ---")
     dart = dart_exe()

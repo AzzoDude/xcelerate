@@ -5,6 +5,6 @@ version: 1.0.12
 homepage: https://github.com/AzzoDude/xcelerate
 repository: https://github.com/AzzoDude/xcelerate
 environment:
-  sdk: ">=3.1.0 <4.0.0"
+  sdk: ">=3.2.0 <4.0.0"
 dependencies:
   ffi: ^2.1.0
