@@ -442,7 +442,7 @@ tiền tố `cargo run -p xcelerate-cli --` trước mọi lệnh.
 
 `xcelerate-mcp` - cũng có thể truy cập qua `xcelerate mcp` - là một máy chủ
 [Model Context Protocol](https://modelcontextprotocol.io) qua stdio, để một client
-MCP có thể điều khiển một trình duyệt thật. Nó cung cấp 21 công cụ bao gồm điều
+MCP có thể điều khiển một trình duyệt thật. Nó cung cấp 40 công cụ bao gồm điều
 hướng, tiêu đề, nội dung trang, ảnh chụp màn hình, PDF, nhấp chuột, gõ phím, hover,
 nhấn phím, truy vấn, đánh giá JavaScript và gọi plugin.
 

@@ -44,5 +44,6 @@ let out = handle.invoke("echo".into(), rmp_bytes).await?;
 ## Status
 
 The guest source and the WIT are the interface contract. The `wasmtime` host
-transport is opt-in (`--features wasm`) and requires the toolchain above; it is
-not enabled by default.
+transport requires the toolchain above and is enabled by default (the `wasm`
+cargo feature is on by default; build with `--no-default-features` to disable
+it).

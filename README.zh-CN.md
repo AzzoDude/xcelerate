@@ -429,7 +429,7 @@ xcelerate click-index https://example.com 2     # 点击快照中的元素 [2]
 
 `xcelerate-mcp` —— 也可以通过 `xcelerate mcp` 调用 —— 是一个基于 stdio 的
 [Model Context Protocol](https://modelcontextprotocol.io) 服务器，因此
-MCP 客户端可以驱动真实的浏览器。它暴露 21 个工具，涵盖导航、标题、页面内容、
+MCP 客户端可以驱动真实的浏览器。它暴露 40 个工具，涵盖导航、标题、页面内容、
 截图、PDF、点击、打字、悬停、按键、查询、JavaScript 求值和插件调用。
 
 ```jsonc

@@ -446,7 +446,7 @@ xcelerate click-index https://example.com 2     # スナップショットの要
 [Model Context Protocol](https://modelcontextprotocol.io) サーバーであり、MCP
 クライアントが実際のブラウザを操作できます。ナビゲーション、タイトル、ページ内容、
 スクリーンショット、PDF、クリック、タイピング、ホバー、キー押下、クエリ、
-JavaScript 評価、プラグイン呼び出しをカバーする 21 個のツールを公開します。
+JavaScript 評価、プラグイン呼び出しをカバーする 40 個のツールを公開します。
 
 ```jsonc
 { "mcpServers": { "xcelerate": { "command": "xcelerate-mcp" } } }

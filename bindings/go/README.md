@@ -3,14 +3,14 @@
 Go bindings for the xcelerate Rust CDP engine. Go is not a built-in UniFFI
 target, so the sources are generated with the external
 [`uniffi-bindgen-go`](https://github.com/NordSecurity/uniffi-bindgen-go) generator
-(tag `v1.0.12+v1.0.12`, targeting UniFFI 0.31).
+(tag `v0.7.1+v0.31.0`, targeting UniFFI 0.31).
 
 ## Requirements
 
 - Go 1.21+
 - A C toolchain (the generated package uses cgo)
 - The `uniffi-bindgen-go` generator:
-  `cargo install uniffi-bindgen-go --git https://github.com/NordSecurity/uniffi-bindgen-go --tag v1.0.12+v1.0.12`
+  `cargo install uniffi-bindgen-go --git https://github.com/NordSecurity/uniffi-bindgen-go --tag v0.7.1+v0.31.0`
 
 ## Generate / build
 

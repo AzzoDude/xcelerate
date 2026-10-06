@@ -514,7 +514,7 @@ command with `cargo run -p xcelerate-cli --`.
 
 `xcelerate-mcp` - also reachable as `xcelerate mcp` - is a
 [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, so
-an MCP client can drive a real browser. It exposes 21 tools covering navigation,
+an MCP client can drive a real browser. It exposes 40 tools covering navigation,
 titles, page content, screenshots, PDFs, clicking, typing, hovering, key presses,
 querying, JavaScript evaluation, and plugin invocation.
 

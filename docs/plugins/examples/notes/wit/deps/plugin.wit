@@ -6,8 +6,8 @@
 // and guest structs stay typed via `serde` + `wit-bindgen` codegen.
 //
 // Build a plugin against this world with `wit-bindgen`, and run it with the
-// `wasmtime`-backed transport (`crates/xcelerate/src/plugin/wasm.rs`, off by
-// default behind the `wasm` feature).
+// `wasmtime`-backed transport (`crates/xcelerate/src/plugin/wasm.rs`, on by
+// default via the `wasm` feature; build with `--no-default-features` to disable).
 package xcelerate:plugin@1.0.0;
 
 interface types {
