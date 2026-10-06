@@ -5,30 +5,54 @@ use tokio::sync::{broadcast, mpsc, oneshot};
 
 use crate::command::CdpCommand;
 use crate::error::{Error, Result};
-use crate::handler::CdpHandler;
+use crate::handler::{CdpHandler, EVENT_CHANNEL_CAPACITY, SessionSenders};
 
 /// A client for issuing typed CDP commands over a single connection.
 pub struct CdpClient {
     pub(crate) next_id: AtomicU32,
     pub(crate) cmd_tx: mpsc::UnboundedSender<(u32, Value, oneshot::Sender<Result<Value>>)>,
     pub(crate) event_tx: broadcast::Sender<Value>,
+    pub(crate) sessions: SessionSenders,
 }
 
 impl CdpClient {
     pub fn new(
         cmd_tx: mpsc::UnboundedSender<(u32, Value, oneshot::Sender<Result<Value>>)>,
         event_tx: broadcast::Sender<Value>,
+        sessions: SessionSenders,
     ) -> Self {
         Self {
             next_id: AtomicU32::new(1),
             cmd_tx,
             event_tx,
+            sessions,
         }
     }
 
-    /// Subscribe to CDP events broadcast by the connection.
+    /// Subscribes to *every* CDP event on the connection, regardless of session.
+    ///
+    /// This is the catch-all used by the browser-level `wait_for_event`, where
+    /// the event being awaited may be either browser-scoped or session-scoped.
+    /// Page-scoped work should prefer [`CdpClient::subscribe_session`], which
+    /// never wakes on another page's traffic.
     pub fn subscribe(&self) -> broadcast::Receiver<Value> {
         self.event_tx.subscribe()
+    }
+
+    /// Subscribes to one flattened session's events, plus browser-level events
+    /// (which carry no `sessionId`) such as downloads and crashes.
+    ///
+    /// The channel is created on first use and dropped when the session
+    /// detaches, at which point the receiver ends with `Closed`. Using this
+    /// instead of [`CdpClient::subscribe`] means a busy page does not clone,
+    /// wake or filter every other page's events.
+    pub fn subscribe_session(&self, session_id: &str) -> broadcast::Receiver<Value> {
+        self.sessions
+            .lock()
+            .unwrap()
+            .entry(session_id.to_string())
+            .or_insert_with(|| broadcast::channel(EVENT_CHANNEL_CAPACITY).0)
+            .subscribe()
     }
 
     /// Whether the connection is still live.
@@ -134,8 +158,11 @@ pub async fn connect(ws_url: &str) -> Result<CdpClient> {
     // frames where delayed-ACK stalls add real latency.
     let (ws, _) = tokio_tungstenite::connect_async_with_config(ws_url, None, true).await?;
     let (tx, rx) = mpsc::unbounded_channel();
-    let (handler, _events) = CdpHandler::new(ws, rx);
-    let client = CdpClient::new(tx, handler.event_tx.clone());
+    let (event_tx, _events) = broadcast::channel(EVENT_CHANNEL_CAPACITY);
+    let sessions: SessionSenders =
+        std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new()));
+    let handler = CdpHandler::new(ws, rx, event_tx.clone(), std::sync::Arc::clone(&sessions));
+    let client = CdpClient::new(tx, event_tx, sessions);
     tokio::spawn(handler.run());
     Ok(client)
 }

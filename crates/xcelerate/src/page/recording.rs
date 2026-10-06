@@ -261,7 +261,7 @@ async fn run_recording(
     let _ = ready.send(Ok(()));
 
     let started = std::time::Instant::now();
-    let mut receiver = client.subscribe();
+    let mut receiver = client.subscribe_session(&session_id);
     let mut index: u32 = 0;
 
     loop {

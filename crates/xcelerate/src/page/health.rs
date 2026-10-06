@@ -67,7 +67,7 @@ impl Page {
             )
             .await;
 
-        let mut receiver = self.client.subscribe();
+        let mut receiver = self.client.subscribe_session(&self.session_id);
         let timeout = Duration::from_millis(timeout_ms.max(1));
         let start = std::time::Instant::now();
         loop {

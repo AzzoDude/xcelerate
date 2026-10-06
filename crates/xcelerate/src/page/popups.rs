@@ -87,7 +87,7 @@ impl Page {
                 serde_json::json!({ "discover": true }),
             )
             .await;
-        let mut receiver = self.client.subscribe();
+        let mut receiver = self.client.subscribe_session(&self.session_id);
         let current = self.target_id.clone();
 
         with_deadline(budget, async {

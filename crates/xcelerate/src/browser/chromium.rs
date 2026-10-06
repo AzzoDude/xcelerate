@@ -276,26 +276,7 @@ impl Browser {
             })
             .await?;
 
-        let page = Arc::new(Page {
-            client: Arc::clone(&self.client),
-            session_id: session.session_id.into_owned(),
-            target_id: target_id.into_owned(),
-            mouse_x: std::sync::Mutex::new(100.0),
-            mouse_y: std::sync::Mutex::new(100.0),
-            events: tokio::sync::Mutex::new(Vec::new()),
-            routes: Arc::new(tokio::sync::Mutex::new(Vec::new())),
-            requests: Arc::new(tokio::sync::Mutex::new(Vec::new())),
-            interception_task: Arc::new(tokio::sync::Mutex::new(None)),
-            credentials: Arc::new(tokio::sync::Mutex::new(None)),
-            drag_interception: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            default_timeout_ms: std::sync::atomic::AtomicU64::new(30_000),
-            recording: tokio::sync::Mutex::new(None),
-            snapshot_index: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
-            downloads_path: Arc::new(tokio::sync::Mutex::new(None)),
-            har_entries: Arc::new(tokio::sync::Mutex::new(Vec::new())),
-            har_task: Arc::new(tokio::sync::Mutex::new(None)),
-            har_body_mode: Arc::new(tokio::sync::Mutex::new("omit".to_string())),
-        });
+        let page = self.build_page(session.session_id.into_owned(), target_id.into_owned());
 
         // 3. Run plugin page-created hooks (e.g. stealth payload injection).
         self.plugins
@@ -742,6 +723,67 @@ impl Browser {
             self.plugins.install(plugin)?;
         }
         Ok(())
+    }
+
+    /// Constructs a `Page` handle for an already-attached flattened session.
+    ///
+    /// Shared by [`Browser::new_page`] and [`Browser::attach_page`]. It only
+    /// wires up the handle; neither navigating nor the plugin hooks are done
+    /// here, so each caller decides those.
+    fn build_page(&self, session_id: String, target_id: String) -> Arc<Page> {
+        Arc::new(Page {
+            client: Arc::clone(&self.client),
+            session_id,
+            target_id,
+            mouse_x: std::sync::Mutex::new(100.0),
+            mouse_y: std::sync::Mutex::new(100.0),
+            events: tokio::sync::Mutex::new(Vec::new()),
+            routes: Arc::new(tokio::sync::Mutex::new(Vec::new())),
+            requests: Arc::new(tokio::sync::Mutex::new(Vec::new())),
+            interception_task: Arc::new(tokio::sync::Mutex::new(None)),
+            credentials: Arc::new(tokio::sync::Mutex::new(None)),
+            drag_interception: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            default_timeout_ms: std::sync::atomic::AtomicU64::new(30_000),
+            recording: tokio::sync::Mutex::new(None),
+            snapshot_index: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
+            downloads_path: Arc::new(tokio::sync::Mutex::new(None)),
+            har_entries: Arc::new(tokio::sync::Mutex::new(Vec::new())),
+            har_task: Arc::new(tokio::sync::Mutex::new(None)),
+            har_body_mode: Arc::new(tokio::sync::Mutex::new("omit".to_string())),
+        })
+    }
+
+    /// Attaches to an existing target and returns a driven page for it.
+    ///
+    /// [`Browser::new_page`] always opens a fresh tab; this instead takes over a
+    /// target that already exists - the way a popup discovered with
+    /// [`Page::wait_for_popup`] becomes drivable. Nothing is navigated, so the
+    /// tab keeps whatever it is showing; plugin `on_page_created` hooks still
+    /// run, so stealth payloads are injected as usual.
+    ///
+    /// Rust-only: it is intentionally not exposed through the language bindings,
+    /// alongside [`Browser::connect`].
+    pub async fn attach_page(self: Arc<Self>, target_id: String) -> XcelerateResult<Arc<Page>> {
+        let session = self
+            .client
+            .execute_raw(
+                "Target.attachToTarget",
+                serde_json::json!({ "targetId": target_id, "flatten": true }),
+            )
+            .await?;
+        let session_id = session
+            .get("sessionId")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| {
+                XcelerateError::NotFound(format!("target {target_id} could not be attached"))
+            })?
+            .to_string();
+
+        let page = self.build_page(session_id, target_id);
+        self.plugins
+            .on_page_created(crate::plugin::page_host(Arc::clone(&page)))
+            .await?;
+        Ok(page)
     }
 }
 

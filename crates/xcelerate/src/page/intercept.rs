@@ -59,7 +59,7 @@ pub(super) async fn run_interception(
         )
         .await;
 
-    let mut receiver = client.subscribe();
+    let mut receiver = client.subscribe_session(&session_id);
     loop {
         let value = match receiver.recv().await {
             Ok(value) => value,

@@ -93,8 +93,8 @@ impl Page {
     /// default) and fails with [`XcelerateError::NotFound`] on timeout.
     pub async fn wait_for_download(&self, timeout_ms: u64) -> XcelerateResult<String> {
         let budget = effective_timeout_ms(self, timeout_ms);
-        let mut receiver = self.client.subscribe();
         let session_id = self.session_id.clone();
+        let mut receiver = self.client.subscribe_session(&session_id);
 
         with_deadline(budget, "download", async {
             // Phase 1: capture the guid and filename from `downloadWillBegin`.

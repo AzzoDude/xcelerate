@@ -25,7 +25,7 @@ async fn run_har(
     entries: Arc<tokio::sync::Mutex<Vec<Value>>>,
     body_mode: Arc<tokio::sync::Mutex<String>>,
 ) {
-    let mut receiver = client.subscribe();
+    let mut receiver = client.subscribe_session(&session_id);
     let mut pending: HashMap<String, Value> = HashMap::new();
     loop {
         let value = match receiver.recv().await {
