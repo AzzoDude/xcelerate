@@ -1,10 +1,13 @@
 # API-style adapters
 
-Xcelerate ships a **native** API (`navigate`, `find_element`, `type_text`, ...).
-Many users arrive from **Selenium**, **Playwright**, or **Puppeteer** and don't
-want to rewrite their scripts. The adapters expose those libraries' method
-names on top of the same xcelerate engine, so a one-line import is enough to
-switch style:
+Xcelerate's **default entry points are the three familiar styles**: Playwright,
+Puppeteer, and Selenium. They expose those libraries' method names on top of the
+same xcelerate engine, so a one-line import is enough to switch style - and to
+switch the engine underneath without touching your script.
+
+A **native** API (`navigate`, `find_element`, `type_text`, ...) also exists. It is
+the engine these styles are built on, and is kept as a later/advanced option rather
+than the thing you start with.
 
 ```python
 from xcelerate import use

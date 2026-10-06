@@ -23,11 +23,16 @@
 [![Chromium](https://img.shields.io/badge/Chromium-supported-4285F4?logo=googlechrome&logoColor=white)](#supported-engines)
 [![Firefox](https://img.shields.io/badge/Firefox-supported-FF7139?logo=firefoxbrowser&logoColor=white)](#supported-engines)
 
-Xcelerate is a high-performance, lightweight Chrome DevTools Protocol (CDP) client
-with idiomatic bindings for Rust, .NET, Python, JavaScript (Node.js), Kotlin,
-Java, Swift, Ruby, Dart/Flutter, and Go. It pairs a fast Rust core with an
-async-first API and a data-driven adapter layer that lets existing Selenium,
-Playwright, and Puppeteer scripts run against the same engine.
+Xcelerate is a high-performance, lightweight browser-automation engine with
+idiomatic bindings for Rust, .NET, Python, JavaScript (Node.js), Kotlin, Java,
+Swift, Ruby, Dart/Flutter, and Go. It speaks to **three familiar API styles** —
+Playwright, Puppeteer, and Selenium — so you keep the code you already write, on
+a faster engine.
+
+All three styles are generated from declarative profiles and share one engine, so
+you can switch styles (or languages) without rewriting a script. A native
+`xcelerate` style exists too, but it is a **later option**: start with the style
+you already know.
 
 ## Supported engines
 
@@ -75,8 +80,9 @@ println!("{}", page.title().await?);
   behave like a person (Bezier mouse travel, paced typing, uneven scrolling).
   Both are enabled per browser through `BrowserConfig.plugins`.
 - **Async-first** - built on `tokio` in Rust and `async`/`await` in every binding.
-- **API-style adapters** - expose Selenium, Playwright, and Puppeteer method names on
-  top of the native engine, generated from declarative profiles.
+- **Three familiar API styles first** - write Playwright, Puppeteer, or Selenium
+  code unchanged over the same engine, each generated from a declarative profile.
+  A native `xcelerate` API is available for advanced cases.
 - **Multi-language bindings** - one core, generated bindings for Rust, Python,
   JavaScript (Node.js), .NET, Kotlin, Java, Swift, Ruby, Dart/Flutter, and Go via
   `uniffi`, plus a PowerShell module over the .NET SDK.
@@ -184,7 +190,60 @@ run the end-to-end example at [`examples/powershell/quickstart.ps1`](examples/po
 
 See [`bindings/`](bindings/) for each package's README.
 
-## Quick start (Rust)
+## Quick start
+
+Pick the API style you already write. Every style runs on the same engine, so you
+can switch later without rewriting your scripts.
+
+### Playwright style
+
+```python
+from xcelerate import use
+
+pw = use("playwright")
+browser = await pw.launch()
+page = await browser.new_page()
+await page.goto("https://example.com")
+await page.click("#submit")
+print(await page.inner_text("h1"))
+await browser.close()
+```
+
+### Puppeteer style
+
+```python
+from xcelerate import use
+
+pp = use("puppeteer")
+browser = await pp.launch()
+page = await browser.new_page()
+await page.goto("https://example.com")
+await page.click("#submit")
+await browser.close()
+```
+
+### Selenium style
+
+```python
+from xcelerate import use
+
+sel = use("selenium")
+driver = await sel.launch()
+await driver.get("https://example.com")
+element = await driver.find_element("css selector", "#submit")
+await element.click()
+await driver.quit()
+```
+
+Rust reaches the same three styles through
+`xcelerate::adapters::{playwright, puppeteer, selenium}`. See
+[API-style adapters](#api-style-adapters) for the full surface of each.
+
+### Native API (advanced)
+
+Xcelerate also has its own API (`Browser`, `Page`, `Element`) - the engine the
+three styles are built on. Reach for it only when a style does not cover what you
+need; start with the style you already know.
 
 ```rust
 use xcelerate::{Browser, BrowserConfig};
@@ -195,9 +254,6 @@ async fn main() -> Result<(), xcelerate::XcelerateError> {
     let page = browser.new_page("https://example.com".to_string()).await?;
 
     println!("Title: {}", page.title().await?);
-
-    let heading = page.query_selector("h1".to_string()).await?;
-    println!("Heading: {}", heading.text().await?);
 
     browser.close().await?;
     Ok(())
@@ -213,7 +269,7 @@ use xcelerate::BrowserConfig;
 let config = BrowserConfig {
     headless: false,
     detached: false,
-    executable_path: None,                      // auto-discover Chrome/Edge
+    executable_path: None,                      // auto-discover Chrome/Edge/…
     plugins: Some(vec!["stealth".to_string()]), // opt into the stealth plugin
     ..Default::default()
 };
