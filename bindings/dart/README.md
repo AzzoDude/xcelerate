@@ -81,14 +81,15 @@ Plugins load from disk sandboxed (WebAssembly) behind the capability gate;
 ## Publishing
 
 ```bash
-python scripts/publish/dart.py          # regenerate + `dart pub publish --dry-run`
-python scripts/publish/dart.py --push   # `dart pub publish --force`
+# `version:` in pubspec.yaml must match the tag.
+git tag vX.Y.Z && git push origin vX.Y.Z
 ```
 
-`dart pub publish` authenticates with a Google account (OAuth on first run); the
-script above is the local/manual path. CI does not use it — pushing a `vX.Y.Z` tag
-runs `.github/workflows/publish-dart.yml`, publishing through pub.dev's OIDC
-automated publishing. The published package is **source-only**: the native library
+Pushing a `vX.Y.Z` tag runs `.github/workflows/publish-dart.yml`, which publishes
+through pub.dev's OIDC automated publishing (the `pub.dev` environment) with no
+token involved. To publish by hand, run `dart pub publish` inside `bindings/dart`;
+that authenticates with a Google account (OAuth on first run). The published
+package is **source-only**: the native library
 is platform-specific, so it is not bundled in the pub package - bundle it with
 your app and pass `libraryPath` (or place it where `DynamicLibrary.open` finds
 it). The generator still copies the host library under `src/` for local runs.
