@@ -215,6 +215,48 @@ impl SnapshotElement {
     }
 }
 
+/// Line diff behind [`Page::agent_snapshot_diff`]: lines present only in
+/// `previous` are prefixed `-`, lines new in `current` are prefixed `+`, in the
+/// order they appear. Reports "no change" when the snapshots match, and returns
+/// the whole `current` when the two share no lines at all (nothing useful to
+/// diff, e.g. after a navigation).
+fn diff_snapshots(previous: &str, current: &str) -> String {
+    let previous_lines: HashSet<&str> = previous.lines().collect();
+    let current_lines: HashSet<&str> = current.lines().collect();
+
+    if previous_lines == current_lines {
+        return "<no change since the previous snapshot>".to_string();
+    }
+
+    let removed: Vec<&str> = previous
+        .lines()
+        .filter(|line| !current_lines.contains(line))
+        .collect();
+    let added: Vec<&str> = current
+        .lines()
+        .filter(|line| !previous_lines.contains(line))
+        .collect();
+
+    // No line survives between the two: diffing would just restate both.
+    if added.len() == current_lines.len() && removed.len() == previous_lines.len() {
+        return current.to_string();
+    }
+
+    let mut out = String::new();
+    for line in removed {
+        out.push('-');
+        out.push_str(line);
+        out.push('\n');
+    }
+    for line in added {
+        out.push('+');
+        out.push_str(line);
+        out.push('\n');
+    }
+    out.pop();
+    out
+}
+
 /// Removes invisible noise from an accessible name, then collapses whitespace
 /// and truncates to `max` characters (adding an ellipsis).
 ///
@@ -821,6 +863,24 @@ impl Page {
         Ok(text)
     }
 
+    /// Returns only what changed since the previous call, as a compact line diff.
+    ///
+    /// A multi-step agent loop usually re-reads the page after every action;
+    /// resending the whole snapshot each time is wasteful. This returns a `-`/`+`
+    /// line diff against the previous call - or the full snapshot on the first
+    /// call, and whenever the two snapshots share no lines (for example after a
+    /// navigation, where a diff would be meaningless).
+    pub async fn agent_snapshot_diff(&self) -> XcelerateResult<String> {
+        let (text, _) = self.build_agent_snapshot().await?;
+        let mut last = self.last_snapshot.lock().await;
+        let rendered = match last.as_deref() {
+            Some(previous) if !previous.is_empty() => diff_snapshots(previous, &text),
+            _ => text.clone(),
+        };
+        *last = Some(text);
+        Ok(rendered)
+    }
+
     /// Returns the indexed interactive elements of the page as a JSON array.
     ///
     /// Each entry is `{ index, backendNodeId, role, name?, value?, tag?, bounds? }`.
@@ -1043,6 +1103,24 @@ mod tests {
             clean("\u{E000}Add\u{200B} to cart\u{E001}", 40),
             "Add to cart"
         );
+    }
+
+    #[test]
+    fn diff_reports_no_change() {
+        assert_eq!(
+            diff_snapshots("a\nb", "a\nb"),
+            "<no change since the previous snapshot>"
+        );
+    }
+
+    #[test]
+    fn diff_reports_added_and_removed_lines() {
+        assert_eq!(diff_snapshots("a\nb", "a\nc"), "-b\n+c");
+    }
+
+    #[test]
+    fn diff_returns_current_when_nothing_is_shared() {
+        assert_eq!(diff_snapshots("a\nb", "x\ny"), "x\ny");
     }
 
     #[test]

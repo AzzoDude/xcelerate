@@ -750,6 +750,7 @@ impl Browser {
             har_entries: Arc::new(tokio::sync::Mutex::new(Vec::new())),
             har_task: Arc::new(tokio::sync::Mutex::new(None)),
             har_body_mode: Arc::new(tokio::sync::Mutex::new("omit".to_string())),
+            last_snapshot: Arc::new(tokio::sync::Mutex::new(None)),
         })
     }
 

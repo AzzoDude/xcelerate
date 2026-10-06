@@ -5,6 +5,72 @@ use browser_protocol::input::DispatchKeyEventParams;
 use browser_protocol::page::{CaptureScreenshotParams, Viewport};
 use std::sync::Arc;
 
+/// Shadow-piercing descendant search used by [`Element::query_selector`].
+///
+/// `querySelector` cannot see into a shadow root, so web components are
+/// invisible to it; this walks open shadow roots as well. Cross-origin iframes
+/// stay out of scope (page script cannot reach them) - see
+/// [`Element::query_selector_all_frames`] for a same-origin variant.
+const JS_QUERY_ONE: &str = r#"function(sel){
+  const visit=(scope,out)=>{ if(!scope||!scope.querySelectorAll) return out;
+    for(const el of scope.querySelectorAll(sel)) out.push(el);
+    for(const el of scope.querySelectorAll('*')){ if(el.shadowRoot) visit(el.shadowRoot,out); }
+    return out; };
+  const out=[]; visit(this,out); if(this.shadowRoot) visit(this.shadowRoot,out);
+  return out[0]||null;
+}"#;
+
+/// [`JS_QUERY_ONE`] for every match (`Element::query_selector_all`).
+const JS_QUERY_ALL: &str = r#"function(sel){
+  const visit=(scope,out)=>{ if(!scope||!scope.querySelectorAll) return out;
+    for(const el of scope.querySelectorAll(sel)) out.push(el);
+    for(const el of scope.querySelectorAll('*')){ if(el.shadowRoot) visit(el.shadowRoot,out); }
+    return out; };
+  const out=[]; visit(this,out); if(this.shadowRoot) visit(this.shadowRoot,out);
+  return out;
+}"#;
+
+/// Like [`JS_QUERY_ALL`] but also descends into same-origin iframe documents.
+const JS_QUERY_ALL_FRAMES: &str = r#"function(sel){
+  const visit=(scope,out)=>{ if(!scope||!scope.querySelectorAll) return out;
+    for(const el of scope.querySelectorAll(sel)) out.push(el);
+    for(const el of scope.querySelectorAll('*')){ if(el.shadowRoot) visit(el.shadowRoot,out); if(el.contentDocument) visit(el.contentDocument,out); }
+    return out; };
+  const out=[]; visit(this,out); if(this.shadowRoot) visit(this.shadowRoot,out);
+  return out;
+}"#;
+
+/// Shadow-piercing descendant whose text contains the argument (`Element::get_by_text`).
+const JS_BY_TEXT: &str = r#"function(text){
+  const visit=(scope,out)=>{ if(!scope||!scope.querySelectorAll) return out;
+    for(const el of scope.querySelectorAll('*')){ out.push(el); if(el.shadowRoot) visit(el.shadowRoot,out); }
+    return out; };
+  const out=[]; visit(this,out); if(this.shadowRoot) visit(this.shadowRoot,out);
+  for(const el of out){ if(el.textContent && el.textContent.includes(text)) return el; }
+  return null;
+}"#;
+
+/// Resolves to the first shadow-piercing match, or null after the timeout. One CDP
+/// call total: a document `MutationObserver` for the light DOM plus a slow rescan
+/// for shadow roots (whose mutations never reach a document observer).
+const JS_WAIT_FOR_SELECTOR: &str = r#"function(sel,ms){
+  const visit=(scope,out)=>{ if(!scope||!scope.querySelectorAll) return out;
+    for(const el of scope.querySelectorAll(sel)) out.push(el);
+    for(const el of scope.querySelectorAll('*')){ if(el.shadowRoot) visit(el.shadowRoot,out); }
+    return out; };
+  const find=()=>{ const out=[]; visit(this,out); if(this.shadowRoot) visit(this.shadowRoot,out); return out[0]||null; };
+  return new Promise((resolve)=>{
+    const now=find(); if(now){ resolve(now); return; }
+    let done=false, observer=null, rescan=null, timer=null;
+    const finish=(el)=>{ if(done) return; done=true; if(observer) observer.disconnect(); clearInterval(rescan); clearTimeout(timer); resolve(el); };
+    const scan=()=>{ const el=find(); if(el) finish(el); };
+    observer=new MutationObserver(scan);
+    observer.observe(document,{childList:true,subtree:true,attributes:true,characterData:true});
+    rescan=setInterval(scan,100);
+    timer=setTimeout(()=>finish(null),ms);
+  });
+}"#;
+
 /// Represents an HTML element in the DOM.
 #[derive(uniffi::Object)]
 pub struct Element {
@@ -57,15 +123,23 @@ impl Element {
     }
 
     /// Clicks the element using realistic mouse movement and CDP input events.
+    ///
+    /// Fails with [`XcelerateError::NotFound`] if the element is not actionable
+    /// (zero-size, `display:none`, `visibility:hidden` or fully transparent),
+    /// rather than dispatching a click at coordinates that nothing occupies.
     pub async fn click_stealth(self: Arc<Self>) -> XcelerateResult<Arc<Self>> {
         let js = "function() {
             this.scrollIntoView({ block: 'center', inline: 'center' });
             const rect = this.getBoundingClientRect();
+            const style = getComputedStyle(this);
+            const visible = rect.width > 0 && rect.height > 0
+                && style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
             return JSON.stringify({
                 x: rect.left,
                 y: rect.top,
                 width: rect.width,
-                height: rect.height
+                height: rect.height,
+                visible: visible
             });
         }"
         .to_string();
@@ -83,10 +157,18 @@ impl Element {
             y: f64,
             width: f64,
             height: f64,
+            visible: bool,
         }
 
         let rect: Rect = serde_json::from_str(&val_str)
             .map_err(|e| crate::error::XcelerateError::SerdeError(e.to_string()))?;
+
+        if !rect.visible {
+            return Err(crate::error::XcelerateError::NotFound(
+                "element is not actionable (zero size, display:none, visibility:hidden or opacity:0)"
+                    .to_string(),
+            ));
+        }
 
         let mut rng = Lcg::new();
         let target_x = rect.x + rect.width * 0.15 + rng.range(0.0, rect.width * 0.7);
@@ -341,35 +423,21 @@ impl Element {
     }
 
     /// Returns the first descendant matching `selector` as an [`Element`].
+    ///
+    /// The search pierces open shadow roots, so web components are reachable.
     pub async fn query_selector(
         self: Arc<Self>,
         selector: String,
     ) -> XcelerateResult<Arc<Element>> {
-        let quoted = serde_json::to_string(&selector)
-            .map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
-        let res = self
-            .page
-            .client
-            .execute_with_session(
-                Some(&self.page.session_id),
-                js_protocol::runtime::CallFunctionOnParams {
-                    function_declaration: format!(
-                        "function(){{return this.querySelector({quoted});}}"
-                    )
-                    .into(),
-                    object_id: Some(self.object_id.clone().into()),
-                    return_by_value: Some(false),
-                    ..Default::default()
-                },
-            )
-            .await?;
-        if let Some(object_id) = res.result.object_id {
-            Ok(Arc::new(Element {
+        match self
+            .call_with_args(JS_QUERY_ONE, vec![serde_json::json!(selector)], false)
+            .await?
+        {
+            Some(object_id) => Ok(Arc::new(Element {
                 page: self.page.clone(),
-                object_id: object_id.into_owned(),
-            }))
-        } else {
-            Err(XcelerateError::NotFound(selector))
+                object_id,
+            })),
+            None => Err(XcelerateError::NotFound(selector)),
         }
     }
 
@@ -405,37 +473,22 @@ impl Element {
 
     /// Returns every descendant matching `selector`.
     ///
-    /// Resolves the whole node list with a single `Runtime.getProperties` call
-    /// rather than one `evaluate` per match.
+    /// The search pierces open shadow roots. Resolves the whole node list with a
+    /// single `Runtime.getProperties` call rather than one `evaluate` per match.
     pub async fn query_selector_all(
         self: Arc<Self>,
         selector: String,
     ) -> XcelerateResult<Vec<Arc<Element>>> {
-        let quoted = serde_json::to_string(&selector)
-            .map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
-        let res = self
-            .page
-            .client
-            .execute_with_session(
-                Some(&self.page.session_id),
-                js_protocol::runtime::CallFunctionOnParams {
-                    function_declaration: format!(
-                        "function(){{return Array.from(this.querySelectorAll({quoted}));}}"
-                    )
-                    .into(),
-                    object_id: Some(self.object_id.clone().into()),
-                    return_by_value: Some(false),
-                    ..Default::default()
-                },
-            )
-            .await?;
-        match res.result.object_id {
+        match self
+            .call_with_args(JS_QUERY_ALL, vec![serde_json::json!(selector)], false)
+            .await?
+        {
             Some(object_id) => {
                 crate::page::collect_elements(
                     &self.page.client,
                     &self.page.session_id,
                     &self.page,
-                    object_id,
+                    object_id.into(),
                 )
                 .await
             }
@@ -530,13 +583,19 @@ impl Element {
     }
 
     /// Finds a descendant whose text contains `text`.
+    ///
+    /// The search pierces open shadow roots.
     pub async fn get_by_text(self: Arc<Self>, text: String) -> XcelerateResult<Arc<Element>> {
-        let quoted =
-            serde_json::to_string(&text).map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
-        self.evaluate_handle(format!(
-            "function(){{return Array.from(this.querySelectorAll('*')).find(function(e){{return e.textContent.includes({quoted});}});}}"
-        ))
-        .await
+        match self
+            .call_with_args(JS_BY_TEXT, vec![serde_json::json!(text)], false)
+            .await?
+        {
+            Some(object_id) => Ok(Arc::new(Element {
+                page: self.page.clone(),
+                object_id,
+            })),
+            None => Err(XcelerateError::NotFound(format!("text not found: {text}"))),
+        }
     }
 
     /// Finds a descendant by ARIA role.
@@ -591,22 +650,27 @@ impl Element {
     }
 
     /// Waits for a descendant matching `selector` to appear.
+    ///
+    /// The wait happens inside the page in a single CDP call: a `MutationObserver`
+    /// resolves as soon as the node appears (and a slow rescan covers shadow
+    /// roots), instead of the caller polling `query_selector` over the wire every
+    /// 250ms. Times out after 30 seconds.
     pub async fn wait_for_selector(
         self: Arc<Self>,
         selector: String,
     ) -> XcelerateResult<Arc<Element>> {
-        let start = std::time::Instant::now();
-        let timeout = std::time::Duration::from_secs(30);
-        loop {
-            if let Ok(element) = self.clone().query_selector(selector.clone()).await {
-                return Ok(element);
-            }
-            if start.elapsed() >= timeout {
-                return Err(XcelerateError::NotFound(format!(
-                    "Timeout waiting for selector: {selector}"
-                )));
-            }
-            tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+        let args = vec![serde_json::json!(selector), serde_json::json!(30_000u64)];
+        match self
+            .call_with_args(JS_WAIT_FOR_SELECTOR, args, true)
+            .await?
+        {
+            Some(object_id) => Ok(Arc::new(Element {
+                page: self.page.clone(),
+                object_id,
+            })),
+            None => Err(XcelerateError::NotFound(format!(
+                "Timeout waiting for selector: {selector}"
+            ))),
         }
     }
 }
@@ -629,6 +693,74 @@ impl Element {
             )
             .await
             .map_err(XcelerateError::from)
+    }
+
+    /// Calls `js` on this element with the given JSON arguments and returns the
+    /// resulting remote object id, if the call produced one.
+    ///
+    /// `await_promise` resolves a promise the function returns (used by the
+    /// in-page selector wait).
+    async fn call_with_args(
+        &self,
+        js: &str,
+        args: Vec<serde_json::Value>,
+        await_promise: bool,
+    ) -> XcelerateResult<Option<String>> {
+        let arguments: Vec<js_protocol::runtime::CallArgument<'_>> = args
+            .into_iter()
+            .map(|value| js_protocol::runtime::CallArgument {
+                value: Some(value),
+                ..Default::default()
+            })
+            .collect();
+        let res = self
+            .page
+            .client
+            .execute_with_session(
+                Some(&self.page.session_id),
+                js_protocol::runtime::CallFunctionOnParams {
+                    function_declaration: js.into(),
+                    object_id: Some(self.object_id.clone().into()),
+                    arguments: Some(arguments),
+                    await_promise: Some(await_promise),
+                    return_by_value: Some(false),
+                    ..Default::default()
+                },
+            )
+            .await?;
+        Ok(res.result.object_id.map(|id| id.into_owned()))
+    }
+
+    /// Returns every descendant matching `selector`, piercing open shadow roots
+    /// **and same-origin iframe documents**.
+    ///
+    /// Unlike [`Element::query_selector_all`], this crosses frame boundaries, so
+    /// it reaches content inside a same-origin `<iframe>`. Cross-origin frames
+    /// cannot be reached from page script and are skipped. Kept out of the
+    /// `#[uniffi::export]` block so binding checksums stay stable.
+    pub async fn query_selector_all_frames(
+        self: Arc<Self>,
+        selector: String,
+    ) -> XcelerateResult<Vec<Arc<Element>>> {
+        match self
+            .call_with_args(
+                JS_QUERY_ALL_FRAMES,
+                vec![serde_json::json!(selector)],
+                false,
+            )
+            .await?
+        {
+            Some(object_id) => {
+                crate::page::collect_elements(
+                    &self.page.client,
+                    &self.page.session_id,
+                    &self.page,
+                    object_id.into(),
+                )
+                .await
+            }
+            None => Ok(Vec::new()),
+        }
     }
 }
 

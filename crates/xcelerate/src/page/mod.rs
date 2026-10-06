@@ -27,6 +27,7 @@ mod snapshot;
 mod challenge;
 mod downloads;
 mod find;
+mod frames;
 mod har;
 mod health;
 mod highlight;
@@ -68,6 +69,9 @@ pub struct Page {
     /// HAR response-body mode: `omit` (default), `embed`, or `base64`
     /// (see `page::har` and `page::response`).
     pub(crate) har_body_mode: Arc<tokio::sync::Mutex<String>>,
+    /// Text of the most recent `agent_snapshot_diff`, so the next call can report
+    /// only what changed (see `page::snapshot`).
+    pub(crate) last_snapshot: Arc<tokio::sync::Mutex<Option<String>>>,
 }
 
 /// A declarative network-interception rule.
