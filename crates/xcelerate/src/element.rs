@@ -762,9 +762,14 @@ impl Element {
             )
             .await?;
         if let Some(exception) = res.exception_details {
-            // A thrown function is not a result; surface it so callers can react
-            // (the XPath layer uses this to fall back to native `document.evaluate`).
-            return Err(XcelerateError::Unsupported(exception.text.into_owned()));
+            // A thrown function is not a result; surface the thrown message (the
+            // XPath layer uses this to fall back to native `document.evaluate`).
+            let message = exception
+                .exception
+                .and_then(|exception| exception.description)
+                .map(std::borrow::Cow::into_owned)
+                .unwrap_or_else(|| exception.text.into_owned());
+            return Err(XcelerateError::Unsupported(message));
         }
         Ok(res.result.object_id.map(|id| id.into_owned()))
     }
