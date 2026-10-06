@@ -86,4 +86,6 @@ jobs:
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
       - run: cargo install cargo-geiger
-      - run: cargo geiger --all-features --output-format Markdown
+      # The valid values are Ascii, GitHubMarkdown, Json, Utf8 and Ratio — not
+      # "Markdown"; cargo-geiger panics on an unrecognised variant.
+      - run: cargo geiger --all-features --output-format GitHubMarkdown
