@@ -197,7 +197,7 @@ impl Browser {
             .as_ref()
             .is_some_and(|options| options.keep_alive);
 
-        let (child, guard) = if plan.detached {
+        let (mut child, guard) = if plan.detached {
             let pid = spawn_detached(cmd)?;
             let guard = ProcessGuard {
                 pid,
@@ -218,7 +218,7 @@ impl Browser {
         };
 
         // 3. Connect to debugger
-        let ws_url = wait_for_ws_url(port).await?;
+        let ws_url = wait_for_ws_url(port, child.as_mut()).await?;
         let client = Arc::new(xcelerate_core::connect(&ws_url).await?);
 
         // Capability F: downloads are opt-in; deny explicitly otherwise. Best
@@ -772,8 +772,17 @@ fn setup_browser_args(
         .arg("--no-default-browser-check")
         .arg("--remote-allow-origins=*")
         .arg("--no-startup-window")
+        .args(background_hardening_flags())
         .stdout(Stdio::null())
         .stderr(Stdio::null());
+
+    // Chrome's OS sandbox needs user namespaces, which most CI runners and
+    // containers lack and root cannot use at all; there the browser refuses to
+    // start. Every mainstream driver drops it in those environments, so do the
+    // same while leaving it enabled for ordinary desktop launches.
+    if needs_no_sandbox() {
+        cmd.arg("--no-sandbox");
+    }
 
     if headless {
         cmd.arg("--headless=new");
@@ -781,9 +790,22 @@ fn setup_browser_args(
     }
 }
 
-async fn wait_for_ws_url(port: u16) -> XcelerateResult<String> {
+async fn wait_for_ws_url(
+    port: u16,
+    mut child: Option<&mut tokio::process::Child>,
+) -> XcelerateResult<String> {
     let mut attempts = 0;
     loop {
+        // A browser that dies during startup (locked profile, missing GL, a
+        // rejected flag) should surface its exit status instead of a bare
+        // timeout that hides the cause.
+        if let Some(child) = child.as_deref_mut()
+            && let Ok(Some(status)) = child.try_wait()
+        {
+            return Err(XcelerateError::NotFound(format!(
+                "Chrome exited before the DevTools endpoint was ready ({status})"
+            )));
+        }
         match fetch_devtools_version(port).await {
             Ok(json) => {
                 if let Some(ws_url) = json["webSocketDebuggerUrl"].as_str() {
@@ -839,6 +861,49 @@ async fn fetch_devtools_version(port: u16) -> XcelerateResult<serde_json::Value>
     serde_json::from_slice(&response[split + 4..]).map_err(XcelerateError::from)
 }
 
+/// Chrome flags applied to every launch that stop the browser from throttling
+/// or backgrounding the work a driver depends on.
+///
+/// Without these, timers, renderers and network activity are throttled whenever
+/// a window is occluded or unfocused, which turns fixed-duration waits,
+/// screenshots and media playback into slow, flaky operations. The cost is a
+/// handful of argv entries at spawn and no runtime overhead.
+fn background_hardening_flags() -> &'static [&'static str] {
+    &[
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--disable-ipc-flooding-protection",
+        "--disable-background-networking",
+        "--disable-component-update",
+        "--disable-domain-reliability",
+        "--disable-hang-monitor",
+        "--disable-sync",
+        "--mute-audio",
+        "--password-store=basic",
+        "--use-mock-keychain",
+        "--disable-features=Translate,OptimizationHints,MediaRouter,PrivacySandboxSettings4",
+    ]
+}
+
+/// Whether Chrome's OS sandbox must be dropped because the host cannot set it
+/// up: CI runners and containers generally lack the required user namespaces,
+/// and root can never use it. Ordinary desktop launches keep the sandbox.
+fn needs_no_sandbox() -> bool {
+    if std::env::var_os("CI").is_some() {
+        return true;
+    }
+    #[cfg(unix)]
+    {
+        // SAFETY: `getuid` is a side-effect-free libc getter.
+        unsafe { libc::getuid() == 0 }
+    }
+    #[cfg(not(unix))]
+    {
+        false
+    }
+}
+
 /// Chrome flags that make rendering deterministic (stable screenshots).
 fn deterministic_flags() -> &'static [&'static str] {
     &[
@@ -849,7 +914,6 @@ fn deterministic_flags() -> &'static [&'static str] {
         "--disable-threaded-scrolling",
         "--disable-checker-imaging",
         "--disable-image-animation-resync",
-        "--disable-background-timer-throttling",
     ]
 }
 
@@ -878,10 +942,58 @@ mod tests {
             "--disable-threaded-scrolling",
             "--disable-checker-imaging",
             "--disable-image-animation-resync",
-            "--disable-background-timer-throttling",
         ] {
             assert!(flags.contains(&expected), "missing flag: {expected}");
         }
+    }
+
+    #[test]
+    fn hardening_flags_cover_throttling_and_backgrounding() {
+        let flags = background_hardening_flags();
+        assert!(!flags.is_empty());
+        for expected in [
+            "--disable-background-timer-throttling",
+            "--disable-backgrounding-occluded-windows",
+            "--disable-renderer-backgrounding",
+            "--disable-ipc-flooding-protection",
+        ] {
+            assert!(flags.contains(&expected), "missing flag: {expected}");
+        }
+    }
+
+    /// The readiness loop must report a browser that died during startup instead
+    /// of waiting out the full timeout.
+    #[tokio::test]
+    async fn reports_a_crash_before_the_debugger_is_ready() {
+        #[cfg(windows)]
+        let mut cmd = {
+            let mut cmd = tokio::process::Command::new("cmd");
+            cmd.args(["/C", "exit 3"]);
+            cmd
+        };
+        #[cfg(unix)]
+        let mut cmd = {
+            let mut cmd = tokio::process::Command::new("sh");
+            cmd.args(["-c", "exit 3"]);
+            cmd
+        };
+
+        let mut child = cmd.spawn().expect("spawn a process that exits immediately");
+
+        // Give the stub process a moment to exit, then point the waiter at a
+        // port nothing is listening on.
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .unwrap();
+        let port = listener.local_addr().unwrap().port();
+        drop(listener);
+
+        let error = wait_for_ws_url(port, Some(&mut child)).await.unwrap_err();
+        assert!(
+            error.to_string().contains("exited before"),
+            "unexpected error: {error}"
+        );
     }
 
     #[test]
