@@ -1,7 +1,8 @@
 # Publishing the `xcelerate` CLI to winget
 
-Winget is **Windows only**. The package is `Chaosware.Xcelerate` and installs
-`xcelerate.exe` as the command `xcelerate`. For Linux, see [`../linux`](../linux).
+Winget is **Windows only**. The package is `Chaosware.Xcelerate` and installs two
+commands: `xcelerate.exe` as `xcelerate`, and `xcelerate-mcp.exe` as
+`xcelerate-mcp` (the MCP stdio server). For Linux, see [`../linux`](../linux).
 
 The manifests live in
 [`manifests/c/Chaosware/Xcelerate/<version>/`](manifests/c/Chaosware/Xcelerate/1.0.10)
@@ -13,11 +14,12 @@ with `winget validate`. [`wingetcreate`][wc] submits them.
 From the repository root (PowerShell):
 
 ```powershell
-cargo build --release -p xcelerate-cli
+cargo build --release -p xcelerate-cli -p xcelerate-mcp
 $v = (Select-String -Path Cargo.toml -Pattern '^version = "([^"]+)"' |
       Select-Object -First 1).Matches.Groups[1].Value
 New-Item -ItemType Directory -Force staging | Out-Null
 Copy-Item target\release\xcelerate.exe staging\
+Copy-Item target\release\xcelerate-mcp.exe staging\
 Copy-Item LICENSE-MIT,LICENSE-APACHE staging\
 Compress-Archive -Path staging\* -DestinationPath "xcelerate-$v-x86_64-pc-windows-msvc.zip" -Force
 ```
@@ -99,9 +101,9 @@ text fields.
 
 ## Notes
 
-- `InstallerType: zip` + `NestedInstallerType: portable` is the right shape for a
-  single-binary CLI: winget extracts the zip and links `xcelerate.exe` onto
-  `PATH` (`%LOCALAPPDATA%\Microsoft\WinGet\Links\xcelerate.exe`).
+- `InstallerType: zip` + `NestedInstallerType: portable` is the right shape here:
+  winget extracts the zip and links every `NestedInstallerFiles` entry onto `PATH`
+  (`%LOCALAPPDATA%\Microsoft\WinGet\Links\xcelerate.exe` and `…\xcelerate-mcp.exe`).
 - Keep the identifier `Chaosware.Xcelerate`; it must be globally unique and is
   what users type (`winget install Chaosware.Xcelerate`). The `Moniker` lets them
   shorten that to `winget install xcelerate`.

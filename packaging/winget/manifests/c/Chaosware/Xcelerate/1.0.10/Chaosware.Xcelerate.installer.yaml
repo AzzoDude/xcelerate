@@ -6,6 +6,8 @@ NestedInstallerType: portable
 NestedInstallerFiles:
   - RelativeFilePath: xcelerate.exe
     PortableCommandAlias: xcelerate
+  - RelativeFilePath: xcelerate-mcp.exe
+    PortableCommandAlias: xcelerate-mcp
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/ChaoswareHQ/xcelerate/releases/download/v1.0.10/xcelerate-1.0.10-x86_64-pc-windows-msvc.zip

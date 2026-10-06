@@ -53,7 +53,7 @@ jobs:
           lookup-only: true
 
       - name: Build
-        run: cargo build --release -p xcelerate-cli --target ${{ matrix.target }}
+        run: cargo build --release -p xcelerate-cli -p xcelerate-mcp --target ${{ matrix.target }}
 
       - name: Package (unix)
         if: matrix.kind == 'unix'
@@ -63,6 +63,7 @@ jobs:
           name="xcelerate-${version}-${{ matrix.target }}"
           mkdir -p "dist/$name"
           cp "target/${{ matrix.target }}/release/xcelerate" "dist/$name/"
+          cp "target/${{ matrix.target }}/release/xcelerate-mcp" "dist/$name/"
           cp LICENSE-MIT LICENSE-APACHE "dist/$name/"
           tar -C dist -czf "dist/$name.tar.gz" "$name"
 
@@ -75,6 +76,7 @@ jobs:
           $name = "xcelerate-$version-${{ matrix.target }}"
           New-Item -ItemType Directory -Force "dist/$name" | Out-Null
           Copy-Item "target/${{ matrix.target }}/release/xcelerate.exe" "dist/$name/"
+          Copy-Item "target/${{ matrix.target }}/release/xcelerate-mcp.exe" "dist/$name/"
           Copy-Item LICENSE-MIT,LICENSE-APACHE "dist/$name/"
           Compress-Archive -Path "dist/$name/*" -DestinationPath "dist/$name.zip"
 

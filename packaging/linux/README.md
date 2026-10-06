@@ -7,7 +7,7 @@ the machine, or an explicit `--executable-path`, exactly like the Windows build.
 ## Build
 
 ```bash
-cargo build --release -p xcelerate-cli
+cargo build --release -p xcelerate-cli -p xcelerate-mcp
 ./target/release/xcelerate --version
 ```
 
@@ -80,7 +80,7 @@ class Xcelerate < Formula
   end
 
   def install
-    bin.install "xcelerate"
+    bin.install "xcelerate", "xcelerate-mcp"
   end
 end
 ```

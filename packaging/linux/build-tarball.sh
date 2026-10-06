@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Build the xcelerate CLI and package it as a Linux tarball.
+# Build the xcelerate binaries (CLI + MCP server) and package them as a Linux tarball.
 #
 #   ./packaging/linux/build-tarball.sh [target-triple]
 #
@@ -17,8 +17,8 @@ cd "$root"
 version=$(grep -m1 '^version = ' Cargo.toml | cut -d '"' -f2)
 target=${1:-$(rustc -vV | sed -n 's/^host: //p')}
 
-echo "building xcelerate-cli $version for $target"
-cargo build --release -p xcelerate-cli --target "$target"
+echo "building xcelerate-cli + xcelerate-mcp $version for $target"
+cargo build --release -p xcelerate-cli -p xcelerate-mcp --target "$target"
 
 name="xcelerate-${version}-${target}"
 stage="dist/${name}"
@@ -26,6 +26,7 @@ stage="dist/${name}"
 rm -rf "$stage"
 mkdir -p "$stage"
 cp "target/${target}/release/xcelerate" "$stage/"
+cp "target/${target}/release/xcelerate-mcp" "$stage/"
 cp LICENSE-MIT LICENSE-APACHE "$stage/" 2>/dev/null || true
 
 tar -C dist -czf "dist/${name}.tar.gz" "$name"
