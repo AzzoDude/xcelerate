@@ -270,10 +270,10 @@ class Page:
         return await _runtime.page_wait_for_frame(self._wrapped, **kwargs)
 
     async def tap(self, selector, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const e=document.querySelector(sel);if(e)e.click();}', 'void', [selector], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', "function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(e)e.click();}", 'void', [selector], **kwargs)
 
     async def select(self, selector, values_json, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', "function(sel,valuesRaw){const e=document.querySelector(sel);if(!e)return;const w=JSON.parse(valuesRaw).map(String);for(const o of e.options){o.selected=w.includes(o.value)||w.includes(o.text);}e.dispatchEvent(new Event('change',{bubbles:true}));}", 'void', [selector, values_json], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', "function(sel,valuesRaw){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(!e)return;const w=JSON.parse(valuesRaw).map(String);for(const o of e.options){o.selected=w.includes(o.value)||w.includes(o.text);}e.dispatchEvent(new Event('change',{bubbles:true}));}", 'void', [selector, values_json], **kwargs)
 
     async def setInputFiles(self, selector, files_json, **kwargs):
         return await _runtime.page_set_input_files(self._wrapped, selector, files_json, **kwargs)
@@ -594,7 +594,7 @@ class ElementHandle:
         return await _runtime.call_js(self._wrapped, 'element', 'function(){this.dispatchEvent(new DragEvent("dragstart",{bubbles:true}));this.dispatchEvent(new DragEvent("dragend",{bubbles:true}));}', 'void', [], **kwargs)
 
     async def dragAndDrop(self, target, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'element', 'function(sel){const t=document.querySelector(sel);if(!t)return;this.dispatchEvent(new DragEvent("dragstart",{bubbles:true}));t.dispatchEvent(new DragEvent("drop",{bubbles:true}));this.dispatchEvent(new DragEvent("dragend",{bubbles:true}));}', 'void', [target], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'element', 'function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll(\'*\')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const t=(__xp(document,sel)[0]||null);if(!t)return;this.dispatchEvent(new DragEvent("dragstart",{bubbles:true}));t.dispatchEvent(new DragEvent("drop",{bubbles:true}));this.dispatchEvent(new DragEvent("dragend",{bubbles:true}));}', 'void', [target], **kwargs)
 
     async def dragEnter(self, **kwargs):
         return await _runtime.call_js(self._wrapped, 'element', 'function(){this.dispatchEvent(new DragEvent("dragenter",{bubbles:true}));}', 'void', [], **kwargs)
@@ -743,7 +743,7 @@ class Frame:
         return await _runtime.page_main_frame(self._wrapped, **kwargs)
 
     async def select(self, selector, values_json, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', "function(sel,valuesRaw){const e=document.querySelector(sel);if(!e)return;const w=JSON.parse(valuesRaw).map(String);for(const o of e.options){o.selected=w.includes(o.value)||w.includes(o.text);}e.dispatchEvent(new Event('change',{bubbles:true}));}", 'void', [selector, values_json], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', "function(sel,valuesRaw){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(!e)return;const w=JSON.parse(valuesRaw).map(String);for(const o of e.options){o.selected=w.includes(o.value)||w.includes(o.text);}e.dispatchEvent(new Event('change',{bubbles:true}));}", 'void', [selector, values_json], **kwargs)
 
     async def setContent(self, html, **kwargs):
         return await _runtime.call_js(self._wrapped, 'page', 'function(h){document.open();document.write(h);document.close();}', 'void', [html], **kwargs)
@@ -752,7 +752,7 @@ class Frame:
         return await _runtime.page_set_content(self._wrapped, html, **kwargs)
 
     async def tap(self, selector, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const e=document.querySelector(sel);if(e)e.click();}', 'void', [selector], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', "function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(e)e.click();}", 'void', [selector], **kwargs)
 
     async def title(self, **kwargs):
         return await _runtime.page_title(self._wrapped, **kwargs)

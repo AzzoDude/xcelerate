@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import keyword
 import os
+import re
 import shutil
 import sys
 
@@ -49,6 +50,103 @@ PY_HEADER = (
     "import types\n\n"
     "from . import _runtime\n"
 )
+
+# ---------------------------------------------------------------------------
+# Shadow-DOM piercing for inline-JS impls
+#
+# Inline-JS impls historically did their work with raw
+# ``document.querySelector(sel)`` (or, for element receivers,
+# ``this.querySelector(sel)``), which cannot see into a shadow root, so web
+# components were silently invisible. ``pierce_js`` rewrites every raw lookup
+# to a local, self-contained helper that walks open shadow roots - the same
+# traversal as the core ``Element::JS_QUERY_ALL`` (open roots only; closed
+# roots stay out of reach, as page script cannot enter them). Because piercing
+# is a superset of ``querySelector`` the rewrite is behaviour-preserving for
+# light DOM. The helper is injected as a ``const`` inside each emitted function
+# so the generated wrappers never depend on anything outside themselves.
+# ---------------------------------------------------------------------------
+JS_PIERCE = (
+    "const __xp=(scope,sel)=>{"
+    "const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;"
+    "for(const el of s.querySelectorAll(sel))out.push(el);"
+    "for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}"
+    "return out;};"
+    "const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};"
+)
+
+_RAW_LOOKUP = re.compile(r"\b(document|this)\.querySelector(All)?\(")
+
+
+def _matching_paren(js, open_index):
+    """Return the index of the ``)`` matching the ``(`` at ``open_index``.
+
+    String literals (single, double and backtick quoted) are skipped so
+    parentheses inside them do not disturb the depth count.
+    """
+    depth = 0
+    quote = None
+    index = open_index
+    while index < len(js):
+        char = js[index]
+        if quote is not None:
+            if char == "\\":
+                index += 2
+                continue
+            if char == quote:
+                quote = None
+        elif char in "\"'`":
+            quote = char
+        elif char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth == 0:
+                return index
+        index += 1
+    raise ValueError(f"unbalanced parentheses in JS impl: {js!r}")
+
+
+def pierce_js(js):
+    """Rewrite raw ``querySelector``/``querySelectorAll`` lookups to pierce.
+
+    ``document.querySelector(x)`` becomes ``(__xp(document,x)[0]||null)`` and
+    ``this.querySelector(x)`` becomes ``(__xp(this,x)[0]||null)``; the ``All``
+    forms become ``__xp(receiver,x)`` (an array). The ``__xp`` helper traverses
+    open shadow roots. ``js`` is returned unchanged when it has no raw lookup,
+    which keeps the transform idempotent.
+    """
+    if not _RAW_LOOKUP.search(js):
+        return js
+
+    parts = []
+    pos = 0
+    while True:
+        match = _RAW_LOOKUP.search(js, pos)
+        if match is None:
+            parts.append(js[pos:])
+            break
+        receiver = match.group(1)
+        wants_all = match.group(2) == "All"
+        open_index = match.end() - 1
+        close_index = _matching_paren(js, open_index)
+        args = js[open_index + 1 : close_index]
+        parts.append(js[pos : match.start()])
+        if wants_all:
+            parts.append(f"__xp({receiver},{args})")
+        else:
+            parts.append(f"(__xp({receiver},{args})[0]||null)")
+        pos = close_index + 1
+
+    rewritten = "".join(parts)
+
+    # Inject the shared helper as the first statement of the function body.
+    params_open = rewritten.index("(")
+    body_open = rewritten.index("{", _matching_paren(rewritten, params_open))
+    return (
+        rewritten[: body_open + 1]
+        + JS_PIERCE
+        + rewritten[body_open + 1 :]
+    )
 
 # ---------------------------------------------------------------------------
 # Op table: op name -> Rust receiver kind, params, return shape and body.
@@ -1222,7 +1320,7 @@ def emit_py_method(method, indent="    "):
                 f"{params_dict}, {returns!r}, **kwargs)"
             )
         else:
-            js = spec["js"]
+            js = pierce_js(spec["js"])
             arg_list = ", ".join(param_names(params))
             call = (
                 f"_runtime.call_js(self._wrapped, {scope!r}, {js!r}, {returns!r}, "
@@ -1469,7 +1567,7 @@ def emit_rs_impl(method):
         else:
             body, ret_type = f"Ok({call})", "String"
     else:
-        js = rust_string(spec["js"])
+        js = rust_string(pierce_js(spec["js"]))
         arg_list = ", ".join(pname for pname, _ in params)
         args_json = (
             f"serde_json::json!([{arg_list}]).to_string()" if arg_list else '"[]".to_string()'

@@ -493,25 +493,25 @@ impl Page {
 
     /// `press`.
     pub async fn press(&self, selector: String, key: String) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(sel,key){const e=document.querySelector(sel);if(!e)return;e.focus();e.dispatchEvent(new KeyboardEvent(\"keydown\",{key:key,bubbles:true}));e.dispatchEvent(new KeyboardEvent(\"keyup\",{key:key,bubbles:true}));}".to_string(), serde_json::json!([selector, key]).to_string()).await?;
+        self.inner.call_json("function(sel,key){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(!e)return;e.focus();e.dispatchEvent(new KeyboardEvent(\"keydown\",{key:key,bubbles:true}));e.dispatchEvent(new KeyboardEvent(\"keyup\",{key:key,bubbles:true}));}".to_string(), serde_json::json!([selector, key]).to_string()).await?;
         Ok(())
     }
 
     /// `check`.
     pub async fn check(&self, selector: String) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(sel){const e=document.querySelector(sel);if(e&&e.checked!==true)e.click();}".to_string(), serde_json::json!([selector]).to_string()).await?;
+        self.inner.call_json("function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(e&&e.checked!==true)e.click();}".to_string(), serde_json::json!([selector]).to_string()).await?;
         Ok(())
     }
 
     /// `uncheck`.
     pub async fn uncheck(&self, selector: String) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(sel){const e=document.querySelector(sel);if(e&&e.checked===true)e.click();}".to_string(), serde_json::json!([selector]).to_string()).await?;
+        self.inner.call_json("function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(e&&e.checked===true)e.click();}".to_string(), serde_json::json!([selector]).to_string()).await?;
         Ok(())
     }
 
     /// `set_checked`.
     pub async fn set_checked(&self, selector: String, checked: bool) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(sel,v){const e=document.querySelector(sel);if(e&&e.checked!==!!v)e.click();}".to_string(), serde_json::json!([selector, checked]).to_string()).await?;
+        self.inner.call_json("function(sel,v){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(e&&e.checked!==!!v)e.click();}".to_string(), serde_json::json!([selector, checked]).to_string()).await?;
         Ok(())
     }
 
@@ -529,55 +529,55 @@ impl Page {
 
     /// `tap`.
     pub async fn tap(&self, selector: String) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(sel){const e=document.querySelector(sel);if(e)e.click();}".to_string(), serde_json::json!([selector]).to_string()).await?;
+        self.inner.call_json("function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(e)e.click();}".to_string(), serde_json::json!([selector]).to_string()).await?;
         Ok(())
     }
 
     /// `dispatch_event`.
     pub async fn dispatch_event(&self, selector: String, event_type: String) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(sel,t){const e=document.querySelector(sel);if(e)e.dispatchEvent(new Event(t,{bubbles:true,cancelable:true}));}".to_string(), serde_json::json!([selector, event_type]).to_string()).await?;
+        self.inner.call_json("function(sel,t){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(e)e.dispatchEvent(new Event(t,{bubbles:true,cancelable:true}));}".to_string(), serde_json::json!([selector, event_type]).to_string()).await?;
         Ok(())
     }
 
     /// `drag_and_drop`.
     pub async fn drag_and_drop(&self, source: String, target: String) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(src,dst){const s=document.querySelector(src),t=document.querySelector(dst);if(!s||!t)return;const dt=new DataTransfer();s.dispatchEvent(new DragEvent(\"dragstart\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"dragenter\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"dragover\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"drop\",{bubbles:true,dataTransfer:dt}));s.dispatchEvent(new DragEvent(\"dragend\",{bubbles:true,dataTransfer:dt}));}".to_string(), serde_json::json!([source, target]).to_string()).await?;
+        self.inner.call_json("function(src,dst){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const s=(__xp(document,src)[0]||null),t=(__xp(document,dst)[0]||null);if(!s||!t)return;const dt=new DataTransfer();s.dispatchEvent(new DragEvent(\"dragstart\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"dragenter\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"dragover\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"drop\",{bubbles:true,dataTransfer:dt}));s.dispatchEvent(new DragEvent(\"dragend\",{bubbles:true,dataTransfer:dt}));}".to_string(), serde_json::json!([source, target]).to_string()).await?;
         Ok(())
     }
 
     /// `input_value`.
     pub async fn input_value(&self, selector: String) -> Result<String, XcelerateError> {
-        Ok(self.inner.call_string("function(sel){const e=document.querySelector(sel);return e&&e.value!=null?String(e.value):\"\";}".to_string(), serde_json::json!([selector]).to_string()).await?)
+        Ok(self.inner.call_string("function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);return e&&e.value!=null?String(e.value):\"\";}".to_string(), serde_json::json!([selector]).to_string()).await?)
     }
 
     /// `is_visible`.
     pub async fn is_visible(&self, selector: String) -> Result<bool, XcelerateError> {
-        Ok(self.inner.call_bool("function(sel){const e=document.querySelector(sel);if(!e)return false;const s=getComputedStyle(e);const r=e.getBoundingClientRect();return !!(r.width||r.height)&&s.visibility!==\"hidden\"&&s.display!==\"none\";}".to_string(), serde_json::json!([selector]).to_string()).await?)
+        Ok(self.inner.call_bool("function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(!e)return false;const s=getComputedStyle(e);const r=e.getBoundingClientRect();return !!(r.width||r.height)&&s.visibility!==\"hidden\"&&s.display!==\"none\";}".to_string(), serde_json::json!([selector]).to_string()).await?)
     }
 
     /// `is_hidden`.
     pub async fn is_hidden(&self, selector: String) -> Result<bool, XcelerateError> {
-        Ok(self.inner.call_bool("function(sel){const e=document.querySelector(sel);if(!e)return true;const s=getComputedStyle(e);const r=e.getBoundingClientRect();return !(!!(r.width||r.height)&&s.visibility!==\"hidden\"&&s.display!==\"none\");}".to_string(), serde_json::json!([selector]).to_string()).await?)
+        Ok(self.inner.call_bool("function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(!e)return true;const s=getComputedStyle(e);const r=e.getBoundingClientRect();return !(!!(r.width||r.height)&&s.visibility!==\"hidden\"&&s.display!==\"none\");}".to_string(), serde_json::json!([selector]).to_string()).await?)
     }
 
     /// `is_enabled`.
     pub async fn is_enabled(&self, selector: String) -> Result<bool, XcelerateError> {
-        Ok(self.inner.call_bool("function(sel){const e=document.querySelector(sel);return !!e&&!(e.disabled===true||e.hasAttribute(\"disabled\"));}".to_string(), serde_json::json!([selector]).to_string()).await?)
+        Ok(self.inner.call_bool("function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);return !!e&&!(e.disabled===true||e.hasAttribute(\"disabled\"));}".to_string(), serde_json::json!([selector]).to_string()).await?)
     }
 
     /// `is_disabled`.
     pub async fn is_disabled(&self, selector: String) -> Result<bool, XcelerateError> {
-        Ok(self.inner.call_bool("function(sel){const e=document.querySelector(sel);return !!e&&(e.disabled===true||e.hasAttribute(\"disabled\"));}".to_string(), serde_json::json!([selector]).to_string()).await?)
+        Ok(self.inner.call_bool("function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);return !!e&&(e.disabled===true||e.hasAttribute(\"disabled\"));}".to_string(), serde_json::json!([selector]).to_string()).await?)
     }
 
     /// `is_checked`.
     pub async fn is_checked(&self, selector: String) -> Result<bool, XcelerateError> {
-        Ok(self.inner.call_bool("function(sel){const e=document.querySelector(sel);return !!e&&e.checked===true;}".to_string(), serde_json::json!([selector]).to_string()).await?)
+        Ok(self.inner.call_bool("function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);return !!e&&e.checked===true;}".to_string(), serde_json::json!([selector]).to_string()).await?)
     }
 
     /// `is_editable`.
     pub async fn is_editable(&self, selector: String) -> Result<bool, XcelerateError> {
-        Ok(self.inner.call_bool("function(sel){const e=document.querySelector(sel);return !!e&&!(e.disabled===true||e.readOnly===true||e.hasAttribute(\"readonly\"));}".to_string(), serde_json::json!([selector]).to_string()).await?)
+        Ok(self.inner.call_bool("function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);return !!e&&!(e.disabled===true||e.readOnly===true||e.hasAttribute(\"readonly\"));}".to_string(), serde_json::json!([selector]).to_string()).await?)
     }
 
     /// `wait_for_url`.
@@ -785,7 +785,7 @@ impl Page {
 
     /// `hide_highlight`.
     pub async fn hide_highlight(&self) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(){document.querySelectorAll(\"*\").forEach(function(e){e.style.outline=\"\";});}".to_string(), "[]".to_string()).await?;
+        self.inner.call_json("function(){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};__xp(document,\"*\").forEach(function(e){e.style.outline=\"\";});}".to_string(), "[]".to_string()).await?;
         Ok(())
     }
 
@@ -1091,7 +1091,7 @@ impl Locator {
 
     /// `drag_to`.
     pub async fn drag_to(&self, target: String) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(sel){const t=document.querySelector(sel);if(!t)return;const dt=new DataTransfer();this.dispatchEvent(new DragEvent(\"dragstart\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"dragenter\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"dragover\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"drop\",{bubbles:true,dataTransfer:dt}));this.dispatchEvent(new DragEvent(\"dragend\",{bubbles:true,dataTransfer:dt}));}".to_string(), serde_json::json!([target]).to_string()).await?;
+        self.inner.call_json("function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const t=(__xp(document,sel)[0]||null);if(!t)return;const dt=new DataTransfer();this.dispatchEvent(new DragEvent(\"dragstart\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"dragenter\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"dragover\",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent(\"drop\",{bubbles:true,dataTransfer:dt}));this.dispatchEvent(new DragEvent(\"dragend\",{bubbles:true,dataTransfer:dt}));}".to_string(), serde_json::json!([target]).to_string()).await?;
         Ok(())
     }
 

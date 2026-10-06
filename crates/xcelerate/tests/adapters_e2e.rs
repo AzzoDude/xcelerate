@@ -59,6 +59,53 @@ async fn playwright_query_selector_all() {
 }
 
 #[tokio::test]
+async fn playwright_shadow_dom() {
+    let browser = playwright::launch(Some(config())).await.expect("launch");
+    let page = browser
+        .new_page("about:blank".to_string())
+        .await
+        .expect("new_page");
+
+    // The checkbox and input live in an open shadow root, so `document.querySelector`
+    // cannot see them; these lookups only resolve because the adapter's inline JS
+    // pierces the composed tree.
+    let html = r#"<!doctype html><html><body>
+        <div id="host"></div>
+        <script>
+          const root = document.getElementById('host').attachShadow({mode: 'open'});
+          root.innerHTML = '<input id="cb" type="checkbox"><input id="txt" type="text" value="from-shadow">';
+        </script>
+    </body></html>"#;
+    page.set_content(html.to_string())
+        .await
+        .expect("set_content");
+
+    let visible = page
+        .is_visible("#cb".to_string())
+        .await
+        .expect("is_visible");
+    assert!(visible, "checkbox inside the shadow root should be visible");
+
+    page.check("#cb".to_string()).await.expect("check");
+    let checked = page
+        .is_checked("#cb".to_string())
+        .await
+        .expect("is_checked");
+    assert!(checked, "checkbox inside the shadow root should be checked");
+
+    let value = page
+        .input_value("#txt".to_string())
+        .await
+        .expect("input_value");
+    assert_eq!(
+        value, "from-shadow",
+        "shadow input value should be readable"
+    );
+
+    browser.close().await.ok();
+}
+
+#[tokio::test]
 async fn puppeteer_query_selector_all() {
     let browser = puppeteer::launch(Some(config())).await.expect("launch");
     let page = browser.newPage(test_url()).await.expect("new_page");

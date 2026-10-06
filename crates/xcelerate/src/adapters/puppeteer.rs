@@ -473,13 +473,13 @@ impl Page {
 
     /// `tap`.
     pub async fn tap(&self, selector: String) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(sel){const e=document.querySelector(sel);if(e)e.click();}".to_string(), serde_json::json!([selector]).to_string()).await?;
+        self.inner.call_json("function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(e)e.click();}".to_string(), serde_json::json!([selector]).to_string()).await?;
         Ok(())
     }
 
     /// `select`.
     pub async fn select(&self, selector: String, values_json: String) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(sel,valuesRaw){const e=document.querySelector(sel);if(!e)return;const w=JSON.parse(valuesRaw).map(String);for(const o of e.options){o.selected=w.includes(o.value)||w.includes(o.text);}e.dispatchEvent(new Event('change',{bubbles:true}));}".to_string(), serde_json::json!([selector, values_json]).to_string()).await?;
+        self.inner.call_json("function(sel,valuesRaw){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(!e)return;const w=JSON.parse(valuesRaw).map(String);for(const o of e.options){o.selected=w.includes(o.value)||w.includes(o.text);}e.dispatchEvent(new Event('change',{bubbles:true}));}".to_string(), serde_json::json!([selector, values_json]).to_string()).await?;
         Ok(())
     }
 
@@ -1036,7 +1036,7 @@ impl ElementHandle {
 
     /// `dragAndDrop`.
     pub async fn dragAndDrop(&self, target: String) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(sel){const t=document.querySelector(sel);if(!t)return;this.dispatchEvent(new DragEvent(\"dragstart\",{bubbles:true}));t.dispatchEvent(new DragEvent(\"drop\",{bubbles:true}));this.dispatchEvent(new DragEvent(\"dragend\",{bubbles:true}));}".to_string(), serde_json::json!([target]).to_string()).await?;
+        self.inner.call_json("function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const t=(__xp(document,sel)[0]||null);if(!t)return;this.dispatchEvent(new DragEvent(\"dragstart\",{bubbles:true}));t.dispatchEvent(new DragEvent(\"drop\",{bubbles:true}));this.dispatchEvent(new DragEvent(\"dragend\",{bubbles:true}));}".to_string(), serde_json::json!([target]).to_string()).await?;
         Ok(())
     }
 
@@ -1284,7 +1284,7 @@ impl Frame {
 
     /// `select`.
     pub async fn select(&self, selector: String, values_json: String) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(sel,valuesRaw){const e=document.querySelector(sel);if(!e)return;const w=JSON.parse(valuesRaw).map(String);for(const o of e.options){o.selected=w.includes(o.value)||w.includes(o.text);}e.dispatchEvent(new Event('change',{bubbles:true}));}".to_string(), serde_json::json!([selector, values_json]).to_string()).await?;
+        self.inner.call_json("function(sel,valuesRaw){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(!e)return;const w=JSON.parse(valuesRaw).map(String);for(const o of e.options){o.selected=w.includes(o.value)||w.includes(o.text);}e.dispatchEvent(new Event('change',{bubbles:true}));}".to_string(), serde_json::json!([selector, values_json]).to_string()).await?;
         Ok(())
     }
 
@@ -1302,7 +1302,7 @@ impl Frame {
 
     /// `tap`.
     pub async fn tap(&self, selector: String) -> Result<(), XcelerateError> {
-        self.inner.call_json("function(sel){const e=document.querySelector(sel);if(e)e.click();}".to_string(), serde_json::json!([selector]).to_string()).await?;
+        self.inner.call_json("function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(e)e.click();}".to_string(), serde_json::json!([selector]).to_string()).await?;
         Ok(())
     }
 

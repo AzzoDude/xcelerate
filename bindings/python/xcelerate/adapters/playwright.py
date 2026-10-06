@@ -278,16 +278,16 @@ class Page:
         return Locator(result)
 
     async def press(self, selector, key, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', 'function(sel,key){const e=document.querySelector(sel);if(!e)return;e.focus();e.dispatchEvent(new KeyboardEvent("keydown",{key:key,bubbles:true}));e.dispatchEvent(new KeyboardEvent("keyup",{key:key,bubbles:true}));}', 'void', [selector, key], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', 'function(sel,key){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll(\'*\')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(!e)return;e.focus();e.dispatchEvent(new KeyboardEvent("keydown",{key:key,bubbles:true}));e.dispatchEvent(new KeyboardEvent("keyup",{key:key,bubbles:true}));}', 'void', [selector, key], **kwargs)
 
     async def check(self, selector, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const e=document.querySelector(sel);if(e&&e.checked!==true)e.click();}', 'void', [selector], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', "function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(e&&e.checked!==true)e.click();}", 'void', [selector], **kwargs)
 
     async def uncheck(self, selector, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const e=document.querySelector(sel);if(e&&e.checked===true)e.click();}', 'void', [selector], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', "function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(e&&e.checked===true)e.click();}", 'void', [selector], **kwargs)
 
     async def set_checked(self, selector, checked, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', 'function(sel,v){const e=document.querySelector(sel);if(e&&e.checked!==!!v)e.click();}', 'void', [selector, checked], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', "function(sel,v){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(e&&e.checked!==!!v)e.click();}", 'void', [selector, checked], **kwargs)
 
     async def set_input_files(self, selector, files_json, **kwargs):
         return await _runtime.page_set_input_files(self._wrapped, selector, files_json, **kwargs)
@@ -296,34 +296,34 @@ class Page:
         return await _runtime.page_select_option(self._wrapped, selector, values_json, **kwargs)
 
     async def tap(self, selector, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const e=document.querySelector(sel);if(e)e.click();}', 'void', [selector], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', "function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(e)e.click();}", 'void', [selector], **kwargs)
 
     async def dispatch_event(self, selector, event_type, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', 'function(sel,t){const e=document.querySelector(sel);if(e)e.dispatchEvent(new Event(t,{bubbles:true,cancelable:true}));}', 'void', [selector, event_type], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', "function(sel,t){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(e)e.dispatchEvent(new Event(t,{bubbles:true,cancelable:true}));}", 'void', [selector, event_type], **kwargs)
 
     async def drag_and_drop(self, source, target, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', 'function(src,dst){const s=document.querySelector(src),t=document.querySelector(dst);if(!s||!t)return;const dt=new DataTransfer();s.dispatchEvent(new DragEvent("dragstart",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent("dragenter",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent("dragover",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent("drop",{bubbles:true,dataTransfer:dt}));s.dispatchEvent(new DragEvent("dragend",{bubbles:true,dataTransfer:dt}));}', 'void', [source, target], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', 'function(src,dst){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll(\'*\')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const s=(__xp(document,src)[0]||null),t=(__xp(document,dst)[0]||null);if(!s||!t)return;const dt=new DataTransfer();s.dispatchEvent(new DragEvent("dragstart",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent("dragenter",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent("dragover",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent("drop",{bubbles:true,dataTransfer:dt}));s.dispatchEvent(new DragEvent("dragend",{bubbles:true,dataTransfer:dt}));}', 'void', [source, target], **kwargs)
 
     async def input_value(self, selector, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const e=document.querySelector(sel);return e&&e.value!=null?String(e.value):"";}', 'string', [selector], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll(\'*\')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);return e&&e.value!=null?String(e.value):"";}', 'string', [selector], **kwargs)
 
     async def is_visible(self, selector, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const e=document.querySelector(sel);if(!e)return false;const s=getComputedStyle(e);const r=e.getBoundingClientRect();return !!(r.width||r.height)&&s.visibility!=="hidden"&&s.display!=="none";}', 'bool', [selector], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll(\'*\')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(!e)return false;const s=getComputedStyle(e);const r=e.getBoundingClientRect();return !!(r.width||r.height)&&s.visibility!=="hidden"&&s.display!=="none";}', 'bool', [selector], **kwargs)
 
     async def is_hidden(self, selector, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const e=document.querySelector(sel);if(!e)return true;const s=getComputedStyle(e);const r=e.getBoundingClientRect();return !(!!(r.width||r.height)&&s.visibility!=="hidden"&&s.display!=="none");}', 'bool', [selector], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll(\'*\')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);if(!e)return true;const s=getComputedStyle(e);const r=e.getBoundingClientRect();return !(!!(r.width||r.height)&&s.visibility!=="hidden"&&s.display!=="none");}', 'bool', [selector], **kwargs)
 
     async def is_enabled(self, selector, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const e=document.querySelector(sel);return !!e&&!(e.disabled===true||e.hasAttribute("disabled"));}', 'bool', [selector], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll(\'*\')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);return !!e&&!(e.disabled===true||e.hasAttribute("disabled"));}', 'bool', [selector], **kwargs)
 
     async def is_disabled(self, selector, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const e=document.querySelector(sel);return !!e&&(e.disabled===true||e.hasAttribute("disabled"));}', 'bool', [selector], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll(\'*\')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);return !!e&&(e.disabled===true||e.hasAttribute("disabled"));}', 'bool', [selector], **kwargs)
 
     async def is_checked(self, selector, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const e=document.querySelector(sel);return !!e&&e.checked===true;}', 'bool', [selector], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', "function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll('*')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);return !!e&&e.checked===true;}", 'bool', [selector], **kwargs)
 
     async def is_editable(self, selector, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const e=document.querySelector(sel);return !!e&&!(e.disabled===true||e.readOnly===true||e.hasAttribute("readonly"));}', 'bool', [selector], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', 'function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll(\'*\')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const e=(__xp(document,sel)[0]||null);return !!e&&!(e.disabled===true||e.readOnly===true||e.hasAttribute("readonly"));}', 'bool', [selector], **kwargs)
 
     async def wait_for_url(self, url, **kwargs):
         return await _runtime.call_js(self._wrapped, 'page', 'function(u){return new Promise(res=>{const check=()=>{if(location.href===u||location.href.indexOf(u)===0){res(true);}else{setTimeout(check,50);}};check();});}', 'void', [url], **kwargs)
@@ -444,7 +444,7 @@ class Page:
         return await _runtime.page_frame(self._wrapped, frame_id, **kwargs)
 
     async def hide_highlight(self, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'page', 'function(){document.querySelectorAll("*").forEach(function(e){e.style.outline="";});}', 'void', [], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'page', 'function(){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll(\'*\')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};__xp(document,"*").forEach(function(e){e.style.outline="";});}', 'void', [], **kwargs)
 
     async def is_closed(self, **kwargs):
         return await _runtime.page_is_closed(self._wrapped, **kwargs)
@@ -625,7 +625,7 @@ class Locator:
         return await _runtime.element_set_input_files(self._wrapped, files_json, **kwargs)
 
     async def drag_to(self, target, **kwargs):
-        return await _runtime.call_js(self._wrapped, 'element', 'function(sel){const t=document.querySelector(sel);if(!t)return;const dt=new DataTransfer();this.dispatchEvent(new DragEvent("dragstart",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent("dragenter",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent("dragover",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent("drop",{bubbles:true,dataTransfer:dt}));this.dispatchEvent(new DragEvent("dragend",{bubbles:true,dataTransfer:dt}));}', 'void', [target], **kwargs)
+        return await _runtime.call_js(self._wrapped, 'element', 'function(sel){const __xp=(scope,sel)=>{const visit=(s,out)=>{if(!s||!s.querySelectorAll)return out;for(const el of s.querySelectorAll(sel))out.push(el);for(const el of s.querySelectorAll(\'*\')){if(el.shadowRoot)visit(el.shadowRoot,out);}return out;};const out=[];visit(scope,out);if(scope.shadowRoot)visit(scope.shadowRoot,out);return out;};const t=(__xp(document,sel)[0]||null);if(!t)return;const dt=new DataTransfer();this.dispatchEvent(new DragEvent("dragstart",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent("dragenter",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent("dragover",{bubbles:true,dataTransfer:dt}));t.dispatchEvent(new DragEvent("drop",{bubbles:true,dataTransfer:dt}));this.dispatchEvent(new DragEvent("dragend",{bubbles:true,dataTransfer:dt}));}', 'void', [target], **kwargs)
 
     async def blur(self, **kwargs):
         return await _runtime.call_js(self._wrapped, 'element', 'function(){this.blur();}', 'void', [], **kwargs)
