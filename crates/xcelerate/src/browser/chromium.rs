@@ -806,16 +806,10 @@ fn setup_browser_args(
 }
 
 async fn wait_for_ws_url(port: u16) -> XcelerateResult<String> {
-    let version_url = format!("http://127.0.0.1:{}/json/version", port);
-
     let mut attempts = 0;
     loop {
-        match reqwest::get(&version_url).await {
-            Ok(resp) => {
-                let json: serde_json::Value = resp
-                    .json()
-                    .await
-                    .map_err(|_| XcelerateError::InternalError)?;
+        match fetch_devtools_version(port).await {
+            Ok(json) => {
                 if let Some(ws_url) = json["webSocketDebuggerUrl"].as_str() {
                     return Ok(ws_url.to_string());
                 }
@@ -831,6 +825,42 @@ async fn wait_for_ws_url(port: u16) -> XcelerateResult<String> {
             }
         }
     }
+}
+
+/// `GET /json/version` over a raw loopback socket.
+///
+/// The DevTools HTTP endpoint is plaintext HTTP/1.1 bound to `127.0.0.1`, and
+/// this is the only HTTP the crate ever performs, so it is spoken directly on a
+/// `tokio::net::TcpStream` instead of through a full client stack. Chrome answers
+/// with a `Content-Length` (never chunked) and `Connection: close` lets the body
+/// be read to EOF.
+async fn fetch_devtools_version(port: u16) -> XcelerateResult<serde_json::Value> {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    let mut stream = tokio::net::TcpStream::connect(("127.0.0.1", port))
+        .await
+        .map_err(|error| XcelerateError::HttpError(format!("connect 127.0.0.1:{port}: {error}")))?;
+
+    let request = format!(
+        "GET /json/version HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nAccept: application/json\r\nConnection: close\r\n\r\n"
+    );
+    stream
+        .write_all(request.as_bytes())
+        .await
+        .map_err(|error| XcelerateError::HttpError(error.to_string()))?;
+
+    let mut response = Vec::new();
+    stream
+        .read_to_end(&mut response)
+        .await
+        .map_err(|error| XcelerateError::HttpError(error.to_string()))?;
+
+    let Some(split) = response.windows(4).position(|window| window == b"\r\n\r\n") else {
+        return Err(XcelerateError::HttpError(
+            "malformed response from the DevTools endpoint".into(),
+        ));
+    };
+    serde_json::from_slice(&response[split + 4..]).map_err(XcelerateError::from)
 }
 
 /// Chrome flags that make rendering deterministic (stable screenshots).
@@ -894,5 +924,52 @@ mod tests {
     #[test]
     fn profile_none_has_an_empty_path() {
         assert!(Profile::None.path().as_os_str().is_empty());
+    }
+
+    /// Proves the dependency-free loopback GET (which replaced `reqwest`) speaks
+    /// HTTP/1.1 correctly against a real socket.
+    #[tokio::test]
+    async fn parses_the_devtools_websocket_url_over_a_raw_socket() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .unwrap();
+        let port = listener.local_addr().unwrap().port();
+
+        tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut scratch = [0u8; 256];
+            let _ = socket.read(&mut scratch).await;
+            let body = r#"{"webSocketDebuggerUrl":"ws://127.0.0.1:9222/devtools/browser/abc"}"#;
+            let response = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            let _ = socket.write_all(response.as_bytes()).await;
+        });
+
+        let json = fetch_devtools_version(port).await.unwrap();
+        assert_eq!(
+            json["webSocketDebuggerUrl"].as_str(),
+            Some("ws://127.0.0.1:9222/devtools/browser/abc")
+        );
+    }
+
+    #[tokio::test]
+    async fn rejects_a_response_without_a_body_separator() {
+        use tokio::io::AsyncWriteExt;
+
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .unwrap();
+        let port = listener.local_addr().unwrap().port();
+
+        tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let _ = socket.write_all(b"HTTP/1.1 200 OK\r\nno separator").await;
+        });
+
+        assert!(fetch_devtools_version(port).await.is_err());
     }
 }

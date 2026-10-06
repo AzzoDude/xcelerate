@@ -52,7 +52,11 @@ webdriver-bidi = "0.1.0"
 # generators ships 0.32 support (Dependabot is set to ignore >= 0.32).
 uniffi = { version = "0.31.2", default-features = false, features = ["tokio", "scaffolding-ffi-buffer-fns"] }
 futures = "0.3.34"
-reqwest = { version = "0.13.5", features = ["json", "rustls"], default-features = false }
+# Provides the rustls crypto provider for the rare user-supplied `wss://`
+# endpoint. ring is a fraction of aws-lc-rs's size and build complexity; TLS is
+# only ever used for remote debugging, never for the plaintext loopback CDP/BiDi
+# traffic, so its handshake speed is not on the hot path.
+rustls = { version = "0.23.45", default-features = false, features = ["ring", "std", "tls12"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 # Not `full`. Everything listed is needed by the CDP client, the CLIs, or

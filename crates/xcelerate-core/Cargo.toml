@@ -13,6 +13,7 @@ browser-protocol = { workspace = true }
 js-protocol = { workspace = true }
 webdriver-bidi = { workspace = true }
 futures = { workspace = true }
+rustls = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

@@ -58,12 +58,6 @@ impl From<XcelerateError> for xcelerate_plugin::PluginError {
     }
 }
 
-impl From<reqwest::Error> for XcelerateError {
-    fn from(e: reqwest::Error) -> Self {
-        Self::HttpError(e.to_string())
-    }
-}
-
 impl From<serde_json::Error> for XcelerateError {
     fn from(e: serde_json::Error) -> Self {
         Self::SerdeError(e.to_string())

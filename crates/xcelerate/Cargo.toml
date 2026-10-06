@@ -27,7 +27,6 @@ xcelerate-plugin = { workspace = true }
 browser-protocol = { workspace = true }
 js-protocol = { workspace = true }
 uniffi = { workspace = true }
-reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
