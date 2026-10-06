@@ -127,6 +127,10 @@ pub(crate) struct LayoutInfo {
     /// Stacking/paint order from `DOMSnapshot` (present when `includePaintOrder`
     /// is requested). Higher values are painted later, i.e. on top of lower ones.
     pub paint_order: Option<i64>,
+    /// Index of the `DOMSnapshot` document this node belongs to. Bounds and paint
+    /// order are per-frame, so only boxes from the same document may be compared
+    /// (see [`is_occluded`]).
+    pub document_index: usize,
 }
 
 /// Fraction of `inner`'s area that lies within `outer` (0.0..=1.0).
@@ -381,7 +385,7 @@ pub(crate) fn build_layout_lookup(
         return lookup;
     };
 
-    for document in documents {
+    for (document_index, document) in documents.iter().enumerate() {
         let Some(nodes) = document.get("nodes") else {
             continue;
         };
@@ -468,6 +472,7 @@ pub(crate) fn build_layout_lookup(
                 tag,
                 bounds: None,
                 paint_order: None,
+                document_index,
             };
 
             if let Some(layout_idx) = layout_index_map.get(&(snapshot_index as u64)) {
@@ -523,29 +528,38 @@ pub(crate) fn has_content_below(elements: &[SnapshotElement], viewport_height: f
     })
 }
 
-/// Assembles the renderable text and the indexable element list from an AX tree
-/// and the layout lookup.
-///
-/// Nodes are visited in document order. Interactive nodes are assigned a stable
-/// index; structural, named, or text-bearing nodes are printed for context.
-/// Interactive candidates that are fully covered by a later-painted box
-/// ([`is_occluded`]) are dropped, and cross-origin frames still render a
-/// placeholder. When `viewport_height` is known and indexed content extends
-/// below it, [`SCROLL_HINT`] is appended.
+/// Collects every descendant frame id from a `Page.getFrameTree` `childFrames`
+/// array (recursively).
+fn collect_child_frame_ids(children: &[Value], out: &mut Vec<String>) {
+    for child in children {
+        if let Some(id) = child.pointer("/frame/id").and_then(Value::as_str) {
+            out.push(id.to_string());
+        }
+        if let Some(grandchildren) = child.get("childFrames").and_then(Value::as_array) {
+            collect_child_frame_ids(grandchildren, out);
+        }
+    }
+}
+
+/// Frame-free form of [`assemble_frames`], used by the tests; production code
+/// always has the frame map and calls [`assemble_frames`] directly.
+#[cfg(test)]
 pub(crate) fn assemble(
     ax_tree: &Value,
     layout: &HashMap<i64, LayoutInfo>,
     viewport_height: Option<f64>,
 ) -> (String, Vec<SnapshotElement>) {
-    let empty = Vec::new();
-    let raw_nodes = ax_tree
-        .get("nodes")
-        .and_then(Value::as_array)
-        .unwrap_or(&empty);
+    assemble_frames(ax_tree, layout, viewport_height, &HashMap::new())
+}
 
-    let mut nodes: Vec<AxNode> = Vec::with_capacity(raw_nodes.len());
-    let mut by_id: HashMap<String, usize> = HashMap::with_capacity(raw_nodes.len());
-
+/// Appends one AX tree's raw nodes to `nodes`, recording each `nodeId` in `by_id`
+/// under `prefix` so ids from different frames cannot collide.
+fn append_ax_nodes(
+    raw_nodes: &[Value],
+    prefix: &str,
+    nodes: &mut Vec<AxNode>,
+    by_id: &mut HashMap<String, usize>,
+) {
     for raw in raw_nodes {
         let ignored = raw.get("ignored").and_then(Value::as_bool).unwrap_or(false);
         let role = as_string(raw.pointer("/role/value")).unwrap_or_default();
@@ -558,7 +572,7 @@ pub(crate) fn assemble(
             .map(|ids| {
                 ids.iter()
                     .filter_map(Value::as_str)
-                    .map(str::to_string)
+                    .map(|id| format!("{prefix}{id}"))
                     .collect()
             })
             .unwrap_or_default();
@@ -566,7 +580,7 @@ pub(crate) fn assemble(
 
         let index = nodes.len();
         if let Some(id) = raw.get("nodeId").and_then(Value::as_str) {
-            by_id.insert(id.to_string(), index);
+            by_id.insert(format!("{prefix}{id}"), index);
         }
         nodes.push(AxNode {
             role,
@@ -579,6 +593,74 @@ pub(crate) fn assemble(
             children: Vec::new(),
             has_parent,
         });
+    }
+}
+
+/// Assembles the renderable text and the indexable element list from an AX tree
+/// and the layout lookup.
+///
+/// Nodes are visited in document order. Interactive nodes are assigned a stable
+/// index; structural, named, or text-bearing nodes are printed for context.
+/// Interactive candidates that are fully covered by a later-painted box
+/// ([`is_occluded`]) are dropped, and cross-origin frames still render a
+/// placeholder. When `viewport_height` is known and indexed content extends
+/// below it, [`SCROLL_HINT`] is appended.
+///
+/// Same-origin subframe AX trees passed in `frames` (keyed by the backend node id
+/// of the `<iframe>` that hosts each frame) are merged in: a subframe is a
+/// separate document, so the main frame's AX tree omits it and it would otherwise
+/// render as a bare `<iframe>` placeholder. Each frame's nodes are appended (with
+/// their ids namespaced) and its root re-parented under the host iframe, so the
+/// ordinary traversal renders the frame's content.
+pub(crate) fn assemble_frames(
+    ax_tree: &Value,
+    layout: &HashMap<i64, LayoutInfo>,
+    viewport_height: Option<f64>,
+    frames: &HashMap<i64, Value>,
+) -> (String, Vec<SnapshotElement>) {
+    let empty = Vec::new();
+    let raw_nodes = ax_tree
+        .get("nodes")
+        .and_then(Value::as_array)
+        .unwrap_or(&empty);
+
+    let mut nodes: Vec<AxNode> = Vec::with_capacity(raw_nodes.len());
+    let mut by_id: HashMap<String, usize> = HashMap::with_capacity(raw_nodes.len());
+    append_ax_nodes(raw_nodes, "", &mut nodes, &mut by_id);
+
+    // Merge each same-origin subframe's tree under its host iframe node.
+    let hosts: Vec<(usize, i64)> = nodes
+        .iter()
+        .enumerate()
+        .filter(|(_, node)| node.role.eq_ignore_ascii_case("iframe"))
+        .filter_map(|(index, node)| node.backend_id.map(|backend| (index, backend)))
+        .collect();
+    for (host_index, backend_id) in hosts {
+        let Some(sub_tree) = frames.get(&backend_id) else {
+            continue;
+        };
+        let prefix = format!("f{backend_id}:");
+        let start = nodes.len();
+        let sub_nodes = sub_tree
+            .get("nodes")
+            .and_then(Value::as_array)
+            .unwrap_or(&empty);
+        append_ax_nodes(sub_nodes, &prefix, &mut nodes, &mut by_id);
+
+        // Link the frame's root under the iframe so traversal reaches it, and stop
+        // it being treated as a second root.
+        if start < nodes.len() {
+            nodes[start].has_parent = true;
+            if let Some(root_id) = sub_nodes
+                .first()
+                .and_then(|node| node.get("nodeId"))
+                .and_then(Value::as_str)
+            {
+                nodes[host_index]
+                    .child_ids
+                    .push(format!("{prefix}{root_id}"));
+            }
+        }
     }
 
     // Resolve child ids to indices (second pass, so parents always exist).
@@ -637,12 +719,19 @@ pub(crate) fn assemble(
     // indexing every interactive node rather than emitting nothing.
     let have_layout = !layout.is_empty();
 
-    // Every laid-out box plus its paint order, for the occlusion test. Boxes
-    // without bounds or paint order simply cannot occlude anything.
-    let ordered_rects: Vec<(Rect, Option<i64>)> = layout
-        .values()
-        .filter_map(|info| info.bounds.map(|bounds| (bounds, info.paint_order)))
-        .collect();
+    // Every laid-out box plus its paint order, grouped by document. Bounds and
+    // paint order are per-frame, so an occlusion test must only ever compare boxes
+    // from the *same* document (mixing an iframe's own box with the parent frame's
+    // nodes yields false positives).
+    let mut ordered_rects: HashMap<usize, Vec<(Rect, Option<i64>)>> = HashMap::new();
+    for info in layout.values() {
+        if let Some(bounds) = info.bounds {
+            ordered_rects
+                .entry(info.document_index)
+                .or_default()
+                .push((bounds, info.paint_order));
+        }
+    }
 
     let mut stack: Vec<(usize, usize)> = roots.iter().rev().map(|&root| (root, 0)).collect();
     while let Some((index, depth)) = stack.pop() {
@@ -694,8 +783,9 @@ pub(crate) fn assemble(
             let occluded = candidate
                 && lookup
                     .and_then(|info| {
-                        info.bounds
-                            .map(|bounds| is_occluded((bounds, info.paint_order), &ordered_rects))
+                        let bounds = info.bounds?;
+                        let rects = ordered_rects.get(&info.document_index)?;
+                        Some(is_occluded((bounds, info.paint_order), rects))
                     })
                     .unwrap_or(false);
             let index_it = candidate && !occluded;
@@ -753,9 +843,11 @@ pub(crate) fn assemble(
             }
         }
 
-        if is_container || is_iframe {
-            // Containers keep their children at the same level: they add no
-            // structure of their own to the rendered text.
+        if is_iframe {
+            // A same-origin frame's content is merged under the placeholder, so
+            // nest it one level deeper; other containers add no structure.
+            child_depth = depth + 1;
+        } else if is_container {
             child_depth = depth;
         }
         if !rendered && !is_skipped_role && !node.ignored && node.name.is_empty() {
@@ -838,7 +930,10 @@ impl Page {
             .filter(|height| *height > 0.0);
 
         let layout = build_layout_lookup(&snapshot, device_pixel_ratio);
-        let (text, elements) = assemble(&ax_tree, &layout, viewport_height);
+        // Same-origin subframes are separate documents, so their content is not in
+        // the main frame's AX tree; fetch each and merge it in.
+        let frames = self.collect_frame_ax_trees().await;
+        let (text, elements) = assemble_frames(&ax_tree, &layout, viewport_height, &frames);
 
         {
             let mut cache = self.snapshot_index.lock().await;
@@ -849,6 +944,65 @@ impl Page {
         }
 
         Ok((text, elements))
+    }
+
+    /// AX trees of the page's same-origin subframes, keyed by the backend node id
+    /// of the `<iframe>` that hosts each frame.
+    ///
+    /// Best effort: a frame whose owner or tree cannot be resolved (for example a
+    /// cross-origin frame) is skipped, and the snapshot falls back to the bare
+    /// `<iframe>` placeholder.
+    async fn collect_frame_ax_trees(&self) -> HashMap<i64, Value> {
+        let mut trees = HashMap::new();
+        // `DOM.getFrameOwner` needs the DOM domain enabled.
+        let _ = self
+            .client
+            .execute_raw_with_session(Some(&self.session_id), "DOM.enable", json!({}))
+            .await;
+        let Ok(frame_tree) = self
+            .client
+            .execute_raw_with_session(Some(&self.session_id), "Page.getFrameTree", json!({}))
+            .await
+        else {
+            return trees;
+        };
+
+        let mut frame_ids = Vec::new();
+        if let Some(children) = frame_tree
+            .pointer("/frameTree/childFrames")
+            .and_then(Value::as_array)
+        {
+            collect_child_frame_ids(children, &mut frame_ids);
+        }
+
+        for frame_id in frame_ids {
+            let Ok(owner) = self
+                .client
+                .execute_raw_with_session(
+                    Some(&self.session_id),
+                    "DOM.getFrameOwner",
+                    json!({ "frameId": frame_id }),
+                )
+                .await
+            else {
+                continue;
+            };
+            let Some(backend_id) = owner.get("backendNodeId").and_then(Value::as_i64) else {
+                continue;
+            };
+            if let Ok(ax) = self
+                .client
+                .execute_raw_with_session(
+                    Some(&self.session_id),
+                    "Accessibility.getFullAXTree",
+                    json!({ "frameId": frame_id }),
+                )
+                .await
+            {
+                trees.insert(backend_id, ax);
+            }
+        }
+        trees
     }
 
     /// Returns an agent-friendly, indexed snapshot of the page.
@@ -1079,6 +1233,7 @@ mod tests {
                 is_clickable: true,
                 tag: Some("input".into()),
                 paint_order: None,
+                document_index: 0,
             },
         );
         let (_, elements) = assemble(&sample_ax(), &lookup, None);
@@ -1213,6 +1368,7 @@ mod tests {
                         is_clickable: false,
                         tag: None,
                         paint_order: Some(0),
+                        document_index: 0,
                     },
                 )
             })
@@ -1278,6 +1434,7 @@ mod tests {
                 is_clickable: true,
                 tag: Some("a".into()),
                 paint_order: Some(1),
+                document_index: 0,
             },
         );
         layout.insert(
@@ -1292,6 +1449,7 @@ mod tests {
                 is_clickable: false,
                 tag: Some("div".into()),
                 paint_order: Some(2),
+                document_index: 0,
             },
         );
         // The remaining interactive nodes are laid out clear of the overlay.
@@ -1307,6 +1465,7 @@ mod tests {
                 is_clickable: false,
                 tag: Some("input".into()),
                 paint_order: Some(0),
+                document_index: 0,
             },
         );
         layout.insert(
@@ -1321,6 +1480,7 @@ mod tests {
                 is_clickable: false,
                 tag: Some("button".into()),
                 paint_order: Some(0),
+                document_index: 0,
             },
         );
 
@@ -1331,6 +1491,79 @@ mod tests {
         assert!(elements.iter().all(|element| element.backend_node_id != 10));
         assert!(!text.contains("\"Home\""));
         assert!(text.contains("[0]<input> \"Email\""));
+    }
+
+    #[test]
+    fn assemble_ignores_occluders_from_another_document() {
+        // A button in the main document (document 0) would look "covered" by an
+        // iframe's own document box (document 1), which sits at (0,0) 300x150 in
+        // its own frame's coordinate space. Cross-frame boxes must be ignored.
+        let mut lookup = HashMap::new();
+        lookup.insert(
+            10,
+            LayoutInfo {
+                bounds: Some(Rect {
+                    x: 8.0,
+                    y: 80.0,
+                    width: 85.0,
+                    height: 21.0,
+                }),
+                is_clickable: false,
+                tag: Some("button".into()),
+                paint_order: Some(1),
+                document_index: 0,
+            },
+        );
+        lookup.insert(
+            99,
+            LayoutInfo {
+                bounds: Some(Rect {
+                    x: 0.0,
+                    y: 0.0,
+                    width: 300.0,
+                    height: 150.0,
+                }),
+                is_clickable: false,
+                tag: Some("iframe".into()),
+                paint_order: Some(3),
+                document_index: 1,
+            },
+        );
+
+        let ax = json!({ "nodes": [
+            { "nodeId": "1", "ignored": false, "role": { "value": "RootWebArea" }, "name": { "value": "T" }, "childIds": ["2"] },
+            { "nodeId": "2", "ignored": false, "parentId": "1", "backendDOMNodeId": 10,
+              "role": { "value": "button" }, "name": { "value": "Go" }, "childIds": [] }
+        ]});
+
+        let (text, elements) = assemble(&ax, &lookup, None);
+        assert_eq!(elements.len(), 1, "button dropped: {text}");
+        assert_eq!(elements[0].name, "Go");
+    }
+
+    #[test]
+    fn assemble_merges_a_subframe_tree_under_its_iframe() {
+        let main = json!({ "nodes": [
+            { "nodeId": "1", "ignored": false, "role": { "value": "RootWebArea" }, "name": { "value": "T" }, "childIds": ["2"] },
+            { "nodeId": "2", "ignored": false, "parentId": "1", "backendDOMNodeId": 50,
+              "role": { "value": "Iframe" }, "name": { "value": "" }, "childIds": [] }
+        ]});
+        // The subframe reuses node ids ("1"/"2"); the merge must namespace them.
+        let sub = json!({ "nodes": [
+            { "nodeId": "1", "ignored": false, "role": { "value": "RootWebArea" }, "name": { "value": "frame" }, "childIds": ["2"] },
+            { "nodeId": "2", "ignored": false, "parentId": "1", "backendDOMNodeId": 900,
+              "role": { "value": "button" }, "name": { "value": "Frame button" }, "childIds": [] }
+        ]});
+        let mut frames = HashMap::new();
+        frames.insert(50, sub);
+
+        let (text, elements) = assemble_frames(&main, &HashMap::new(), None, &frames);
+
+        assert_eq!(elements.len(), 1, "{text}");
+        assert_eq!(elements[0].index, 0);
+        assert_eq!(elements[0].name, "Frame button");
+        assert!(text.contains("<iframe>"), "{text}");
+        assert!(text.contains("[0]<button> \"Frame button\""), "{text}");
     }
 
     #[test]

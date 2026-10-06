@@ -86,38 +86,43 @@ pub(crate) struct RouteRule {
 
 #[uniffi::export(async_runtime = "tokio")]
 impl Page {
-    /// Finds an element matching the CSS selector.
-    pub async fn find_element(self: Arc<Self>, selector: String) -> XcelerateResult<Arc<Element>> {
-        // JSON-escape the selector so quotes/backslashes cannot break out of the
-        // JS string literal (and to avoid injection into the expression).
-        let quoted = serde_json::to_string(&selector)
-            .map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
-        let js = format!("document.querySelector({quoted})");
-
-        // Evaluate returns complex JSON, we handle it internally
-        self.client
+    /// Wraps the page's `document` as an [`Element`] so the shadow-piercing
+    /// selector helpers on [`Element`] can be reused at the page level (with the
+    /// same `document.querySelectorAll` scope).
+    async fn document_element(self: &Arc<Self>) -> XcelerateResult<Arc<Element>> {
+        let res = self
+            .client
             .execute_with_session(
                 Some(&self.session_id),
                 js_protocol::runtime::EvaluateParams {
-                    expression: js.into(),
+                    expression: "document".into(),
                     ..Default::default()
                 },
             )
+            .await?;
+        match res.result.object_id {
+            Some(object_id) => Ok(Arc::new(Element {
+                page: Arc::clone(self),
+                object_id: object_id.into_owned(),
+            })),
+            None => Err(XcelerateError::InternalError),
+        }
+    }
+
+    /// Finds an element matching the CSS selector.
+    ///
+    /// The search pierces open shadow roots, so web components are reachable.
+    pub async fn find_element(self: Arc<Self>, selector: String) -> XcelerateResult<Arc<Element>> {
+        self.document_element()
+            .await?
+            .query_selector(selector)
             .await
-            .map_err(XcelerateError::from)
-            .and_then(|result| {
-                if let Some(obj_id) = result.result.object_id {
-                    Ok(Arc::new(Element {
-                        page: self.clone(),
-                        object_id: obj_id.into_owned(),
-                    }))
-                } else {
-                    Err(XcelerateError::NotFound(selector))
-                }
-            })
     }
 
     /// Waits for an element matching the selector to appear in the DOM.
+    ///
+    /// The search pierces open shadow roots. Polls until the page's default
+    /// timeout elapses.
     pub async fn wait_for_selector(
         self: Arc<Self>,
         selector: String,
@@ -631,31 +636,16 @@ impl Page {
 
     /// Returns every element matching the CSS selector.
     ///
-    /// Uses two round trips (fetch the node list, then read its properties)
-    /// instead of one `evaluate` per match.
+    /// The search pierces open shadow roots. Uses two round trips (fetch the node
+    /// list, then read its properties) instead of one `evaluate` per match.
     pub async fn query_selector_all(
         self: Arc<Self>,
         selector: String,
     ) -> XcelerateResult<Vec<Arc<Element>>> {
-        let quoted = serde_json::to_string(&selector)
-            .map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
-        let res = self
-            .client
-            .execute_with_session(
-                Some(&self.session_id),
-                js_protocol::runtime::EvaluateParams {
-                    expression: format!("Array.from(document.querySelectorAll({quoted}))").into(),
-                    return_by_value: Some(false),
-                    ..Default::default()
-                },
-            )
-            .await?;
-        match res.result.object_id {
-            Some(object_id) => {
-                collect_elements(&self.client, &self.session_id, &self, object_id).await
-            }
-            None => Ok(Vec::new()),
-        }
+        self.document_element()
+            .await?
+            .query_selector_all(selector)
+            .await
     }
 
     /// Returns the current document URL.
