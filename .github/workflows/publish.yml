@@ -15,8 +15,7 @@
 # and `native-lib-*` artifacts from the "Build Packages (Core + Bindings)"
 # workflow — run that first, or let this resolve the latest successful run.
 #
-# Secrets:
-#   CARGO_REGISTRY_TOKEN   not needed — crates.io uses Trusted Publishing (OIDC)
+# Secrets (crates.io needs none — it uses Trusted Publishing / OIDC):
 #   PUB_TOKEN              pub.dev
 #   NUGET_API_KEY          NuGet
 #   CENTRAL_USERNAME       Maven Central (Sonatype Portal token user)
@@ -81,7 +80,9 @@ jobs:
 
       - name: Publish crates (dependency order)
         env:
-          # `cargo publish` reads CARGO_REGISTRY_TOKEN from the environment.
+          # Not a stored secret. This is the short-lived token minted by
+          # crates-io-auth-action above. `cargo publish` reads it from this
+          # exact environment variable name, so it has to stay.
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
         run: |
           VERSION=$(grep -oP '^version = "\K[^"]+' Cargo.toml | head -n 1)
