@@ -11,6 +11,7 @@
 [![Crates.io downloads](https://img.shields.io/crates/d/xcelerate.svg)](https://crates.io/crates/xcelerate)
 [![PyPI](https://img.shields.io/pypi/v/xcelerate.svg)](https://pypi.org/project/xcelerate/)
 [![npm](https://img.shields.io/npm/v/xcelerate.svg)](https://www.npmjs.com/package/xcelerate)
+[![pub.dev](https://img.shields.io/pub/v/xcelerate.svg)](https://pub.dev/packages/xcelerate)
 [![NuGet](https://img.shields.io/nuget/v/Xcelerate.svg)](https://www.nuget.org/packages/Xcelerate)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.azzodude/xcelerate.svg)](https://central.sonatype.com/artifact/io.github.azzodude/xcelerate)
 [![PowerShell Gallery](https://img.shields.io/powershellgallery/v/Xcelerate.svg)](https://www.powershellgallery.com/packages/Xcelerate)
@@ -59,7 +60,7 @@ println!("{}", page.title().await?);
 | Java | `io.github.azzodude:xcelerate-java` | [Maven Central](https://central.sonatype.com/artifact/io.github.azzodude/xcelerate-java) |
 | Swift | `Xcelerate` | built from source ([readme](bindings/swift/README.md)) |
 | Ruby | `xcelerate` | built from source ([readme](bindings/ruby/README.md)) |
-| Dart / Flutter | `xcelerate` | built from source ([readme](bindings/dart/README.md)) |
+| Dart / Flutter | `xcelerate` | [pub.dev](https://pub.dev/packages/xcelerate) |
 | Go | `xcelerate` | built from source ([readme](bindings/go/README.md)) |
 | PowerShell | `Xcelerate` | [PowerShell Gallery](https://www.powershellgallery.com/packages/Xcelerate) |
 
