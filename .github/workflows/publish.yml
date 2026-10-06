@@ -1,4 +1,7 @@
-# Publish every Xcelerate package to its registry.
+# Publish every Xcelerate registry package.
+#
+# Dart/Flutter → pub.dev is deliberately absent: pub.dev gates publishing on a
+# tag push rather than a workflow filename, so it lives in `publish-dart.yml`.
 #
 # This is intentionally ONE workflow with one job per registry, rather than a
 # per-language workflow fanned out by a dispatcher. OIDC-based registries
@@ -15,8 +18,7 @@
 # and `native-lib-*` artifacts from the "Build Packages (Core + Bindings)"
 # workflow — run that first, or let this resolve the latest successful run.
 #
-# Secrets (crates.io needs none — it uses Trusted Publishing / OIDC):
-#   PUB_TOKEN              pub.dev
+# Secrets (crates.io and pub.dev need none — both use OIDC):
 #   NUGET_API_KEY          NuGet
 #   CENTRAL_USERNAME       Maven Central (Sonatype Portal token user)
 #   CENTRAL_PASSWORD       Maven Central (Sonatype Portal token password)
@@ -55,7 +57,6 @@ on:
           - dotnet
           - java
           - ruby
-          - dart
           - go
           - powershell
           - swift
@@ -322,35 +323,6 @@ jobs:
           fi
           cd bindings/ruby
           gem push xcelerate-*.gem || echo "::warning::RubyGems push failed; skipping."
-
-  # --- Dart / Flutter → pub.dev --------------------------------------------
-  dart:
-    name: pub.dev
-    if: ${{ inputs.only == 'all' || inputs.only == 'dart' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-
-      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
-
-      - name: Validate the package
-        working-directory: bindings/dart
-        run: dart pub publish --dry-run
-
-      - name: Publish to pub.dev
-        env:
-          PUB_TOKEN: ${{ secrets.PUB_TOKEN }}
-        run: |
-          if [ -z "$PUB_TOKEN" ]; then
-            echo "::warning::PUB_TOKEN not set; skipping pub.dev."
-            exit 0
-          fi
-          # `dart pub publish` does not read PUB_TOKEN itself; register it first.
-          dart pub token add https://pub.dev --env-var PUB_TOKEN
-          cd bindings/dart
-          dart pub publish --force || echo "::warning::pub.dev publish failed; skipping."
 
   # --- Go → module tag ------------------------------------------------------
   go:

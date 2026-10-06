@@ -4,8 +4,10 @@
     python scripts/publish/dart.py            # regenerate + `dart pub publish --dry-run`
     python scripts/publish/dart.py --push     # `dart pub publish --force`
 
-Authentication is a Google account via ``dart pub publish`` (OAuth on first run),
-or a token in ``PUB_TOKEN`` for CI.
+This is the local/manual path; authentication is a Google account via
+``dart pub publish`` (OAuth on first run). CI does not use this script: pushing a
+``vX.Y.Z`` tag publishes through ``.github/workflows/publish-dart.yml`` using
+pub.dev's OIDC automated publishing.
 """
 
 from __future__ import annotations
@@ -64,14 +66,6 @@ def main():
     if not options.push:
         log("INFO", "dry run - pass --push to publish to pub.dev")
         return 0
-
-    # CI provides a token in PUB_TOKEN; `dart pub publish` does not read that
-    # variable on its own, so register it as the credential for pub.dev first.
-    if os.environ.get("PUB_TOKEN"):
-        run_checked(
-            [dart_path, "pub", "token", "add", "https://pub.dev", "--env-var", "PUB_TOKEN"],
-            cwd=dart_dir,
-        )
 
     print("--- Publishing to pub.dev ---")
     run_checked([dart_path, "pub", "publish", "--force"], cwd=dart_dir)

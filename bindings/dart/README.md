@@ -85,8 +85,10 @@ python scripts/publish/dart.py          # regenerate + `dart pub publish --dry-r
 python scripts/publish/dart.py --push   # `dart pub publish --force`
 ```
 
-`dart pub publish` authenticates with a Google account (OAuth on first run) or a
-`PUB_TOKEN` in CI. The published package is **source-only**: the native library
+`dart pub publish` authenticates with a Google account (OAuth on first run); the
+script above is the local/manual path. CI does not use it — pushing a `vX.Y.Z` tag
+runs `.github/workflows/publish-dart.yml`, publishing through pub.dev's OIDC
+automated publishing. The published package is **source-only**: the native library
 is platform-specific, so it is not bundled in the pub package - bundle it with
 your app and pass `libraryPath` (or place it where `DynamicLibrary.open` finds
 it). The generator still copies the host library under `src/` for local runs.

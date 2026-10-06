@@ -1,0 +1,43 @@
+# Publish the Dart/Flutter package to pub.dev.
+#
+# pub.dev automates publishing off a *tag push*, not a workflow filename: it only
+# hands out a token to a run that was triggered by pushing a tag matching the
+# pattern configured in the package's Admin tab (`v{{version}}`), and that tag
+# must equal `version:` in bindings/dart/pubspec.yaml.
+#
+# Hence this file exists next to `publish.yml` rather than inside it. The merge
+# of the registry publishers into one `publish.yml` was driven by crates.io, PyPI
+# and npm matching trusted-publisher configs against the *caller workflow
+# filename* — pub.dev has no such field, so a tag-triggered file cannot disturb
+# those. It is deliberately not called `publish.yml` (pub.dev's template suggests
+# that name) because `publish.yml` is the manual registry publisher.
+#
+# The `environment` name must match the one required in the package's Admin tab.
+# It travels inside the OIDC token, so protection rules on the GitHub
+# environment (e.g. required reviewers) cannot be bypassed by editing this file.
+name: Publish to pub.dev
+
+on:
+  push:
+    tags:
+      # Must match the tag pattern configured on pub.dev (`v{{version}}`).
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+
+# A release in flight must not be cancelled by a later tag.
+concurrency:
+  group: publish-dart-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    permissions:
+      # The called workflow checks the package out, so it needs contents: read;
+      # `id-token: write` is what lets it request the pub.dev OIDC token.
+      contents: read
+      id-token: write
+    # Pinned to a commit, per this repo's convention.
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
+    with:
+      environment: 'pub.dev'
+      # The package is not at the repository root.
+      working-directory: bindings/dart
