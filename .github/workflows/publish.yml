@@ -58,16 +58,15 @@ permissions:
   contents: read
 
 jobs:
-  # --- Rust → crates.io (Trusted Publishing / OIDC, no token) ----------------
+  # --- Rust → crates.io (Trusted Publishing) ----------------
   rust:
     name: crates.io
     if: ${{ inputs.only == 'all' || inputs.only == 'rust' }}
     runs-on: ubuntu-latest
-    # Must match the "Environment name" on the crates.io trusted publisher.
     environment: crates-io
     permissions:
       contents: read
-      id-token: write   # OIDC trusted publishing
+      id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -80,9 +79,6 @@ jobs:
 
       - name: Publish crates (dependency order)
         env:
-          # Not a stored secret. This is the short-lived token minted by
-          # crates-io-auth-action above. `cargo publish` reads it from this
-          # exact environment variable name, so it has to stay.
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
         run: |
           VERSION=$(grep -oP '^version = "\K[^"]+' Cargo.toml | head -n 1)
