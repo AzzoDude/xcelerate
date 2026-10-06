@@ -38,9 +38,14 @@ struct BrowserArgs {
     /// Detach the browser process so it outlives this command.
     #[arg(long, global = true)]
     detached: bool,
-    /// Path to the Chrome/Edge executable.
+    /// Path to the browser executable.
     #[arg(long, global = true, value_name = "PATH")]
     executable_path: Option<String>,
+    /// Browser to use: a known id (`chrome`, `chromium`, `edge`, `brave`,
+    /// `vivaldi`, `opera`, `firefox`, `firefox-esr`) or a path to the executable.
+    /// Overrides `--executable-path`; also settable via `XCELERATE_BROWSER`.
+    #[arg(long, global = true, value_name = "ID")]
+    browser: Option<String>,
     /// External plugin paths to load (comma-separated).
     #[arg(long, global = true, value_name = "PATH", value_delimiter = ',')]
     plugins: Vec<String>,
@@ -223,6 +228,23 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
                     device.device_scale_factor,
                     if device.mobile { "mobile" } else { "desktop" },
                     if device.has_touch { " touch" } else { "" }
+                );
+            }
+            println!("\nBrowsers (choose with --browser <id>):");
+            for browser in xcelerate::browser::known::all() {
+                let installed = xcelerate::browser::known::first_existing(browser);
+                let engine = match browser.engine {
+                    xcelerate::browser::known::Engine::Chromium => "chromium",
+                    xcelerate::browser::known::Engine::Firefox => "firefox",
+                };
+                println!(
+                    "  {:<12} {:<22} {:<9} {}",
+                    browser.id,
+                    browser.name,
+                    engine,
+                    installed
+                        .map(|path| path.display().to_string())
+                        .unwrap_or_else(|| "not found".to_string())
                 );
             }
             println!("\nPlugins: none built in (plugins are external; load with --plugins <PATH>)");
@@ -476,7 +498,10 @@ async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Browser>,
     let config = BrowserConfig {
         headless: !args.no_headless,
         detached: args.detached,
-        executable_path: args.executable_path.clone(),
+        executable_path: args
+            .browser
+            .clone()
+            .or_else(|| args.executable_path.clone()),
         plugins: if args.plugins.is_empty() {
             None
         } else {

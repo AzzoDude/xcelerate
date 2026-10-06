@@ -13,6 +13,8 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Duration;
+
+use super::known::Engine;
 use xcelerate_plugin::LaunchPlan;
 
 /// Configuration for the Browser instance.
@@ -106,7 +108,7 @@ fn configured_profile_dir() -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
-/// Represents a browser instance (e.g., Chrome or Edge).
+/// A running Chromium-family browser (Chrome, Chromium, Edge, Brave, …).
 #[derive(uniffi::Object)]
 pub struct Browser {
     pub(crate) client: Arc<CdpClient>,
@@ -127,15 +129,14 @@ pub struct Browser {
 impl Browser {
     #[uniffi::constructor]
     pub async fn launch(config: BrowserConfig) -> XcelerateResult<Arc<Self>> {
-        let exe = match config.executable_path {
-            Some(p) => Some(PathBuf::from(p)),
-            None => find_chrome_executable(),
-        }
-        .ok_or_else(|| {
-            XcelerateError::NotFound(
-                "Chrome executable not found. Please specify executable_path.".into(),
-            )
-        })?;
+        let exe = super::known::resolve(config.executable_path.as_deref(), Engine::Chromium)
+            .ok_or_else(|| {
+                XcelerateError::NotFound(format!(
+                    "no Chromium-based browser found; set executable_path or XCELERATE_BROWSER\
+                     (try one of: {})",
+                    super::known::ids().collect::<Vec<_>>().join(", ")
+                ))
+            })?;
 
         // 1. Setup environment
         let profile = match configured_profile_dir() {
@@ -149,7 +150,7 @@ impl Browser {
                 Profile::Ephemeral(tempfile::tempdir().map_err(|_| XcelerateError::InternalError)?)
             }
         };
-        let port = get_free_port().ok_or(XcelerateError::InternalError)?;
+        let port = super::engine::free_port().ok_or(XcelerateError::InternalError)?;
 
         // Plugins are external and default-deny; nothing is enabled yet.
         let manager = PluginManager::new(&[], crate::plugin::catalog())?;
@@ -744,43 +745,18 @@ impl Browser {
     }
 }
 
-fn find_chrome_executable() -> Option<PathBuf> {
-    let paths = if cfg!(windows) {
-        vec![
-            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-        ]
-    } else if cfg!(target_os = "macos") {
-        vec![
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-            "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-        ]
-    } else {
-        // Linux and others
-        vec![
-            "/usr/bin/google-chrome",
-            "/usr/bin/chromium-browser",
-            "/usr/bin/chromium",
-            "/usr/bin/microsoft-edge-stable",
-        ]
-    };
-
-    for path in paths {
-        let pb = PathBuf::from(path);
-        if pb.exists() {
-            return Some(pb);
-        }
+impl super::engine::Browser for Browser {
+    fn engine(&self) -> Engine {
+        Engine::Chromium
     }
-    None
-}
 
-fn get_free_port() -> Option<u16> {
-    use std::net::TcpListener;
-    TcpListener::bind("127.0.0.1:0")
-        .and_then(|listener| listener.local_addr())
-        .map(|addr| addr.port())
-        .ok()
+    fn connected(&self) -> bool {
+        self.client.is_connected()
+    }
+
+    fn close(&self) -> super::engine::BoxFuture<'_, XcelerateResult<()>> {
+        Box::pin(Browser::close(self))
+    }
 }
 
 fn setup_browser_args(

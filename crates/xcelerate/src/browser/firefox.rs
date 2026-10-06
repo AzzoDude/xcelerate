@@ -6,10 +6,11 @@
 //! pages using the published `webdriver-bidi` types, so the same generated
 //! protocol surface that backs any BiDi client is what runs here.
 
-use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Duration;
+
+use super::known::Engine;
 
 use serde_json::{Value, json};
 use xcelerate_core::bidi::{self, BidiClient};
@@ -50,17 +51,14 @@ impl FirefoxBrowser {
     /// The browser is always started with a throwaway profile and `--no-remote`
     /// so it never touches the user's own session.
     pub async fn launch(config: FirefoxConfig) -> XcelerateResult<Arc<Self>> {
-        let executable = config
-            .executable_path
-            .map(PathBuf::from)
-            .or_else(find_firefox)
+        let executable = super::known::resolve(config.executable_path.as_deref(), Engine::Firefox)
             .ok_or_else(|| {
                 XcelerateError::NotFound(
-                    "Firefox executable not found. Set executable_path.".into(),
+                    "no Firefox found; set executable_path or XCELERATE_BROWSER=firefox".into(),
                 )
             })?;
 
-        let port = free_port().ok_or(XcelerateError::InternalError)?;
+        let port = super::engine::free_port().ok_or(XcelerateError::InternalError)?;
         let profile = tempfile::tempdir().map_err(|_| XcelerateError::InternalError)?;
 
         let mut command = tokio::process::Command::new(&executable);
@@ -198,32 +196,18 @@ impl FirefoxPage {
     }
 }
 
-fn find_firefox() -> Option<PathBuf> {
-    let candidates = if cfg!(windows) {
-        vec![
-            r"C:\Program Files\Mozilla Firefox\firefox.exe",
-            r"C:\Program Files (x86)\Mozilla Firefox\firefox.exe",
-        ]
-    } else if cfg!(target_os = "macos") {
-        vec!["/Applications/Firefox.app/Contents/MacOS/firefox"]
-    } else {
-        vec![
-            "/usr/bin/firefox",
-            "/usr/bin/firefox-esr",
-            "/snap/bin/firefox",
-        ]
-    };
-    candidates
-        .into_iter()
-        .map(PathBuf::from)
-        .find(|path| path.exists())
-}
+impl super::engine::Browser for FirefoxBrowser {
+    fn engine(&self) -> Engine {
+        Engine::Firefox
+    }
 
-fn free_port() -> Option<u16> {
-    std::net::TcpListener::bind("127.0.0.1:0")
-        .and_then(|listener| listener.local_addr())
-        .map(|addr| addr.port())
-        .ok()
+    fn connected(&self) -> bool {
+        self.client.is_connected()
+    }
+
+    fn close(&self) -> super::engine::BoxFuture<'_, XcelerateResult<()>> {
+        Box::pin(FirefoxBrowser::close(self))
+    }
 }
 
 async fn connect_with_retry(ws_url: &str) -> XcelerateResult<BidiClient> {
