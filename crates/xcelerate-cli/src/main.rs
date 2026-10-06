@@ -387,6 +387,11 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         }
         Command::QueryAll { url, selector } => {
             let (browser, page) = launch(&cli.browser, &url).await?;
+            // Like `query`, wait for the selector to appear before reading: a
+            // client-rendered page may not have populated the DOM when the load
+            // event fires. The wait is bounded by the page timeout; if nothing
+            // shows up we still print nothing rather than failing.
+            let _ = Arc::clone(&page).wait_for_selector(selector.clone()).await;
             for element in Arc::clone(&page).query_selector_all(selector).await? {
                 println!("{}", element.text().await.unwrap_or_default());
             }
@@ -595,5 +600,11 @@ async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Browser>,
     // `new_page` returns as soon as navigation is issued; wait for the load
     // event so client-rendered pages are populated before we read them.
     let _ = page.wait_for_navigation().await;
+    // A client-rendered page can keep rendering after the load event, so give
+    // the DOM a brief, capped window to settle. This keeps the one-shot readers
+    // (`content`, `text`, `evaluate`, `find`, `markdown`, `accessibility`,
+    // `snapshot`, ...) from observing a half-rendered page. The cap stops a
+    // long-polling or constantly-mutating page from hanging the CLI.
+    let _ = page.wait_for_dom_stable(300, 2_000).await;
     Ok((browser, page))
 }
