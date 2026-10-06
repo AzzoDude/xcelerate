@@ -394,7 +394,9 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         }
         Command::Xpath { url, xpath } => {
             let (browser, page) = launch(&cli.browser, &url).await?;
-            let element = Arc::clone(&page).query_selector_xpath(xpath).await?;
+            // Wait: client-rendered pages may not have the element yet when the
+            // load event fires.
+            let element = Arc::clone(&page).wait_for_xpath(xpath, 30_000).await?;
             println!("{}", element.text().await?);
             browser.close().await?;
         }
