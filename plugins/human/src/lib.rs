@@ -7,7 +7,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use xcelerate_plugin_api::{
+use xcelerate_plugin::{
     ArcPageHost, BoxFut, Budgets, Capability, Manifest, OpCall, Plugin, PluginError, PluginResult,
     Registry,
 };

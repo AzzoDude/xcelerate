@@ -280,7 +280,12 @@ async fn run_recording(
                 if value.get("method").and_then(|m| m.as_str()) != Some("Page.screencastFrame") {
                     continue;
                 }
-                let params = value.get("params").cloned().unwrap_or_default();
+                // Borrow the params instead of deep-cloning them: a screencast
+                // frame's `data` is a multi-megabyte base64 string, and the clone
+                // dominated the per-frame cost.
+                let Some(params) = value.get("params") else {
+                    continue;
+                };
 
                 // Ack first: Chrome throttles or stops the stream until the
                 // frame is acknowledged, even if writing it fails.
@@ -294,7 +299,7 @@ async fn run_recording(
                         .await;
                 }
 
-                if let Some((w, h)) = read_dims(&params)
+                if let Some((w, h)) = read_dims(params)
                     && let Ok(mut guard) = dims.lock()
                 {
                     *guard = Some((w, h));

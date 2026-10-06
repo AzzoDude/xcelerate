@@ -23,8 +23,7 @@ wasm = ["dep:wasmtime", "dep:wasmtime-wasi", "dep:rmp-serde"]
 
 [dependencies]
 xcelerate-core = { workspace = true }
-xcelerate-plugin-api = { workspace = true }
-xcelerate-plugins = { workspace = true }
+xcelerate-plugin = { workspace = true }
 browser-protocol = { workspace = true }
 js-protocol = { workspace = true }
 uniffi = { workspace = true }

@@ -41,8 +41,8 @@ struct BrowserArgs {
     /// Path to the Chrome/Edge executable.
     #[arg(long, global = true, value_name = "PATH")]
     executable_path: Option<String>,
-    /// Built-in plugins to enable (comma-separated): stealth,human.
-    #[arg(long, global = true, value_name = "LIST", value_delimiter = ',')]
+    /// External plugin paths to load (comma-separated).
+    #[arg(long, global = true, value_name = "PATH", value_delimiter = ',')]
     plugins: Vec<String>,
     /// Emulate a mobile device for this run (see `xcelerate list`).
     #[arg(long, global = true, value_name = "NAME")]
@@ -173,9 +173,9 @@ enum Command {
         #[arg(long)]
         no_ffmpeg: bool,
     },
-    /// List built-in devices and plugins.
+    /// List built-in devices.
     List,
-    /// List the compiled-in built-in plugins.
+    /// Explain how external plugins are loaded.
     Plugins,
     /// Create a new mod (plugin) from the starter template.
     Plugin {
@@ -225,15 +225,10 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
                     if device.has_touch { " touch" } else { "" }
                 );
             }
-            println!("\nPlugins:");
-            for name in xcelerate::plugin::builtin_names() {
-                println!("  {name}");
-            }
+            println!("\nPlugins: none built in (plugins are external; load with --plugins <PATH>)");
         }
         Command::Plugins => {
-            for name in xcelerate::plugin::builtin_names() {
-                println!("{name}");
-            }
+            println!("xcelerate ships no built-in plugins; load one with `--plugins <PATH>`");
         }
         Command::Plugin { action } => match action {
             PluginAction::New { name, dir, force } => {

@@ -4,7 +4,7 @@
 //! into every document. The primitives it builds on - the [`BinaryPatcher`] and
 //! the [`CDC_PAYLOAD`] - live here.
 
-use xcelerate_plugin_api::{
+use xcelerate_plugin::{
     ArcPageHost, BoxFut, Budgets, Capability, LaunchPlan, Manifest, Plugin, PluginError,
     PluginResult, Registry,
 };

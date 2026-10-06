@@ -468,7 +468,7 @@ querying, JavaScript evaluation, and plugin invocation.
 
 Configure it with the environment: `XCELERATE_CHROME` (browser path),
 `XCELERATE_HEADLESS` (`1`/`true`, default), `XCELERATE_DETACHED` (`1`/`true`), and
-`XCELERATE_PLUGINS` (comma-separated, e.g. `stealth,human`).
+`XCELERATE_PLUGINS` (comma-separated external plugin paths to load).
 
 ## Video recording
 
@@ -595,8 +595,7 @@ and `browser_click_index`.
 xcelerate/
   crates/
     xcelerate-core/        # WebSocket transport and typed CDP command layer
-    xcelerate-plugin-api/  # plugin trait, manifest, capabilities, audit, host interface
-    xcelerate-plugins/     # built-in plugin catalog: name -> implementation lookup
+    xcelerate-plugin/      # plugin trait, manifest, capabilities, audit, host interface
     xcelerate/             # high-level facade: Browser, Page, Element, adapters
     xcelerate-bindgen/     # uniffi bindgen helper binary
     xcelerate-cli/         # CLI (binary `xcelerate`)
@@ -611,11 +610,11 @@ xcelerate/
 ```
 
 The plugin API - the `Plugin` trait, `Manifest`, capabilities, audit log, and the
-`PageHost` interface - lives in `crates/xcelerate-plugin-api/`. Each built-in
-plugin is an independent crate under `plugins/` (`stealth`, `human`);
-`crates/xcelerate-plugins/` is only the catalog that maps their names to
-implementations. The `stealth` crate owns its binary patcher and the
-anti-fingerprint payload; the engine owns browser process control
+`PageHost` interface - lives in `crates/xcelerate-plugin/`. **No plugins are built
+into the core**: `plugins/` holds external plugin crates (`stealth`, `human`) that
+an embedder installs in-process, or that are built to `.wasm` and loaded
+sandboxed. The `stealth` crate owns its binary patcher and the anti-fingerprint
+payload; the engine owns browser process control
 (`crates/xcelerate/src/process.rs`). The facade owns the `PluginManager` and
 bridges `Page` to the plugin host interface, so plugins never touch a raw page or
 the transport.

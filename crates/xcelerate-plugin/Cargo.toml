@@ -1,5 +1,5 @@
 [package]
-name = "xcelerate-plugin-api"
+name = "xcelerate-plugin"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

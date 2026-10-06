@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Duration;
-use xcelerate_plugin_api::LaunchPlan;
+use xcelerate_plugin::LaunchPlan;
 
 /// Configuration for the Browser instance.
 #[derive(uniffi::Record)]
@@ -24,9 +24,12 @@ pub struct BrowserConfig {
     pub detached: bool,
     /// Optional path to the browser executable.
     pub executable_path: Option<String>,
-    /// Built-in plugins to enable for this browser (for example
-    /// `["stealth", "human"]`). Default-deny: no plugin does anything unless
-    /// listed here (or enabled afterwards with `Browser::use_plugin`).
+    /// External plugins to load at launch. Each entry is a path to a plugin
+    /// directory or a `plugin.json`.
+    ///
+    /// Xcelerate ships **no** plugins built into the core. Default-deny: no
+    /// plugin does anything unless it is listed here (or installed afterwards
+    /// with `Browser::use_plugin` / `Browser::load_plugin`).
     pub plugins: Option<Vec<String>>,
 }
 
@@ -148,9 +151,8 @@ impl Browser {
         };
         let port = get_free_port().ok_or(XcelerateError::InternalError)?;
 
-        // Resolve the enabled plugins (default-deny).
-        let names = config.plugins.clone().unwrap_or_default();
-        let manager = PluginManager::new(&names, crate::plugin::catalog())?;
+        // Plugins are external and default-deny; nothing is enabled yet.
+        let manager = PluginManager::new(&[], crate::plugin::catalog())?;
 
         // Let built-in plugins contribute to the launch (e.g. binary patching)
         // before the process is spawned.
@@ -232,7 +234,7 @@ impl Browser {
                 .await;
         }
 
-        Ok(Arc::new(Self {
+        let browser = Arc::new(Self {
             client,
             _process: tokio::sync::Mutex::new(child),
             _process_guard: guard,
@@ -242,7 +244,15 @@ impl Browser {
             ws_url: ws_url.clone(),
             events: tokio::sync::Mutex::new(Vec::new()),
             owned: true,
-        }))
+        });
+
+        // Load external plugins before any page is created, so their
+        // `on_page_created` hook sees the first page.
+        for path in config.plugins.clone().unwrap_or_default() {
+            browser.load_plugin(path)?;
+        }
+
+        Ok(browser)
     }
 
     pub async fn new_page(self: Arc<Self>, url: String) -> XcelerateResult<Arc<Page>> {
@@ -297,12 +307,12 @@ impl Browser {
         Ok(page)
     }
 
-    /// Names of all compiled-in built-in plugins (the catalog).
+    /// Names of the plugins currently available on this browser.
+    ///
+    /// Xcelerate ships **no** built-in plugins, so this lists the plugins that
+    /// have been installed or loaded on this instance.
     pub fn available_plugins(&self) -> Vec<String> {
-        xcelerate_plugins::builtin_names()
-            .iter()
-            .map(|name| (*name).to_string())
-            .collect()
+        self.plugins.names()
     }
 
     /// Names of the plugins currently enabled on this browser.
@@ -310,10 +320,10 @@ impl Browser {
         self.plugins.names()
     }
 
-    /// Enables a built-in plugin at runtime.
+    /// Enables an installed plugin at runtime.
     ///
     /// Launch-time contributions (such as binary patching) only take effect if
-    /// the plugin was enabled before the browser launched; enabling a plugin
+    /// the plugin was installed before the browser launched; enabling a plugin
     /// afterwards applies its runtime hooks to pages created from now on. This
     /// is audited as a runtime enable. Unknown names are refused.
     pub async fn use_plugin(&self, name: String) -> XcelerateResult<()> {
@@ -340,14 +350,15 @@ impl Browser {
     /// opted into via `XCELERATE_PLUGIN_ALLOW`.
     ///
     /// Once loaded, the plugin's ops are reachable through
-    /// `plugin(name).invoke(op, args_json)` in every language, exactly like a
-    /// built-in plugin.
+    /// `plugin(name).invoke(op, args_json)` in every language.
     pub fn load_plugin(&self, path: String) -> XcelerateResult<String> {
         let manifest_path = crate::plugin::resolve_manifest_path(&path)?;
-        let manifest = xcelerate_plugin_api::Manifest::load(&manifest_path.to_string_lossy())?;
+        let manifest = xcelerate_plugin::Manifest::load(&manifest_path.to_string_lossy())?;
 
+        // The core ships no built-in plugins, so no name is reserved; the
+        // manifest's own rules still apply.
         manifest
-            .validate_reserved(xcelerate_plugins::builtin_names())
+            .validate_reserved(&[])
             .map_err(|error| XcelerateError::Unsupported(error.to_string()))?;
         if self.plugins.has(&manifest.name) {
             return Err(XcelerateError::Unsupported(format!(
@@ -377,12 +388,12 @@ impl Browser {
 
     /// Verifies the integrity of the append-only plugin audit log.
     pub fn audit_verify(&self) -> bool {
-        xcelerate_plugin_api::audit_verify()
+        xcelerate_plugin::audit_verify()
     }
 
     /// Returns the plugin audit log as a JSON array (no secrets are recorded).
     pub fn audit_log(&self) -> String {
-        let entries: Vec<serde_json::Value> = xcelerate_plugin_api::audit_entries()
+        let entries: Vec<serde_json::Value> = xcelerate_plugin::audit_entries()
             .into_iter()
             .map(|event| {
                 serde_json::json!({
@@ -714,10 +725,9 @@ impl Browser {
     /// browser.install_plugins([PluginA, PluginB])?;
     /// ```
     ///
-    /// Installed plugins run in-process and therefore have the same trust as the
-    /// built-in `stealth`/`human` plugins. Install them before creating pages so
-    /// their `on_page_created` hook sees them. Names already owned by the host
-    /// catalog (for example `stealth`) are refused.
+    /// Installed plugins run in-process and are fully trusted: they receive the
+    /// whole `PageHost` interface. Install them before creating pages so their
+    /// `on_page_created` hook sees them.
     ///
     /// Rust-only: it is intentionally not exposed through the language bindings,
     /// because it hands the host an executable Rust value.

@@ -56,7 +56,7 @@ public disclosure.
 In scope:
 
 - **The Rust core and facade** (`xcelerate-core`, `xcelerate`,
-  `xcelerate-plugin-api`, `xcelerate-plugins`, and the `plugins/stealth` and
+  `xcelerate-plugin`, and the external `plugins/stealth` and
   `plugins/human` crates).
 - **The plugin trust model** - anything that lets a plugin exceed its granted
   capabilities, bypass manifest validation, escape the default-deny rules, or

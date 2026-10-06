@@ -1,22 +1,22 @@
 //! Plugin manager and UniFFI bridge for the engine.
 //!
 //! The plugin *API* - the [`Plugin`] trait, [`Manifest`], audit log, and the
-//! [`PageHost`] interface - lives in `xcelerate-plugin-api`. The built-in plugins
-//! are independent crates under `plugins/`, reached through the `xcelerate-plugins`
-//! catalog. This module wires them into [`crate::Browser`], implements
-//! [`PageHost`] on top of [`Page`], and exposes [`PluginHandle`] to every language
-//! binding.
+//! [`PageHost`] interface - lives in `xcelerate-plugin`. **No plugins are built
+//! into the core**: every plugin is external, either a crate the embedder
+//! installs in-process ([`PluginManager::install`]) or a sandboxed component
+//! loaded with [`crate::Browser::load_plugin`]. This module wires them into
+//! [`crate::Browser`], implements [`PageHost`] on top of [`Page`], and exposes
+//! [`PluginHandle`] to every language binding.
 
 use std::sync::Arc;
 
 use crate::error::{XcelerateError, XcelerateResult};
 use crate::page::Page;
-use xcelerate_plugin_api::{ArcPageHost, BoxFut, Catalog, PageHost, PluginError, PluginResult};
+use xcelerate_plugin::{ArcPageHost, BoxFut, Catalog, PageHost, PluginError, PluginResult};
 
-pub use xcelerate_plugin_api::{
+pub use xcelerate_plugin::{
     AuditEvent, Capability, Manifest, Plugin, PluginManager, audit_entries, audit_verify,
 };
-pub use xcelerate_plugins::{builtin_names, is_builtin};
 
 #[cfg(feature = "wasm")]
 pub(crate) mod wasm;
@@ -32,9 +32,12 @@ pub(crate) fn resolve_manifest_path(path: &str) -> XcelerateResult<std::path::Pa
     }
 }
 
-/// The host's built-in plugin catalog.
+/// The host's plugin catalog. Xcelerate ships **no** plugins built into the
+/// core, so this always resolves to nothing; plugins arrive externally through
+/// [`PluginManager::install`] (in-process crates) or
+/// [`crate::Browser::load_plugin`] (sandboxed components).
 pub(crate) fn catalog() -> Catalog {
-    Arc::new(xcelerate_plugins::builtin)
+    Arc::new(|_: &str| None)
 }
 
 /// A [`PageHost`] backed by the engine's [`Page`], exposed to plugins so they
@@ -132,7 +135,7 @@ impl PluginHandle {
 
     /// Invoke an op with a JSON-encoded argument object; returns JSON.
     pub async fn invoke(&self, op: String, args_json: String) -> XcelerateResult<String> {
-        xcelerate_plugin_api::audit(&self.name, &op, "invoke");
+        xcelerate_plugin::audit(&self.name, &op, "invoke");
         self.manager
             .invoke(&self.name, &op, args_json, None)
             .await
@@ -140,14 +143,14 @@ impl PluginHandle {
     }
 }
 
-impl xcelerate_plugin_api::OpInvoker for PluginHandle {
+impl xcelerate_plugin::OpInvoker for PluginHandle {
     fn invoke_op<'a>(
         &'a self,
         op: &'a str,
         args_json: String,
-    ) -> xcelerate_plugin_api::BoxFutLt<'a, xcelerate_plugin_api::PluginResult<String>> {
+    ) -> xcelerate_plugin::BoxFutLt<'a, xcelerate_plugin::PluginResult<String>> {
         Box::pin(async move {
-            xcelerate_plugin_api::audit(&self.name, op, "invoke");
+            xcelerate_plugin::audit(&self.name, op, "invoke");
             self.manager.invoke(&self.name, op, args_json, None).await
         })
     }
@@ -180,61 +183,77 @@ impl PluginHandle {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use xcelerate_plugin::{Budgets, Registry};
 
-    fn manager(name: &str) -> PluginManager {
-        PluginManager::new(&[name.to_string()], catalog()).unwrap()
-    }
+    /// A minimal *external* plugin. The engine ships none of its own, so the
+    /// tests define one and install it in-process - exactly what an embedder
+    /// does with a plugin crate.
+    struct Echo;
 
-    #[test]
-    fn reserved_names_cover_the_catalog() {
-        assert!(is_builtin("stealth"));
-        assert!(is_builtin("human"));
-        assert_eq!(builtin_names(), &["stealth", "human"]);
-        assert!(!is_builtin("other"));
-    }
+    impl Plugin for Echo {
+        fn name(&self) -> &str {
+            "echo"
+        }
 
-    #[test]
-    fn human_plugin_is_available_with_its_ops() {
-        let manager = manager("human");
-        assert!(manager.has("human"));
-        assert_eq!(manager.names(), vec!["human".to_string()]);
-        let ops = manager.ops("human");
-        for op in ["info", "move", "click", "type", "scroll", "delay"] {
-            assert!(ops.contains(&op.to_string()), "missing op {op}");
+        fn manifest(&self) -> Manifest {
+            // Built directly (not via `from_json`): an in-process plugin has no
+            // sandbox `entrypoint`.
+            Manifest {
+                name: "echo".to_string(),
+                version: "0.1.0".to_string(),
+                host_api: "1.x".to_string(),
+                entrypoint: None,
+                abi: None,
+                ops: vec!["info".to_string()],
+                capabilities: Vec::new(),
+                dependencies: Default::default(),
+                overrides: Default::default(),
+                limits: Budgets::default(),
+            }
+        }
+
+        fn build(&self, reg: &mut Registry) {
+            reg.op("info", |_call| {
+                Box::pin(async { Ok(r#"{"name":"echo"}"#.to_string()) })
+            });
         }
     }
 
     #[test]
+    fn core_ships_no_built_in_plugins() {
+        // The catalog resolves nothing: every plugin is external.
+        let manager = PluginManager::new(&[], catalog()).unwrap();
+        assert!(manager.names().is_empty());
+        assert!(!manager.has("stealth"));
+        assert!(!manager.has("human"));
+    }
+
+    #[test]
     fn refuses_unknown_plugin() {
-        match PluginManager::new(&["totally-not-real".to_string()], catalog()) {
+        // With no catalog, a name can never be resolved to code.
+        match PluginManager::new(&["stealth".to_string()], catalog()) {
             Err(PluginError::Unsupported(_)) => {}
             Err(other) => panic!("unexpected error: {other:?}"),
             Ok(_) => panic!("expected an unknown plugin to be refused"),
         }
     }
 
-    #[test]
-    fn enable_is_idempotent() {
-        let manager = manager("stealth");
-        manager.enable("stealth").unwrap();
-        assert_eq!(manager.names(), vec!["stealth".to_string()]);
-        assert!(matches!(
-            manager.enable("unregistered-plugin").unwrap_err(),
-            PluginError::Unsupported(_)
-        ));
-    }
-
     #[tokio::test]
-    async fn invoke_runs_registered_op() {
-        let manager = manager("stealth");
+    async fn installed_plugin_is_available_with_its_ops() {
+        let manager = PluginManager::new(&[], catalog()).unwrap();
+        manager.install(Arc::new(Echo)).unwrap();
+        assert!(manager.has("echo"));
+        assert_eq!(manager.names(), vec!["echo".to_string()]);
+        assert_eq!(manager.ops("echo"), vec!["info".to_string()]);
+
         let out = manager
-            .invoke("stealth", "info", "{}".to_string(), None)
+            .invoke("echo", "info", "{}".to_string(), None)
             .await
             .unwrap();
-        assert!(out.contains("\"name\":\"stealth\""));
+        assert!(out.contains("\"name\":\"echo\""));
 
         let err = manager
-            .invoke("stealth", "missing", "{}".to_string(), None)
+            .invoke("echo", "missing", "{}".to_string(), None)
             .await
             .unwrap_err();
         assert!(matches!(err, PluginError::NotFound(_)));

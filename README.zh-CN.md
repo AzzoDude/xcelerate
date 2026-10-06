@@ -438,7 +438,7 @@ MCP 客户端可以驱动真实的浏览器。它暴露 21 个工具，涵盖导
 
 使用环境变量进行配置：`XCELERATE_CHROME`（浏览器路径）、
 `XCELERATE_HEADLESS`（`1`/`true`，默认）、`XCELERATE_DETACHED`（`1`/`true`）以及
-`XCELERATE_PLUGINS`（以逗号分隔，例如 `stealth,human`）。
+`XCELERATE_PLUGINS`（以逗号分隔的外部插件路径）。
 
 ## 视频录制
 
@@ -560,8 +560,7 @@ bounds 和 backend node id 的相同元素）。它以 CLI 命令 `xcelerate sna
 xcelerate/
   crates/
     xcelerate-core/        # WebSocket transport and typed CDP command layer
-    xcelerate-plugin-api/  # plugin trait, manifest, capabilities, audit, host interface
-    xcelerate-plugins/     # built-in plugin catalog: name -> implementation lookup
+    xcelerate-plugin/      # plugin trait, manifest, capabilities, audit, host interface
     xcelerate/             # high-level facade: Browser, Page, Element, adapters
     xcelerate-bindgen/     # uniffi bindgen helper binary
     xcelerate-cli/         # CLI (binary `xcelerate`)
@@ -576,9 +575,9 @@ xcelerate/
 ```
 
 插件 API —— `Plugin` trait、`Manifest`、能力、审计日志以及 `PageHost` 接口 ——
-位于 `crates/xcelerate-plugin-api/`。每个内置插件都是 `plugins/` 下的一个独立
-crate（`stealth`、`human`）；`crates/xcelerate-plugins/` 只是将它们名称映射到
-实现的目录。`stealth` crate 拥有自己的二进制修补器和反指纹载荷；引擎拥有
+位于 `crates/xcelerate-plugin/`。核心不内置任何插件：`plugins/` 下的
+`stealth`、`human` 是外部插件 crate，由嵌入方在进程内安装，或编译为 `.wasm`
+后以沙箱方式加载。`stealth` crate 拥有自己的二进制修补器和反指纹载荷；引擎拥有
 浏览器进程控制（`crates/xcelerate/src/process.rs`）。门面（facade）拥有
 `PluginManager`，并将 `Page` 桥接到插件宿主接口，因此插件永远不会接触原始
 页面或传输层。

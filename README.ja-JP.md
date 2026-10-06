@@ -453,8 +453,7 @@ JavaScript 評価、プラグイン呼び出しをカバーする 21 個のツ�
 ```
 
 環境変数で設定します: `XCELERATE_CHROME`（ブラウザパス）、`XCELERATE_HEADLESS`
-（`1`/`true`、既定）、`XCELERATE_DETACHED`（`1`/`true`）、`XCELERATE_PLUGINS`
-（カンマ区切り、例: `stealth,human`）。
+（`1`/`true`、既定）、`XCELERATE_DETACHED`（`1`/`true`）、`XCELERATE_PLUGINS`（カンマ区切りの外部プラグインパス）。
 
 ## 動画録画
 
@@ -583,8 +582,7 @@ backend node id を持つ同じ要素を返します）。CLI コマンド `xcel
 xcelerate/
   crates/
     xcelerate-core/        # WebSocket transport and typed CDP command layer
-    xcelerate-plugin-api/  # plugin trait, manifest, capabilities, audit, host interface
-    xcelerate-plugins/     # built-in plugin catalog: name -> implementation lookup
+    xcelerate-plugin/      # plugin trait, manifest, capabilities, audit, host interface
     xcelerate/             # high-level facade: Browser, Page, Element, adapters
     xcelerate-bindgen/     # uniffi bindgen helper binary
     xcelerate-cli/         # CLI (binary `xcelerate`)
@@ -599,14 +597,14 @@ xcelerate/
 ```
 
 プラグイン API - `Plugin` トレイト、`Manifest`、ケイパビリティ、監査ログ、
-`PageHost` インターフェース - は `crates/xcelerate-plugin-api/` にあります。各組み込み
-プラグインは `plugins/` 配下の独立したクレートです（`stealth`、`human`）。
-`crates/xcelerate-plugins/` は、それらの名前を実装にマッピングするカタログにすぎません。
-`stealth` クレートは自身のバイナリパッチャーとアンチフィンガープリントペイロードを
-所有し、エンジンはブラウザプロセスの制御（`crates/xcelerate/src/process.rs`）を
-所有します。ファサードは `PluginManager` を所有し、`Page` をプラグインホスト
-インターフェースにブリッジするため、プラグインが生のページやトランスポートに触れる
-ことはありません。
+`PageHost` インターフェース - は `crates/xcelerate-plugin/` にあります。コアに
+組み込まれたプラグインはありません。`plugins/` 配下の `stealth`、`human` は外部
+プラグインクレートで、埋め込み側がインプロセスでインストールするか、`.wasm` に
+ビルドしてサンドボックスでロードします。`stealth` クレートは自身のバイナリパッチャー
+とアンチフィンガープリントペイロードを所有し、エンジンはブラウザプロセスの制御
+（`crates/xcelerate/src/process.rs`）を所有します。ファサードは `PluginManager` を
+所有し、`Page` をプラグインホストインターフェースにブリッジするため、プラグインが
+生のページやトランスポートに触れることはありません。
 
 ## 開発
 

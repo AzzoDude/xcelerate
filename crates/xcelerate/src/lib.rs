@@ -6,10 +6,10 @@
 //! The workspace is split into focused crates:
 //!
 //! * [`xcelerate_core`] — the WebSocket transport and typed command layer.
-//! * [`xcelerate_plugin_api`] — the plugin trait, manifest, audit log, and the
-//!   `PageHost` interface plugins use to reach a page.
-//! * [`xcelerate_plugins`] — the plugins that ship with the engine (`stealth`,
-//!   `human`).
+//! * [`xcelerate_plugin`] — the plugin trait, manifest, audit log, and the
+//!   `PageHost` interface plugins use to reach a page. **No plugins are built
+//!   into the core**; plugin crates (`plugins/stealth`, `plugins/human`) are
+//!   external and are installed by the embedder.
 //!
 //! This crate is the thin facade: it composes those pieces into the high-level
 //! [`Browser`], [`Page`], and [`Element`] API and exposes it to other languages

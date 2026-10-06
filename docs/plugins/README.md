@@ -151,38 +151,37 @@ browser.install_plugins([xcelerate_plugin_foo::FooPlugin])?;
 Dangerous capabilities the plugin requests still need the host to opt in
 (`XCELERATE_PLUGIN_ALLOW`), in every language.
 
-### Any binding - enable a compiled-in plugin by name
+### Any binding - drive a loaded plugin by name
 
-For plugins compiled into the core, enable by name and drive through the same
-bridge:
+Plugins are **not** built into the core. Once a plugin has been loaded from disk,
+you can reach it by name through the same bridge (`use_plugin` is idempotent for
+an already-loaded plugin):
 
-| Language | Enable by name | Handle | Invoke (JSON in, JSON out) |
-| --- | --- | --- | --- |
-| Python | `await browser.use_plugin("stealth")` | `browser.plugin("stealth")` | `await handle.invoke("info", "{}")` |
-| JavaScript | `await browser.usePlugin("stealth")` | `browser.plugin("stealth")` | `await handle.invoke("info", "{}")` |
-| .NET / C# | `await browser.UsePlugin("stealth")` | `browser.Plugin("stealth")` | `await handle.Invoke("info", "{}")` |
-| Kotlin | `browser.usePlugin("stealth")` | `browser.plugin("stealth")` | `handle.invoke("info", "{}")` |
-| Java | `browser.usePlugin("stealth")` | `browser.plugin("stealth")` | `handle.invoke("info", "{}").get()` |
-| Swift | `try await browser.usePlugin(name: "stealth")` | `try browser.plugin(name: "stealth")` | `try await handle.invoke(op: "info", argsJson: "{}")` |
-| Ruby | `browser.use_plugin("stealth")` | `browser.plugin("stealth")` | `handle.invoke("info", "{}")` |
-| Dart | `await browser.usePlugin("stealth")` | `browser.plugin("stealth")` | `await handle.invoke("info", "{}")` |
-| Go | `browser.UsePlugin("stealth")` | `browser.Plugin("stealth")` | `handle.Invoke("info", "{}")` |
-| PowerShell | `$browser.UsePlugin('stealth')` | `Get-XceleratePlugin -Browser $browser -Name stealth` | `$handle.Invoke('info', '{}')` |
-| CLI | `xcelerate --plugins stealth <cmd>` | - | - |
-| MCP | env `XCELERATE_PLUGINS=stealth` | - | `browser_plugin_invoke` |
+| Language | Handle | Invoke (JSON in, JSON out) |
+| --- | --- | --- |
+| Python | `browser.plugin("example.wasm-echo")` | `await handle.invoke("echo", "{}")` |
+| JavaScript | `browser.plugin("example.wasm-echo")` | `await handle.invoke("echo", "{}")` |
+| .NET / C# | `browser.Plugin("example.wasm-echo")` | `await handle.Invoke("echo", "{}")` |
+| Kotlin | `browser.plugin("example.wasm-echo")` | `handle.invoke("echo", "{}")` |
+| Java | `browser.plugin("example.wasm-echo")` | `handle.invoke("echo", "{}").get()` |
+| Swift | `try browser.plugin(name: "example.wasm-echo")` | `try await handle.invoke(op: "echo", argsJson: "{}")` |
+| Ruby | `browser.plugin("example.wasm-echo")` | `handle.invoke("echo", "{}")` |
+| Dart | `browser.plugin("example.wasm-echo")` | `await handle.invoke("echo", "{}")` |
+| Go | `browser.Plugin("example.wasm-echo")` | `handle.Invoke("echo", "{}")` |
+| PowerShell | `Get-XceleratePlugin -Browser $browser -Name example.wasm-echo` | `$handle.Invoke('echo', '{}')` |
+| CLI | `xcelerate --plugins path/to/plugin <cmd>` | - |
+| MCP | env `XCELERATE_PLUGINS=path/to/plugin` | `browser_plugin_invoke` |
 
-At launch you can instead list plugins on the browser config - for example
-`BrowserConfig(plugins=["stealth"])` in Python or `{ plugins: ["stealth"] }` in
-JavaScript (see each binding's README). The list is the same default-deny
-allow-list in every language.
+At launch you can instead list plugin paths on the browser config - for example
+`BrowserConfig(plugins=["path/to/plugin"])` in Python or
+`{ plugins: ["path/to/plugin"] }` in JavaScript (see each binding's README). The
+list is the same default-deny allow-list in every language.
 
-### Adding a plugin to the shipped core
+### Adding a plugin to your program
 
-To make a custom plugin reachable from the non-Rust bindings, compile it into
-the engine: add its crate to `crates/xcelerate/Cargo.toml`, register it in the
-catalog in `crates/xcelerate/src/plugin.rs`, and rebuild the `xcelerate` cdylib.
-It then appears in `available_plugins()` in every language and can be enabled by
-name.
+Build the plugin to a `.wasm` component and `load_plugin` it (or list its path in
+`plugins`). From Rust you can alternatively add the plugin crate and
+`install_plugins([MyPlugin])` to run it in-process.
 
 ## What a plugin looks like
 

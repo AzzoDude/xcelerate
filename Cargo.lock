@@ -3328,8 +3328,7 @@ dependencies = [
  "wasmtime",
  "wasmtime-wasi",
  "xcelerate-core",
- "xcelerate-plugin-api",
- "xcelerate-plugins",
+ "xcelerate-plugin",
 ]
 
 [[package]]
@@ -3376,7 +3375,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "xcelerate-plugin-api"
+name = "xcelerate-plugin"
 version = "1.0.12"
 dependencies = [
  "serde",
@@ -3390,7 +3389,7 @@ version = "1.0.12"
 dependencies = [
  "serde_json",
  "tokio",
- "xcelerate-plugin-api",
+ "xcelerate-plugin",
 ]
 
 [[package]]
@@ -3399,16 +3398,7 @@ version = "1.0.12"
 dependencies = [
  "serde_json",
  "thiserror",
- "xcelerate-plugin-api",
-]
-
-[[package]]
-name = "xcelerate-plugins"
-version = "1.0.12"
-dependencies = [
- "xcelerate-plugin-api",
- "xcelerate-plugin-human",
- "xcelerate-plugin-stealth",
+ "xcelerate-plugin",
 ]
 
 [[package]]

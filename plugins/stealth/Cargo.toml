@@ -9,7 +9,7 @@ repository.workspace = true
 description = "The stealth plugin for xcelerate: binary patching + an anti-fingerprint payload."
 
 [dependencies]
-xcelerate-plugin-api = { workspace = true }
+xcelerate-plugin = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 

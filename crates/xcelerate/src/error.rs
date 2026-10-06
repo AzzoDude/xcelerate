@@ -41,9 +41,9 @@ impl From<xcelerate_core::Error> for XcelerateError {
     }
 }
 
-impl From<xcelerate_plugin_api::PluginError> for XcelerateError {
-    fn from(e: xcelerate_plugin_api::PluginError) -> Self {
-        use xcelerate_plugin_api::PluginError as ApiError;
+impl From<xcelerate_plugin::PluginError> for XcelerateError {
+    fn from(e: xcelerate_plugin::PluginError) -> Self {
+        use xcelerate_plugin::PluginError as ApiError;
         match e {
             ApiError::NotFound(message) => Self::NotFound(message),
             ApiError::Unsupported(message) => Self::Unsupported(message),
@@ -52,9 +52,9 @@ impl From<xcelerate_plugin_api::PluginError> for XcelerateError {
     }
 }
 
-impl From<XcelerateError> for xcelerate_plugin_api::PluginError {
+impl From<XcelerateError> for xcelerate_plugin::PluginError {
     fn from(e: XcelerateError) -> Self {
-        xcelerate_plugin_api::PluginError::Message(e.to_string())
+        xcelerate_plugin::PluginError::Message(e.to_string())
     }
 }
 

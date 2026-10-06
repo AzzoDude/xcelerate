@@ -17,7 +17,7 @@ use wasmtime::component::{Component, HasSelf, Linker, ResourceTable};
 use wasmtime::{Config, Engine, Store};
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView};
 
-use xcelerate_plugin_api::{
+use xcelerate_plugin::{
     Capability, Manifest, OpCall, Plugin, PluginError, PluginResult, Registry,
 };
 
@@ -62,10 +62,10 @@ impl HostState {
     /// Enforce a capability, auditing both the grant and the denial.
     fn require(&self, capability: Capability) -> Result<(), String> {
         if self.granted.contains(&capability) {
-            xcelerate_plugin_api::audit(&self.plugin, capability.as_str(), "grant");
+            xcelerate_plugin::audit(&self.plugin, capability.as_str(), "grant");
             Ok(())
         } else {
-            xcelerate_plugin_api::audit(&self.plugin, capability.as_str(), "deny");
+            xcelerate_plugin::audit(&self.plugin, capability.as_str(), "deny");
             Err(format!(
                 "capability '{}' was not granted to plugin '{}'",
                 capability.as_str(),
@@ -81,7 +81,7 @@ impl self::xcelerate::plugin::host::Host for HostState {
     fn log(&mut self, message: String) {
         // Never let a plugin grow the log without bound.
         let message: String = message.chars().take(1024).collect();
-        xcelerate_plugin_api::audit(&self.plugin, "log", &message);
+        xcelerate_plugin::audit(&self.plugin, "log", &message);
     }
 
     fn get_cookies(&mut self) -> Result<Vec<self::xcelerate::plugin::types::Cookie>, String> {
@@ -364,7 +364,7 @@ fn msgpack_to_json(payload: &[u8]) -> PluginResult<String> {
 mod tests {
     use super::*;
     use std::path::PathBuf;
-    use xcelerate_plugin_api::PluginManager;
+    use xcelerate_plugin::PluginManager;
 
     /// Loads the prebuilt `wasm-echo` component and invokes `echo`.
     ///
@@ -389,7 +389,7 @@ mod tests {
         let plugin = load(&manifest, dir, None).unwrap();
         assert_eq!(plugin.name(), "example.wasm-echo");
 
-        let catalog: xcelerate_plugin_api::Catalog =
+        let catalog: xcelerate_plugin::Catalog =
             Arc::new(|_: &str| -> Option<Arc<dyn Plugin>> { None });
         let manager = PluginManager::new(&[], catalog).unwrap();
         manager.install(Arc::new(plugin)).unwrap();
@@ -423,7 +423,7 @@ mod tests {
         let manifest = Manifest::load(&dir.join("plugin.json").to_string_lossy()).unwrap();
         let plugin = load(&manifest, &dir, None).unwrap();
 
-        let catalog: xcelerate_plugin_api::Catalog =
+        let catalog: xcelerate_plugin::Catalog =
             Arc::new(|_: &str| -> Option<Arc<dyn Plugin>> { None });
         let manager = PluginManager::new(&[], catalog).unwrap();
         manager.install(Arc::new(plugin)).unwrap();

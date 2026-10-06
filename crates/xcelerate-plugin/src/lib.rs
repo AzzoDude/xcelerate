@@ -139,7 +139,8 @@ impl Capability {
         )
     }
 
-    /// Privileged capabilities reserved for built-in (compiled-in) plugins.
+    /// Privileged capabilities reserved for in-process plugins (launch control,
+    /// binary patching). Loaded, sandboxed plugins can never hold these.
     pub fn is_builtin_only(self) -> bool {
         matches!(
             self,
@@ -211,8 +212,8 @@ pub struct Manifest {
     pub dependencies: std::collections::BTreeMap<String, String>,
     /// Other plugins whose ops this plugin **takes over**, as
     /// `target -> [op, ...]`. When set, a call to `invoke(target, op)` is routed
-    /// to this plugin instead (and audited). This is how a mod overrides a
-    /// built-in like `human`, or another mod.
+    /// to this plugin instead (and audited). This is how a mod overrides another
+    /// plugin's op.
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub overrides: std::collections::BTreeMap<String, Vec<String>>,
     /// Resource limits requested by the plugin (clamped to host maxima).
@@ -242,13 +243,13 @@ impl Manifest {
     /// Enforce the security invariants for a manifest *before* any code runs.
     ///
     /// Reserved names are host policy; use [`Manifest::validate_reserved`] to
-    /// pass the host's built-in catalog.
+    /// pass any names the host considers reserved.
     pub fn validate(&self) -> PluginResult<()> {
         self.validate_reserved(&[])
     }
 
-    /// Like [`Manifest::validate`], but also rejects names in `reserved` (the
-    /// host's built-in catalog).
+    /// Like [`Manifest::validate`], but also rejects names in `reserved` (names
+    /// the host reserves).
     pub fn validate_reserved(&self, reserved: &[&str]) -> PluginResult<()> {
         if self.name.trim().is_empty() {
             return Err(PluginError::Unsupported(
@@ -546,8 +547,8 @@ pub type ArcPageHost = Arc<dyn PageHost>;
 // The Plugin trait
 // ---------------------------------------------------------------------------
 
-/// A plugin. Built-in plugins implement this in Rust; loaded plugins are
-/// adapted onto it by the runner.
+/// A plugin. In-process plugins implement this in Rust; loaded (sandboxed)
+/// plugins are adapted onto it by the runner.
 pub trait Plugin: Send + Sync + 'static {
     /// Unique, reserved name (e.g. `"stealth"`).
     fn name(&self) -> &str;
@@ -560,7 +561,7 @@ pub trait Plugin: Send + Sync + 'static {
     /// Declarative manifest.
     fn manifest(&self) -> Manifest;
 
-    /// Contribute to the launch plan (privileged; built-in only).
+    /// Contribute to the launch plan (privileged; in-process plugins only).
     fn configure_launch(&self, _plan: &mut LaunchPlan) -> PluginResult<()> {
         Ok(())
     }
@@ -578,7 +579,8 @@ pub trait Plugin: Send + Sync + 'static {
 // Plugin manager
 // ---------------------------------------------------------------------------
 
-/// Resolves a plugin name to an implementation - the host's built-in catalog.
+/// Resolves a plugin name to an implementation. The core's own catalog is empty
+/// (no plugins are built in); an embedder may supply its own.
 pub type Catalog = Arc<dyn Fn(&str) -> Option<Arc<dyn Plugin>> + Send + Sync>;
 
 /// Owns the enabled plugins and dispatches hooks/ops. Held by `Browser`.
@@ -613,8 +615,8 @@ impl PluginManager {
         Ok(manager)
     }
 
-    /// Enable a built-in plugin. Idempotent; unknown names are
-    /// refused so unknown code is never executed.
+    /// Enable a plugin resolved through the catalog. Idempotent; unknown names
+    /// are refused so unknown code is never executed.
     ///
     /// Enabling after launch is recorded as a runtime enable: the plugin's
     /// launch-time contribution (if any) has already been skipped.
@@ -623,7 +625,9 @@ impl PluginManager {
             return Ok(());
         }
         let plugin = (self.catalog)(name).ok_or_else(|| {
-            PluginError::Unsupported(format!("plugin '{name}' is not a known built-in plugin"))
+            PluginError::Unsupported(format!(
+                "plugin '{name}' is not available; xcelerate ships no built-in plugins"
+            ))
         })?;
         let manifest = plugin.manifest();
         self.ensure_dependencies(&manifest)?;
@@ -655,13 +659,13 @@ impl PluginManager {
     ///
     /// This is the compile-time extension point ("a plugin is a library"): a
     /// plugin crate added as a Cargo dependency is installed here by the
-    /// embedder. Such a plugin runs in-process and is therefore trusted exactly
-    /// like the built-in catalog - it may use the whole [`PageHost`] interface.
-    /// Plugins loaded from disk run sandboxed and capability-gated instead.
+    /// embedder. Such a plugin runs in-process and is therefore fully trusted - it
+    /// may use the whole [`PageHost`] interface. Plugins loaded from disk run
+    /// sandboxed and capability-gated instead.
     ///
-    /// Names already owned by the host catalog (for example `stealth`) are
-    /// refused, so a library plugin can never shadow a built-in one. Install
-    /// before creating pages so the plugin's `on_page_created` hook sees them.
+    /// A name already claimed by the catalog is refused, so an installed plugin
+    /// can never shadow a catalog entry. Install before creating pages so the
+    /// plugin's `on_page_created` hook sees them.
     pub fn install(&self, plugin: Arc<dyn Plugin>) -> PluginResult<()> {
         let name = plugin.name().to_string();
         if name.trim().is_empty() {

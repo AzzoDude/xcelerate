@@ -10,7 +10,7 @@
 //! * `XCELERATE_CHROME`   - path to the Chrome/Edge executable.
 //! * `XCELERATE_HEADLESS` - `1`/`true` to run headless (default `true`).
 //! * `XCELERATE_DETACHED` - `1`/`true` to detach the browser process (default `false`).
-//! * `XCELERATE_PLUGINS`  - comma-separated built-in plugins (e.g. `stealth,human`).
+//! * `XCELERATE_PLUGINS`  - comma-separated external plugin paths to load.
 
 use std::error::Error;
 
@@ -359,8 +359,7 @@ impl Server {
             "browser_plugins" => {
                 let browser = self.ensure_browser().await?;
                 Ok(Outcome::Text(format!(
-                    "catalog: {}\nenabled: {}",
-                    browser.available_plugins().join(", "),
+                    "loaded: {}",
                     browser.plugin_names().join(", ")
                 )))
             }
@@ -775,7 +774,7 @@ fn tool_definitions() -> Value {
         },
         {
             "name": "browser_plugins",
-            "description": "List the compiled-in plugin catalog and the enabled plugins.",
+            "description": "List the plugins loaded on the browser.",
             "inputSchema": { "type": "object", "properties": {} }
         },
         {

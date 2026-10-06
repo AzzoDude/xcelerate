@@ -452,7 +452,7 @@ nhấn phím, truy vấn, đánh giá JavaScript và gọi plugin.
 
 Cấu hình nó bằng biến môi trường: `XCELERATE_CHROME` (đường dẫn trình duyệt),
 `XCELERATE_HEADLESS` (`1`/`true`, mặc định), `XCELERATE_DETACHED` (`1`/`true`), và
-`XCELERATE_PLUGINS` (phân tách bằng dấu phẩy, ví dụ `stealth,human`).
+`XCELERATE_PLUGINS` (đường dẫn plugin bên ngoài, phân tách bằng dấu phẩy).
 
 ## Ghi video
 
@@ -582,8 +582,7 @@ role, name, bounds và backend node id). Nó được cung cấp dưới dạng 
 xcelerate/
   crates/
     xcelerate-core/        # WebSocket transport and typed CDP command layer
-    xcelerate-plugin-api/  # plugin trait, manifest, capabilities, audit, host interface
-    xcelerate-plugins/     # built-in plugin catalog: name -> implementation lookup
+    xcelerate-plugin/      # plugin trait, manifest, capabilities, audit, host interface
     xcelerate/             # high-level facade: Browser, Page, Element, adapters
     xcelerate-bindgen/     # uniffi bindgen helper binary
     xcelerate-cli/         # CLI (binary `xcelerate`)
@@ -598,13 +597,13 @@ xcelerate/
 ```
 
 API plugin - trait `Plugin`, `Manifest`, các capability, nhật ký kiểm toán và giao
-diện `PageHost` - nằm trong `crates/xcelerate-plugin-api/`. Mỗi plugin tích hợp là một
-crate độc lập dưới `plugins/` (`stealth`, `human`); `crates/xcelerate-plugins/` chỉ là
-danh mục ánh xạ tên của chúng tới các triển khai. Crate `stealth` sở hữu bộ vá nhị
-phân và payload chống dấu vết của riêng nó; engine sở hữu việc điều khiển tiến trình
-trình duyệt (`crates/xcelerate/src/process.rs`). Facade sở hữu `PluginManager` và làm
-cầu nối giữa `Page` với giao diện host của plugin, nên plugin không bao giờ chạm vào
-một page thô hay transport.
+diện `PageHost` - nằm trong `crates/xcelerate-plugin/`. Core không tích hợp sẵn plugin
+nào: `stealth` và `human` dưới `plugins/` là các crate plugin bên ngoài, được bên
+nhúng cài đặt trong tiến trình, hoặc biên dịch thành `.wasm` và nạp trong sandbox.
+Crate `stealth` sở hữu bộ vá nhị phân và payload chống dấu vết của riêng nó; engine
+sở hữu việc điều khiển tiến trình trình duyệt (`crates/xcelerate/src/process.rs`).
+Facade sở hữu `PluginManager` và làm cầu nối giữa `Page` với giao diện host của
+plugin, nên plugin không bao giờ chạm vào một page thô hay transport.
 
 ## Phát triển
 
