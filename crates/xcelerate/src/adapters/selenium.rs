@@ -37,8 +37,12 @@ impl WebDriver {
 
     /// `find_element`.
     pub async fn find_element(&self, by: String, value: Option<String>) -> Result<WebElement, XcelerateError> {
-        let __sel = super::support::resolve_selector(&by, value.as_deref())?;
-        Ok(WebElement::new(Arc::clone(&self.inner.page).find_element(__sel).await?))
+        match super::support::resolve_selector(&by, value.as_deref())? {
+            super::support::Selector::Xpath(__xpath) =>
+                Ok(WebElement::new(Arc::clone(&self.inner.page).query_selector_xpath(__xpath).await?)),
+            super::support::Selector::Css(__sel) =>
+                Ok(WebElement::new(Arc::clone(&self.inner.page).find_element(__sel).await?)),
+        }
     }
 
     /// `title`.
@@ -97,8 +101,13 @@ impl WebDriver {
 
     /// `find_elements`.
     pub async fn find_elements(&self, by: String, value: Option<String>) -> Result<Vec<WebElement>, XcelerateError> {
-        let __sel = super::support::resolve_selector(&by, value.as_deref())?;
-        Ok(Arc::clone(&self.inner.page).query_selector_all(__sel).await?.into_iter().map(WebElement::new).collect())
+        match super::support::resolve_selector(&by, value.as_deref())? {
+            super::support::Selector::Css(__sel) =>
+                Ok(Arc::clone(&self.inner.page).query_selector_all(__sel).await?.into_iter().map(WebElement::new).collect()),
+            super::support::Selector::Xpath(_) => Err(XcelerateError::Unsupported(
+                "find_elements does not support XPath; use find_element".to_string(),
+            )),
+        }
     }
 
     /// `execute_script`.

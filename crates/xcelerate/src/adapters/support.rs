@@ -284,14 +284,54 @@ pub(crate) fn attr_selector(attribute: &str, value: &str) -> String {
     format!("[{attribute}=\"{escaped}\"]")
 }
 
-/// Normalise a Selenium-style `(By, value)` selector into a CSS selector.
-pub(crate) fn resolve_selector(by: &str, value: Option<&str>) -> Result<String, XcelerateError> {
+/// A resolved Selenium-style selector.
+pub(crate) enum Selector {
+    /// A CSS selector, handled by the standard CSS lookup.
+    Css(String),
+    /// An XPath expression, handled by the XPath lookup.
+    Xpath(String),
+}
+
+/// Normalise a Selenium-style `(By, value)` selector.
+pub(crate) fn resolve_selector(by: &str, value: Option<&str>) -> Result<Selector, XcelerateError> {
     let value =
         value.ok_or_else(|| XcelerateError::NotFound("selector value is required".to_string()))?;
     if by.to_ascii_lowercase().contains("xpath") {
-        return Err(XcelerateError::Unsupported(
-            "XPath selectors are not supported".to_string(),
-        ));
+        return Ok(Selector::Xpath(value.to_string()));
     }
-    Ok(value.to_string())
+    Ok(Selector::Css(value.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resolve_selector_classifies_xpath() {
+        match resolve_selector("xpath", Some("//div")).unwrap() {
+            Selector::Xpath(value) => assert_eq!(value, "//div"),
+            Selector::Css(_) => panic!("expected an XPath selector"),
+        }
+    }
+
+    #[test]
+    fn resolve_selector_is_case_insensitive() {
+        match resolve_selector("By.XPATH", Some("//a")).unwrap() {
+            Selector::Xpath(value) => assert_eq!(value, "//a"),
+            Selector::Css(_) => panic!("expected an XPath selector"),
+        }
+    }
+
+    #[test]
+    fn resolve_selector_defaults_to_css() {
+        match resolve_selector("css selector", Some("#main")).unwrap() {
+            Selector::Css(value) => assert_eq!(value, "#main"),
+            Selector::Xpath(_) => panic!("expected a CSS selector"),
+        }
+    }
+
+    #[test]
+    fn resolve_selector_requires_a_value() {
+        assert!(resolve_selector("css selector", None).is_err());
+    }
 }
