@@ -101,7 +101,7 @@ println!("{}", page.title().await?);
 
 ```toml
 [dependencies]
-xcelerate = "1.0.9"
+xcelerate = "1.0.12"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -131,8 +131,8 @@ Published to Maven Central as `io.github.azzodude:xcelerate` (Kotlin) and
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("io.github.azzodude:xcelerate:1.0.9")        // Kotlin
-    implementation("io.github.azzodude:xcelerate-java:1.0.9")   // Java
+    implementation("io.github.azzodude:xcelerate:1.0.12")        // Kotlin
+    implementation("io.github.azzodude:xcelerate-java:1.0.12")   // Java
 }
 ```
 

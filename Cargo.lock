@@ -3767,7 +3767,7 @@ checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 
 [[package]]
 name = "xcelerate"
-version = "1.0.10"
+version = "1.0.12"
 dependencies = [
  "base64 0.23.1",
  "browser-protocol",
@@ -3790,14 +3790,14 @@ dependencies = [
 
 [[package]]
 name = "xcelerate-bindgen"
-version = "1.0.10"
+version = "1.0.12"
 dependencies = [
  "uniffi",
 ]
 
 [[package]]
 name = "xcelerate-cli"
-version = "1.0.10"
+version = "1.0.12"
 dependencies = [
  "clap",
  "mimalloc",
@@ -3808,7 +3808,7 @@ dependencies = [
 
 [[package]]
 name = "xcelerate-core"
-version = "1.0.10"
+version = "1.0.12"
 dependencies = [
  "browser-protocol",
  "futures",
@@ -3823,7 +3823,7 @@ dependencies = [
 
 [[package]]
 name = "xcelerate-mcp"
-version = "1.0.10"
+version = "1.0.12"
 dependencies = [
  "base64 0.23.1",
  "serde_json",
@@ -3833,7 +3833,7 @@ dependencies = [
 
 [[package]]
 name = "xcelerate-plugin-api"
-version = "1.0.10"
+version = "1.0.12"
 dependencies = [
  "serde",
  "serde_json",
@@ -3842,7 +3842,7 @@ dependencies = [
 
 [[package]]
 name = "xcelerate-plugin-human"
-version = "1.0.10"
+version = "1.0.12"
 dependencies = [
  "serde_json",
  "tokio",
@@ -3851,7 +3851,7 @@ dependencies = [
 
 [[package]]
 name = "xcelerate-plugin-stealth"
-version = "1.0.10"
+version = "1.0.12"
 dependencies = [
  "regex",
  "serde_json",
@@ -3861,7 +3861,7 @@ dependencies = [
 
 [[package]]
 name = "xcelerate-plugins"
-version = "1.0.10"
+version = "1.0.12"
 dependencies = [
  "xcelerate-plugin-api",
  "xcelerate-plugin-human",

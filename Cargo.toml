@@ -14,7 +14,7 @@ exclude = ["bindings", "tools", "adapters", "scripts", "docs"]
 resolver = "3"
 
 [workspace.package]
-version = "1.0.10"
+version = "1.0.12"
 edition = "2024"
 rust-version = "1.99.0"
 authors = ["AzzoDude"]
@@ -30,13 +30,13 @@ doc_lazy_continuation = "allow"
 
 [workspace.dependencies]
 # Internal crates.
-xcelerate = { path = "crates/xcelerate", version = "1.0.10" }
-xcelerate-core = { path = "crates/xcelerate-core", version = "1.0.10" }
-xcelerate-mcp = { path = "crates/xcelerate-mcp", version = "1.0.10" }
-xcelerate-plugin-api = { path = "crates/xcelerate-plugin-api", version = "1.0.10" }
-xcelerate-plugin-stealth = { path = "plugins/stealth", version = "1.0.10" }
-xcelerate-plugin-human = { path = "plugins/human", version = "1.0.10" }
-xcelerate-plugins = { path = "crates/xcelerate-plugins", version = "1.0.10" }
+xcelerate = { path = "crates/xcelerate", version = "1.0.12" }
+xcelerate-core = { path = "crates/xcelerate-core", version = "1.0.12" }
+xcelerate-mcp = { path = "crates/xcelerate-mcp", version = "1.0.12" }
+xcelerate-plugin-api = { path = "crates/xcelerate-plugin-api", version = "1.0.12" }
+xcelerate-plugin-stealth = { path = "plugins/stealth", version = "1.0.12" }
+xcelerate-plugin-human = { path = "plugins/human", version = "1.0.12" }
+xcelerate-plugins = { path = "crates/xcelerate-plugins", version = "1.0.12" }
 
 # External crates.
 mimalloc = "0.1.52"

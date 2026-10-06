@@ -49,19 +49,15 @@ def main():
         r'^version = "[^"]+"',
         f'version = "{version}"',
     )
-    # Internal crate pins in [workspace.dependencies].
-    for name, path in (
-        ("xcelerate-core", "crates/xcelerate-core"),
-        ("xcelerate-plugin-api", "crates/xcelerate-plugin-api"),
-        ("xcelerate-plugin-stealth", "plugins/stealth"),
-        ("xcelerate-plugin-human", "plugins/human"),
-        ("xcelerate-plugins", "crates/xcelerate-plugins"),
-    ):
-        update_file(
-            os.path.join(ROOT, "Cargo.toml"),
-            rf'({name} = \{{ path = "{path}", version = )"[^"]+"',
-            rf'\g<1>"{version}"',
-        )
+    # Internal crate pins in [workspace.dependencies]: every entry that points
+    # at a path inside this repo has to carry the workspace version. Match on
+    # the shape rather than a hardcoded crate list — that list previously drifted
+    # and left `xcelerate` and `xcelerate-mcp` behind.
+    update_file(
+        os.path.join(ROOT, "Cargo.toml"),
+        r'^([A-Za-z0-9_-]+ = \{ path = "(?:crates|plugins)/[^"]+", version = )"[^"]+"',
+        rf'\g<1>"{version}"',
+    )
     update_file(
         os.path.join(ROOT, "README.md"),
         r'xcelerate = "[^"]+"',
