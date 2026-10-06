@@ -26,6 +26,13 @@
 #   PSGALLERY_API_KEY      PowerShell Gallery
 #   SWIFT_REMOTE_URL       SwiftPM repository git URL with an embedded token
 # npm and PyPI use Trusted Publishing (OIDC) and need no long-lived token.
+#
+# The in-repo composite action is referenced as `./...`, not zizmor's preferred
+# `$/...`. GitHub accepts `$/` (since 2026-07-30), but Semgrep's
+# github-actions-mutable-action-tag rule and Scorecard's Pinned-Dependencies
+# check both mis-read it as an unpinned action. Trading six informational zizmor
+# notes for six Semgrep warnings plus six Scorecard mediums is a bad deal, so
+# use `./` and silence the zizmor note inline. Revisit when both tools parse `$/`.
 name: Publish
 
 on:
@@ -126,7 +133,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: $/.github/actions/download-language-packages
+      - uses: ./.github/actions/download-language-packages # zizmor: ignore[self-repository]
         with:
           run_id: ${{ inputs.run_id }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -169,7 +176,7 @@ jobs:
           node-version: 'latest'
           registry-url: 'https://registry.npmjs.org'
 
-      - uses: $/.github/actions/download-language-packages
+      - uses: ./.github/actions/download-language-packages # zizmor: ignore[self-repository]
         with:
           run_id: ${{ inputs.run_id }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -200,7 +207,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: $/.github/actions/download-language-packages
+      - uses: ./.github/actions/download-language-packages # zizmor: ignore[self-repository]
         with:
           run_id: ${{ inputs.run_id }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -253,7 +260,7 @@ jobs:
         with:
           gradle-version: '8.12'
 
-      - uses: $/.github/actions/download-language-packages
+      - uses: ./.github/actions/download-language-packages # zizmor: ignore[self-repository]
         with:
           run_id: ${{ inputs.run_id }}
           pattern: native-lib-*
@@ -292,7 +299,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: $/.github/actions/download-language-packages
+      - uses: ./.github/actions/download-language-packages # zizmor: ignore[self-repository]
         with:
           run_id: ${{ inputs.run_id }}
           pattern: native-lib-*
@@ -456,7 +463,7 @@ jobs:
         id: version
         run: echo "version=$(grep -oP '^version = \"\K[^\"]+' Cargo.toml | head -n 1)" >> "$GITHUB_OUTPUT"
 
-      - uses: $/.github/actions/download-language-packages
+      - uses: ./.github/actions/download-language-packages # zizmor: ignore[self-repository]
         with:
           run_id: ${{ inputs.run_id }}
           token: ${{ secrets.GITHUB_TOKEN }}

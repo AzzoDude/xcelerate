@@ -37,7 +37,10 @@ jobs:
           go-version: 'stable'
 
       - name: Install osv-scanner
-        run: go install github.com/google/osv-scanner/v2/cmd/osv-scanner@latest
+        # Pinned rather than @latest: an unpinned install in CI is a supply-chain
+        # risk (Scorecard Pinned-Dependencies). Pinning also means new OSV
+        # detections only arrive when this is bumped deliberately.
+        run: go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.6.0
 
       - name: Scan
         run: |

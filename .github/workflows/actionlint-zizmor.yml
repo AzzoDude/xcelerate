@@ -28,16 +28,11 @@ jobs:
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version: 'stable'
-      - run: go install github.com/rhysd/actionlint/cmd/actionlint@latest
+      # Pinned rather than @latest: installing an unpinned tool in CI is a
+      # supply-chain risk (Scorecard Pinned-Dependencies). Bump deliberately.
+      - run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
       - name: Run actionlint
-        # actionlint (through v1.7.12) does not yet recognise GitHub's `$/`
-        # self-repository syntax and reports it as a malformed reference even
-        # though GitHub accepts it. Upstream fix: rhysd/actionlint#732 — drop
-        # this ignore once a release supports `$/`.
-        run: |
-          "$(go env GOPATH)/bin/actionlint" -color \
-            -ignore 'specifying action "\$/.+" in invalid format because ref is missing' \
-            || true
+        run: '"$(go env GOPATH)/bin/actionlint" -color || true'
 
   zizmor:
     name: zizmor
