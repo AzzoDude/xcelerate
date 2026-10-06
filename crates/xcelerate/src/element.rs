@@ -71,6 +71,12 @@ const JS_WAIT_FOR_SELECTOR: &str = r#"function(sel,ms){
   });
 }"#;
 
+/// A self-contained XPath subset evaluator that walks the composed tree (open
+/// shadow roots and same-origin iframes). Kept in its own file so the jsdom suite
+/// in `.research/js` can test the exact bytes that ship; `include_str!` embeds it
+/// verbatim. Its contract is documented at the top of the file.
+const JS_XPATH: &str = include_str!("page/xpath_engine.js");
+
 /// Represents an HTML element in the DOM.
 #[derive(uniffi::Object)]
 pub struct Element {
@@ -614,10 +620,25 @@ impl Element {
     }
 
     /// Finds a descendant matching an XPath expression.
+    ///
+    /// The expression is evaluated over the composed tree - open shadow roots and
+    /// same-origin iframe documents are searched - by a built-in subset evaluator.
+    /// Expressions outside that subset (unions, extra axes, `count()`, ...) fall
+    /// back to the browser's native `document.evaluate`, which handles the full
+    /// language but does not pierce shadow roots.
     pub async fn query_selector_xpath(
         self: Arc<Self>,
         xpath: String,
     ) -> XcelerateResult<Arc<Element>> {
+        let args = vec![serde_json::json!(xpath), serde_json::json!(false)];
+        if let Ok(Some(object_id)) = self.call_with_args(JS_XPATH, args, false).await {
+            return Ok(Arc::new(Element {
+                page: self.page.clone(),
+                object_id,
+            }));
+        }
+
+        // Native fallback: full XPath support, no shadow piercing.
         let quoted =
             serde_json::to_string(&xpath).map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
         self.evaluate_handle(format!(
@@ -728,6 +749,11 @@ impl Element {
                 },
             )
             .await?;
+        if let Some(exception) = res.exception_details {
+            // A thrown function is not a result; surface it so callers can react
+            // (the XPath layer uses this to fall back to native `document.evaluate`).
+            return Err(XcelerateError::Unsupported(exception.text.into_owned()));
+        }
         Ok(res.result.object_id.map(|id| id.into_owned()))
     }
 

@@ -123,6 +123,8 @@ enum Command {
     },
     /// Print the text of every element matching a selector.
     QueryAll { url: String, selector: String },
+    /// Print the text of the first node matching an XPath expression.
+    Xpath { url: String, xpath: String },
     /// Evaluate a JavaScript expression and print the JSON result.
     Evaluate { url: String, expression: String },
     /// Print the page's accessibility snapshot (semantic role/name/value nodes).
@@ -388,6 +390,12 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             for element in Arc::clone(&page).query_selector_all(selector).await? {
                 println!("{}", element.text().await.unwrap_or_default());
             }
+            browser.close().await?;
+        }
+        Command::Xpath { url, xpath } => {
+            let (browser, page) = launch(&cli.browser, &url).await?;
+            let element = Arc::clone(&page).query_selector_xpath(xpath).await?;
+            println!("{}", element.text().await?);
             browser.close().await?;
         }
         Command::Evaluate { url, expression } => {

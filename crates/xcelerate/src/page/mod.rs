@@ -845,16 +845,17 @@ impl Page {
     }
 
     /// Returns the first node matching an XPath expression as an [`Element`].
+    ///
+    /// The search pierces open shadow roots and same-origin frames (see
+    /// [`Element::query_selector_xpath`]).
     pub async fn query_selector_xpath(
         self: Arc<Self>,
         xpath: String,
     ) -> XcelerateResult<Arc<Element>> {
-        let quoted =
-            serde_json::to_string(&xpath).map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
-        self.evaluate_handle(format!(
-            "document.evaluate({quoted}, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue"
-        ))
-        .await
+        self.document_element()
+            .await?
+            .query_selector_xpath(xpath)
+            .await
     }
 
     /// Runs a JS function against the element matching `selector` (`$eval`).
