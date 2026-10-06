@@ -412,9 +412,8 @@ OPS = {
         "body": "match super::support::resolve_selector(&@0@, @1@.as_deref())? {\n"
                 "    super::support::Selector::Css(__sel) =>\n"
                 "        Ok(Arc::clone(&@recv@.page).query_selector_all(__sel).await?.into_iter().map(@NEW@).collect()),\n"
-                "    super::support::Selector::Xpath(_) => Err(XcelerateError::Unsupported(\n"
-                "        \"find_elements does not support XPath; use find_element\".to_string(),\n"
-                "    )),\n"
+                "    super::support::Selector::Xpath(__xpath) =>\n"
+                "        Ok(Arc::clone(&@recv@.page).query_selector_all_xpath(__xpath).await?.into_iter().map(@NEW@).collect()),\n"
                 "}",
     },
     "selenium_active_element": {

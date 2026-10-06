@@ -1,5 +1,5 @@
 use crate::CdpClient;
-use crate::element::Element;
+use crate::element::{Element, check_exception};
 use crate::error::{XcelerateError, XcelerateResult};
 use browser_protocol::emulation::{
     ClearDeviceMetricsOverrideParams, MediaFeature, SetDeviceMetricsOverrideParams,
@@ -558,6 +558,7 @@ impl Page {
                 },
             )
             .await?;
+        check_exception(res.exception_details)?;
         Ok(res
             .result
             .value
@@ -579,6 +580,7 @@ impl Page {
                 },
             )
             .await?;
+        check_exception(res.exception_details)?;
         Ok(res
             .result
             .value
@@ -604,6 +606,7 @@ impl Page {
                 },
             )
             .await?;
+        check_exception(res.exception_details)?;
         Ok(res.result.value.and_then(|v| v.as_bool()).unwrap_or(false))
     }
 
@@ -624,6 +627,7 @@ impl Page {
                 },
             )
             .await?;
+        check_exception(res.exception_details)?;
         if let Some(object_id) = res.result.object_id {
             Ok(Arc::new(Element {
                 page: self.clone(),
@@ -1975,6 +1979,24 @@ const SKIP_AX_ROLES: &[&str] = &[
     "generic",
     "GenericContainer",
 ];
+
+impl Page {
+    /// Returns every element matching an XPath expression.
+    ///
+    /// Delegates through [`Page::document_element`] like [`Page::query_selector_all`];
+    /// the search pierces open shadow roots and same-origin frames (see
+    /// [`Element::query_selector_all_xpath`]). Kept out of the
+    /// `#[uniffi::export]` block so binding checksums stay stable.
+    pub async fn query_selector_all_xpath(
+        self: Arc<Self>,
+        xpath: String,
+    ) -> XcelerateResult<Vec<Arc<Element>>> {
+        self.document_element()
+            .await?
+            .query_selector_all_xpath(xpath)
+            .await
+    }
+}
 
 impl Page {
     /// Captures a compact accessibility snapshot of the page.

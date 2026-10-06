@@ -104,9 +104,8 @@ impl WebDriver {
         match super::support::resolve_selector(&by, value.as_deref())? {
             super::support::Selector::Css(__sel) =>
                 Ok(Arc::clone(&self.inner.page).query_selector_all(__sel).await?.into_iter().map(WebElement::new).collect()),
-            super::support::Selector::Xpath(_) => Err(XcelerateError::Unsupported(
-                "find_elements does not support XPath; use find_element".to_string(),
-            )),
+            super::support::Selector::Xpath(__xpath) =>
+                Ok(Arc::clone(&self.inner.page).query_selector_all_xpath(__xpath).await?.into_iter().map(WebElement::new).collect()),
         }
     }
 

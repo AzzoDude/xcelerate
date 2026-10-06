@@ -85,6 +85,11 @@ const JS_XPATH_NATIVE: &str = r#"function(xp){
   return r.singleNodeValue;
 }"#;
 
+/// [`JS_XPATH`]'s `all = true` counterpart for expressions outside the subset:
+/// native XPath (full language, no shadow piercing) returning an Array of nodes,
+/// which [`crate::page::collect_elements`] reads like any other node list.
+const JS_XPATH_ALL_NATIVE: &str = r#"function(xp){ const r = document.evaluate(xp, this, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null); const out = []; for (let i = 0; i < r.snapshotLength; i++) out.push(r.snapshotItem(i)); return out; }"#;
+
 /// Represents an HTML element in the DOM.
 #[derive(uniffi::Object)]
 pub struct Element {
@@ -282,6 +287,7 @@ impl Element {
     /// Calls a function on this element; the result is returned as JSON text.
     pub async fn evaluate_json(&self, function: String) -> XcelerateResult<String> {
         let res = self.call_js(function).await?;
+        check_exception(res.exception_details)?;
         Ok(res
             .result
             .value
@@ -292,6 +298,7 @@ impl Element {
     /// Calls a function on this element and coerces the result to a string.
     pub async fn evaluate_string(&self, function: String) -> XcelerateResult<String> {
         let res = self.call_js(function).await?;
+        check_exception(res.exception_details)?;
         Ok(res
             .result
             .value
@@ -306,6 +313,7 @@ impl Element {
     /// Calls a function on this element and coerces the result to a bool.
     pub async fn evaluate_bool(&self, function: String) -> XcelerateResult<bool> {
         let res = self.call_js(function).await?;
+        check_exception(res.exception_details)?;
         Ok(res.result.value.and_then(|v| v.as_bool()).unwrap_or(false))
     }
 
@@ -405,6 +413,7 @@ impl Element {
                 },
             )
             .await?;
+        check_exception(res.exception_details)?;
         Ok(res
             .result
             .value
@@ -473,6 +482,7 @@ impl Element {
                 },
             )
             .await?;
+        check_exception(res.exception_details)?;
         if let Some(object_id) = res.result.object_id {
             Ok(Arc::new(Element {
                 page: self.page.clone(),
@@ -761,16 +771,9 @@ impl Element {
                 },
             )
             .await?;
-        if let Some(exception) = res.exception_details {
-            // A thrown function is not a result; surface the thrown message (the
-            // XPath layer uses this to fall back to native `document.evaluate`).
-            let message = exception
-                .exception
-                .and_then(|exception| exception.description)
-                .map(std::borrow::Cow::into_owned)
-                .unwrap_or_else(|| exception.text.into_owned());
-            return Err(XcelerateError::Unsupported(message));
-        }
+        // A thrown function is not a result; surface the thrown message (the
+        // XPath layer uses this to fall back to native `document.evaluate`).
+        check_exception(res.exception_details)?;
         Ok(res.result.object_id.map(|id| id.into_owned()))
     }
 
@@ -791,6 +794,47 @@ impl Element {
                 vec![serde_json::json!(selector)],
                 false,
             )
+            .await?
+        {
+            Some(object_id) => {
+                crate::page::collect_elements(
+                    &self.page.client,
+                    &self.page.session_id,
+                    &self.page,
+                    object_id.into(),
+                )
+                .await
+            }
+            None => Ok(Vec::new()),
+        }
+    }
+
+    /// Returns every descendant matching an XPath expression.
+    ///
+    /// Like [`Element::query_selector_xpath`], the search pierces open shadow
+    /// roots and same-origin iframe documents via the built-in subset evaluator;
+    /// expressions outside that subset fall back to native `document.evaluate`
+    /// (full language, no shadow piercing). Kept out of the
+    /// `#[uniffi::export]` block so binding checksums stay stable.
+    pub async fn query_selector_all_xpath(
+        self: Arc<Self>,
+        xpath: String,
+    ) -> XcelerateResult<Vec<Arc<Element>>> {
+        let args = vec![serde_json::json!(xpath), serde_json::json!(true)];
+        if let Ok(Some(object_id)) = self.call_with_args(JS_XPATH, args, false).await {
+            return crate::page::collect_elements(
+                &self.page.client,
+                &self.page.session_id,
+                &self.page,
+                object_id.into(),
+            )
+            .await;
+        }
+
+        // Native fallback: full XPath support, no shadow piercing.
+        let args = vec![serde_json::json!(xpath)];
+        match self
+            .call_with_args(JS_XPATH_ALL_NATIVE, args, false)
             .await?
         {
             Some(object_id) => {
@@ -833,5 +877,83 @@ fn key_info(key: &str) -> (i64, String, String) {
             };
             (0, code, other.to_string())
         }
+    }
+}
+
+/// Extracts a human-readable message from CDP `exceptionDetails`.
+///
+/// Prefers the thrown object's `description` (the `Error` message and stack)
+/// and falls back to the protocol `text` when no exception object was reported.
+fn exception_message(exception: js_protocol::runtime::ExceptionDetails<'_>) -> String {
+    exception
+        .exception
+        .and_then(|exception| exception.description)
+        .map(std::borrow::Cow::into_owned)
+        .unwrap_or_else(|| exception.text.into_owned())
+}
+
+/// Turns a `Runtime.evaluate` / `Runtime.callFunctionOn` `exceptionDetails` into
+/// an error, so a thrown expression is never mistaken for a result.
+///
+/// Both commands report a throw in-band: `result` still carries the thrown
+/// object's handle, so without this a `throw` would be returned as a value.
+/// `null`/`undefined` results have no `exceptionDetails` and are unaffected.
+pub(crate) fn check_exception(
+    exception: Option<js_protocol::runtime::ExceptionDetails<'_>>,
+) -> XcelerateResult<()> {
+    match exception {
+        Some(exception) => Err(XcelerateError::Unsupported(exception_message(exception))),
+        None => Ok(()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use js_protocol::runtime::{ExceptionDetails, RemoteObject};
+
+    fn details(description: Option<&str>, text: &str) -> ExceptionDetails<'static> {
+        ExceptionDetails {
+            text: text.to_string().into(),
+            exception: description.map(|description| RemoteObject {
+                description: Some(description.to_string().into()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn exception_message_prefers_description() {
+        assert_eq!(exception_message(details(Some("boom"), "Uncaught")), "boom");
+    }
+
+    #[test]
+    fn exception_message_falls_back_to_text() {
+        assert_eq!(exception_message(details(None, "Uncaught")), "Uncaught");
+    }
+
+    #[test]
+    fn exception_message_falls_back_when_description_is_absent() {
+        let exception = ExceptionDetails {
+            text: "SyntaxError".into(),
+            exception: Some(RemoteObject {
+                type_: "object".into(),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        assert_eq!(exception_message(exception), "SyntaxError");
+    }
+
+    #[test]
+    fn check_exception_is_ok_without_details() {
+        assert!(check_exception(None).is_ok());
+    }
+
+    #[test]
+    fn check_exception_reports_the_thrown_message() {
+        let error = check_exception(Some(details(Some("boom"), "Uncaught"))).unwrap_err();
+        assert!(matches!(error, XcelerateError::Unsupported(message) if message == "boom"));
     }
 }
