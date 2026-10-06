@@ -11,7 +11,7 @@ use std::sync::Arc;
 /// invisible to it; this walks open shadow roots as well. Cross-origin iframes
 /// stay out of scope (page script cannot reach them) - see
 /// [`Element::query_selector_all_frames`] for a same-origin variant.
-const JS_QUERY_ONE: &str = r#"function(sel){
+pub(crate) const JS_QUERY_ONE: &str = r#"function(sel){
   const visit=(scope,out)=>{ if(!scope||!scope.querySelectorAll) return out;
     for(const el of scope.querySelectorAll(sel)) out.push(el);
     for(const el of scope.querySelectorAll('*')){ if(el.shadowRoot) visit(el.shadowRoot,out); }
@@ -21,7 +21,7 @@ const JS_QUERY_ONE: &str = r#"function(sel){
 }"#;
 
 /// [`JS_QUERY_ONE`] for every match (`Element::query_selector_all`).
-const JS_QUERY_ALL: &str = r#"function(sel){
+pub(crate) const JS_QUERY_ALL: &str = r#"function(sel){
   const visit=(scope,out)=>{ if(!scope||!scope.querySelectorAll) return out;
     for(const el of scope.querySelectorAll(sel)) out.push(el);
     for(const el of scope.querySelectorAll('*')){ if(el.shadowRoot) visit(el.shadowRoot,out); }
@@ -568,31 +568,63 @@ impl Element {
     }
 
     /// Runs a JS function against the first descendant matching `selector`.
+    ///
+    /// The descendant is resolved with the shadow-piercing selector first, so
+    /// the expression also runs against a match inside an open shadow root.
     pub async fn call_on_selector(
         &self,
         selector: String,
         expression: String,
     ) -> XcelerateResult<String> {
-        self.call_json(
-            "function(sel,src){const el=this.querySelector(sel);if(!el)return null;return (new Function('el','return ('+src+')(el);'))(el);}"
-                .to_string(),
-            serde_json::json!([selector, expression]).to_string(),
-        )
-        .await
+        match self
+            .call_with_args(JS_QUERY_ONE, vec![serde_json::json!(selector)], false)
+            .await?
+        {
+            Some(object_id) => {
+                let element = Element {
+                    page: self.page.clone(),
+                    object_id,
+                };
+                element
+                    .call_json(
+                        "function(src){return (new Function('el','return ('+src+')(el);'))(this);}"
+                            .to_string(),
+                        serde_json::json!([expression]).to_string(),
+                    )
+                    .await
+            }
+            None => Ok("null".to_string()),
+        }
     }
 
     /// Runs a JS function against every descendant matching `selector`.
+    ///
+    /// The descendants are resolved with the shadow-piercing selector first, so
+    /// matches inside open shadow roots are included too.
     pub async fn call_on_selector_all(
         &self,
         selector: String,
         expression: String,
     ) -> XcelerateResult<String> {
-        self.call_json(
-            "function(sel,src){const els=Array.from(this.querySelectorAll(sel));const fn=new Function('el','return ('+src+')(el);');return els.map(fn);}"
-                .to_string(),
-            serde_json::json!([selector, expression]).to_string(),
-        )
-        .await
+        match self
+            .call_with_args(JS_QUERY_ALL, vec![serde_json::json!(selector)], false)
+            .await?
+        {
+            Some(object_id) => {
+                let elements = Element {
+                    page: self.page.clone(),
+                    object_id,
+                };
+                elements
+                    .call_json(
+                        "function(src){const fn=new Function('el','return ('+src+')(el);');return Array.from(this).map(fn);}"
+                            .to_string(),
+                        serde_json::json!([expression]).to_string(),
+                    )
+                    .await
+            }
+            None => Ok("[]".to_string()),
+        }
     }
 
     /// Finds a descendant by attribute value.
@@ -623,18 +655,53 @@ impl Element {
     }
 
     /// Finds a descendant by ARIA role.
+    ///
+    /// Prefers an explicit `[role="..."]` match, then falls back to the role name
+    /// as a tag, since a native `<button>`/`<a>` carries its role implicitly.
+    /// Both searches pierce open shadow roots.
     pub async fn get_by_role(self: Arc<Self>, role: String) -> XcelerateResult<Arc<Element>> {
-        self.query_selector_attr("role".to_string(), role).await
+        match self
+            .clone()
+            .query_selector_attr("role".to_string(), role.clone())
+            .await
+        {
+            Ok(element) => Ok(element),
+            Err(_) => self.query_selector(role).await,
+        }
     }
 
     /// Finds a descendant form control by its `<label>` text.
+    ///
+    /// The `<label>` search pierces open shadow roots, and the associated control
+    /// is resolved from the label's own root so shadow-encapsulated controls work.
     pub async fn get_by_label(self: Arc<Self>, label: String) -> XcelerateResult<Arc<Element>> {
-        let quoted =
-            serde_json::to_string(&label).map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
-        self.evaluate_handle(format!(
-            "function(){{const labels=Array.from(this.querySelectorAll('label')).filter(function(x){{return x.textContent.trim().includes({quoted});}});if(!labels.length)return null;const lab=labels[0];if(lab.control)return lab.control;const f=lab.getAttribute('for');return f?document.getElementById(f):null;}}"
-        ))
-        .await
+        let labels = match self
+            .call_with_args(JS_QUERY_ALL, vec![serde_json::json!("label")], false)
+            .await?
+        {
+            Some(object_id) => Element {
+                page: self.page.clone(),
+                object_id,
+            },
+            None => {
+                return Err(XcelerateError::NotFound(format!(
+                    "label not found: {label}"
+                )));
+            }
+        };
+        let js = "function(label){const labels=Array.from(this);for(let i=0;i<labels.length;i++){const lab=labels[i];if(!(lab.textContent||'').trim().includes(label))continue;if(lab.control)return lab.control;const f=lab.getAttribute('for');if(!f)continue;const root=lab.getRootNode();const c=root&&root.getElementById?root.getElementById(f):null;if(c)return c;}return null;}";
+        match labels
+            .call_with_args(js, vec![serde_json::json!(label)], false)
+            .await?
+        {
+            Some(object_id) => Ok(Arc::new(Element {
+                page: self.page.clone(),
+                object_id,
+            })),
+            None => Err(XcelerateError::NotFound(format!(
+                "label not found: {label}"
+            ))),
+        }
     }
 
     /// Finds a descendant matching an XPath expression.

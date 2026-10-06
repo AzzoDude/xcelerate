@@ -3,6 +3,7 @@
 //! Implemented as inherent `impl Page` methods in this module so they stay out
 //! of the `#[uniffi::export]` block and binding checksums remain stable.
 
+use crate::element::JS_QUERY_ALL;
 use crate::error::{XcelerateError, XcelerateResult};
 use crate::page::Page;
 
@@ -64,7 +65,10 @@ impl Page {
     ///
     /// Injects a single `<style id="xcelerate-highlight">` element (reused on
     /// repeat calls) whose rule targets `a, button, input, select, textarea,
-    /// [role=button], [onclick]` with a `2px solid #ff3b30` outline.
+    /// [role=button], [onclick]` with a `2px solid #ff3b30` outline. Because a
+    /// document stylesheet does not apply across shadow boundaries, the same
+    /// rule is also injected into every open shadow root. Matching (and thus the
+    /// returned count) pierces open shadow roots too.
     pub async fn highlight_all(&self) -> XcelerateResult<u32> {
         let id_lit = serde_json::to_string(HIGHLIGHT_STYLE_ID)
             .map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
@@ -73,7 +77,7 @@ impl Page {
         let css_lit = serde_json::to_string(&highlight_css(HIGHLIGHT_SELECTOR))
             .map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
         let script = format!(
-            "(function(){{const id={id_lit};const sel={sel_lit};let s=document.getElementById(id);if(!s){{s=document.createElement('style');s.id=id;(document.head||document.documentElement).appendChild(s);}}s.textContent={css_lit};return document.querySelectorAll(sel).length;}})()"
+            "(function(){{const id={id_lit};const sel={sel_lit};const css={css_lit};let s=document.getElementById(id);if(!s){{s=document.createElement('style');s.id=id;(document.head||document.documentElement).appendChild(s);}}s.textContent=css;const hosts=({JS_QUERY_ALL}).call(document,'*');for(let i=0;i<hosts.length;i++){{const root=hosts[i].shadowRoot;if(!root)continue;let ss=root.getElementById(id);if(!ss){{ss=document.createElement('style');ss.id=id;root.appendChild(ss);}}ss.textContent=css;}}return ({JS_QUERY_ALL}).call(document,sel).length;}})()"
         );
         let raw = self.evaluate_json(script).await?;
         Ok(parse_u32(&raw))
@@ -131,14 +135,15 @@ impl Page {
 
     /// Removes the injected stylesheet and clears every individual highlight.
     ///
-    /// Restores any inline `outline`/`background-color` values that were present
-    /// before an element was highlighted.
+    /// Both the document stylesheet and the per-shadow-root copies added by
+    /// [`Page::highlight_all`] are removed, and highlights inside open shadow
+    /// roots are cleared as well.
     pub async fn clear_highlights(&self) -> XcelerateResult<()> {
         let id_lit = serde_json::to_string(HIGHLIGHT_STYLE_ID)
             .map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
         let clear_fn = clear_element_fn();
         let script = format!(
-            "(function(){{const id={id_lit};const s=document.getElementById(id);if(s)s.remove();const els=document.querySelectorAll('[{HIGHLIGHT_ATTR}]');for(let i=0;i<els.length;i++){{({clear_fn}).call(els[i]);}}return true;}})()"
+            "(function(){{const id={id_lit};const s=document.getElementById(id);if(s)s.remove();const hosts=({JS_QUERY_ALL}).call(document,'*');for(let i=0;i<hosts.length;i++){{const root=hosts[i].shadowRoot;if(!root)continue;const ss=root.getElementById(id);if(ss)ss.remove();}}const els=({JS_QUERY_ALL}).call(document,'[{HIGHLIGHT_ATTR}]');for(let i=0;i<els.length;i++){{({clear_fn}).call(els[i]);}}return true;}})()"
         );
         self.evaluate_json(script).await?;
 

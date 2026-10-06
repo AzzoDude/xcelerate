@@ -1,5 +1,5 @@
 use crate::CdpClient;
-use crate::element::{Element, check_exception};
+use crate::element::{Element, JS_QUERY_ALL, JS_QUERY_ONE, check_exception};
 use crate::error::{XcelerateError, XcelerateResult};
 use browser_protocol::emulation::{
     ClearDeviceMetricsOverrideParams, MediaFeature, SetDeviceMetricsOverrideParams,
@@ -863,34 +863,40 @@ impl Page {
     }
 
     /// Runs a JS function against the element matching `selector` (`$eval`).
+    ///
+    /// The element is resolved with the shadow-piercing selector first, so a
+    /// match inside an open shadow root is reachable.
     pub async fn call_on_selector(
         &self,
         selector: String,
         expression: String,
     ) -> XcelerateResult<String> {
-        let sel = serde_json::to_string(&selector)
-            .map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
-        let expr = serde_json::to_string(&expression)
-            .map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
-        self.evaluate_json(format!(
-            "(function(){{const el=document.querySelector({sel});if(!el)return null;return (new Function('el','return ('+{expr}+')(el);'))(el);}})()"
-        ))
+        let function = format!(
+            "function(sel,src){{const el=({JS_QUERY_ONE}).call(document,sel);if(!el)return null;return (new Function('el','return ('+src+')(el);'))(el);}}"
+        );
+        self.call_json(
+            function,
+            serde_json::json!([selector, expression]).to_string(),
+        )
         .await
     }
 
     /// Runs a JS function against every element matching `selector` (`$$eval`).
+    ///
+    /// The elements are resolved with the shadow-piercing selector first, so
+    /// matches inside open shadow roots are included too.
     pub async fn call_on_selector_all(
         &self,
         selector: String,
         expression: String,
     ) -> XcelerateResult<String> {
-        let sel = serde_json::to_string(&selector)
-            .map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
-        let expr = serde_json::to_string(&expression)
-            .map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
-        self.evaluate_json(format!(
-            "(function(){{const els=Array.from(document.querySelectorAll({sel}));const fn=new Function('el','return ('+{expr}+')(el);');return els.map(fn);}})()"
-        ))
+        let function = format!(
+            "function(sel,src){{const els=Array.from(({JS_QUERY_ALL}).call(document,sel));const fn=new Function('el','return ('+src+')(el);');return els.map(fn);}}"
+        );
+        self.call_json(
+            function,
+            serde_json::json!([selector, expression]).to_string(),
+        )
         .await
     }
 
@@ -1008,33 +1014,27 @@ impl Page {
     }
 
     /// Finds an element whose text content contains `text`.
+    ///
+    /// Delegates to [`Element::get_by_text`], so the search pierces open shadow
+    /// roots.
     pub async fn get_by_text(self: Arc<Self>, text: String) -> XcelerateResult<Arc<Element>> {
-        let quoted =
-            serde_json::to_string(&text).map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
-        self.evaluate_handle(format!(
-            "Array.from(document.querySelectorAll('*')).find(function(e){{return e.textContent.includes({quoted});}})"
-        ))
-        .await
+        self.document_element().await?.get_by_text(text).await
     }
 
-    /// Finds an element by ARIA role (falls back to a tag-name lookup).
+    /// Finds an element by ARIA role.
+    ///
+    /// Delegates to [`Element::get_by_role`], so the search pierces open shadow
+    /// roots.
     pub async fn get_by_role(self: Arc<Self>, role: String) -> XcelerateResult<Arc<Element>> {
-        let quoted =
-            serde_json::to_string(&role).map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
-        self.evaluate_handle(format!(
-            "document.querySelector('[role=\"'+{quoted}+'\"]')||document.querySelector({quoted})"
-        ))
-        .await
+        self.document_element().await?.get_by_role(role).await
     }
 
     /// Finds a form control by its associated `<label>` text.
+    ///
+    /// Delegates to [`Element::get_by_label`], so the search pierces open shadow
+    /// roots.
     pub async fn get_by_label(self: Arc<Self>, label: String) -> XcelerateResult<Arc<Element>> {
-        let quoted =
-            serde_json::to_string(&label).map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
-        self.evaluate_handle(format!(
-            "(function(l){{const labels=Array.from(document.querySelectorAll('label')).filter(function(x){{return x.textContent.trim().includes(l);}});if(!labels.length)return null;const lab=labels[0];if(lab.control)return lab.control;const f=lab.getAttribute('for');return f?document.getElementById(f):null;}})({quoted})"
-        ))
-        .await
+        self.document_element().await?.get_by_label(label).await
     }
 
     // -----------------------------------------------------------------------
