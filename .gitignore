@@ -808,12 +808,13 @@ bindings/ruby/pkg/
 *.pdb
 *.exe
 
-# ...except the Dart package's prebuilt payload, which ships inside the pub
-# package. `dart pub publish` silently drops any file that git ignores (even a
-# checked-in one), so this path has to be un-ignored here. The binaries are
-# staged by .github/workflows/publish.yml and never committed, which keeps
-# ~80 MB per release out of git history.
-!bindings/dart/src/**
+# The Dart package's prebuilt payload ships inside the pub package, but
+# `dart pub publish` silently drops any file that git ignores. The binaries are
+# staged by .github/workflows/publish.yml at release time and never committed,
+# which keeps ~80 MB per release out of git history. That workflow re-includes
+# the path with its own `!bindings/dart/src/**` line for the publish run only, so
+# the local checkout stays quiet and the global *.dll/*.so/*.dylib rules above
+# apply as usual.
 
 target/
 src/bin/uniffi-bindgen

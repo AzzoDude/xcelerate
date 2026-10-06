@@ -558,6 +558,10 @@ jobs:
               || { echo "::error::missing native library for $token"; exit 1; }
           done
           du -sh bindings/dart/src/*
+          # `dart pub publish` drops any file that git ignores. The checked-in
+          # .gitignore keeps this path ignored so a developer's tree stays clean,
+          # so re-include it here for the publish run only.
+          printf '\n!bindings/dart/src/**\n' >> .gitignore
 
       - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
 
