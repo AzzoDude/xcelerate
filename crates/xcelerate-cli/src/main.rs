@@ -12,7 +12,7 @@ mod scaffold;
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 
 use xcelerate::{Browser, BrowserConfig, Page, VideoOptions, XcelerateResult};
 
@@ -178,9 +178,13 @@ enum Command {
         #[arg(long)]
         no_ffmpeg: bool,
     },
-    /// List built-in devices.
-    List,
-    /// Explain how external plugins are loaded.
+    /// List known devices, browsers, or plugins.
+    List {
+        /// Which category to list. Omit to list all of them.
+        #[arg(value_enum)]
+        kind: Option<ListKind>,
+    },
+    /// Alias for `list plugin`.
     Plugins,
     /// Create a new mod (plugin) from the starter template.
     Plugin {
@@ -206,6 +210,61 @@ enum PluginAction {
     },
 }
 
+/// Categories for `xcelerate list`.
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum ListKind {
+    /// Known browsers and whether they are installed.
+    #[value(alias = "browsers")]
+    Browser,
+    /// External plugins and how to load them.
+    #[value(alias = "plugins")]
+    Plugin,
+    /// Built-in device profiles.
+    #[value(alias = "devices")]
+    Device,
+}
+
+fn list_devices() {
+    println!("Devices:");
+    for device in xcelerate::devices::all() {
+        println!(
+            "  {:<22} {}x{}  dpr {:<5} {}{}",
+            device.name,
+            device.width,
+            device.height,
+            device.device_scale_factor,
+            if device.mobile { "mobile" } else { "desktop" },
+            if device.has_touch { " touch" } else { "" }
+        );
+    }
+}
+
+fn list_browsers() {
+    println!("Browsers (choose with --browser <id>):");
+    for browser in xcelerate::browser::known::all() {
+        let installed = xcelerate::browser::known::first_existing(browser);
+        let engine = match browser.engine {
+            xcelerate::browser::known::Engine::Chromium => "chromium",
+            xcelerate::browser::known::Engine::Firefox => "firefox",
+        };
+        println!(
+            "  {:<12} {:<22} {:<9} {}",
+            browser.id,
+            browser.name,
+            engine,
+            installed
+                .map(|path| path.display().to_string())
+                .unwrap_or_else(|| "not found".to_string())
+        );
+    }
+}
+
+fn list_plugins() {
+    println!("Plugins: none built in (external by design).");
+    println!("  Load one with --plugins <PATH>, or scaffold a new one with");
+    println!("  `xcelerate plugin new <id>`.");
+}
+
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
@@ -217,41 +276,19 @@ async fn main() {
 
 async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
-        Command::List => {
-            println!("Devices:");
-            for device in xcelerate::devices::all() {
-                println!(
-                    "  {:<22} {}x{}  dpr {:<5} {}{}",
-                    device.name,
-                    device.width,
-                    device.height,
-                    device.device_scale_factor,
-                    if device.mobile { "mobile" } else { "desktop" },
-                    if device.has_touch { " touch" } else { "" }
-                );
+        Command::List { kind } => match kind {
+            Some(ListKind::Device) => list_devices(),
+            Some(ListKind::Browser) => list_browsers(),
+            Some(ListKind::Plugin) => list_plugins(),
+            None => {
+                list_devices();
+                println!();
+                list_browsers();
+                println!();
+                list_plugins();
             }
-            println!("\nBrowsers (choose with --browser <id>):");
-            for browser in xcelerate::browser::known::all() {
-                let installed = xcelerate::browser::known::first_existing(browser);
-                let engine = match browser.engine {
-                    xcelerate::browser::known::Engine::Chromium => "chromium",
-                    xcelerate::browser::known::Engine::Firefox => "firefox",
-                };
-                println!(
-                    "  {:<12} {:<22} {:<9} {}",
-                    browser.id,
-                    browser.name,
-                    engine,
-                    installed
-                        .map(|path| path.display().to_string())
-                        .unwrap_or_else(|| "not found".to_string())
-                );
-            }
-            println!("\nPlugins: none built in (plugins are external; load with --plugins <PATH>)");
-        }
-        Command::Plugins => {
-            println!("xcelerate ships no built-in plugins; load one with `--plugins <PATH>`");
-        }
+        },
+        Command::Plugins => list_plugins(),
         Command::Plugin { action } => match action {
             PluginAction::New { name, dir, force } => {
                 let path = scaffold::new_mod(&name, dir, force)?;
