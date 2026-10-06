@@ -3,7 +3,7 @@
 Each module exposes a ``main()`` that builds one binding and, with ``--push``,
 publishes it (RubyGems, the Go module proxy, the PowerShell Gallery or a SwiftPM
 repository). Dart is deliberately absent: pub.dev publishes from CI on a tag push
-(see ``.github/workflows/publish-dart.yml``). Import them so they can be driven
+(see ``.github/workflows/publish.yml``). Import them so they can be driven
 programmatically::
 
     from publish import ruby

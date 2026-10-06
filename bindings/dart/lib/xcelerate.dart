@@ -881,7 +881,7 @@ class XcelerateFfi {
   /// `<os>-<arch>` directory and file name of the prebuilt library this package
   /// ships for the current process, or `null` when this platform has no binary.
   ///
-  /// This layout is staged by `.github/workflows/publish-dart.yml`.
+  /// This layout is staged by `.github/workflows/publish.yml`.
   static (String, String)? _bundle() {
     final ffi.Abi abi = ffi.Abi.current();
     if (abi == ffi.Abi.macosArm64) {

@@ -85,11 +85,11 @@ Plugins load from disk sandboxed (WebAssembly) behind the capability gate;
 
 ## Publishing
 
-Publishing is driven by a tag: pushing `vX.Y.Z` runs
-`.github/workflows/publish-dart.yml`, which builds the native libraries, stages
-them into the package, and publishes through pub.dev's OIDC automated publishing
-(the `pub.dev` environment) — no token involved. The workflow refuses to run if
-the tag does not equal `version:` in `pubspec.yaml`.
+Publishing is driven by a tag: pushing `vX.Y.Z` runs the `dart` job in
+`.github/workflows/publish.yml`, which builds the native libraries, stages them
+into the package, and publishes through pub.dev's OIDC automated publishing (the
+`pub.dev` environment) — no token involved. The job is gated on the tag-push
+event and refuses to run if the tag does not equal `version:` in `pubspec.yaml`.
 
 ```bash
 python scripts/bump_version.py X.Y.Z   # updates pubspec.yaml (and every manifest)
@@ -98,18 +98,17 @@ git tag vX.Y.Z
 git push origin vX.Y.Z                 # triggers the publish workflow
 ```
 
-The tag has to match pub.dev's configured pattern (`v{{version}}`) and the
-version in `pubspec.yaml`; pub.dev then makes the highest published version the
-package's latest automatically. Setup, once, in the package's **Admin** tab on
-pub.dev:
+pub.dev only accepts a publish from a GitHub Actions run that was triggered by a
+matching tag, so there is no manual/dispatch path — cut a tag to publish. The tag
+must match pub.dev's configured pattern (`v{{version}}`) and the version in
+`pubspec.yaml`; pub.dev then makes the highest published version the package's
+latest automatically. Setup, once, in the package's **Admin** tab on pub.dev
+(the filename is not registered there — only these fields matter):
 
 - **Repository:** `ChaoswareHQ/xcelerate`
 - **Tag pattern:** `v{{version}}`
 - **Environment:** `pub.dev` (create the same environment under the repository's
   Settings → Environments; it is what carries the OIDC token)
-- Optional: enable *publishing from workflow_dispatch events* to allow
-  re-publishing the current version without a new tag (Actions → Publish to
-  pub.dev → Run workflow).
 
 To publish by hand, run `dart pub publish` inside `bindings/dart`; that
 authenticates with a Google account (OAuth on first run).

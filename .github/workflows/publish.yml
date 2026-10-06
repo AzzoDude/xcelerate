@@ -1,7 +1,12 @@
 # Publish every Xcelerate registry package.
 #
-# Dart/Flutter → pub.dev is deliberately absent: pub.dev gates publishing on a
-# tag push rather than a workflow filename, so it lives in `publish-dart.yml`.
+# Two trigger paths, one file:
+#   * `workflow_dispatch` publishes the artifact-producing registries below
+#     (crates.io, PyPI, npm, NuGet, Maven, RubyGems, PowerShell, SwiftPM, and the
+#     GitHub Release). Select `only` to publish a single registry.
+#   * a `vX.Y.Z` tag push publishes Dart/Flutter to pub.dev, and nothing else.
+#     pub.dev only issues a token to a run GitHub triggered by a matching tag, so
+#     the Dart job is gated on the push event; every dispatch-gated job skips.
 #
 # This is intentionally ONE workflow with one job per registry, rather than a
 # per-language workflow fanned out by a dispatcher. OIDC-based registries
@@ -61,6 +66,13 @@ on:
           - powershell
           - swift
           - release
+          # Dart/Flutter is absent here on purpose: pub.dev only publishes a run
+          # that GitHub triggered by a tag, so it cannot go through a dispatch.
+
+  push:
+    tags:
+      # Must match the tag pattern configured on pub.dev (`v{{version}}`).
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
 
 # Serialize publishes: two runs touching the same version would race on the
 # registries, so never cancel one in progress.
@@ -176,6 +188,9 @@ jobs:
         with:
           node-version: 'latest'
           registry-url: 'https://registry.npmjs.org'
+          # No package-manager cache: this workflow publishes artifacts, so it
+          # must not source them from cache state a `push` run could poison.
+          package-manager-cache: false
 
       - uses: ./.github/actions/download-language-packages # zizmor: ignore[self-repository]
         with:
@@ -264,6 +279,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
         with:
           gradle-version: '8.12'
+          # No dependency cache: publishing runs must not trust cache state.
+          cache-disabled: true
 
       - uses: ./.github/actions/download-language-packages # zizmor: ignore[self-repository]
         with:
@@ -360,6 +377,8 @@ jobs:
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version: 'stable'
+          # No module cache: publishing runs must not trust cache state.
+          cache: false
 
       - name: Validate the module
         working-directory: bindings/go
@@ -448,6 +467,129 @@ jobs:
           git push --force swift swift-release:main
           git tag -a "$VERSION" -m "xcelerate Swift SDK $VERSION" || true
           git push swift "$VERSION" || echo "::warning::Could not push tag $VERSION; skipping."
+
+  # --- Dart/Flutter → pub.dev (Trusted Publishing) --------------------------
+  #
+  # Tag-triggered only: pub.dev rejects any run not triggered by a matching tag,
+  # so these jobs run on the `push` event and never on `workflow_dispatch`. The
+  # native libraries are built here rather than reused from build-packages.yml
+  # because a tag run has no such artifacts, and the bundled set needs macOS x64
+  # as well as arm64.
+  dart-native:
+    name: Dart native (${{ matrix.token }})
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The macOS runners are arm64 and the Apple SDK also targets x86_64, so
+          # one runner builds both darwin libraries (same as build-core.yml).
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            token: macos-arm64
+            file: libxcelerate.dylib
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            token: macos-x64
+            file: libxcelerate.dylib
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            token: linux-x64
+            file: libxcelerate.so
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            token: windows-x64
+            file: xcelerate.dll
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # Deliberately no rust-cache here: these binaries are distributed to every
+      # consumer, so they must not be built from cache state an untrusted run
+      # could have poisoned (zizmor cache-poisoning). Releases are infrequent.
+
+      - name: Build the native library
+        run: cargo build --release -p xcelerate --target ${{ matrix.target }}
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dart-native-${{ matrix.token }}
+          path: target/${{ matrix.target }}/release/${{ matrix.file }}
+          if-no-files-found: error
+          retention-days: 1
+
+  dart:
+    name: pub.dev
+    if: ${{ github.event_name == 'push' }}
+    needs: dart-native
+    runs-on: ubuntu-latest
+    # Must match the environment required in the package's Admin tab on pub.dev.
+    environment: pub.dev
+    permissions:
+      contents: read
+      id-token: write   # OIDC for pub.dev
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: dart-native-*
+          path: dart-native
+
+      - name: Stage the prebuilt libraries into the package
+        run: |
+          for dir in dart-native/dart-native-*; do
+            token=${dir#dart-native/dart-native-}
+            mkdir -p "bindings/dart/src/$token"
+            cp "$dir"/* "bindings/dart/src/$token/"
+          done
+          # Fail loudly if a platform did not make it, rather than shipping a
+          # package that silently cannot load.
+          for token in macos-arm64 macos-x64 linux-x64 windows-x64; do
+            test -n "$(ls -A "bindings/dart/src/$token" 2>/dev/null)" \
+              || { echo "::error::missing native library for $token"; exit 1; }
+          done
+          du -sh bindings/dart/src/*
+
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
+
+      - name: Verify the tag matches the package version
+        # pub.dev only publishes a run whose tag equals `version:` in
+        # pubspec.yaml, so fail here with a clear message rather than letting the
+        # upload get rejected.
+        working-directory: bindings/dart
+        env:
+          # Passed via the environment, not interpolated into the script: a tag
+          # is attacker-influenced text (Semgrep run-shell-injection).
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=$(sed -n 's/^version: *//p' pubspec.yaml | head -n1 | tr -d '[:space:]')
+          if [ -z "$version" ]; then
+            echo "::error::could not read version from bindings/dart/pubspec.yaml"
+            exit 1
+          fi
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::tag $TAG does not match bindings/dart/pubspec.yaml v$version"
+            exit 1
+          fi
+          echo "Publishing tag $TAG (pubspec version $version)"
+
+      - name: Validate the package
+        working-directory: bindings/dart
+        run: dart pub publish --dry-run
+
+      - name: Publish to pub.dev
+        working-directory: bindings/dart
+        # setup-dart above configured the pub.dev OIDC token for this run.
+        run: dart pub publish --force
 
   # --- GitHub Release -------------------------------------------------------
   release:

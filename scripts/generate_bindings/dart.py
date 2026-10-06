@@ -54,7 +54,7 @@ except ImportError:  # pragma: no cover - executed as a standalone script
 # (`XcelerateFfi._bundledLibraryPath`). The file name is the crate name (the
 # binding is generated with `--crate xcelerate`). The generator stages only the
 # host library so local runs exercise the same lookup as a published package;
-# `.github/workflows/publish-dart.yml` stages the other platforms for a release.
+# `.github/workflows/publish.yml` stages the other platforms for a release.
 BUNDLED_LIBS = {
     "macos-arm64": "libxcelerate.dylib",
     "macos-x64": "libxcelerate.dylib",
@@ -383,7 +383,7 @@ _LOADER = """    final explicit = _libraryPath;
   /// `<os>-<arch>` directory and file name of the prebuilt library this package
   /// ships for the current process, or `null` when this platform has no binary.
   ///
-  /// This layout is staged by `.github/workflows/publish-dart.yml`.
+  /// This layout is staged by `.github/workflows/publish.yml`.
   static (String, String)? _bundle() {
     final ffi.Abi abi = ffi.Abi.current();
     if (abi == ffi.Abi.macosArm64) {
