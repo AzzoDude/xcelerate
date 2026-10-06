@@ -20,11 +20,33 @@
 [![Rust](https://img.shields.io/badge/rust-1.99%2B-dea584.svg)](https://github.com/ChaoswareHQ/xcelerate/blob/master/Cargo.toml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-Xcelerate 是一个高性能、轻量级的 Chrome DevTools Protocol（CDP）客户端，
-为 Rust、.NET、Python、JavaScript（Node.js）、Kotlin、Java、Swift、Ruby、
-Dart/Flutter 和 Go 提供了符合语言习惯的绑定。它将快速的 Rust 核心与
-异步优先（async-first）的 API 以及数据驱动的适配器层相结合，让现有的
-Selenium、Playwright 和 Puppeteer 脚本能够在同一引擎上运行。
+Xcelerate 是一个高性能、轻量级的浏览器自动化引擎，为 Rust、.NET、Python、
+JavaScript（Node.js）、Kotlin、Java、Swift、Ruby、Dart/Flutter 和 Go 提供了
+符合语言习惯的绑定。它支持**三种熟悉的 API 风格**——Playwright、Puppeteer 和
+Selenium——让你可以继续使用已有的代码，运行在更快的引擎之上。
+
+三种风格都由声明式配置（profile）生成，并共享同一个引擎，因此你无需重写脚本，
+就能切换风格（或语言）。此外还有原生的 `xcelerate` 风格，但它是一个**稍后的选项**：
+请从你已经熟悉的风格开始。
+
+## 支持的引擎
+
+一个内核，两个引擎：基于 CDP 的 Chromium，基于 WebDriver BiDi 的 Firefox。
+
+| 引擎 | 协议 | 后端 |
+| --- | --- | --- |
+| ![Chromium](https://img.shields.io/badge/Chromium-4285F4?logo=googlechrome&logoColor=white) Chromium、Chrome、Edge | Chrome DevTools Protocol（CDP） | `xcelerate::Browser` |
+| ![Firefox](https://img.shields.io/badge/Firefox-FF7139?logo=firefoxbrowser&logoColor=white) Firefox | [WebDriver BiDi](https://w3c.github.io/webdriver-bidi/) | `xcelerate::firefox` |
+
+```rust
+// Chromium (CDP)
+let browser = xcelerate::Browser::launch(Default::default()).await?;
+
+// Firefox (WebDriver BiDi)
+let browser = xcelerate::firefox::FirefoxBrowser::launch(Default::default()).await?;
+let page = browser.clone().new_page("https://example.com".to_string()).await?;
+println!("{}", page.title().await?);
+```
 
 ## 绑定
 
@@ -53,8 +75,9 @@ Selenium、Playwright 和 Puppeteer 脚本能够在同一引擎上运行。
   启用。
 - **异步优先** —— 在 Rust 中构建于 `tokio` 之上，并在每个绑定中使用
   `async`/`await`。
-- **API 风格适配器** —— 在原生引擎之上暴露 Selenium、Playwright 和 Puppeteer
-  的方法名，由声明式配置（profile）生成。
+- **优先支持三种熟悉的 API 风格** —— 无需改动即可在同一引擎上运行 Playwright、
+  Puppeteer 或 Selenium 代码，每种风格都由声明式配置（profile）生成。对于高级
+  场景，还提供原生的 `xcelerate` API。
 - **多语言绑定** —— 单一核心，通过 `uniffi` 为 Rust、Python、
   JavaScript（Node.js）、.NET、Kotlin、Java、Swift、Ruby、Dart/Flutter 和 Go
   生成绑定，此外还有一个基于 .NET SDK 的 PowerShell 模块。
@@ -78,7 +101,7 @@ Selenium、Playwright 和 Puppeteer 脚本能够在同一引擎上运行。
 
 ```toml
 [dependencies]
-xcelerate = "1.0.9"
+xcelerate = "1.0.12"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -108,8 +131,8 @@ dotnet add package Xcelerate
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("io.github.azzodude:xcelerate:1.0.9")        // Kotlin
-    implementation("io.github.azzodude:xcelerate-java:1.0.9")   // Java
+    implementation("io.github.azzodude:xcelerate:1.0.12")        // Kotlin
+    implementation("io.github.azzodude:xcelerate-java:1.0.12")   // Java
 }
 ```
 
@@ -161,7 +184,58 @@ Import-Module ./bindings/powershell/Xcelerate.psd1
 
 各包的 README 参见 [`bindings/`](bindings/)。
 
-## 快速开始（Rust）
+## 快速开始
+
+选择你已经在写的 API 风格。所有风格都运行在同一个引擎上，因此你之后无需重写脚本
+即可切换。
+
+### Playwright 风格
+
+```python
+from xcelerate import use
+
+pw = use("playwright")
+browser = await pw.launch()
+page = await browser.new_page()
+await page.goto("https://example.com")
+await page.click("#submit")
+print(await page.inner_text("h1"))
+await browser.close()
+```
+
+### Puppeteer 风格
+
+```python
+from xcelerate import use
+
+pp = use("puppeteer")
+browser = await pp.launch()
+page = await browser.new_page()
+await page.goto("https://example.com")
+await page.click("#submit")
+await browser.close()
+```
+
+### Selenium 风格
+
+```python
+from xcelerate import use
+
+sel = use("selenium")
+driver = await sel.launch()
+await driver.get("https://example.com")
+element = await driver.find_element("css selector", "#submit")
+await element.click()
+await driver.quit()
+```
+
+Rust 通过 `xcelerate::adapters::{playwright, puppeteer, selenium}` 访问同样的三种
+风格。各风格的完整接口参见 [API 风格适配器](#api-风格适配器)。
+
+### 原生 API（高级）
+
+Xcelerate 也有自己的 API（`Browser`、`Page`、`Element`）——它是三种风格所构建于其上的
+引擎。只有当某种风格未覆盖你的需求时才使用它；请从你已经熟悉的风格开始。
 
 ```rust
 use xcelerate::{Browser, BrowserConfig};

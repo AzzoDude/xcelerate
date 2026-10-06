@@ -20,11 +20,33 @@
 [![Rust](https://img.shields.io/badge/rust-1.99%2B-dea584.svg)](https://github.com/ChaoswareHQ/xcelerate/blob/master/Cargo.toml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-Xcelerate là một trình khách (client) Chrome DevTools Protocol (CDP) hiệu năng cao,
-nhẹ, với các binding idiomatic cho Rust, .NET, Python, JavaScript (Node.js), Kotlin,
-Java, Swift, Ruby, Dart/Flutter và Go. Nó kết hợp một lõi Rust nhanh với API ưu tiên
-async cùng một lớp adapter dựa trên dữ liệu, cho phép các script Selenium, Playwright
-và Puppeteer hiện có chạy trên cùng một engine.
+Xcelerate là một engine tự động hóa trình duyệt hiệu năng cao, nhẹ, với các binding
+idiomatic cho Rust, .NET, Python, JavaScript (Node.js), Kotlin, Java, Swift, Ruby,
+Dart/Flutter và Go. Nó hỗ trợ **ba kiểu API quen thuộc** — Playwright, Puppeteer và
+Selenium — để bạn giữ nguyên đoạn mã mình vẫn viết, trên một engine nhanh hơn.
+
+Cả ba kiểu đều được sinh từ các profile khai báo và dùng chung một engine, nên bạn có
+thể chuyển đổi kiểu (hoặc ngôn ngữ) mà không phải viết lại script. Ngoài ra còn có kiểu
+`xcelerate` gốc, nhưng đó là một **lựa chọn về sau**: hãy bắt đầu với kiểu bạn đã biết.
+
+## Các engine được hỗ trợ
+
+Một lõi, hai engine: Chromium qua CDP, Firefox qua WebDriver BiDi.
+
+| Engine | Giao thức | Backend |
+| --- | --- | --- |
+| ![Chromium](https://img.shields.io/badge/Chromium-4285F4?logo=googlechrome&logoColor=white) Chromium, Chrome, Edge | Chrome DevTools Protocol (CDP) | `xcelerate::Browser` |
+| ![Firefox](https://img.shields.io/badge/Firefox-FF7139?logo=firefoxbrowser&logoColor=white) Firefox | [WebDriver BiDi](https://w3c.github.io/webdriver-bidi/) | `xcelerate::firefox` |
+
+```rust
+// Chromium (CDP)
+let browser = xcelerate::Browser::launch(Default::default()).await?;
+
+// Firefox (WebDriver BiDi)
+let browser = xcelerate::firefox::FirefoxBrowser::launch(Default::default()).await?;
+let page = browser.clone().new_page("https://example.com".to_string()).await?;
+println!("{}", page.title().await?);
+```
 
 ## Các binding
 
@@ -56,8 +78,9 @@ và Puppeteer hiện có chạy trên cùng một engine.
   thông qua `BrowserConfig.plugins`.
 - **Ưu tiên async** - xây dựng trên `tokio` trong Rust và `async`/`await` trong mọi
   binding.
-- **Adapter kiểu API** - cung cấp các tên phương thức quen thuộc của Selenium,
-  Playwright và Puppeteer trên nền engine gốc, được sinh ra từ các profile khai báo.
+- **Ưu tiên ba kiểu API quen thuộc** - viết mã Playwright, Puppeteer hoặc Selenium
+  nguyên vẹn trên cùng một engine, mỗi kiểu được sinh từ một profile khai báo. Có sẵn
+  API `xcelerate` gốc cho các trường hợp nâng cao.
 - **Binding đa ngôn ngữ** - một lõi duy nhất, các binding được sinh cho Rust, Python,
   JavaScript (Node.js), .NET, Kotlin, Java, Swift, Ruby, Dart/Flutter và Go thông qua
   `uniffi`, cùng một module PowerShell trên .NET SDK.
@@ -81,7 +104,7 @@ và Puppeteer hiện có chạy trên cùng một engine.
 
 ```toml
 [dependencies]
-xcelerate = "1.0.9"
+xcelerate = "1.0.12"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -111,8 +134,8 @@ dotnet add package Xcelerate
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("io.github.azzodude:xcelerate:1.0.9")        // Kotlin
-    implementation("io.github.azzodude:xcelerate-java:1.0.9")   // Java
+    implementation("io.github.azzodude:xcelerate:1.0.12")        // Kotlin
+    implementation("io.github.azzodude:xcelerate-java:1.0.12")   // Java
 }
 ```
 
@@ -165,7 +188,60 @@ dụng, hoặc chạy ví dụ end-to-end tại
 
 Xem [`bindings/`](bindings/) để biết README của từng gói.
 
-## Bắt đầu nhanh (Rust)
+## Bắt đầu nhanh
+
+Chọn kiểu API bạn vốn đã viết. Mọi kiểu đều chạy trên cùng một engine, nên bạn có thể
+chuyển đổi sau mà không phải viết lại script.
+
+### Kiểu Playwright
+
+```python
+from xcelerate import use
+
+pw = use("playwright")
+browser = await pw.launch()
+page = await browser.new_page()
+await page.goto("https://example.com")
+await page.click("#submit")
+print(await page.inner_text("h1"))
+await browser.close()
+```
+
+### Kiểu Puppeteer
+
+```python
+from xcelerate import use
+
+pp = use("puppeteer")
+browser = await pp.launch()
+page = await browser.new_page()
+await page.goto("https://example.com")
+await page.click("#submit")
+await browser.close()
+```
+
+### Kiểu Selenium
+
+```python
+from xcelerate import use
+
+sel = use("selenium")
+driver = await sel.launch()
+await driver.get("https://example.com")
+element = await driver.find_element("css selector", "#submit")
+await element.click()
+await driver.quit()
+```
+
+Rust tiếp cận cùng ba kiểu này thông qua
+`xcelerate::adapters::{playwright, puppeteer, selenium}`. Xem
+[Adapter kiểu API](#adapter-kiểu-api) để biết toàn bộ bề mặt của mỗi kiểu.
+
+### API gốc (nâng cao)
+
+Xcelerate còn có API riêng (`Browser`, `Page`, `Element`) - chính là engine mà ba kiểu
+được xây dựng trên đó. Chỉ dùng đến nó khi một kiểu không đáp ứng nhu cầu của bạn; hãy
+bắt đầu với kiểu bạn đã biết.
 
 ```rust
 use xcelerate::{Browser, BrowserConfig};

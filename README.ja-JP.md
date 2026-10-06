@@ -20,11 +20,35 @@
 [![Rust](https://img.shields.io/badge/rust-1.99%2B-dea584.svg)](https://github.com/ChaoswareHQ/xcelerate/blob/master/Cargo.toml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-Xcelerate は、高性能で軽量な Chrome DevTools Protocol（CDP）クライアントであり、
-Rust、.NET、Python、JavaScript（Node.js）、Kotlin、Java、Swift、Ruby、
-Dart/Flutter、Go 向けの慣用的なバインディングを備えています。高速な Rust コアを、
-async ファーストの API とデータ駆動型のアダプターレイヤーと組み合わせることで、
-既存の Selenium、Playwright、Puppeteer スクリプトを同じエンジン上で実行できます。
+Xcelerate は、高性能で軽量なブラウザ自動化エンジンであり、Rust、.NET、Python、
+JavaScript（Node.js）、Kotlin、Java、Swift、Ruby、Dart/Flutter、Go 向けの
+慣用的なバインディングを備えています。**3 つのなじみ深い API スタイル** ——
+Playwright、Puppeteer、Selenium —— を話すため、すでに書いているコードをそのまま、
+より高速なエンジン上で使えます。
+
+3 つのスタイルはすべて宣言的なプロファイルから生成され、1 つのエンジンを共有する
+ため、スクリプトを書き直すことなくスタイル（や言語）を切り替えられます。ネイティブの
+`xcelerate` スタイルも存在しますが、それは**後から使う選択肢**です。まずはすでに
+知っているスタイルから始めてください。
+
+## 対応エンジン
+
+1 つのコア、2 つのエンジン: CDP 経由の Chromium、WebDriver BiDi 経由の Firefox。
+
+| エンジン | プロトコル | バックエンド |
+| --- | --- | --- |
+| ![Chromium](https://img.shields.io/badge/Chromium-4285F4?logo=googlechrome&logoColor=white) Chromium、Chrome、Edge | Chrome DevTools Protocol（CDP） | `xcelerate::Browser` |
+| ![Firefox](https://img.shields.io/badge/Firefox-FF7139?logo=firefoxbrowser&logoColor=white) Firefox | [WebDriver BiDi](https://w3c.github.io/webdriver-bidi/) | `xcelerate::firefox` |
+
+```rust
+// Chromium (CDP)
+let browser = xcelerate::Browser::launch(Default::default()).await?;
+
+// Firefox (WebDriver BiDi)
+let browser = xcelerate::firefox::FirefoxBrowser::launch(Default::default()).await?;
+let page = browser.clone().new_page("https://example.com".to_string()).await?;
+println!("{}", page.title().await?);
+```
 
 ## バインディング
 
@@ -55,8 +79,9 @@ async ファーストの API とデータ駆動型のアダプターレイヤー
   有効化されます。
 - **async ファースト** - Rust では `tokio`、すべてのバインディングでは
   `async`/`await` を基盤としています。
-- **API スタイルのアダプター** - ネイティブエンジンの上に Selenium、Playwright、
-  Puppeteer のメソッド名を公開し、宣言的なプロファイルから生成されます。
+- **なじみ深い 3 つの API スタイルを最優先** - Playwright、Puppeteer、Selenium の
+  コードを変更なしで同じエンジン上で実行でき、各スタイルは宣言的なプロファイルから
+  生成されます。上級者向けにネイティブの `xcelerate` API も利用できます。
 - **多言語バインディング** - 単一のコアから、`uniffi` 経由で Rust、Python、
   JavaScript（Node.js）、.NET、Kotlin、Java、Swift、Ruby、Dart/Flutter、Go 向けの
   バインディングを生成。加えて .NET SDK 上の PowerShell モジュールも提供します。
@@ -81,7 +106,7 @@ async ファーストの API とデータ駆動型のアダプターレイヤー
 
 ```toml
 [dependencies]
-xcelerate = "1.0.9"
+xcelerate = "1.0.12"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -111,8 +136,8 @@ Maven Central に `io.github.azzodude:xcelerate`（Kotlin）および
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("io.github.azzodude:xcelerate:1.0.9")        // Kotlin
-    implementation("io.github.azzodude:xcelerate-java:1.0.9")   // Java
+    implementation("io.github.azzodude:xcelerate:1.0.12")        // Kotlin
+    implementation("io.github.azzodude:xcelerate-java:1.0.12")   // Java
 }
 ```
 
@@ -167,7 +192,60 @@ Import-Module ./bindings/powershell/Xcelerate.psd1
 
 各パッケージの README については [`bindings/`](bindings/) を参照してください。
 
-## クイックスタート (Rust)
+## クイックスタート
+
+すでに書いている API スタイルを選んでください。どのスタイルも同じエンジン上で
+動くため、後からスクリプトを書き直すことなく切り替えられます。
+
+### Playwright スタイル
+
+```python
+from xcelerate import use
+
+pw = use("playwright")
+browser = await pw.launch()
+page = await browser.new_page()
+await page.goto("https://example.com")
+await page.click("#submit")
+print(await page.inner_text("h1"))
+await browser.close()
+```
+
+### Puppeteer スタイル
+
+```python
+from xcelerate import use
+
+pp = use("puppeteer")
+browser = await pp.launch()
+page = await browser.new_page()
+await page.goto("https://example.com")
+await page.click("#submit")
+await browser.close()
+```
+
+### Selenium スタイル
+
+```python
+from xcelerate import use
+
+sel = use("selenium")
+driver = await sel.launch()
+await driver.get("https://example.com")
+element = await driver.find_element("css selector", "#submit")
+await element.click()
+await driver.quit()
+```
+
+Rust では `xcelerate::adapters::{playwright, puppeteer, selenium}` を通じて同じ
+3 つのスタイルに到達できます。各スタイルの全サーフェスについては
+[API スタイルのアダプター](#api-スタイルのアダプター) を参照してください。
+
+### ネイティブ API（上級）
+
+Xcelerate には独自の API（`Browser`、`Page`、`Element`）もあります - これは
+3 つのスタイルがその上に構築されるエンジンです。スタイルで要件を満たせない場合に
+のみ手を伸ばしてください。まずはすでに知っているスタイルから始めてください。
 
 ```rust
 use xcelerate::{Browser, BrowserConfig};
