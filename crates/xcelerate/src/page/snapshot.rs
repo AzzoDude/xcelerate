@@ -182,6 +182,7 @@ pub(crate) struct SnapshotElement {
     pub role: String,
     pub name: String,
     pub value: Option<String>,
+    pub states: Vec<String>,
     pub tag: Option<String>,
     pub bounds: Option<Rect>,
 }
@@ -198,6 +199,9 @@ impl SnapshotElement {
         if let Some(value) = &self.value {
             object.insert("value".into(), json!(value));
         }
+        if !self.states.is_empty() {
+            object.insert("states".into(), json!(self.states));
+        }
         if let Some(tag) = &self.tag {
             object.insert("tag".into(), json!(tag));
         }
@@ -211,9 +215,23 @@ impl SnapshotElement {
     }
 }
 
-/// Collapses whitespace and truncates to `max` characters (adding an ellipsis).
+/// Removes invisible noise from an accessible name, then collapses whitespace
+/// and truncates to `max` characters (adding an ellipsis).
+///
+/// Icon fonts expose private-use codepoints (U+E000–U+F8FF) and some pages embed
+/// zero-width characters; both are invisible to a human but add bytes and
+/// confuse a model. Rust's `split_whitespace` already treats NBSP and the other
+/// Unicode space separators as whitespace, so no explicit normalisation of those
+/// is needed.
 fn clean(text: &str, max: usize) -> String {
-    let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    let filtered: String = text
+        .chars()
+        .filter(|c| {
+            !('\u{E000}'..='\u{F8FF}').contains(c)
+                && !matches!(*c, '\u{200B}'..='\u{200D}' | '\u{FEFF}')
+        })
+        .collect();
+    let collapsed = filtered.split_whitespace().collect::<Vec<_>>().join(" ");
     if collapsed.chars().count() <= max {
         collapsed
     } else {
@@ -231,6 +249,67 @@ fn as_string(value: Option<&Value>) -> Option<String> {
 /// typed box (`{"type": ..., "value": ...}`).
 fn ax_field(node: &Value, field: &str) -> Option<String> {
     as_string(node.get(field).and_then(|v| v.get("value")))
+}
+
+/// Ax properties surfaced as bare state flags, in the stable order they render.
+///
+/// Only states that change what an agent should *do* are listed: a checked box
+/// and a disabled button must be distinguishable from their unchecked/enabled
+/// twins. Purely descriptive properties (level, autocomplete, ...) are dropped
+/// to keep lines short.
+const STATE_AX_PROPERTIES: &[&str] = &[
+    "checked", "selected", "pressed", "expanded", "disabled", "required", "readonly", "invalid",
+];
+
+/// Reads the boolean-ish AX `properties` array into a compact list of state
+/// flags (`checked`, `disabled`, ...).
+///
+/// The protocol boxes each value as `{"type", "value"}`, and the same state can
+/// arrive as a boolean, a `0`/`1` number, or a `"true"`/`"mixed"` string, so all
+/// three encodings are normalised. A tristate that is neither on nor off renders
+/// as `name=mixed` (for example `checked=mixed`).
+fn ax_states(node: &Value) -> Vec<String> {
+    let Some(properties) = node.get("properties").and_then(Value::as_array) else {
+        return Vec::new();
+    };
+
+    let mut states = Vec::new();
+    for name in STATE_AX_PROPERTIES {
+        let Some(property) = properties
+            .iter()
+            .find(|p| p.get("name").and_then(Value::as_str) == Some(*name))
+        else {
+            continue;
+        };
+        let flag = match property.get("value").and_then(|v| v.get("value")) {
+            Some(Value::Bool(true)) => Some((*name).to_string()),
+            Some(Value::Number(n)) if n.as_f64() == Some(1.0) => Some((*name).to_string()),
+            Some(Value::String(text)) if text == "true" => Some((*name).to_string()),
+            Some(Value::String(text)) if text == "mixed" => Some(format!("{name}=mixed")),
+            _ => None,
+        };
+        if let Some(flag) = flag {
+            states.push(flag);
+        }
+    }
+    states
+}
+
+/// Looks up `name` in a DOM snapshot node's flat `[nameIdx, valueIdx, ...]`
+/// attribute array and returns the value from the string table.
+fn attribute_value<'a>(strings: &[&'a str], attributes: &[Value], name: &str) -> Option<&'a str> {
+    attributes.as_chunks::<2>().0.iter().find_map(|pair| {
+        let key = pair[0]
+            .as_u64()
+            .and_then(|i| strings.get(i as usize).copied());
+        if key == Some(name) {
+            pair[1]
+                .as_u64()
+                .and_then(|i| strings.get(i as usize).copied())
+        } else {
+            None
+        }
+    })
 }
 
 /// Builds a `backendNodeId -> LayoutInfo` map from a `DOMSnapshot.captureSnapshot`
@@ -288,6 +367,11 @@ pub(crate) fn build_layout_lookup(
             .map(|indices| indices.iter().filter_map(Value::as_u64).collect())
             .unwrap_or_default();
 
+        // Flat `[nameIdx, valueIdx, ...]` pairs, used only to enrich a tag with
+        // its input type (`input[type=file]` vs `input[type=text]`), which the AX
+        // role alone cannot distinguish.
+        let attributes = nodes.get("attributes").and_then(Value::as_array);
+
         let layout = document.get("layout");
 
         // Precompute the first layout index for each snapshot node index.
@@ -318,12 +402,24 @@ pub(crate) fn build_layout_lookup(
                 continue;
             };
 
-            let tag = node_names
+            let mut tag = node_names
                 .get(snapshot_index)
                 .copied()
                 .flatten()
                 .filter(|name| !name.starts_with('#'))
                 .map(|name| name.to_ascii_lowercase());
+
+            // The AX role cannot tell a file input from a text one; the DOM
+            // `type` attribute can, and agents act on it (upload vs type).
+            if tag.as_deref() == Some("input")
+                && let Some(kind) = attributes
+                    .and_then(|attributes| attributes.get(snapshot_index))
+                    .and_then(Value::as_array)
+                    .and_then(|attributes| attribute_value(&strings, attributes, "type"))
+                && !kind.is_empty()
+            {
+                tag = Some(format!("input[type={kind}]"));
+            }
 
             let mut info = LayoutInfo {
                 is_clickable: clickable_set.contains(&(snapshot_index as u64)),
@@ -362,6 +458,7 @@ struct AxNode {
     role: String,
     name: String,
     value: Option<String>,
+    states: Vec<String>,
     backend_id: Option<i64>,
     ignored: bool,
     child_ids: Vec<String>,
@@ -433,6 +530,7 @@ pub(crate) fn assemble(
             role,
             name,
             value,
+            states: ax_states(raw),
             backend_id,
             ignored,
             child_ids,
@@ -448,6 +546,34 @@ pub(crate) fn assemble(
             .iter()
             .filter_map(|id| by_id.get(id).copied())
             .collect();
+    }
+
+    // A parent whose accessible name is exactly the concatenation of its text
+    // children would otherwise print the same text twice: once as the parent's
+    // name and once per child. Mark those children redundant so they are not
+    // rendered. Conservative - a name that does not match (after whitespace
+    // collapsing) leaves the children in place.
+    let mut redundant = vec![false; nodes.len()];
+    for parent in &nodes {
+        if parent.name.is_empty() || parent.children.is_empty() {
+            continue;
+        }
+        let mut text = String::new();
+        let mut all_text = true;
+        for &child in &parent.children {
+            let child = &nodes[child];
+            if !matches!(child.role.as_str(), "StaticText" | "InlineTextBox") {
+                all_text = false;
+                break;
+            }
+            text.push_str(&child.name);
+        }
+        let normalize = |value: &str| value.split_whitespace().collect::<Vec<_>>().join(" ");
+        if all_text && !text.is_empty() && normalize(&text) == normalize(&parent.name) {
+            for &child in &parent.children {
+                redundant[child] = true;
+            }
+        }
     }
 
     // Roots are nodes without a parent (normally the RootWebArea), rendered in
@@ -533,6 +659,7 @@ pub(crate) fn assemble(
             let index_it = candidate && !occluded;
             // Print anything interactive, structural, or that carries text.
             let show = !occluded
+                && !redundant[index]
                 && (index_it
                     || STRUCTURAL_AX_ROLES.contains(&node.role.as_str())
                     || !node.name.is_empty());
@@ -561,6 +688,9 @@ pub(crate) fn assemble(
                 if let Some(value) = &node.value {
                     line.push_str(&format!(" = \"{}\"", clean(value, MAX_TEXT_LEN)));
                 }
+                if !node.states.is_empty() {
+                    line.push_str(&format!(" ({})", node.states.join(", ")));
+                }
                 lines.push(line);
                 rendered = true;
 
@@ -573,6 +703,7 @@ pub(crate) fn assemble(
                         role: node.role.to_string(),
                         name,
                         value: node.value.clone(),
+                        states: node.states.clone(),
                         tag: lookup.and_then(|info| info.tag.clone()),
                         bounds: lookup.and_then(|info| info.bounds),
                     });
@@ -902,6 +1033,89 @@ mod tests {
     fn clean_collapses_and_truncates() {
         assert_eq!(clean("  a   b\n c ", 20), "a b c");
         assert_eq!(clean("abcdef", 4), "abc…");
+    }
+
+    #[test]
+    fn clean_strips_private_use_and_zero_width_characters() {
+        // Icon-font glyphs (U+E000..U+F8FF) and a zero-width space must not leak
+        // into the rendered name.
+        assert_eq!(
+            clean("\u{E000}Add\u{200B} to cart\u{E001}", 40),
+            "Add to cart"
+        );
+    }
+
+    #[test]
+    fn assemble_surfaces_ax_state_flags() {
+        let ax = json!({
+            "nodes": [
+                { "nodeId": "1", "ignored": false, "role": { "value": "RootWebArea" }, "name": { "value": "T" }, "childIds": ["2"] },
+                { "nodeId": "2", "ignored": false, "parentId": "1", "backendDOMNodeId": 20,
+                  "role": { "value": "checkbox" }, "name": { "value": "Accept" },
+                  "properties": [
+                      { "name": "checked", "value": { "type": "tristate", "value": "true" } },
+                      { "name": "disabled", "value": { "type": "boolean", "value": true } },
+                      { "name": "expanded", "value": { "type": "boolean", "value": false } }
+                  ],
+                  "childIds": [] }
+            ]
+        });
+        let (text, elements) = assemble(&ax, &HashMap::new(), None);
+        assert_eq!(elements.len(), 1);
+        assert_eq!(elements[0].states, vec!["checked", "disabled"]);
+        assert!(
+            text.contains("[0]<checkbox> \"Accept\" (checked, disabled)"),
+            "{text}"
+        );
+    }
+
+    #[test]
+    fn assemble_marks_a_mixed_tristate() {
+        let ax = json!({
+            "nodes": [
+                { "nodeId": "1", "ignored": false, "role": { "value": "RootWebArea" }, "name": { "value": "T" }, "childIds": ["2"] },
+                { "nodeId": "2", "ignored": false, "parentId": "1", "backendDOMNodeId": 20,
+                  "role": { "value": "checkbox" }, "name": { "value": "All" },
+                  "properties": [ { "name": "checked", "value": { "type": "tristate", "value": "mixed" } } ],
+                  "childIds": [] }
+            ]
+        });
+        let (_, elements) = assemble(&ax, &HashMap::new(), None);
+        assert_eq!(elements[0].states, vec!["checked=mixed"]);
+    }
+
+    #[test]
+    fn assemble_drops_redundant_static_text_children() {
+        let ax = json!({
+            "nodes": [
+                { "nodeId": "1", "ignored": false, "role": { "value": "RootWebArea" }, "name": { "value": "T" }, "childIds": ["2"] },
+                { "nodeId": "2", "ignored": false, "parentId": "1", "backendDOMNodeId": 30,
+                  "role": { "value": "button" }, "name": { "value": "Sign in" }, "childIds": ["3"] },
+                { "nodeId": "3", "ignored": false, "parentId": "2", "backendDOMNodeId": 31,
+                  "role": { "value": "StaticText" }, "name": { "value": "Sign in" }, "childIds": [] }
+            ]
+        });
+        let (text, _) = assemble(&ax, &HashMap::new(), None);
+        assert_eq!(text.matches("Sign in").count(), 1, "{text}");
+    }
+
+    #[test]
+    fn layout_lookup_enriches_an_input_with_its_type() {
+        let snapshot = json!({
+            "strings": ["INPUT", "type", "file"],
+            "documents": [{
+                "nodes": {
+                    "backendNodeId": [100],
+                    "nodeName": [0],
+                    "attributes": [[1, 2]]
+                }
+            }]
+        });
+        let lookup = build_layout_lookup(&snapshot, 1.0);
+        assert_eq!(
+            lookup.get(&100).expect("input layout").tag.as_deref(),
+            Some("input[type=file]")
+        );
     }
 
     /// Layout lookup for `sample_ax`'s backend ids, each with a paint order.
