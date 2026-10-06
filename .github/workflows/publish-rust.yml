@@ -1,7 +1,23 @@
-# Publish the Xcelerate Rust crates to crates.io.
+# Publish the Xcelerate Rust crates to crates.io with Trusted Publishing (OIDC).
 #
-# Split out of publish-only.yml so each language has its own workflow:
-# run it directly (Actions → Run workflow) or via the `publish.yml` dispatcher.
+# No long-lived CARGO_REGISTRY_TOKEN is required: crates.io mints a short-lived
+# access token (30 minutes) from this workflow's GitHub OIDC identity.
+#
+# Configure a publisher once per crate at https://crates.io/crates/<crate>/settings
+# (the config is stored per crate; up to 5 per crate are allowed):
+#
+#   Repository owner:   ChaoswareHQ
+#   Repository name:    xcelerate
+#   Workflow filename:  publish-rust.yml   (or publish.yml when run via the dispatcher)
+#   Environment name:   crates-io          (optional, but recommended)
+#
+# crates.io validates the OIDC token against the repository owner ID, the
+# workflow filename, and (if set here) the environment name.
+#
+# Note the reusable-workflow gotcha: crates.io reads the `workflow_ref` claim,
+# which GitHub sets to the *caller* workflow. Dispatching this file directly
+# reports `publish-rust.yml`; running it through the `publish.yml` dispatcher
+# reports `publish.yml`, so register whichever filename(s) you actually use.
 name: "Publish · Rust"
 
 on:
@@ -15,15 +31,27 @@ jobs:
   crates-io:
     name: crates.io
     runs-on: ubuntu-latest
+    # Must match the "Environment name" configured on crates.io. Declaring it
+    # lets you attach protection rules (required reviewers, branch limits) so a
+    # maintainer with write access cannot publish a crate unreviewed.
+    environment: crates-io
+    permissions:
+      contents: read
+      id-token: write   # OIDC trusted publishing
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
 
+      - name: Authenticate with crates.io (OIDC)
+        id: auth
+        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+
       - name: Publish crates (dependency order)
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          # `cargo publish` reads CARGO_REGISTRY_TOKEN from the environment.
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
         run: |
           VERSION=$(grep -oP '^version = "\K[^"]+' Cargo.toml | head -n 1)
           for CRATE in xcelerate-core xcelerate-plugin-api xcelerate-plugin-stealth xcelerate-plugin-human xcelerate-plugins xcelerate; do
@@ -34,7 +62,7 @@ jobs:
             published=false
             for attempt in 1 2 3; do
               echo "Attempt $attempt: publishing $CRATE $VERSION..."
-              if cargo publish -p "$CRATE" --token "$CARGO_REGISTRY_TOKEN" --allow-dirty; then
+              if cargo publish -p "$CRATE" --allow-dirty; then
                 published=true
                 break
               fi
