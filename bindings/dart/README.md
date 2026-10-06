@@ -85,20 +85,40 @@ Plugins load from disk sandboxed (WebAssembly) behind the capability gate;
 
 ## Publishing
 
+Publishing is driven by a tag: pushing `vX.Y.Z` runs
+`.github/workflows/publish-dart.yml`, which builds the native libraries, stages
+them into the package, and publishes through pub.dev's OIDC automated publishing
+(the `pub.dev` environment) — no token involved. The workflow refuses to run if
+the tag does not equal `version:` in `pubspec.yaml`.
+
 ```bash
-# `version:` in pubspec.yaml must match the tag.
-git tag vX.Y.Z && git push origin vX.Y.Z
+python scripts/bump_version.py X.Y.Z   # updates pubspec.yaml (and every manifest)
+git commit -am "Release vX.Y.Z"
+git tag vX.Y.Z
+git push origin vX.Y.Z                 # triggers the publish workflow
 ```
 
-Pushing a `vX.Y.Z` tag runs `.github/workflows/publish-dart.yml`, which publishes
-through pub.dev's OIDC automated publishing (the `pub.dev` environment) with no
-token involved. To publish by hand, run `dart pub publish` inside `bindings/dart`;
-that authenticates with a Google account (OAuth on first run). The package
-**bundles a prebuilt native library** for macOS (arm64/x64), Windows (x64) and
-Linux (x64) under `src/<os>-<arch>/`, so `dart pub add xcelerate` works with no
-build step; on an unlisted platform the loader falls back to the OS search path
-(`libraryPath` overrides it). Those binaries are staged by CI and are not
-committed to git.
+The tag has to match pub.dev's configured pattern (`v{{version}}`) and the
+version in `pubspec.yaml`; pub.dev then makes the highest published version the
+package's latest automatically. Setup, once, in the package's **Admin** tab on
+pub.dev:
+
+- **Repository:** `ChaoswareHQ/xcelerate`
+- **Tag pattern:** `v{{version}}`
+- **Environment:** `pub.dev` (create the same environment under the repository's
+  Settings → Environments; it is what carries the OIDC token)
+- Optional: enable *publishing from workflow_dispatch events* to allow
+  re-publishing the current version without a new tag (Actions → Publish to
+  pub.dev → Run workflow).
+
+To publish by hand, run `dart pub publish` inside `bindings/dart`; that
+authenticates with a Google account (OAuth on first run).
+
+The package **bundles a prebuilt native library** for macOS (arm64/x64), Windows
+(x64) and Linux (x64) under `src/<os>-<arch>/`, so `dart pub add xcelerate` works
+with no build step; on an unlisted platform the loader falls back to the OS
+search path (`libraryPath` overrides it). Those binaries are staged by CI and are
+not committed to git.
 
 ## License
 

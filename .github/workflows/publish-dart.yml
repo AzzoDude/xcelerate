@@ -8,7 +8,8 @@
 # pub.dev automates publishing off a *tag push* (not a workflow filename): it
 # only hands out a token to a run triggered by a tag matching the pattern
 # configured in the package's Admin tab (`v{{version}}`), and that tag must equal
-# `version:` in bindings/dart/pubspec.yaml.
+# `version:` in bindings/dart/pubspec.yaml. The guard below enforces that up
+# front, so a mismatch fails with a readable error instead of a pub.dev rejection.
 #
 # `environment` must match the environment required in the package's Admin tab.
 # It travels inside the OIDC token, so protection rules on the GitHub
@@ -25,6 +26,11 @@ on:
     tags:
       # Must match the tag pattern configured on pub.dev (`v{{version}}`).
       - 'v[0-9]+.[0-9]+.[0-9]+*'
+  # Re-publish the version already in pubspec.yaml without cutting a new tag
+  # (e.g. after a transient failure). Requires "Enable publishing from
+  # workflow_dispatch events" in the package's Admin tab; without it the publish
+  # step fails at authentication.
+  workflow_dispatch:
 
 # A release in flight must not be cancelled by a later tag.
 concurrency:
@@ -118,6 +124,28 @@ jobs:
           du -sh bindings/dart/src/*
 
       - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
+
+      - name: Verify the tag matches the package version
+        # pub.dev only publishes a tag-triggered run whose tag equals `version:`
+        # in pubspec.yaml. Fail here with a clear message rather than letting the
+        # upload get rejected. Dispatch runs have no tag, so skip the check.
+        if: startsWith(github.ref, 'refs/tags/')
+        working-directory: bindings/dart
+        env:
+          # Passed via the environment, not interpolated into the script: a tag
+          # is attacker-influenced text (Semgrep run-shell-injection).
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=$(sed -n 's/^version: *//p' pubspec.yaml | head -n1 | tr -d '[:space:]')
+          if [ -z "$version" ]; then
+            echo "::error::could not read version from bindings/dart/pubspec.yaml"
+            exit 1
+          fi
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::tag $TAG does not match bindings/dart/pubspec.yaml v$version"
+            exit 1
+          fi
+          echo "Publishing tag $TAG (pubspec version $version)"
 
       - name: Validate the package
         working-directory: bindings/dart
