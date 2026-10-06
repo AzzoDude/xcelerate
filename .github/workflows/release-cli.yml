@@ -43,6 +43,9 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           key: cli-${{ matrix.target }}
+          # Never restore a cache here: release artifacts must not be built from
+          # state an untrusted run could have poisoned (zizmor cache-poisoning).
+          lookup-only: true
 
       - name: Build
         run: cargo build --release -p xcelerate-cli --target ${{ matrix.target }}
@@ -89,10 +92,15 @@ jobs:
           merge-multiple: true
       - name: Checksums
         run: (cd dist && sha256sum *.zip *.tar.gz > SHA256SUMS)
-      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
-        with:
-          files: dist/*
-          generate_release_notes: true
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # --verify-tag so a workflow_dispatch on a branch fails loudly instead
+          # of creating a bogus tag named after the branch.
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --generate-notes --title "$GITHUB_REF_NAME" --verify-tag
+          gh release upload "$GITHUB_REF_NAME" dist/* --clobber
 
   winget:
     name: Submit to winget (optional)
@@ -109,8 +117,13 @@ jobs:
         run: echo "::warning::WINGET_TOKEN not set; skipping winget submission."
       - if: env.WINGET_TOKEN != ''
         shell: pwsh
+        env:
+          # Passed through the environment rather than interpolated into the
+          # script: a tag name is attacker-influenced text, so inlining it is a
+          # shell-injection vector (Semgrep run-shell-injection).
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          $version = "${{ github.ref_name }}".TrimStart('v')
+          $version = $env:REF_NAME.TrimStart('v')
           $url = "https://github.com/ChaoswareHQ/xcelerate/releases/download/v$version/xcelerate-$version-x86_64-pc-windows-msvc.zip"
           Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
           .\wingetcreate.exe update Chaosware.Xcelerate -v $version -u $url --submit --token $env:WINGET_TOKEN

@@ -120,7 +120,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: ./.github/actions/download-language-packages
+      - uses: $/.github/actions/download-language-packages
         with:
           run_id: ${{ inputs.run_id }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -163,7 +163,7 @@ jobs:
           node-version: 'latest'
           registry-url: 'https://registry.npmjs.org'
 
-      - uses: ./.github/actions/download-language-packages
+      - uses: $/.github/actions/download-language-packages
         with:
           run_id: ${{ inputs.run_id }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -194,7 +194,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: ./.github/actions/download-language-packages
+      - uses: $/.github/actions/download-language-packages
         with:
           run_id: ${{ inputs.run_id }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -247,7 +247,7 @@ jobs:
         with:
           gradle-version: '8.12'
 
-      - uses: ./.github/actions/download-language-packages
+      - uses: $/.github/actions/download-language-packages
         with:
           run_id: ${{ inputs.run_id }}
           pattern: native-lib-*
@@ -286,7 +286,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: ./.github/actions/download-language-packages
+      - uses: $/.github/actions/download-language-packages
         with:
           run_id: ${{ inputs.run_id }}
           pattern: native-lib-*
@@ -450,14 +450,17 @@ jobs:
         id: version
         run: echo "version=$(grep -oP '^version = \"\K[^\"]+' Cargo.toml | head -n 1)" >> "$GITHUB_OUTPUT"
 
-      - uses: ./.github/actions/download-language-packages
+      - uses: $/.github/actions/download-language-packages
         with:
           run_id: ${{ inputs.run_id }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
-        with:
-          tag_name: "v${{ steps.version.outputs.version }}"
-          files: dist-packages/*
-          generate_release_notes: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          TAG="v${VERSION}"
+          gh release view "$TAG" >/dev/null 2>&1 \
+            || gh release create "$TAG" --generate-notes --title "$TAG"
+          gh release upload "$TAG" dist-packages/* --clobber
