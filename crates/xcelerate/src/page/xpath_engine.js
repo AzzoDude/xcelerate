@@ -47,7 +47,8 @@ function(xpath, all){
     if (test === 'node') return true;
     if (!node || node.nodeType !== 1) return false;
     if (test === '*') return true;
-    return node.localName === test;
+    // Element name tests are case-insensitive for HTML: '//DIV' matches <div>.
+    return node.localName.toLowerCase() === test.toLowerCase();
   };
 
   // --- predicate tokenizer / parser ---------------------------------------
@@ -124,7 +125,7 @@ function(xpath, all){
     }
     if (left.o === 'attr') return { k: 'exists', name: left.name };
     if (left.o === 'num') return { k: 'num', v: left.v };
-    if (left.o === 'text') return { k: 'cmp', l: left, op: '!=', r: { o: 'str', v: '' } };
+    if (left.o === 'text') return { k: 'textExists' };
     throw new Error('XC_XPATH: unsupported predicate');
   };
 
@@ -181,30 +182,39 @@ function(xpath, all){
     if (out.length && out.charCodeAt(out.length - 1) === 32) out = out.slice(0, out.length - 1);
     return out;
   };
-  const directText = (n) => {
-    if (!n || !n.childNodes) return null;
-    for (let i = 0; i < n.childNodes.length; i++) { const c = n.childNodes[i]; if (c.nodeType === 3) return c.nodeValue; }
-    return null;
+  // A text() operand denotes the node-set of direct text-node children, so it
+  // yields a LIST of string values; a comparison or contains()/starts-with()
+  // succeeds when ANY value satisfies it (XPath 1.0 node-set semantics). Other
+  // operands yield a single value, or an empty list when an attribute is absent.
+  const directTexts = (n) => {
+    const out = [];
+    if (!n || !n.childNodes) return out;
+    for (let i = 0; i < n.childNodes.length; i++) { const c = n.childNodes[i]; if (c.nodeType === 3) out.push(c.nodeValue); }
+    return out;
   };
-  const operandVal = (o, n, pos) => {
-    if (o.o === 'attr') { if (!n || !n.getAttribute) return null; return n.getAttribute(o.name); }
-    if (o.o === 'str') return o.v;
-    if (o.o === 'num') return o.v;
-    if (o.o === 'text') return directText(n);
-    if (o.o === 'norm') { const v = operandVal(o.a, n, pos); return v === null ? null : normalize(v); }
-    if (o.o === 'position') return pos;
-    return null;
+  const operandVals = (o, n, pos) => {
+    if (o.o === 'attr') { if (!n || !n.getAttribute) return []; const v = n.getAttribute(o.name); return v === null ? [] : [v]; }
+    if (o.o === 'str') return [o.v];
+    if (o.o === 'num') return [o.v];
+    if (o.o === 'text') return directTexts(n);
+    if (o.o === 'norm') { const vs = operandVals(o.a, n, pos), out = []; for (let i = 0; i < vs.length; i++) out.push(normalize(vs[i])); return out; }
+    if (o.o === 'position') return [pos];
+    return [];
   };
   const cmpVals = (a, b, op) => {
-    if (a === null || b === null) return false;
-    let x = a, y = b;
-    if (typeof a === 'number' || typeof b === 'number') { x = Number(a); y = Number(b); }
-    if (op === '=') return x === y;
-    if (op === '!=') return x !== y;
+    if (op === '=') { if (typeof a === 'number' || typeof b === 'number') return Number(a) === Number(b); return String(a) === String(b); }
+    if (op === '!=') { if (typeof a === 'number' || typeof b === 'number') return Number(a) !== Number(b); return String(a) !== String(b); }
+    // Relational operators always coerce both operands to numbers (XPath 1.0),
+    // so '10' > '2' is true even though the strings compare the other way.
+    const x = Number(a), y = Number(b);
     if (op === '<') return x < y;
     if (op === '>') return x > y;
     if (op === '<=') return x <= y;
     return x >= y;
+  };
+  const cmpLists = (la, lb, op) => {
+    for (let i = 0; i < la.length; i++) { for (let j = 0; j < lb.length; j++) { if (cmpVals(la[i], lb[j], op)) return true; } }
+    return false;
   };
   const evalPred = (p, n, pos) => {
     if (p.k === 'num') return pos === p.v;
@@ -212,14 +222,19 @@ function(xpath, all){
     if (p.k === 'or') return evalPred(p.l, n, pos) || evalPred(p.r, n, pos);
     if (p.k === 'not') return !evalPred(p.e, n, pos);
     if (p.k === 'exists') return !!(n && n.hasAttribute && n.hasAttribute(p.name));
+    if (p.k === 'textExists') return directTexts(n).length > 0;
     if (p.k === 'fn') {
-      const a = operandVal(p.a, n, pos), b = operandVal(p.b, n, pos);
-      if (a === null || b === null) return false;
-      const x = String(a), y = String(b);
-      if (p.name === 'contains') return x.indexOf(y) >= 0;
-      return y.length <= x.length && x.slice(0, y.length) === y;
+      const as = operandVals(p.a, n, pos), bs = operandVals(p.b, n, pos);
+      for (let i = 0; i < as.length; i++) {
+        for (let j = 0; j < bs.length; j++) {
+          const x = String(as[i]), y = String(bs[j]);
+          if (p.name === 'contains') { if (x.indexOf(y) >= 0) return true; }
+          else if (y.length <= x.length && x.slice(0, y.length) === y) return true;
+        }
+      }
+      return false;
     }
-    if (p.k === 'cmp') return cmpVals(operandVal(p.l, n, pos), operandVal(p.r, n, pos), p.op);
+    if (p.k === 'cmp') return cmpLists(operandVals(p.l, n, pos), operandVals(p.r, n, pos), p.op);
     return false;
   };
   const applyPreds = (nodes, preds) => {
@@ -270,27 +285,35 @@ function(xpath, all){
     const s = expr;
     let i = 0;
     while (i < s.length && isWs(s[i])) i++;
+    if (i >= s.length) throw new Error('XC_XPATH: empty expression');
     const steps = [];
+    let expectStep = false; // true while a path separator demands a following step
     if (s[i] === '/') {
       steps.push({ axis: 'descendant-or-self', test: 'node', preds: [] });
-      if (s[i + 1] === '/') i += 2; else i += 1;
+      i += (s[i + 1] === '/') ? 2 : 1;
+      expectStep = true;
     }
-    while (i < s.length) {
+    while (true) {
       while (i < s.length && isWs(s[i])) i++;
-      if (i >= s.length) break;
+      if (i >= s.length) {
+        if (expectStep) throw new Error('XC_XPATH: dangling path separator');
+        break;
+      }
       const r = parseStep(s, i);
       steps.push(r.step);
       i = r.next;
+      expectStep = false;
       while (i < s.length && isWs(s[i])) i++;
       if (i >= s.length) break;
       if (s[i] === '/') {
         if (s[i + 1] === '/') { steps.push({ axis: 'descendant-or-self', test: 'node', preds: [] }); i += 2; }
         else i += 1;
+        expectStep = true;
       } else {
         throw new Error('XC_XPATH: unsupported syntax near: ' + s.slice(i, i + 12));
       }
     }
-    if (!steps.length) throw new Error('XC_XPATH: empty expression');
+    if (expectStep) throw new Error('XC_XPATH: dangling path separator');
     return steps;
   };
 

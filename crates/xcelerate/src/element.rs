@@ -77,6 +77,14 @@ const JS_WAIT_FOR_SELECTOR: &str = r#"function(sel,ms){
 /// verbatim. Its contract is documented at the top of the file.
 const JS_XPATH: &str = include_str!("page/xpath_engine.js");
 
+/// Native XPath fallback for expressions outside the subset: full language
+/// support, but no shadow piercing. Run through [`Element::call_with_args`] so a
+/// thrown `SyntaxError` surfaces as an error rather than a bogus result.
+const JS_XPATH_NATIVE: &str = r#"function(xp){
+  const r = document.evaluate(xp, this, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+  return r.singleNodeValue;
+}"#;
+
 /// Represents an HTML element in the DOM.
 #[derive(uniffi::Object)]
 pub struct Element {
@@ -638,13 +646,17 @@ impl Element {
             }));
         }
 
-        // Native fallback: full XPath support, no shadow piercing.
-        let quoted =
-            serde_json::to_string(&xpath).map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
-        self.evaluate_handle(format!(
-            "function(){{return document.evaluate({quoted}, this, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;}}"
-        ))
-        .await
+        // Native fallback: full XPath support, no shadow piercing. Evaluated
+        // through `call_with_args` so an invalid expression is reported, not
+        // mistaken for a match.
+        let args = vec![serde_json::json!(xpath)];
+        match self.call_with_args(JS_XPATH_NATIVE, args, false).await? {
+            Some(object_id) => Ok(Arc::new(Element {
+                page: self.page.clone(),
+                object_id,
+            })),
+            None => Err(XcelerateError::NotFound(xpath)),
+        }
     }
 
     /// Returns this element's enumerable properties as a JSON object.
