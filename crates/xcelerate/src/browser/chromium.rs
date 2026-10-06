@@ -868,13 +868,18 @@ async fn wait_for_ws_url(
     }
 }
 
+/// Largest response header block accepted from the DevTools endpoint.
+const MAX_HTTP_HEADER_BYTES: usize = 64 * 1024;
+
 /// `GET /json/version` over a raw loopback socket.
 ///
 /// The DevTools HTTP endpoint is plaintext HTTP/1.1 bound to `127.0.0.1`, and
 /// this is the only HTTP the crate ever performs, so it is spoken directly on a
-/// `tokio::net::TcpStream` instead of through a full client stack. Chrome answers
-/// with a `Content-Length` (never chunked) and `Connection: close` lets the body
-/// be read to EOF.
+/// `tokio::net::TcpStream` instead of through a full client stack.
+///
+/// The body is read to its `Content-Length`, *not* to EOF: Chrome keeps the
+/// connection alive (it also ignores `Connection: close`), so reading to EOF
+/// blocks forever.
 async fn fetch_devtools_version(port: u16) -> XcelerateResult<serde_json::Value> {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -890,18 +895,68 @@ async fn fetch_devtools_version(port: u16) -> XcelerateResult<serde_json::Value>
         .await
         .map_err(|error| XcelerateError::HttpError(error.to_string()))?;
 
-    let mut response = Vec::new();
-    stream
-        .read_to_end(&mut response)
-        .await
-        .map_err(|error| XcelerateError::HttpError(error.to_string()))?;
-
-    let Some(split) = response.windows(4).position(|window| window == b"\r\n\r\n") else {
-        return Err(XcelerateError::HttpError(
-            "malformed response from the DevTools endpoint".into(),
-        ));
+    // Read until the header/body separator, then exactly the declared body.
+    let mut response = Vec::with_capacity(1024);
+    let mut chunk = [0u8; 4096];
+    let header_end = loop {
+        if let Some(split) = response.windows(4).position(|window| window == b"\r\n\r\n") {
+            break split;
+        }
+        if response.len() > MAX_HTTP_HEADER_BYTES {
+            return Err(XcelerateError::HttpError(
+                "response headers from the DevTools endpoint are too large".into(),
+            ));
+        }
+        let read = stream
+            .read(&mut chunk)
+            .await
+            .map_err(|error| XcelerateError::HttpError(error.to_string()))?;
+        if read == 0 {
+            return Err(XcelerateError::HttpError(
+                "the DevTools endpoint closed the connection before sending a body".into(),
+            ));
+        }
+        response.extend_from_slice(&chunk[..read]);
     };
-    serde_json::from_slice(&response[split + 4..]).map_err(XcelerateError::from)
+
+    let body_start = header_end + 4;
+    let body = match header_content_length(&response[..header_end]) {
+        Some(length) => {
+            while response.len() < body_start + length {
+                let read = stream
+                    .read(&mut chunk)
+                    .await
+                    .map_err(|error| XcelerateError::HttpError(error.to_string()))?;
+                if read == 0 {
+                    break;
+                }
+                response.extend_from_slice(&chunk[..read]);
+            }
+            &response[body_start..(body_start + length).min(response.len())]
+        }
+        // No `Content-Length`: read to EOF, bounded by a timeout so a keep-alive
+        // connection can never hang the caller.
+        None => {
+            let _ = tokio::time::timeout(Duration::from_secs(5), stream.read_to_end(&mut response))
+                .await;
+            &response[body_start..]
+        }
+    };
+
+    serde_json::from_slice(body).map_err(XcelerateError::from)
+}
+
+/// Byte length declared by a `Content-Length` header (case-insensitive), if any.
+fn header_content_length(headers: &[u8]) -> Option<usize> {
+    let text = std::str::from_utf8(headers).ok()?;
+    text.split("\r\n").find_map(|line| {
+        let (name, value) = line.split_once(':')?;
+        if name.eq_ignore_ascii_case("content-length") {
+            value.trim().parse().ok()
+        } else {
+            None
+        }
+    })
 }
 
 /// Chrome flags applied to every launch that stop the browser from throttling
@@ -1084,6 +1139,58 @@ mod tests {
         assert_eq!(
             json["webSocketDebuggerUrl"].as_str(),
             Some("ws://127.0.0.1:9222/devtools/browser/abc")
+        );
+    }
+
+    /// Regression: Chrome keeps the DevTools connection open and ignores
+    /// `Connection: close`, so the reader must stop at `Content-Length` instead of
+    /// waiting for EOF (which blocked `Browser::launch` forever on Chrome 154).
+    #[tokio::test]
+    async fn returns_promptly_when_the_server_keeps_the_connection_open() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let (release_tx, release_rx) = tokio::sync::oneshot::channel::<()>();
+
+        tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut scratch = [0u8; 256];
+            let _ = socket.read(&mut scratch).await;
+            let body = r#"{"webSocketDebuggerUrl":"ws://127.0.0.1:9222/devtools/browser/abc"}"#;
+            let response = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: keep-alive\r\n\r\n{body}",
+                body.len()
+            );
+            let _ = socket.write_all(response.as_bytes()).await;
+            // Hold the socket open: the old `read_to_end` would block here forever.
+            let _ = release_rx.await;
+            drop(socket);
+        });
+
+        let result =
+            tokio::time::timeout(Duration::from_secs(3), fetch_devtools_version(port)).await;
+        let _ = release_tx.send(());
+        let json = result
+            .expect("must not block on a keep-alive connection")
+            .expect("valid response");
+        assert_eq!(
+            json["webSocketDebuggerUrl"].as_str(),
+            Some("ws://127.0.0.1:9222/devtools/browser/abc")
+        );
+    }
+
+    #[test]
+    fn content_length_header_is_case_insensitive() {
+        assert_eq!(
+            header_content_length(b"HTTP/1.1 200 OK\r\ncontent-length: 12\r\n"),
+            Some(12)
+        );
+        assert_eq!(
+            header_content_length(b"HTTP/1.1 200 OK\r\nServer: x\r\n"),
+            None
         );
     }
 
