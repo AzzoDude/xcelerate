@@ -435,20 +435,19 @@ _SEARCH_ALIASES = {
 }
 
 
-def _resolve_selector(by: typing.Any, value: str | None) -> str:
-    """Normalise Selenium's ``(By.X, "value")`` / ``By.X, "value"`` call shapes."""
+def _resolve_selector(by: typing.Any, value: str | None) -> tuple[str, str]:
+    """Normalise Selenium's ``(By.X, "value")`` / ``By.X, "value"`` call shapes.
+
+    Returns the selector ``kind`` (``"css"`` or ``"xpath"``) alongside the raw
+    value so callers can dispatch to the matching core lookup.
+    """
     if value is None and isinstance(by, (tuple, list)) and len(by) == 2:
         by, value = by
     name = getattr(by, "value", by)
     name = str(name).lower()
     kind = _SEARCH_ALIASES.get(name, "css")
-    if kind == "xpath":
-        raise NotImplementedError(
-            "xcelerate adapters support CSS selectors only; "
-            f"received {name!r}"
-        )
     assert value is not None, "selector value is required"
-    return value
+    return kind, value
 
 
 async def selenium_launch(config: typing.Any = None, **_: typing.Any) -> DriverHandle:
@@ -464,7 +463,10 @@ async def selenium_get(driver: DriverHandle, url: str, **_: typing.Any) -> None:
 
 
 async def selenium_find(driver: DriverHandle, by: typing.Any, value: str | None = None, **_: typing.Any) -> typing.Any:
-    return await driver.page.find_element(_resolve_selector(by, value))
+    kind, selector = _resolve_selector(by, value)
+    if kind == "xpath":
+        return await driver.page.query_selector_xpath(selector)
+    return await driver.page.find_element(selector)
 
 
 async def selenium_title(driver: DriverHandle, **_: typing.Any) -> str:
@@ -1272,7 +1274,12 @@ async def selenium_delete_all_cookies(driver: DriverHandle, **_: typing.Any) -> 
 async def selenium_find_all(
     driver: DriverHandle, by: typing.Any, value: typing.Optional[str] = None, **_: typing.Any
 ) -> typing.Any:
-    return await driver.page.query_selector_all(_resolve_selector(by, value))
+    kind, selector = _resolve_selector(by, value)
+    if kind == "xpath":
+        raise NotImplementedError(
+            "find_elements does not support XPath; use find_element"
+        )
+    return await driver.page.query_selector_all(selector)
 
 
 async def selenium_active_element(driver: DriverHandle, **_: typing.Any) -> typing.Any:

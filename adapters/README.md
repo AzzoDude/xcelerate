@@ -146,7 +146,10 @@ One generator consumes the profiles and emits both target languages:
 These adapters match **method names and call shapes**, not the full semantics of
 each library. Known gaps:
 
-* **Selectors** - CSS only. Selenium's XPath raises `NotImplementedError`.
+* **Selectors** - CSS plus single-node XPath. Selenium's `find_element` accepts
+  `By.XPATH` (piercing open shadow roots and same-origin frames); `find_elements`
+  rejects XPath with `NotImplementedError` because there is no multi-match XPath
+  lookup yet.
 * **Sync APIs** - xcelerate is async end-to-end, so all adapters are `async`.
   Selenium users should `await` (there is no blocking shim yet).
 * **Waits/timeouts** - xcelerate applies its own 30s timeout; a `timeout=`
