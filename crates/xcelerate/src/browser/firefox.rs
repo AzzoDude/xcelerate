@@ -164,12 +164,12 @@ impl FirefoxPage {
 
     /// The page's current URL.
     pub async fn url(&self) -> XcelerateResult<String> {
-        Ok(self.string("location.href".to_string()).await?)
+        self.string("location.href".to_string()).await
     }
 
     /// The page's document title.
     pub async fn title(&self) -> XcelerateResult<String> {
-        Ok(self.string("document.title".to_string()).await?)
+        self.string("document.title".to_string()).await
     }
 
     /// The browsing context id.
