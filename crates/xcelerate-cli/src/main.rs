@@ -183,6 +183,9 @@ enum Command {
         /// Which category to list. Omit to list all of them.
         #[arg(value_enum)]
         kind: Option<ListKind>,
+        /// Include browsers that are not installed.
+        #[arg(long)]
+        all: bool,
     },
     /// Alias for `list plugin`.
     Plugins,
@@ -239,22 +242,37 @@ fn list_devices() {
     }
 }
 
-fn list_browsers() {
+fn list_browsers(all: bool) {
+    let rows: Vec<_> = xcelerate::browser::known::all()
+        .iter()
+        .filter_map(|browser| {
+            let path = xcelerate::browser::known::first_existing(browser);
+            if path.is_none() && !all {
+                return None;
+            }
+            Some((browser, path))
+        })
+        .collect();
+
+    if rows.is_empty() {
+        println!("Browsers: none installed.");
+        println!("  Install one, pass --executable-path, or run `xcelerate list browser --all`");
+        println!("  to see every id xcelerate knows.");
+        return;
+    }
+
     println!("Browsers (choose with --browser <id>):");
-    for browser in xcelerate::browser::known::all() {
-        let installed = xcelerate::browser::known::first_existing(browser);
+    for (browser, path) in rows {
         let engine = match browser.engine {
             xcelerate::browser::known::Engine::Chromium => "chromium",
             xcelerate::browser::known::Engine::Firefox => "firefox",
         };
+        let location = path
+            .map(|path| path.display().to_string())
+            .unwrap_or_else(|| "(not installed)".to_string());
         println!(
-            "  {:<12} {:<22} {:<9} {}",
-            browser.id,
-            browser.name,
-            engine,
-            installed
-                .map(|path| path.display().to_string())
-                .unwrap_or_else(|| "not found".to_string())
+            "  {:<16} {:<26} {:<9} {}",
+            browser.id, browser.name, engine, location
         );
     }
 }
@@ -276,14 +294,14 @@ async fn main() {
 
 async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
-        Command::List { kind } => match kind {
+        Command::List { kind, all } => match kind {
             Some(ListKind::Device) => list_devices(),
-            Some(ListKind::Browser) => list_browsers(),
+            Some(ListKind::Browser) => list_browsers(all),
             Some(ListKind::Plugin) => list_plugins(),
             None => {
                 list_devices();
                 println!();
-                list_browsers();
+                list_browsers(all);
                 println!();
                 list_plugins();
             }
