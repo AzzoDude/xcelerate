@@ -1,10 +1,32 @@
-# One entry point that fans out to the per-language publish workflows.
+# Publish every Xcelerate package to its registry.
 #
-# Everything is driven by the `Build Packages (Core + Bindings)` artifacts, so
-# run that workflow first (or let this resolve the latest successful run).
+# This is intentionally ONE workflow with one job per registry, rather than a
+# per-language workflow fanned out by a dispatcher. OIDC-based registries
+# (crates.io, PyPI, npm) match the trusted-publisher config against the
+# `workflow_ref` claim, which GitHub sets to the *caller* workflow. A reusable
+# workflow would therefore appear to those registries as `publish.yml` while a
+# direct dispatch would appear as `publish-rust.yml`, forcing every registry to
+# register two filenames. Keeping everything in this one file means each
+# registry needs exactly one trusted-publisher entry: `publish.yml`.
 #
-# Tip: publish a single target by setting `only` — handy for re-publishing one
-# registry after a partial failure.
+# Run it from Actions → Publish → Run workflow. Set `only` to publish a single
+# registry (handy for re-publishing after a partial failure); leave it on `all`
+# to fan out to everything. Artifact-producing jobs pull the `language-packages`
+# and `native-lib-*` artifacts from the "Build Packages (Core + Bindings)"
+# workflow — run that first, or let this resolve the latest successful run.
+#
+# Secrets:
+#   CARGO_REGISTRY_TOKEN   not needed — crates.io uses Trusted Publishing (OIDC)
+#   PUB_TOKEN              pub.dev
+#   NUGET_API_KEY          NuGet
+#   CENTRAL_USERNAME       Maven Central (Sonatype Portal token user)
+#   CENTRAL_PASSWORD       Maven Central (Sonatype Portal token password)
+#   SIGNING_KEY            Maven Central PGP signing key (ASCII-armoured)
+#   SIGNING_PASSWORD       Maven Central PGP key passphrase
+#   RUBYGEMS_API_KEY       RubyGems
+#   PSGALLERY_API_KEY      PowerShell Gallery
+#   SWIFT_REMOTE_URL       SwiftPM repository git URL with an embedded token
+# npm and PyPI use Trusted Publishing (OIDC) and need no long-lived token.
 name: Publish
 
 on:
@@ -15,7 +37,7 @@ on:
         required: false
         default: ''
       only:
-        description: 'Publish only this target (default: all)'
+        description: 'Publish only this registry (default: all)'
         type: choice
         required: false
         default: all
@@ -37,69 +59,408 @@ permissions:
   contents: read
 
 jobs:
+  # --- Rust → crates.io (Trusted Publishing / OIDC, no token) ----------------
   rust:
+    name: crates.io
     if: ${{ inputs.only == 'all' || inputs.only == 'rust' }}
-    uses: ./.github/workflows/publish-rust.yml
-    secrets: inherit
+    runs-on: ubuntu-latest
+    # Must match the "Environment name" on the crates.io trusted publisher.
+    environment: crates-io
+    permissions:
+      contents: read
+      id-token: write   # OIDC trusted publishing
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
 
+      - name: Authenticate with crates.io (OIDC)
+        id: auth
+        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+
+      - name: Publish crates (dependency order)
+        env:
+          # `cargo publish` reads CARGO_REGISTRY_TOKEN from the environment.
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          VERSION=$(grep -oP '^version = "\K[^"]+' Cargo.toml | head -n 1)
+          for CRATE in xcelerate-core xcelerate-plugin-api xcelerate-plugin-stealth xcelerate-plugin-human xcelerate-plugins xcelerate; do
+            if cargo search "$CRATE" --limit 1 | grep -q "\"$VERSION\""; then
+              echo "$CRATE $VERSION already published. Skipping."
+              continue
+            fi
+            published=false
+            for attempt in 1 2 3; do
+              echo "Attempt $attempt: publishing $CRATE $VERSION..."
+              if cargo publish -p "$CRATE" --allow-dirty; then
+                published=true
+                break
+              fi
+              sleep 15
+            done
+            if [ "$published" != "true" ]; then
+              echo "::warning::Could not publish $CRATE $VERSION to crates.io. Skipping."
+              continue
+            fi
+            for i in $(seq 1 30); do
+              if cargo search "$CRATE" --limit 1 | grep -q "\"$VERSION\""; then break; fi
+              sleep 5
+            done
+          done
+
+  # --- Python → PyPI (Trusted Publishing / OIDC) ----------------------------
   python:
+    name: PyPI
     if: ${{ inputs.only == 'all' || inputs.only == 'python' }}
-    uses: ./.github/workflows/publish-python.yml
-    with:
-      run_id: ${{ inputs.run_id }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # OIDC trusted publishing
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
+      - uses: ./.github/actions/download-language-packages
+        with:
+          run_id: ${{ inputs.run_id }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Collect PyPI artifacts
+        id: prep
+        run: |
+          mkdir -p dist-pypi
+          cp dist-packages/*.whl dist-pypi/ 2>/dev/null || true
+          cp dist-packages/*.tar.gz dist-pypi/ 2>/dev/null || true
+          if [ -n "$(ls -A dist-pypi)" ]; then
+            echo "has_artifacts=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_artifacts=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish to PyPI
+        if: steps.prep.outputs.has_artifacts == 'true'
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+        with:
+          packages-dir: dist-pypi/
+          skip-existing: true
+
+  # --- JavaScript → npm (Trusted Publishing / OIDC) -------------------------
   javascript:
+    name: npm
     if: ${{ inputs.only == 'all' || inputs.only == 'javascript' }}
-    uses: ./.github/workflows/publish-javascript.yml
-    with:
-      run_id: ${{ inputs.run_id }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # OIDC trusted publishing
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 'latest'
+          registry-url: 'https://registry.npmjs.org'
+
+      - uses: ./.github/actions/download-language-packages
+        with:
+          run_id: ${{ inputs.run_id }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to npm
+        run: |
+          cd dist-packages || { echo "::warning::dist-packages missing; skipping."; exit 0; }
+          for f in *.tgz; do
+            [ -f "$f" ] || continue
+            NAME=$(tar -xOzf "$f" package/package.json | node -p "JSON.parse(fs.readFileSync(0)).name") || continue
+            VERSION=$(tar -xOzf "$f" package/package.json | node -p "JSON.parse(fs.readFileSync(0)).version") || continue
+            if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+              echo "$NAME@$VERSION already published. Skipping."; continue
+            fi
+            npm publish "$f" --access public || echo "::warning::Could not publish $NAME@$VERSION; skipping."
+          done
+
+  # --- .NET → NuGet ---------------------------------------------------------
   dotnet:
+    name: NuGet
     if: ${{ inputs.only == 'all' || inputs.only == 'dotnet' }}
-    uses: ./.github/workflows/publish-dotnet.yml
-    with:
-      run_id: ${{ inputs.run_id }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
+      - uses: ./.github/actions/download-language-packages
+        with:
+          run_id: ${{ inputs.run_id }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to NuGet
+        run: |
+          shopt -s nullglob
+          packages=(dist-packages/*.nupkg)
+          if [ ${#packages[@]} -eq 0 ]; then
+            echo "::warning::No NuGet packages (*.nupkg) found; skipping."
+            exit 0
+          fi
+          if ! dotnet nuget push "${packages[@]}" \
+              --api-key ${{ secrets.NUGET_API_KEY }} \
+              --source https://api.nuget.org/v3/index.json \
+              --skip-duplicate; then
+            echo "::warning::Could not publish NuGet package(s). Skipping."
+          fi
+
+  # --- Java + Kotlin → Maven Central ---------------------------------------
+  # Two languages, one Gradle "publish to Maven Central" setup, so a matrix.
   java:
+    name: Maven Central (${{ matrix.language }})
     if: ${{ inputs.only == 'all' || inputs.only == 'java' }}
-    uses: ./.github/workflows/publish-java.yml
-    with:
-      run_id: ${{ inputs.run_id }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [java, kotlin]
+    env:
+      # The Gradle build reads these exact (camelCase) environment variables.
+      centralUsername: ${{ secrets.CENTRAL_USERNAME }}
+      centralPassword: ${{ secrets.CENTRAL_PASSWORD }}
+      signingKey: ${{ secrets.SIGNING_KEY }}
+      signingPassword: ${{ secrets.SIGNING_PASSWORD }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '22'
+
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
+        with:
+          gradle-version: '8.12'
+
+      - uses: ./.github/actions/download-language-packages
+        with:
+          run_id: ${{ inputs.run_id }}
+          pattern: native-lib-*
+          path: native-libs
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Stage the Gradle project
+        run: |
+          cp native-libs/*.dll native-libs/*.so native-libs/*.dylib "bindings/${{ matrix.language }}/"
+
+      - name: Validate credentials
+        id: creds
+        run: |
+          if [ -z "$centralUsername" ] || [ -z "$centralPassword" ]; then
+            echo "::warning::CENTRAL_USERNAME/CENTRAL_PASSWORD not set; skipping Maven Central."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to Maven Central
+        if: steps.creds.outputs.ready == 'true'
+        working-directory: bindings/${{ matrix.language }}
+        run: gradle publish --no-daemon -x test
+
+  # --- Ruby → RubyGems ------------------------------------------------------
   ruby:
+    name: RubyGems
     if: ${{ inputs.only == 'all' || inputs.only == 'ruby' }}
-    uses: ./.github/workflows/publish-ruby.yml
-    with:
-      run_id: ${{ inputs.run_id }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
+      - uses: ./.github/actions/download-language-packages
+        with:
+          run_id: ${{ inputs.run_id }}
+          pattern: native-lib-*
+          path: native-libs
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Stage the gem
+        run: |
+          cp native-libs/*.dll native-libs/*.so native-libs/*.dylib bindings/ruby/
+          cd bindings/ruby
+          gem build xcelerate.gemspec
+
+      - name: Publish to RubyGems
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        run: |
+          if [ -z "$GEM_HOST_API_KEY" ]; then
+            echo "::warning::RUBYGEMS_API_KEY not set; skipping RubyGems."
+            exit 0
+          fi
+          cd bindings/ruby
+          gem push xcelerate-*.gem || echo "::warning::RubyGems push failed; skipping."
+
+  # --- Dart / Flutter → pub.dev --------------------------------------------
   dart:
+    name: pub.dev
     if: ${{ inputs.only == 'all' || inputs.only == 'dart' }}
-    uses: ./.github/workflows/publish-dart.yml
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
+
+      - name: Validate the package
+        working-directory: bindings/dart
+        run: dart pub publish --dry-run
+
+      - name: Publish to pub.dev
+        env:
+          PUB_TOKEN: ${{ secrets.PUB_TOKEN }}
+        run: |
+          if [ -z "$PUB_TOKEN" ]; then
+            echo "::warning::PUB_TOKEN not set; skipping pub.dev."
+            exit 0
+          fi
+          # `dart pub publish` does not read PUB_TOKEN itself; register it first.
+          dart pub token add https://pub.dev --env-var PUB_TOKEN
+          cd bindings/dart
+          dart pub publish --force || echo "::warning::pub.dev publish failed; skipping."
+
+  # --- Go → module tag ------------------------------------------------------
   go:
+    name: Go module tag
     if: ${{ inputs.only == 'all' || inputs.only == 'go' }}
-    uses: ./.github/workflows/publish-go.yml
-    secrets: inherit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # pushing the module tag
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
 
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: 'stable'
+
+      - name: Validate the module
+        working-directory: bindings/go
+        run: |
+          go mod tidy
+          go build ./...
+          go vet ./...
+
+      - name: Tag the module
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(grep -oP '^version = "\K[^"]+' Cargo.toml | head -n 1)
+          TAG="bindings/go/v${VERSION}"
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "$TAG already exists; nothing to do."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "xcelerate Go bindings v${VERSION}"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$TAG"
+          echo "Pushed $TAG; pkg.go.dev will index it shortly."
+
+  # --- PowerShell → PowerShell Gallery -------------------------------------
   powershell:
+    name: PowerShell Gallery
     if: ${{ inputs.only == 'all' || inputs.only == 'powershell' }}
-    uses: ./.github/workflows/publish-powershell.yml
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
+      - name: Publish to the PowerShell Gallery
+        env:
+          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
+          PSGALLERY_REPOSITORY: PSGallery
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrEmpty($env:PSGALLERY_API_KEY)) {
+            Write-Warning 'PSGALLERY_API_KEY not set; skipping the PowerShell Gallery.'
+            exit 0
+          }
+          $module = 'bindings/powershell'
+          if (Get-Command Publish-PSResource -ErrorAction SilentlyContinue) {
+            Publish-PSResource -Path $module -Repository $env:PSGALLERY_REPOSITORY -ApiKey $env:PSGALLERY_API_KEY
+          } else {
+            Publish-Module -Path $module -Repository $env:PSGALLERY_REPOSITORY -NuGetApiKey $env:PSGALLERY_API_KEY
+          }
+
+  # --- Swift → SwiftPM repository ------------------------------------------
   swift:
+    name: SwiftPM repository
     if: ${{ inputs.only == 'all' || inputs.only == 'swift' }}
-    uses: ./.github/workflows/publish-swift.yml
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
 
+      - name: Tag and push the SwiftPM repository
+        env:
+          SWIFT_REMOTE_URL: ${{ secrets.SWIFT_REMOTE_URL }}
+        run: |
+          VERSION=$(grep -oP '^version = "\K[^"]+' Cargo.toml | head -n 1)
+          if [ -z "$SWIFT_REMOTE_URL" ]; then
+            echo "::warning::SWIFT_REMOTE_URL not set; skipping the SwiftPM push."
+            exit 0
+          fi
+          git subtree split -P bindings/swift -b swift-release
+          git remote add swift "$SWIFT_REMOTE_URL"
+          git push --force swift swift-release:main
+          git tag -a "$VERSION" -m "xcelerate Swift SDK $VERSION" || true
+          git push swift "$VERSION" || echo "::warning::Could not push tag $VERSION; skipping."
+
+  # --- GitHub Release -------------------------------------------------------
   release:
+    name: GitHub Release
     if: ${{ inputs.only == 'all' || inputs.only == 'release' }}
-    uses: ./.github/workflows/publish-release.yml
-    with:
-      run_id: ${{ inputs.run_id }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Read workspace version
+        id: version
+        run: echo "version=$(grep -oP '^version = \"\K[^\"]+' Cargo.toml | head -n 1)" >> "$GITHUB_OUTPUT"
+
+      - uses: ./.github/actions/download-language-packages
+        with:
+          run_id: ${{ inputs.run_id }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          tag_name: "v${{ steps.version.outputs.version }}"
+          files: dist-packages/*
+          generate_release_notes: true
