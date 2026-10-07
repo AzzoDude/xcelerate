@@ -3168,7 +3168,7 @@ checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 
 [[package]]
 name = "xcelerate"
-version = "1.0.13"
+version = "1.0.14"
 dependencies = [
  "base64 0.23.1",
  "browser-protocol",
@@ -3189,14 +3189,14 @@ dependencies = [
 
 [[package]]
 name = "xcelerate-bindgen"
-version = "1.0.13"
+version = "1.0.14"
 dependencies = [
  "uniffi",
 ]
 
 [[package]]
 name = "xcelerate-cli"
-version = "1.0.13"
+version = "1.0.14"
 dependencies = [
  "clap",
  "futures",
@@ -3211,11 +3211,11 @@ dependencies = [
 
 [[package]]
 name = "xcelerate-codegen"
-version = "1.0.13"
+version = "1.0.14"
 
 [[package]]
 name = "xcelerate-core"
-version = "1.0.13"
+version = "1.0.14"
 dependencies = [
  "browser-protocol",
  "futures",
@@ -3231,7 +3231,7 @@ dependencies = [
 
 [[package]]
 name = "xcelerate-mcp"
-version = "1.0.13"
+version = "1.0.14"
 dependencies = [
  "base64 0.23.1",
  "mimalloc",
@@ -3242,7 +3242,7 @@ dependencies = [
 
 [[package]]
 name = "xcelerate-plugin"
-version = "1.0.13"
+version = "1.0.14"
 dependencies = [
  "serde",
  "serde_json",

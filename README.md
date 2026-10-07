@@ -100,6 +100,10 @@ println!("{}", page.title().await?);
 - **CLI and MCP server** - the `xcelerate` command for one-shot actions, and
   `xcelerate mcp` (or the `xcelerate-mcp` binary) to drive the browser from an
   MCP client.
+- **XCL scripting** - a line-oriented `.xcl` scripting language that both a human
+  and an AI can read and write, with variables, bounded functions, control flow,
+  HTTP `request`, plugin `run`, and `assert`, backed by MITRE ATT&CK-mapped
+  default-deny security.
 
 ## Installation
 
@@ -107,7 +111,7 @@ println!("{}", page.title().await?);
 
 ```toml
 [dependencies]
-xcelerate = "1.0.12"
+xcelerate = "1.0.14"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -137,8 +141,8 @@ Published to Maven Central as `io.github.azzodude:xcelerate` (Kotlin) and
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("io.github.azzodude:xcelerate:1.0.12")        // Kotlin
-    implementation("io.github.azzodude:xcelerate-java:1.0.12")   // Java
+    implementation("io.github.azzodude:xcelerate:1.0.14")        // Kotlin
+    implementation("io.github.azzodude:xcelerate-java:1.0.14")   // Java
 }
 ```
 
@@ -510,6 +514,78 @@ Install it with `cargo install --path crates/xcelerate-cli`, or
 `winget install Chaosware.Xcelerate` on Windows; from a checkout, prefix any
 command with `cargo run -p xcelerate-cli --`.
 
+## Scripting (XCL)
+
+XCL (`.xcl`) is a small, line-oriented scripting language that captures a
+multi-step automation run in a file both a **human** and an **AI agent** can
+read and write. One line = one action. It is deliberately *not*
+Turing-complete: loops are bounded, functions are flat and do not recurse, and
+there is no expression sublanguage — so a script is safe to emit, safe to read,
+and cannot hang the runner.
+
+```bash
+xcelerate run login.xcl                # run a script
+xcelerate run login.xcl --param user=ada@example.com
+xcelerate run login.xcl --allow-http   # enable `request` (browserless HTTP)
+```
+
+### Example
+
+```
+# register-then-login.xcl
+param base "https://www.practicesoftwaretesting.com"
+
+func fill(id, value)
+  fill $id $value
+end
+
+open $base
+wait 2s
+click-text "Register"
+call fill "#email" "ada@example.com"
+call fill "#password" "correct-horse-battery"
+submit
+wait-idle
+
+assert url contains "/login"
+request GET "{base}/api/health"
+assert $STATUS == 200
+done
+```
+
+### Commands
+
+| Keyword | Meaning |
+| --- | --- |
+| `# comment` | Full-line comment (blank lines ignored). |
+| `let <name> <value>` | Define a variable; interpolate as `$name`. |
+| `set <name> <value>` | Reassign a variable. |
+| `param <name> [default]` | Declare a runtime parameter (override with `--param k=v`). |
+| `func <name>(a, b)` … `end` | A named, no-return callable (depth 1, no recursion). |
+| `call <name> <arg>…` | Invoke a function defined above. |
+| `open` / `goto` `<url>` | Navigate. |
+| `back` `reload` `title` `url` `text` `markdown` `snapshot` | Read the page. |
+| `click <index\|selector>` `click-text <text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | Interact. |
+| `wait <ms\|s\|selector>` `wait-idle` `wait-stable` | Wait. |
+| `eval <js>` | Run JavaScript (requires `--allow-unsafe`). |
+| `request <METHOD> <url> [headers] [body]` | HTTP without a browser (requires `--allow-http`). |
+| `import <id>` `run <plugin> <op> [json]` `plugins` `plugin-config <id>` | Plugins / workers. |
+| `repeat <n> …` `retry <n> …` `if-ok …` `if-fail …` `goto <label>` `label <name>` | Bounded control flow. |
+| `assert <subject> <op> <value>` | Fail-fast check (`url`, `title`, `status`, `contains`, `==`, …). |
+| `done` / `quit` | End the run. |
+
+### Security (MITRE ATT&CK–aligned)
+
+XCL is executable input, so every risky capability is **default-deny** and the
+AI can never self-grant — flags must come from the invoking human:
+
+| Surface | Flag | Notes |
+| --- | --- | --- |
+| `eval <js>` (T1059.007) | `--allow-unsafe` | Highest risk; never default. |
+| `request` (T1071.001 / T1210 SSRF) | `--allow-http` | Private/loopback/metadata hosts denied unless `--allow-private`. |
+| `import`/`run` plugin | `--allow-plugin <id>` | Reuses the wasm sandbox + capability model. |
+| Unbounded work (T1499) | — | Hard `max_steps` / `max_iterations` / per-call budgets. |
+
 ## MCP server
 
 `xcelerate-mcp` - also reachable as `xcelerate mcp` - is a
@@ -650,30 +726,30 @@ and `browser_click_index`.
 ```
 xcelerate/
   crates/
-    xcelerate-core/        # WebSocket transport and typed CDP command layer
-    xcelerate-plugin/      # plugin trait, manifest, capabilities, audit, host interface
-    xcelerate/             # high-level facade: Browser, Page, Element, adapters
-    xcelerate-bindgen/     # uniffi bindgen helper binary
-    xcelerate-cli/         # CLI (binary `xcelerate`)
-    xcelerate-mcp/         # `xcelerate-mcp` Model Context Protocol server
-  plugins/
-    stealth/               # stealth plugin: binary patching + anti-fingerprint payload
-    human/                 # human plugin: human-like mouse, typing, and scrolling
-  adapters/             # adapter profiles, runtime, and generator inputs
-  bindings/             # generated Python, JavaScript, C#, Kotlin, Java, Swift, Ruby, Dart, and Go packages (plus the PowerShell module)
-  docs/plugins/         # plugin authoring guide, JSON schema, examples
-  scripts/              # code generation, harvesting, and release tooling
+    xcelerate-core/         # WebSocket transport and typed CDP command layer
+    xcelerate-plugin/       # plugin trait, manifest, capabilities, audit, host interface
+    xcelerate/              # high-level facade: Browser, Page, Element, adapters
+    xcelerate-bindgen/      # uniffi bindgen helper binary
+    xcelerate-cli/          # CLI (binary `xcelerate`), incl. the XCL runner + interpreter
+    xcelerate-mcp/          # `xcelerate-mcp` Model Context Protocol server
+    xcelerate-codegen/      # script + typed-binding code generation (11 languages)
+  adapters/                 # adapter profiles, runtime, and generator inputs
+  bindings/                 # generated Python/JS/C#/Kotlin/Java/Swift/Ruby/Dart/Go packages (+ PowerShell)
+  docs/plugins/             # plugin authoring guide, JSON schema, examples
+  docs/xcl.md               # the XCL scripting language reference
+  scripts/                  # code generation, harvesting, and release tooling
 ```
 
 The plugin API - the `Plugin` trait, `Manifest`, capabilities, audit log, and the
 `PageHost` interface - lives in `crates/xcelerate-plugin/`. **No plugins are built
-into the core**: `plugins/` holds external plugin crates (`stealth`, `human`) that
-an embedder installs in-process, or that are built to `.wasm` and loaded
-sandboxed. The `stealth` crate owns its binary patcher and the anti-fingerprint
-payload; the engine owns browser process control
-(`crates/xcelerate/src/process.rs`). The facade owns the `PluginManager` and
-bridges `Page` to the plugin host interface, so plugins never touch a raw page or
-the transport.
+into the core**: plugins are external — either `.wasm` components loaded sandboxed
+via `load_plugin`, or in-process crates an embedder installs. The facade owns the
+`PluginManager` and bridges `Page` to the plugin host interface, so plugins never
+touch a raw page or the transport.
+
+The XCL scripting language lives in `crates/xcelerate-cli/src/xcl/` (lexer,
+parser, engine, runtime, security, and the browser/plugin/HTTP executor). See
+[`docs/xcl.md`](docs/xcl.md).
 
 ## Development
 

@@ -35,9 +35,6 @@ pub async fn fetch(url: &str) -> Result<String, Box<dyn std::error::Error>> {
 }
 
 /// Streams `url` to `path`, returning the number of bytes written.
-///
-/// The body is streamed rather than buffered, so a large download (a browser
-/// build, a model) does not have to fit in memory.
 pub async fn download(url: &str, path: &Path) -> Result<u64, Box<dyn std::error::Error>> {
     use futures::StreamExt;
     use tokio::io::AsyncWriteExt;
@@ -67,4 +64,32 @@ pub async fn download(url: &str, path: &Path) -> Result<u64, Box<dyn std::error:
     }
     file.flush().await?;
     Ok(written)
+}
+
+/// A general HTTP request for the XCL `request` command and browserless mode.
+///
+/// Returns `(status_code, response_body_text)`. `headers` is a list of
+/// `(name, value)` pairs. This is request-only automation: no browser, no DOM.
+///
+/// SSRF is the caller's responsibility: the XCL engine checks the domain policy
+/// and private-range rules *before* invoking this.
+pub async fn request(
+    method: &str,
+    url: &str,
+    headers: Vec<(String, String)>,
+    body: String,
+) -> Result<(u16, String), Box<dyn std::error::Error>> {
+    let client = client()?;
+    let method = reqwest::Method::from_bytes(method.as_bytes())?;
+    let mut builder = client.request(method, url);
+    for (name, value) in headers {
+        builder = builder.header(name, value);
+    }
+    if !body.is_empty() {
+        builder = builder.body(body);
+    }
+    let response = builder.send().await?;
+    let status = response.status().as_u16();
+    let text = response.text().await?;
+    Ok((status, text))
 }

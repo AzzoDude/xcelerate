@@ -12,7 +12,7 @@ exclude = ["bindings", "tools", "adapters", "scripts", "docs"]
 resolver = "3"
 
 [workspace.package]
-version = "1.0.13"
+version = "1.0.14"
 edition = "2024"
 rust-version = "1.99.0"
 authors = ["AzzoDude"]
@@ -28,11 +28,11 @@ doc_lazy_continuation = "allow"
 
 [workspace.dependencies]
 # Internal crates.
-xcelerate = { path = "crates/xcelerate", version = "1.0.13" }
-xcelerate-core = { path = "crates/xcelerate-core", version = "1.0.13" }
-xcelerate-mcp = { path = "crates/xcelerate-mcp", version = "1.0.13" }
-xcelerate-codegen = { path = "crates/xcelerate-codegen", version = "1.0.13" }
-xcelerate-plugin = { path = "crates/xcelerate-plugin", version = "1.0.13" }
+xcelerate = { path = "crates/xcelerate", version = "1.0.14" }
+xcelerate-core = { path = "crates/xcelerate-core", version = "1.0.14" }
+xcelerate-mcp = { path = "crates/xcelerate-mcp", version = "1.0.14" }
+xcelerate-codegen = { path = "crates/xcelerate-codegen", version = "1.0.14" }
+xcelerate-plugin = { path = "crates/xcelerate-plugin", version = "1.0.14" }
 
 # External crates.
 mimalloc = "0.1.52"

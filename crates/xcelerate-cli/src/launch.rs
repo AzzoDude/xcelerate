@@ -43,7 +43,7 @@ pub async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Brows
     let config = BrowserConfig {
         // A live run (`--ai` / `--codegen` / `--gate os`) must be on screen for the
         // cursor and input gate to matter.
-        headless: !(args.no_headless || args.live()),
+        headless: args.headless(),
         detached: args.detached,
         executable_path: args
             .browser
@@ -84,9 +84,9 @@ pub async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Brows
     // long-polling or constantly-mutating page from hanging the CLI.
     let _ = page.wait_for_dom_stable(300, 2_000).await;
 
-    // A live run is watchable, so mark it with the in-page cursor dot (and its
-    // input gate).
-    if args.live() {
+    // A live, visible run is watchable, so mark it with the in-page cursor dot
+    // (and its input gate). Headless runs never show the cursor.
+    if args.cursor_active() {
         crate::cursor::install(&page).await?;
     }
 

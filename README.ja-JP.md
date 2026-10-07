@@ -99,6 +99,9 @@ println!("{}", page.title().await?);
 - **CLI と MCP サーバー** - 単発のアクション向けの `xcelerate` コマンド、および
   MCP クライアントからブラウザを操作するための `xcelerate mcp`（または
   `xcelerate-mcp` バイナリ）。
+- **XCL スクリプト** - 人間と AI の両方が読み書きできる、行指向の `.xcl` スクリプト
+  言語。変数、有界の関数、制御フロー、HTTP `request`、プラグイン `run`、`assert`
+  を備え、MITRE ATT&CK に対応付けたデフォルト拒否のセキュリティに支えられています。
 
 ## インストール
 
@@ -106,7 +109,7 @@ println!("{}", page.title().await?);
 
 ```toml
 [dependencies]
-xcelerate = "1.0.12"
+xcelerate = "1.0.14"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -136,8 +139,8 @@ Maven Central に `io.github.azzodude:xcelerate`（Kotlin）および
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("io.github.azzodude:xcelerate:1.0.12")        // Kotlin
-    implementation("io.github.azzodude:xcelerate-java:1.0.12")   // Java
+    implementation("io.github.azzodude:xcelerate:1.0.14")        // Kotlin
+    implementation("io.github.azzodude:xcelerate-java:1.0.14")   // Java
 }
 ```
 
@@ -518,6 +521,77 @@ xcelerate click-index https://example.com 2     # スナップショットの要
 `winget install Chaosware.Xcelerate` を使用します。チェックアウトから実行する場合は、
 任意のコマンドの前に `cargo run -p xcelerate-cli --` を付けます。
 
+## スクリプト（XCL）
+
+XCL（`.xcl`）は、**人間**と **AI エージェント**の両方が読み書きできるファイルに、
+複数ステップの自動化実行を記述する、小さな行指向のスクリプト言語です。1 行 = 1
+アクション。意図的にチューリング完全では*ありません*: ループは有界で、関数は
+フラットで再帰せず、式のサブ言語も存在しません。そのため、スクリプトは出力しても
+安全、読んでも安全で、ランナーをハングさせることはありません。
+
+```bash
+xcelerate run login.xcl                # run a script
+xcelerate run login.xcl --param user=ada@example.com
+xcelerate run login.xcl --allow-http   # enable `request` (browserless HTTP)
+```
+
+### 例
+
+```
+# register-then-login.xcl
+param base "https://www.practicesoftwaretesting.com"
+
+func fill(id, value)
+  fill $id $value
+end
+
+open $base
+wait 2s
+click-text "Register"
+call fill "#email" "ada@example.com"
+call fill "#password" "correct-horse-battery"
+submit
+wait-idle
+
+assert url contains "/login"
+request GET "{base}/api/health"
+assert $STATUS == 200
+done
+```
+
+### コマンド
+
+| キーワード | 意味 |
+| --- | --- |
+| `# comment` | 行全体のコメント（空行は無視されます）。 |
+| `let <name> <value>` | 変数を定義します。`$name` として展開します。 |
+| `set <name> <value>` | 変数を再代入します。 |
+| `param <name> [default]` | 実行時パラメーターを宣言します（`--param k=v` で上書き）。 |
+| `func <name>(a, b)` … `end` | 名前付きの、戻り値のない呼び出し可能関数（深さ 1、再帰なし）。 |
+| `call <name> <arg>…` | 上で定義した関数を呼び出します。 |
+| `open` / `goto` `<url>` | ナビゲートします。 |
+| `back` `reload` `title` `url` `text` `markdown` `snapshot` | ページを読み取ります。 |
+| `click <index\|selector>` `click-text <text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | 操作します。 |
+| `wait <ms\|s\|selector>` `wait-idle` `wait-stable` | 待機します。 |
+| `eval <js>` | JavaScript を実行します（`--allow-unsafe` が必要）。 |
+| `request <METHOD> <url> [headers] [body]` | ブラウザなしの HTTP（`--allow-http` が必要）。 |
+| `import <id>` `run <plugin> <op> [json]` `plugins` `plugin-config <id>` | プラグイン / ワーカー。 |
+| `repeat <n> …` `retry <n> …` `if-ok …` `if-fail …` `goto <label>` `label <name>` | 有界の制御フロー。 |
+| `assert <subject> <op> <value>` | フェイルファストチェック（`url`、`title`、`status`、`contains`、`==`、…）。 |
+| `done` / `quit` | 実行を終了します。 |
+
+### セキュリティ（MITRE ATT&CK 準拠）
+
+XCL は実行可能な入力であるため、リスクのある機能はすべて **デフォルト拒否** であり、
+AI が自ら許可を得ることはできません - フラグは呼び出した人間が指定する必要があります:
+
+| 対象 | フラグ | 備考 |
+| --- | --- | --- |
+| `eval <js>` (T1059.007) | `--allow-unsafe` | 最高リスク。既定では決して有効になりません。 |
+| `request` (T1071.001 / T1210 SSRF) | `--allow-http` | プライベート/ループバック/メタデータホストは `--allow-private` がない限り拒否されます。 |
+| `import`/`run` plugin | `--allow-plugin <id>` | wasm サンドボックス + ケイパビリティモデルを再利用します。 |
+| Unbounded work (T1499) | — | 厳格な `max_steps` / `max_iterations` / 呼び出しごとの予算。 |
+
 ## MCP サーバー
 
 `xcelerate-mcp` は - `xcelerate mcp` としても到達可能です - stdio 上の
@@ -659,30 +733,31 @@ backend node id を持つ同じ要素を返します）。CLI コマンド `xcel
 ```
 xcelerate/
   crates/
-    xcelerate-core/        # WebSocket transport and typed CDP command layer
-    xcelerate-plugin/      # plugin trait, manifest, capabilities, audit, host interface
-    xcelerate/             # high-level facade: Browser, Page, Element, adapters
-    xcelerate-bindgen/     # uniffi bindgen helper binary
-    xcelerate-cli/         # CLI (binary `xcelerate`)
-    xcelerate-mcp/         # `xcelerate-mcp` Model Context Protocol server
-  plugins/
-    stealth/               # stealth plugin: binary patching + anti-fingerprint payload
-    human/                 # human plugin: human-like mouse, typing, and scrolling
-  adapters/             # adapter profiles, runtime, and generator inputs
-  bindings/             # generated Python, JavaScript, C#, Kotlin, Java, Swift, Ruby, Dart, and Go packages (plus the PowerShell module)
-  docs/plugins/         # plugin authoring guide, JSON schema, examples
-  scripts/              # code generation, harvesting, and release tooling
+    xcelerate-core/         # WebSocket transport and typed CDP command layer
+    xcelerate-plugin/       # plugin trait, manifest, capabilities, audit, host interface
+    xcelerate/              # high-level facade: Browser, Page, Element, adapters
+    xcelerate-bindgen/      # uniffi bindgen helper binary
+    xcelerate-cli/          # CLI (binary `xcelerate`), incl. the XCL runner + interpreter
+    xcelerate-mcp/          # `xcelerate-mcp` Model Context Protocol server
+    xcelerate-codegen/      # script + typed-binding code generation (11 languages)
+  adapters/                 # adapter profiles, runtime, and generator inputs
+  bindings/                 # generated Python/JS/C#/Kotlin/Java/Swift/Ruby/Dart/Go packages (+ PowerShell)
+  docs/plugins/             # plugin authoring guide, JSON schema, examples
+  docs/xcl.md               # the XCL scripting language reference
+  scripts/                  # code generation, harvesting, and release tooling
 ```
 
 プラグイン API - `Plugin` トレイト、`Manifest`、ケイパビリティ、監査ログ、
-`PageHost` インターフェース - は `crates/xcelerate-plugin/` にあります。コアに
-組み込まれたプラグインはありません。`plugins/` 配下の `stealth`、`human` は外部
-プラグインクレートで、埋め込み側がインプロセスでインストールするか、`.wasm` に
-ビルドしてサンドボックスでロードします。`stealth` クレートは自身のバイナリパッチャー
-とアンチフィンガープリントペイロードを所有し、エンジンはブラウザプロセスの制御
-（`crates/xcelerate/src/process.rs`）を所有します。ファサードは `PluginManager` を
-所有し、`Page` をプラグインホストインターフェースにブリッジするため、プラグインが
-生のページやトランスポートに触れることはありません。
+`PageHost` インターフェース - は `crates/xcelerate-plugin/` にあります。**コアに
+プラグインは組み込まれていません**: プラグインは外部にあり、`load_plugin` 経由で
+サンドボックス化してロードする `.wasm` コンポーネントか、埋め込み側がインストール
+するインプロセスクレートのいずれかです。ファサードは `PluginManager` を所有し、
+`Page` をプラグインホストインターフェースにブリッジするため、プラグインが生の
+ページやトランスポートに触れることはありません。
+
+XCL スクリプト言語は `crates/xcelerate-cli/src/xcl/`（レキサー、パーサー、エンジン、
+ランタイム、セキュリティ、およびブラウザ/プラグイン/HTTP エグゼキューター）に
+あります。詳しくは [`docs/xcl.md`](docs/xcl.md) を参照してください。
 
 ## 開発
 

@@ -94,6 +94,9 @@ println!("{}", page.title().await?);
   `[index]` 进行操作。
 - **CLI 与 MCP 服务器** —— `xcelerate` 命令用于一次性操作，`xcelerate mcp`
   （或 `xcelerate-mcp` 二进制文件）用于从 MCP 客户端驱动浏览器。
+- **XCL 脚本** —— 一种面向行的 `.xcl` 脚本语言，人类和 AI 都能读写，具有
+  变量、有界函数、控制流、HTTP `request`、插件 `run` 和 `assert`，并由映射至
+  MITRE ATT&CK 的默认拒绝（default-deny）安全机制支撑。
 
 ## 安装
 
@@ -101,7 +104,7 @@ println!("{}", page.title().await?);
 
 ```toml
 [dependencies]
-xcelerate = "1.0.12"
+xcelerate = "1.0.14"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -131,8 +134,8 @@ dotnet add package Xcelerate
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("io.github.azzodude:xcelerate:1.0.12")        // Kotlin
-    implementation("io.github.azzodude:xcelerate-java:1.0.12")   // Java
+    implementation("io.github.azzodude:xcelerate:1.0.14")        // Kotlin
+    implementation("io.github.azzodude:xcelerate-java:1.0.14")   // Java
 }
 ```
 
@@ -499,6 +502,76 @@ xcelerate click-index https://example.com 2     # 点击快照中的元素 [2]
 `winget install Chaosware.Xcelerate`；从代码检出运行时，请在任何命令前加上
 `cargo run -p xcelerate-cli --`。
 
+## 脚本（XCL）
+
+XCL（`.xcl`）是一种小巧的、面向行的脚本语言，可将多步骤自动化运行记录到一个
+文件中，**人类**和 **AI 智能体**都能读写它。一行 = 一个动作。它刻意*不是*
+图灵完备的：循环是有界的，函数是扁平的且不递归，也没有表达式子语言 —— 因此
+脚本可安全地生成、可安全地阅读，且不会让运行器挂起。
+
+```bash
+xcelerate run login.xcl                # run a script
+xcelerate run login.xcl --param user=ada@example.com
+xcelerate run login.xcl --allow-http   # enable `request` (browserless HTTP)
+```
+
+### 示例
+
+```
+# register-then-login.xcl
+param base "https://www.practicesoftwaretesting.com"
+
+func fill(id, value)
+  fill $id $value
+end
+
+open $base
+wait 2s
+click-text "Register"
+call fill "#email" "ada@example.com"
+call fill "#password" "correct-horse-battery"
+submit
+wait-idle
+
+assert url contains "/login"
+request GET "{base}/api/health"
+assert $STATUS == 200
+done
+```
+
+### 命令
+
+| 关键字 | 含义 |
+| --- | --- |
+| `# comment` | 整行注释（空行会被忽略）。 |
+| `let <name> <value>` | 定义变量；以 `$name` 进行插值。 |
+| `set <name> <value>` | 重新赋值变量。 |
+| `param <name> [default]` | 声明运行时参数（可用 `--param k=v` 覆盖）。 |
+| `func <name>(a, b)` … `end` | 具名、无返回值的可调用单元（深度 1，不递归）。 |
+| `call <name> <arg>…` | 调用上方定义的函数。 |
+| `open` / `goto` `<url>` | 导航。 |
+| `back` `reload` `title` `url` `text` `markdown` `snapshot` | 读取页面。 |
+| `click <index\|selector>` `click-text <text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | 交互。 |
+| `wait <ms\|s\|selector>` `wait-idle` `wait-stable` | 等待。 |
+| `eval <js>` | 运行 JavaScript（需要 `--allow-unsafe`）。 |
+| `request <METHOD> <url> [headers] [body]` | 无需浏览器的 HTTP（需要 `--allow-http`）。 |
+| `import <id>` `run <plugin> <op> [json]` `plugins` `plugin-config <id>` | 插件 / worker。 |
+| `repeat <n> …` `retry <n> …` `if-ok …` `if-fail …` `goto <label>` `label <name>` | 有界控制流。 |
+| `assert <subject> <op> <value>` | 快速失败检查（`url`、`title`、`status`、`contains`、`==` 等）。 |
+| `done` / `quit` | 结束本次运行。 |
+
+### 安全（对齐 MITRE ATT&CK）
+
+XCL 是可执行的输入，因此每一项有风险的能力都是 **默认拒绝（default-deny）**
+的，且 AI 永远无法自行授予 —— 标志必须由调用它的人类提供：
+
+| 攻击面 | 标志 | 说明 |
+| --- | --- | --- |
+| `eval <js>` (T1059.007) | `--allow-unsafe` | 风险最高；绝不默认启用。 |
+| `request` (T1071.001 / T1210 SSRF) | `--allow-http` | 除非提供 `--allow-private`，否则拒绝私有/环回/元数据主机。 |
+| `import`/`run` plugin | `--allow-plugin <id>` | 复用 wasm 沙箱与能力（capability）模型。 |
+| Unbounded work (T1499) | — | 硬性的 `max_steps` / `max_iterations` / 每次调用预算。 |
+
 ## MCP 服务器
 
 `xcelerate-mcp` —— 也可以通过 `xcelerate mcp` 调用 —— 是一个基于 stdio 的
@@ -633,28 +706,28 @@ bounds 和 backend node id 的相同元素）。它以 CLI 命令 `xcelerate sna
 ```
 xcelerate/
   crates/
-    xcelerate-core/        # WebSocket transport and typed CDP command layer
-    xcelerate-plugin/      # plugin trait, manifest, capabilities, audit, host interface
-    xcelerate/             # high-level facade: Browser, Page, Element, adapters
-    xcelerate-bindgen/     # uniffi bindgen helper binary
-    xcelerate-cli/         # CLI (binary `xcelerate`)
-    xcelerate-mcp/         # `xcelerate-mcp` Model Context Protocol server
-  plugins/
-    stealth/               # stealth plugin: binary patching + anti-fingerprint payload
-    human/                 # human plugin: human-like mouse, typing, and scrolling
-  adapters/             # adapter profiles, runtime, and generator inputs
-  bindings/             # generated Python, JavaScript, C#, Kotlin, Java, Swift, Ruby, Dart, and Go packages (plus the PowerShell module)
-  docs/plugins/         # plugin authoring guide, JSON schema, examples
-  scripts/              # code generation, harvesting, and release tooling
+    xcelerate-core/         # WebSocket transport and typed CDP command layer
+    xcelerate-plugin/       # plugin trait, manifest, capabilities, audit, host interface
+    xcelerate/              # high-level facade: Browser, Page, Element, adapters
+    xcelerate-bindgen/      # uniffi bindgen helper binary
+    xcelerate-cli/          # CLI (binary `xcelerate`), incl. the XCL runner + interpreter
+    xcelerate-mcp/          # `xcelerate-mcp` Model Context Protocol server
+    xcelerate-codegen/      # script + typed-binding code generation (11 languages)
+  adapters/                 # adapter profiles, runtime, and generator inputs
+  bindings/                 # generated Python/JS/C#/Kotlin/Java/Swift/Ruby/Dart/Go packages (+ PowerShell)
+  docs/plugins/             # plugin authoring guide, JSON schema, examples
+  docs/xcl.md               # the XCL scripting language reference
+  scripts/                  # code generation, harvesting, and release tooling
 ```
 
 插件 API —— `Plugin` trait、`Manifest`、能力、审计日志以及 `PageHost` 接口 ——
-位于 `crates/xcelerate-plugin/`。核心不内置任何插件：`plugins/` 下的
-`stealth`、`human` 是外部插件 crate，由嵌入方在进程内安装，或编译为 `.wasm`
-后以沙箱方式加载。`stealth` crate 拥有自己的二进制修补器和反指纹载荷；引擎拥有
-浏览器进程控制（`crates/xcelerate/src/process.rs`）。门面（facade）拥有
-`PluginManager`，并将 `Page` 桥接到插件宿主接口，因此插件永远不会接触原始
-页面或传输层。
+位于 `crates/xcelerate-plugin/`。**核心不内置任何插件**：插件是外部的 —— 要么是
+通过 `load_plugin` 以沙箱方式加载的 `.wasm` 组件，要么是嵌入方在进程内安装的
+crate。门面（facade）拥有 `PluginManager`，并将 `Page` 桥接到插件宿主接口，
+因此插件永远不会接触原始页面或传输层。
+
+XCL 脚本语言位于 `crates/xcelerate-cli/src/xcl/`（词法分析器、解析器、引擎、
+运行时、安全，以及浏览器/插件/HTTP 执行器）。参见 [`docs/xcl.md`](docs/xcl.md)。
 
 ## 开发
 

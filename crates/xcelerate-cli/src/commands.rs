@@ -115,6 +115,25 @@ pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             args.no_headless = true;
             run_session(&args, start).await?;
         }
+        Command::Run {
+            path,
+            allow_unsafe,
+            allow_http,
+            allow_plugin,
+            allow_private,
+            param,
+        } => {
+            crate::xcl::run_file(
+                &cli.browser,
+                &path,
+                allow_unsafe,
+                allow_http,
+                allow_plugin,
+                allow_private,
+                param,
+            )
+            .await?;
+        }
         Command::Open { url } => {
             let (browser, page) = launch(&cli.browser, &url).await?;
             println!("title: {}", page.title().await?);

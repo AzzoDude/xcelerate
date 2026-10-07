@@ -38,7 +38,7 @@ pub async fn run_session(
 
     // Raise the input gate: while the run drives the page the human cannot click,
     // type or scroll it. Each step lowers the gate only for its own CDP input.
-    if args.live() {
+    if args.cursor_active() {
         crate::cursor::set_gate(&page, true).await;
     }
 
@@ -554,7 +554,7 @@ pub async fn run_session(
                         rest.clone()
                     };
                     let opened = Arc::clone(&browser).new_page(url).await?;
-                    if args.live() {
+                    if args.cursor_active() {
                         let _ = crate::cursor::install(&opened).await;
                         crate::cursor::set_gate(&opened, true).await;
                     }
@@ -593,7 +593,7 @@ pub async fn run_session(
                         // A target this session did not open (for example a popup).
                         match Arc::clone(&browser).attach_page(rest.clone()).await {
                             Ok(attached) => {
-                                if args.live() {
+                                if args.cursor_active() {
                                     let _ = crate::cursor::install(&attached).await;
                                     crate::cursor::set_gate(&attached, true).await;
                                 }
@@ -788,7 +788,7 @@ pub async fn run_session(
                     healed = true;
                     match Arc::clone(&browser).attach_page(page.target_id()).await {
                         Ok(fresh) => {
-                            if args.live() {
+                            if args.cursor_active() {
                                 let _ = crate::cursor::install(&fresh).await;
                                 crate::cursor::set_gate(&fresh, true).await;
                             }

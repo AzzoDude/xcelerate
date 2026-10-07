@@ -94,6 +94,18 @@ impl BrowserArgs {
     pub fn live(&self) -> bool {
         self.ai || self.codegen.is_some()
     }
+
+    /// Whether the browser will run headless (no visible window).
+    pub fn headless(&self) -> bool {
+        !(self.no_headless || self.live())
+    }
+
+    /// Whether the in-page cursor dot should be installed. The cursor is only
+    /// meaningful on a visible window, so headless runs never show it — even if
+    /// some flag combination would otherwise set `live()`.
+    pub fn cursor_active(&self) -> bool {
+        self.live() && !self.headless()
+    }
 }
 
 #[derive(Subcommand)]
@@ -241,6 +253,26 @@ pub enum Command {
         /// Optional URL to open at startup.
         #[arg(long, value_name = "URL")]
         start: Option<String>,
+    },
+    /// Execute an XCL script (`.xcl`). Shares the session command language.
+    Run {
+        /// Path to the `.xcl` file.
+        path: PathBuf,
+        /// Allow `eval <js>` and `request <...>` (otherwise denied by default).
+        #[arg(long)]
+        allow_unsafe: bool,
+        /// Allow `request` (browserless HTTP) specifically.
+        #[arg(long)]
+        allow_http: bool,
+        /// Allow `import`/`run` of these plugins (repeatable, supports `*`).
+        #[arg(long = "allow-plugin", value_name = "ID", global = true)]
+        allow_plugin: Vec<String>,
+        /// Allow private/loopback/metadata hosts in browserless requests.
+        #[arg(long)]
+        allow_private: bool,
+        /// Override a script `param` (`key=value`).
+        #[arg(long = "param", value_name = "KEY=VALUE")]
+        param: Vec<String>,
     },
     /// Fetch a URL and print the body (JSON is pretty-printed). Requires the
     /// `http` feature.

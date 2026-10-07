@@ -20,6 +20,7 @@ mod launch;
 mod net;
 mod scaffold;
 mod session;
+mod xcl;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;

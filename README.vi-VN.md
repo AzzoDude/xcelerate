@@ -97,6 +97,10 @@ println!("{}", page.title().await?);
   nơi mọi phần tử tương tác đều có thể được thao tác bằng `[index]`.
 - **CLI và máy chủ MCP** - lệnh `xcelerate` cho các tác vụ một lần, và `xcelerate mcp`
   (hoặc binary `xcelerate-mcp`) để điều khiển trình duyệt từ một client MCP.
+- **Kịch bản XCL** - một ngôn ngữ kịch bản `.xcl` theo hướng dòng mà cả con
+  người lẫn AI đều có thể đọc và viết, với các biến, hàm có giới hạn, luồng
+  điều khiển, HTTP `request`, plugin `run` và `assert`, được hỗ trợ bởi bảo mật
+  default-deny ánh xạ theo MITRE ATT&CK.
 
 ## Cài đặt
 
@@ -104,7 +108,7 @@ println!("{}", page.title().await?);
 
 ```toml
 [dependencies]
-xcelerate = "1.0.12"
+xcelerate = "1.0.14"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -134,8 +138,8 @@ dotnet add package Xcelerate
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("io.github.azzodude:xcelerate:1.0.12")        // Kotlin
-    implementation("io.github.azzodude:xcelerate-java:1.0.12")   // Java
+    implementation("io.github.azzodude:xcelerate:1.0.14")        // Kotlin
+    implementation("io.github.azzodude:xcelerate-java:1.0.14")   // Java
 }
 ```
 
@@ -514,6 +518,79 @@ nó bằng `cargo install --path crates/xcelerate-cli`, hoặc
 `winget install Chaosware.Xcelerate` trên Windows; khi làm việc từ bản checkout, thêm
 tiền tố `cargo run -p xcelerate-cli --` trước mọi lệnh.
 
+## Kịch bản (XCL)
+
+XCL (`.xcl`) là một ngôn ngữ kịch bản nhỏ, theo hướng dòng, ghi lại một lượt tự
+động hóa nhiều bước trong một tệp mà cả **con người** lẫn **AI agent** đều
+có thể đọc và viết. Một dòng = một hành động. Nó được thiết kế có chủ đích là
+*không* Turing-complete: vòng lặp có giới hạn, hàm phẳng và không đệ quy, và
+không có tiểu ngôn ngữ biểu thức — nên một kịch bản là an toàn để phát ra,
+an toàn để đọc, và không thể làm treo trình chạy.
+
+```bash
+xcelerate run login.xcl                # run a script
+xcelerate run login.xcl --param user=ada@example.com
+xcelerate run login.xcl --allow-http   # enable `request` (browserless HTTP)
+```
+
+### Ví dụ
+
+```
+# register-then-login.xcl
+param base "https://www.practicesoftwaretesting.com"
+
+func fill(id, value)
+  fill $id $value
+end
+
+open $base
+wait 2s
+click-text "Register"
+call fill "#email" "ada@example.com"
+call fill "#password" "correct-horse-battery"
+submit
+wait-idle
+
+assert url contains "/login"
+request GET "{base}/api/health"
+assert $STATUS == 200
+done
+```
+
+### Lệnh
+
+| Keyword | Ý nghĩa |
+| --- | --- |
+| `# comment` | Chú thích toàn dòng (bỏ qua dòng trống). |
+| `let <name> <value>` | Định nghĩa một biến; nội suy thành `$name`. |
+| `set <name> <value>` | Gán lại một biến. |
+| `param <name> [default]` | Khai báo một tham số runtime (ghi đè bằng `--param k=v`). |
+| `func <name>(a, b)` … `end` | Một hàm có tên, không trả về, có thể gọi (độ sâu 1, không đệ quy). |
+| `call <name> <arg>…` | Gọi một hàm đã định nghĩa ở trên. |
+| `open` / `goto` `<url>` | Điều hướng. |
+| `back` `reload` `title` `url` `text` `markdown` `snapshot` | Đọc trang. |
+| `click <index\|selector>` `click-text <text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | Tương tác. |
+| `wait <ms\|s\|selector>` `wait-idle` `wait-stable` | Chờ. |
+| `eval <js>` | Chạy JavaScript (yêu cầu `--allow-unsafe`). |
+| `request <METHOD> <url> [headers] [body]` | HTTP không cần trình duyệt (yêu cầu `--allow-http`). |
+| `import <id>` `run <plugin> <op> [json]` `plugins` `plugin-config <id>` | Plugin / worker. |
+| `repeat <n> …` `retry <n> …` `if-ok …` `if-fail …` `goto <label>` `label <name>` | Luồng điều khiển có giới hạn. |
+| `assert <subject> <op> <value>` | Kiểm tra fail-fast (`url`, `title`, `status`, `contains`, `==`, …). |
+| `done` / `quit` | Kết thúc lượt chạy. |
+
+### Bảo mật (căn chỉnh theo MITRE ATT&CK)
+
+XCL là đầu vào có thể thực thi, nên mọi khả năng rủi ro đều **từ chối theo mặc
+định (default-deny)** và AI không bao giờ có thể tự cấp quyền — các cờ phải đến
+từ con người gọi lệnh:
+
+| Surface | Flag | Ghi chú |
+| --- | --- | --- |
+| `eval <js>` (T1059.007) | `--allow-unsafe` | Rủi ro cao nhất; không bao giờ mặc định. |
+| `request` (T1071.001 / T1210 SSRF) | `--allow-http` | Máy chủ private/loopback/metadata bị từ chối trừ khi có `--allow-private`. |
+| `import`/`run` plugin | `--allow-plugin <id>` | Tái sử dụng sandbox wasm + mô hình capability. |
+| Unbounded work (T1499) | — | Giới hạn cứng `max_steps` / `max_iterations` / hạn mức mỗi lần gọi. |
+
 ## Máy chủ MCP
 
 `xcelerate-mcp` - cũng có thể truy cập qua `xcelerate mcp` - là một máy chủ
@@ -657,29 +734,31 @@ role, name, bounds và backend node id). Nó được cung cấp dưới dạng 
 ```
 xcelerate/
   crates/
-    xcelerate-core/        # WebSocket transport and typed CDP command layer
-    xcelerate-plugin/      # plugin trait, manifest, capabilities, audit, host interface
-    xcelerate/             # high-level facade: Browser, Page, Element, adapters
-    xcelerate-bindgen/     # uniffi bindgen helper binary
-    xcelerate-cli/         # CLI (binary `xcelerate`)
-    xcelerate-mcp/         # `xcelerate-mcp` Model Context Protocol server
-  plugins/
-    stealth/               # stealth plugin: binary patching + anti-fingerprint payload
-    human/                 # human plugin: human-like mouse, typing, and scrolling
-  adapters/             # adapter profiles, runtime, and generator inputs
-  bindings/             # generated Python, JavaScript, C#, Kotlin, Java, Swift, Ruby, Dart, and Go packages (plus the PowerShell module)
-  docs/plugins/         # plugin authoring guide, JSON schema, examples
-  scripts/              # code generation, harvesting, and release tooling
+    xcelerate-core/         # WebSocket transport and typed CDP command layer
+    xcelerate-plugin/       # plugin trait, manifest, capabilities, audit, host interface
+    xcelerate/              # high-level facade: Browser, Page, Element, adapters
+    xcelerate-bindgen/      # uniffi bindgen helper binary
+    xcelerate-cli/          # CLI (binary `xcelerate`), incl. the XCL runner + interpreter
+    xcelerate-mcp/          # `xcelerate-mcp` Model Context Protocol server
+    xcelerate-codegen/      # script + typed-binding code generation (11 languages)
+  adapters/                 # adapter profiles, runtime, and generator inputs
+  bindings/                 # generated Python/JS/C#/Kotlin/Java/Swift/Ruby/Dart/Go packages (+ PowerShell)
+  docs/plugins/             # plugin authoring guide, JSON schema, examples
+  docs/xcl.md               # the XCL scripting language reference
+  scripts/                  # code generation, harvesting, and release tooling
 ```
 
-API plugin - trait `Plugin`, `Manifest`, các capability, nhật ký kiểm toán và giao
-diện `PageHost` - nằm trong `crates/xcelerate-plugin/`. Core không tích hợp sẵn plugin
-nào: `stealth` và `human` dưới `plugins/` là các crate plugin bên ngoài, được bên
-nhúng cài đặt trong tiến trình, hoặc biên dịch thành `.wasm` và nạp trong sandbox.
-Crate `stealth` sở hữu bộ vá nhị phân và payload chống dấu vết của riêng nó; engine
-sở hữu việc điều khiển tiến trình trình duyệt (`crates/xcelerate/src/process.rs`).
-Facade sở hữu `PluginManager` và làm cầu nối giữa `Page` với giao diện host của
-plugin, nên plugin không bao giờ chạm vào một page thô hay transport.
+API plugin - trait `Plugin`, `Manifest`, các capability, nhật ký kiểm toán và
+giao diện `PageHost` - nằm trong `crates/xcelerate-plugin/`.
+**Không có plugin nào được tích hợp vào core**: plugin là bên ngoài — hoặc là
+các thành phần `.wasm` được nạp trong sandbox qua `load_plugin`, hoặc là các
+crate trong tiến trình do bên nhúng cài đặt. Facade sở hữu `PluginManager` và
+làm cầu nối giữa `Page` với giao diện host của plugin, nên plugin không bao giờ
+chạm vào một page thô hay transport.
+
+Ngôn ngữ kịch bản XCL nằm trong `crates/xcelerate-cli/src/xcl/` (lexer,
+parser, engine, runtime, bảo mật và bộ thực thi trình duyệt/plugin/HTTP). Xem
+[`docs/xcl.md`](docs/xcl.md).
 
 ## Phát triển
 
