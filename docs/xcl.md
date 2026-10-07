@@ -57,12 +57,13 @@ func register(email, password)
   click "#submit"
 end
 
-call register "ada@example.com" "hunter2"
+register "ada@example.com" "hunter2"
 ```
 
-Function parameters substitute into the body's `$name` references at their `call`
-site. Parameters do **not** inject into raw `eval <js>` bodies (that is a code-
-injection boundary); use variables explicitly there.
+Invoke a function by its bare name; the `call` keyword is optional (`call register
+…` still works). Function parameters substitute into the body's `$name` references at
+the call site. Parameters do **not** inject into raw `eval <js>` bodies (that is a
+code-injection boundary); use variables explicitly there.
 
 ## Control flow
 
@@ -148,10 +149,10 @@ end
 open $base/auth/register
 wait 2s
 
-call fill_field "#first_name" "Ada"
-call fill_field "#last_name" "Lovelace"
-call fill_field "#email" $email
-call fill_field "#password" $password
+fill_field "#first_name" "Ada"
+fill_field "#last_name" "Lovelace"
+fill_field "#email" $email
+fill_field "#password" $password
 click-text "Register"
 wait 6s
 

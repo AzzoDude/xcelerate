@@ -521,15 +521,15 @@ xcelerate run login.xcl --allow-http   # enable `request` (browserless HTTP)
 # register-then-login.xcl
 param base "https://www.practicesoftwaretesting.com"
 
-func fill(id, value)
+func fill_field(id, value)
   fill $id $value
 end
 
 open $base
 wait 2s
 click-text "Register"
-call fill "#email" "ada@example.com"
-call fill "#password" "correct-horse-battery"
+fill_field "#email" "ada@example.com"
+fill_field "#password" "correct-horse-battery"
 submit
 wait-idle
 
@@ -548,7 +548,7 @@ done
 | `set <name> <value>` | 重新赋值变量。 |
 | `param <name> [default]` | 声明运行时参数（可用 `--param k=v` 覆盖）。 |
 | `func <name>(a, b)` … `end` | 具名、无返回值的可调用单元（深度 1，不递归）。 |
-| `call <name> <arg>…` | 调用上方定义的函数。 |
+| `<name> <arg>…` | 调用上方定义的函数（`call` 关键字可选）。 |
 | `open` / `goto` `<url>` | 导航。 |
 | `back` `reload` `title` `url` `text` `markdown` `snapshot` | 读取页面。 |
 | `click <index\|selector>` `click-text <text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | 交互。 |

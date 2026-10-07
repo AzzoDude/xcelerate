@@ -541,15 +541,15 @@ xcelerate run login.xcl --allow-http   # enable `request` (browserless HTTP)
 # register-then-login.xcl
 param base "https://www.practicesoftwaretesting.com"
 
-func fill(id, value)
+func fill_field(id, value)
   fill $id $value
 end
 
 open $base
 wait 2s
 click-text "Register"
-call fill "#email" "ada@example.com"
-call fill "#password" "correct-horse-battery"
+fill_field "#email" "ada@example.com"
+fill_field "#password" "correct-horse-battery"
 submit
 wait-idle
 
@@ -568,7 +568,7 @@ done
 | `set <name> <value>` | 変数を再代入します。 |
 | `param <name> [default]` | 実行時パラメーターを宣言します（`--param k=v` で上書き）。 |
 | `func <name>(a, b)` … `end` | 名前付きの、戻り値のない呼び出し可能関数（深さ 1、再帰なし）。 |
-| `call <name> <arg>…` | 上で定義した関数を呼び出します。 |
+| `<name> <arg>…` | 上で定義した関数を呼び出します（`call` キーワードは省略可能）。 |
 | `open` / `goto` `<url>` | ナビゲートします。 |
 | `back` `reload` `title` `url` `text` `markdown` `snapshot` | ページを読み取ります。 |
 | `click <index\|selector>` `click-text <text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | 操作します。 |

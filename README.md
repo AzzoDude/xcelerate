@@ -535,15 +535,15 @@ xcelerate run login.xcl --allow-http   # enable `request` (browserless HTTP)
 # register-then-login.xcl
 param base "https://www.practicesoftwaretesting.com"
 
-func fill(id, value)
+func fill_field(id, value)
   fill $id $value
 end
 
 open $base
 wait 2s
 click-text "Register"
-call fill "#email" "ada@example.com"
-call fill "#password" "correct-horse-battery"
+fill_field "#email" "ada@example.com"
+fill_field "#password" "correct-horse-battery"
 submit
 wait-idle
 
@@ -562,7 +562,7 @@ done
 | `set <name> <value>` | Reassign a variable. |
 | `param <name> [default]` | Declare a runtime parameter (override with `--param k=v`). |
 | `func <name>(a, b)` … `end` | A named, no-return callable (depth 1, no recursion). |
-| `call <name> <arg>…` | Invoke a function defined above. |
+| `<name> <arg>…` | Invoke a function defined above (`call <name> …` also works). |
 | `open` / `goto` `<url>` | Navigate. |
 | `back` `reload` `title` `url` `text` `markdown` `snapshot` | Read the page. |
 | `click <index\|selector>` `click-text <text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | Interact. |

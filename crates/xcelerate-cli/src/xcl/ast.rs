@@ -63,7 +63,8 @@ pub enum Command {
     FuncStart(FuncDef),
     /// `end` — terminates the current `func` block.
     FuncEnd,
-    /// `call <name> <arg>...` — invoke a defined function (depth ≤ 1).
+    /// `<name> <arg>...` (or `call <name> <arg>...`) — invoke a defined
+    /// function (depth ≤ 1). The `call` keyword is optional.
     Call { name: String, args: Vec<Arg> },
 
     // --- plugins / workers ------------------------------------------------

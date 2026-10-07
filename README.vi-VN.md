@@ -539,15 +539,15 @@ xcelerate run login.xcl --allow-http   # enable `request` (browserless HTTP)
 # register-then-login.xcl
 param base "https://www.practicesoftwaretesting.com"
 
-func fill(id, value)
+func fill_field(id, value)
   fill $id $value
 end
 
 open $base
 wait 2s
 click-text "Register"
-call fill "#email" "ada@example.com"
-call fill "#password" "correct-horse-battery"
+fill_field "#email" "ada@example.com"
+fill_field "#password" "correct-horse-battery"
 submit
 wait-idle
 
@@ -566,7 +566,7 @@ done
 | `set <name> <value>` | Gán lại một biến. |
 | `param <name> [default]` | Khai báo một tham số runtime (ghi đè bằng `--param k=v`). |
 | `func <name>(a, b)` … `end` | Một hàm có tên, không trả về, có thể gọi (độ sâu 1, không đệ quy). |
-| `call <name> <arg>…` | Gọi một hàm đã định nghĩa ở trên. |
+| `<name> <arg>…` | Gọi một hàm đã định nghĩa ở trên (`call` là tùy chọn). |
 | `open` / `goto` `<url>` | Điều hướng. |
 | `back` `reload` `title` `url` `text` `markdown` `snapshot` | Đọc trang. |
 | `click <index\|selector>` `click-text <text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | Tương tác. |

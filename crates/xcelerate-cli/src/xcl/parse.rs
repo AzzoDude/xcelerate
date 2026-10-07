@@ -251,14 +251,20 @@ impl Parser {
             }
             "done" => Command::Done,
             "quit" | "exit" | "q" => Command::Quit,
-            // Any other verb is a browser/session pass-through command.
-            _ => Command::Raw {
-                verb: verb.clone(),
-                args: rest
+            // Any other verb is a browser/session pass-through command — unless it
+            // names a function defined above, in which case a bare `name args...`
+            // is a call, so the `call` keyword is optional.
+            _ => {
+                let args = rest
                     .iter()
                     .map(|v| parse_arg(v, line))
-                    .collect::<Result<_, _>>()?,
-            },
+                    .collect::<Result<Vec<_>, _>>()?;
+                if self.funcs.contains_key(&verb) {
+                    Command::Call { name: verb, args }
+                } else {
+                    Command::Raw { verb, args }
+                }
+            }
         };
 
         // Reject nesting of control-flow inside a `repeat`/`retry` inner step is
@@ -485,6 +491,19 @@ mod tests {
         assert_eq!(p.funcs["register"].body.len(), 2);
         assert_eq!(p.steps.len(), 1);
         assert!(matches!(&p.steps[0].command, Command::Call { name, .. } if name == "register"));
+    }
+
+    #[test]
+    fn bare_function_name_is_a_call() {
+        // The `call` keyword is optional: a bare function name invokes it.
+        let src = "func fill_field(id, value)\nfill $id $value\nend\nfill_field \"#email\" \"x\"\n";
+        let p = parse_program(src).unwrap();
+        assert_eq!(p.steps.len(), 1);
+        assert!(matches!(&p.steps[0].command, Command::Call { name, .. } if name == "fill_field"));
+
+        // A name that is not a function stays a pass-through session command.
+        let p = parse_program("open https://example.com\n").unwrap();
+        assert!(matches!(&p.steps[0].command, Command::Raw { verb, .. } if verb == "open"));
     }
 
     #[test]
