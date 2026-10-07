@@ -334,6 +334,19 @@ impl Page {
         &self,
         source: String,
     ) -> XcelerateResult<String> {
+        // The Page domain must be enabled for a new-document script to actually
+        // be applied on subsequent navigations; without it Chrome accepts the
+        // registration (and returns an identifier) but never runs it. Best
+        // effort: a failure here must not stop the registration itself.
+        let _ = self
+            .client
+            .execute_with_session(
+                Some(&self.session_id),
+                EnableParams {
+                    ..Default::default()
+                },
+            )
+            .await;
         let res = self
             .client
             .execute_with_session(

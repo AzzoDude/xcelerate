@@ -19,6 +19,7 @@ xcelerate-mcp.workspace = true
 clap.workspace = true
 tokio.workspace = true
 mimalloc.workspace = true
+serde_json.workspace = true
 
 [lints]
 workspace = true

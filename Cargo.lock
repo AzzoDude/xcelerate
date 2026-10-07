@@ -2777,6 +2777,7 @@ version = "1.0.12"
 dependencies = [
  "clap",
  "mimalloc",
+ "serde_json",
  "tokio",
  "xcelerate",
  "xcelerate-mcp",
