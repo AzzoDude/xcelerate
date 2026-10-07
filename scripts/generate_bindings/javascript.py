@@ -121,7 +121,15 @@ def main():
 
     log("SUCCESS", f"JavaScript bindings ready in {js_dir}")
 
-    run_checked(["npm", "pack"], cwd=js_dir)
+    # ``find_tool`` resolves ``npm`` to its real path (``npm.cmd`` on Windows,
+    # which a bare ``subprocess`` list can't spawn); guard so a machine without
+    # Node still emits the sources instead of failing the whole pipeline.
+    npm = find_tool("npm")
+    if not os.path.exists(npm):
+        log("WARNING", "npm not found; JavaScript sources generated, no tarball")
+        log("HINT", "install Node.js (npm ships with it) to build the npm tarball")
+        return 0
+    run_checked([npm, "pack"], cwd=js_dir)
     return 0
 
 
