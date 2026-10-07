@@ -14,7 +14,7 @@ exclude = ["bindings", "tools", "adapters", "scripts", "docs"]
 resolver = "3"
 
 [workspace.package]
-version = "1.0.12"
+version = "1.0.13"
 edition = "2024"
 rust-version = "1.99.0"
 authors = ["AzzoDude"]
@@ -30,13 +30,13 @@ doc_lazy_continuation = "allow"
 
 [workspace.dependencies]
 # Internal crates.
-xcelerate = { path = "crates/xcelerate", version = "1.0.12" }
-xcelerate-core = { path = "crates/xcelerate-core", version = "1.0.12" }
-xcelerate-mcp = { path = "crates/xcelerate-mcp", version = "1.0.12" }
-xcelerate-codegen = { path = "crates/xcelerate-codegen", version = "1.0.12" }
-xcelerate-plugin = { path = "crates/xcelerate-plugin", version = "1.0.12" }
-xcelerate-plugin-stealth = { path = "plugins/stealth", version = "1.0.12" }
-xcelerate-plugin-human = { path = "plugins/human", version = "1.0.12" }
+xcelerate = { path = "crates/xcelerate", version = "1.0.13" }
+xcelerate-core = { path = "crates/xcelerate-core", version = "1.0.13" }
+xcelerate-mcp = { path = "crates/xcelerate-mcp", version = "1.0.13" }
+xcelerate-codegen = { path = "crates/xcelerate-codegen", version = "1.0.13" }
+xcelerate-plugin = { path = "crates/xcelerate-plugin", version = "1.0.13" }
+xcelerate-plugin-stealth = { path = "plugins/stealth", version = "1.0.13" }
+xcelerate-plugin-human = { path = "plugins/human", version = "1.0.13" }
 
 # External crates.
 mimalloc = "0.1.52"
@@ -83,6 +83,11 @@ thiserror = "2.0.21"
 tempfile = "3.27.0"
 base64 = "0.23.1"
 libc = "0.2.190"
+
+# In-process HTTPS client, used only by the CLI behind the optional `http`
+# feature (fetch / download). Deliberately kept out of the core crate so the
+# cdylib and every language binding stay dependency-light.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls-native-roots", "stream"] }
 
 # The WASM plugin sandbox. Minimal feature sets: the loader only needs the
 # component model compiled by Cranelift and driven synchronously, plus WASI

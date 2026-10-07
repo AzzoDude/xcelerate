@@ -21,6 +21,13 @@ clap.workspace = true
 tokio.workspace = true
 mimalloc.workspace = true
 serde_json.workspace = true
+futures = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+
+[features]
+# Opt in to an in-process HTTPS client for `fetch` / `fetch-to`. Off by default
+# so default builds stay dependency-light; the core crate is never affected.
+http = ["dep:reqwest", "dep:futures"]
 
 [lints]
 workspace = true

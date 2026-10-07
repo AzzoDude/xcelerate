@@ -220,6 +220,18 @@ pub enum Command {
         #[arg(long, value_name = "URL")]
         start: Option<String>,
     },
+    /// Fetch a URL and print the body (JSON is pretty-printed). Requires the
+    /// `http` feature.
+    #[cfg(feature = "http")]
+    Fetch { url: String },
+    /// Download a URL straight to a file, streamed to disk. Requires the `http`
+    /// feature.
+    #[cfg(feature = "http")]
+    FetchTo {
+        url: String,
+        #[arg(short, long)]
+        output: PathBuf,
+    },
 }
 
 #[derive(Subcommand)]

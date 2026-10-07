@@ -15,6 +15,8 @@ mod cli;
 mod commands;
 mod cursor;
 mod launch;
+#[cfg(feature = "http")]
+mod net;
 mod scaffold;
 mod session;
 

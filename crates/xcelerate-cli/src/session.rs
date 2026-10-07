@@ -392,6 +392,22 @@ pub async fn run_session(
                     }
                     Ok(())
                 }
+                "upload" | "set-input-files" => {
+                    // `<input type="file">` cannot be set from page JS; this uses
+                    // CDP `DOM.setFileInputFiles` under the hood.
+                    match rest.split_once(char::is_whitespace) {
+                        Some((selector, path)) => {
+                            let path = path.trim();
+                            let files = serde_json::json!([path]).to_string();
+                            Arc::clone(&page)
+                                .set_input_files(selector.to_string(), files)
+                                .await?;
+                            println!("set {selector} <- {path}");
+                        }
+                        None => println!("usage: upload <selector> <path>"),
+                    }
+                    Ok(())
+                }
                 "hover" => {
                     if rest.is_empty() {
                         println!("usage: hover <selector>");
@@ -600,14 +616,13 @@ pub async fn run_session(
                         println!("closed target {rest}");
                         // Drop it from the tab list, keeping the active tab valid.
                         if let Some(position) = tabs.iter().position(|tab| tab.target_id() == rest)
+                            && tabs.len() > 1
                         {
-                            if tabs.len() > 1 {
-                                tabs.remove(position);
-                                if active_tab >= tabs.len() {
-                                    active_tab = tabs.len() - 1;
-                                }
-                                page = tabs[active_tab].clone();
+                            tabs.remove(position);
+                            if active_tab >= tabs.len() {
+                                active_tab = tabs.len() - 1;
                             }
+                            page = tabs[active_tab].clone();
                         }
                     }
                     Ok(())
@@ -651,10 +666,11 @@ pub async fn run_session(
         }
 
         // Record the step for `--codegen`, when one was requested.
-        if ok && args.codegen.is_some() {
-            if let Some(action) = record_action(&verb, &rest, &mut last_target) {
-                recording.push(action);
-            }
+        if ok
+            && args.codegen.is_some()
+            && let Some(action) = record_action(&verb, &rest, &mut last_target)
+        {
+            recording.push(action);
         }
 
         // Re-raise the cursor gate: outside a mouse step the cursor stays inert.
@@ -683,6 +699,7 @@ fn print_session_help() {
          \x20 tap <selector>                 DOM-click without moving the mouse\n\
          \x20 tap-text <text>                DOM-click a control by text (no mouse move)\n\
          \x20 click-xy <x> <y>              raw coordinate click (canvas / embedded)\n\
+         \x20 upload <selector> <path>      set a file input to a local file\n\
          \x20 fill <selector> <text>         focus + type slowly (50 ms/char)\n\
          \x20 type <text>                    type into the focused element\n\
          \x20 press <key>                    press a key on the focused element\n\

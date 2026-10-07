@@ -309,6 +309,16 @@ pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             }
             browser.close().await?;
         }
+        #[cfg(feature = "http")]
+        Command::Fetch { url } => {
+            let body = crate::net::fetch(&url).await?;
+            println!("{body}");
+        }
+        #[cfg(feature = "http")]
+        Command::FetchTo { url, output } => {
+            let bytes = crate::net::download(&url, &output).await?;
+            println!("wrote {} ({bytes} bytes)", output.display());
+        }
     }
     Ok(())
 }

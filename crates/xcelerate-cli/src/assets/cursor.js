@@ -19,16 +19,16 @@
     "  left: 0;",
     "  top: 0;",
     "  box-sizing: border-box;",
-    "  width: 12px;",
-    "  height: 12px;",
-    "  margin: -6px 0 0 -6px;",
+    "  width: 8px;",
+    "  height: 8px;",
+    "  margin: -4px 0 0 -4px;",
     "  border-radius: 50%;",
-    "  background: radial-gradient(circle at 38% 32%, #ff8a7a 0%, #ff3b30 55%, #e0241a 100%);",
-    "  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);",
+    "  background: radial-gradient(circle at 38% 32%, rgba(255,138,122,0.9) 0%, rgba(255,59,48,0.8) 55%, rgba(224,36,26,0.8) 100%);",
+    "  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);",
     "  pointer-events: none;",
     "  opacity: 0;",
     "  transform: translate(var(--x, " + OFF + "), var(--y, " + OFF + ")) scale(var(--s, 1));",
-    "  transition: transform .12s ease-out, opacity .3s ease;",
+    "  transition: transform .12s ease-out, opacity .35s ease;",
     "}",
     ".dot.down {",
     "  --s: 0.8;",
@@ -38,11 +38,11 @@
     "  left: 0;",
     "  top: 0;",
     "  box-sizing: border-box;",
-    "  width: 12px;",
-    "  height: 12px;",
-    "  margin: -6px 0 0 -6px;",
+    "  width: 10px;",
+    "  height: 10px;",
+    "  margin: -5px 0 0 -5px;",
     "  border-radius: 50%;",
-    "  background: radial-gradient(circle, rgba(255, 59, 48, 0.5) 0%, rgba(255, 59, 48, 0.25) 45%, rgba(255, 59, 48, 0) 72%);",
+    "  background: radial-gradient(circle, rgba(255, 59, 48, 0.45) 0%, rgba(255, 59, 48, 0.22) 45%, rgba(255, 59, 48, 0) 72%);",
     "  pointer-events: none;",
     "  animation: xc-wave .6s ease-out forwards;",
     "}",
@@ -72,9 +72,8 @@
   function mount() {
     if (!document.documentElement) return false;
     if (!host.isConnected) document.documentElement.appendChild(host);
-    // Start in the middle of the viewport, visible, so the agent is on screen
-    // before it does anything.
-    moveTo(window.innerWidth / 2, window.innerHeight / 2);
+    // Stay hidden until the agent actually moves: nothing is shown on load, on
+    // reload, or on a new document, so an idle page looks clean.
     return true;
   }
   // At document-start the root may not exist yet; retry once the DOM is ready.
@@ -102,18 +101,15 @@
   }
 
   function pos() {
-    return (
-      window.__xcelerateCursorPos || {
-        x: window.innerWidth / 2,
-        y: window.innerHeight / 2,
-      }
-    );
+    return window.__xcelerateCursorPos || null;
   }
 
-  // A soft pulse at the cursor, fired when the agent starts a step - so even
-  // keyboard-only actions (typing, Enter) are visible, not just clicks.
+  // A soft pulse at the cursor, fired when the agent starts a step - but only
+  // once the cursor is actually on screen. A keyboard-only step on a page the
+  // agent has not touched stays invisible.
   window.__xceleratePulse = function () {
     var p = pos();
+    if (!p) return;
     spawnWave(p.x, p.y, 0);
   };
 
