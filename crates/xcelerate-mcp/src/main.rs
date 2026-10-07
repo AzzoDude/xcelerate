@@ -11,10 +11,26 @@ use mimalloc::MiMalloc;
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
-#[tokio::main]
-async fn main() {
-    if let Err(error) = xcelerate_mcp::run_stdio().await {
-        eprintln!("xcelerate-mcp: {error}");
-        std::process::exit(1);
-    }
+fn main() {
+    // The tool dispatcher is a single, large async fn; its future - plus the
+    // browser launch it drives - needs more stack than the platform's default
+    // main thread reserves, and overflowing it aborts the process.
+    let worker = std::thread::Builder::new()
+        .name("xcelerate-mcp".to_string())
+        .stack_size(32 * 1024 * 1024)
+        .spawn(|| {
+            let Ok(runtime) = tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+            else {
+                eprintln!("xcelerate-mcp: could not start the async runtime");
+                std::process::exit(1);
+            };
+            if let Err(error) = runtime.block_on(xcelerate_mcp::run_stdio()) {
+                eprintln!("xcelerate-mcp: {error}");
+                std::process::exit(1);
+            }
+        })
+        .expect("spawn the xcelerate-mcp worker thread");
+    let _ = worker.join();
 }

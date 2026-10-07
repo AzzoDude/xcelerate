@@ -1,9 +1,9 @@
 //! The in-page cursor: a small translucent dot that marks where the agent acts.
 //!
-//! This is the one piece of the old in-page HUD we kept. It is injected only
-//! when the run asks for the overlay (`--hud` / `--ai`) and otherwise inert; the
-//! Rust side just registers the script and flips a driving flag around mouse
-//! steps so the page only reacts to the agent's own input.
+//! It is injected only when the run is live (`--ai` / `--codegen` / `--gate os`)
+//! and is otherwise inert; the Rust side just registers the script and flips a
+//! driving flag around mouse steps so the page only reacts to the agent's own
+//! input.
 
 use std::sync::Arc;
 
@@ -28,7 +28,7 @@ pub async fn install(page: &Arc<Page>) -> XcelerateResult<()> {
 /// Best effort: a page without the cursor installed simply ignores the flags.
 pub async fn set_driving(page: &Arc<Page>, on: bool) {
     let js = format!(
-        "(()=>{{window.__xcelerateDriving={on};if(window.__xcelerateGate)window.__xcelerateGate(!{on});return true}})()"
+        "(()=>{{window.__xcelerateDriving={on};if(window.__xcelerateGate)window.__xcelerateGate(!{on});if({on}&&window.__xceleratePulse)window.__xceleratePulse();return true}})()"
     );
     let _ = page.evaluate_json(js).await;
 }

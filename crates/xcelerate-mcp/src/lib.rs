@@ -12,6 +12,10 @@
 //! * `XCELERATE_DETACHED` - `1`/`true` to detach the browser process (default `false`).
 //! * `XCELERATE_PLUGINS`  - comma-separated external plugin paths to load.
 
+// The `tool_definitions` array is one large `json!` literal; give the macro room
+// to expand as the tool surface grows.
+#![recursion_limit = "256"]
+
 use std::error::Error;
 
 use base64::Engine as _;
@@ -431,6 +435,70 @@ impl Server {
                     .map_err(to_message)?;
                 Ok(Outcome::Text(format!("Clicked snapshot index {index}.")))
             }
+            "browser_find" => {
+                let pattern = str_arg(args, "pattern")?;
+                let context = u32_arg(args, "context").unwrap_or(3) as usize;
+                let page = self.ensure_page().await?;
+                let excerpt = page
+                    .find_in_snapshot(pattern, context)
+                    .await
+                    .map_err(to_message)?;
+                Ok(Outcome::Text(excerpt))
+            }
+            "browser_dismiss_overlays" => {
+                let page = self.ensure_page().await?;
+                let raw = page.snapshot_json().await.map_err(to_message)?;
+                // Malformed output degrades to "nothing matched" rather than panicking.
+                let elements = serde_json::from_str::<Value>(&raw)
+                    .ok()
+                    .and_then(|value| value.as_array().cloned())
+                    .unwrap_or_default();
+                let mut dismissed: Vec<String> = Vec::new();
+                let mut attempted = 0;
+                for element in &elements {
+                    if attempted >= OVERLAY_CLICK_CAP {
+                        break;
+                    }
+                    let role = element
+                        .get("role")
+                        .and_then(Value::as_str)
+                        .unwrap_or_default();
+                    if role != "button" && role != "link" {
+                        continue;
+                    }
+                    let name = element
+                        .get("name")
+                        .and_then(Value::as_str)
+                        .unwrap_or_default();
+                    if !is_overlay_control(name) {
+                        continue;
+                    }
+                    let Some(index) = element
+                        .get("index")
+                        .and_then(Value::as_u64)
+                        .map(|v| v as u32)
+                    else {
+                        continue;
+                    };
+                    attempted += 1;
+                    if std::sync::Arc::clone(&page)
+                        .click_index(index)
+                        .await
+                        .is_ok()
+                    {
+                        dismissed.push(name.to_string());
+                    }
+                }
+                if dismissed.is_empty() {
+                    Ok(Outcome::Text("no overlay controls matched".to_string()))
+                } else {
+                    Ok(Outcome::Text(format!(
+                        "dismissed {} overlays: {}",
+                        dismissed.len(),
+                        dismissed.join(", ")
+                    )))
+                }
+            }
             "browser_markdown" => {
                 let page = self.ensure_page().await?;
                 Ok(Outcome::Text(page.markdown().await.map_err(to_message)?))
@@ -627,6 +695,32 @@ fn env_plugins() -> Option<Vec<String>> {
     } else {
         Some(plugins)
     }
+}
+
+/// Maximum number of overlay controls `browser_dismiss_overlays` will try to
+/// click in one call.
+const OVERLAY_CLICK_CAP: usize = 5;
+
+/// Substrings that mark an element's accessible name as an overlay/ad control.
+/// Matched case-insensitively against `button`/`link` names.
+const OVERLAY_KEYWORDS: &[&str] = &[
+    "close",
+    "dismiss",
+    "skip",
+    "accept",
+    "allow",
+    "agree",
+    "got it",
+    "no thanks",
+    "continue",
+    "x",
+];
+
+fn is_overlay_control(name: &str) -> bool {
+    let lower = name.to_lowercase();
+    OVERLAY_KEYWORDS
+        .iter()
+        .any(|keyword| lower.contains(keyword))
 }
 
 fn tool_definitions() -> Value {
@@ -840,6 +934,23 @@ fn tool_definitions() -> Value {
             }
         },
         {
+            "name": "browser_find",
+            "description": "Grep the existing indexed page snapshot for a literal, case-insensitive string and return only the matching lines (plus a little context). Cheaper in tokens than a full browser_snapshot; the [index] markers in the result are usable with browser_click_index.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "pattern": { "type": "string", "description": "Literal text to find (case-insensitive)." },
+                    "context": { "type": "integer", "description": "Lines of context before and after each match (default 3)." }
+                },
+                "required": ["pattern"]
+            }
+        },
+        {
+            "name": "browser_dismiss_overlays",
+            "description": "Best-effort: click up to five visible overlay controls (close/dismiss/skip/accept/agree/etc.) to move ad and cookie popups out of the way. Returns which controls were dismissed.",
+            "inputSchema": { "type": "object", "properties": {} }
+        },
+        {
             "name": "browser_markdown",
             "description": "Return the page's main content as clean Markdown (scripts, nav, and boilerplate removed). Ideal for reading or summarizing a page.",
             "inputSchema": { "type": "object", "properties": {} }
@@ -972,6 +1083,8 @@ mod tests {
         assert!(names.contains(&"browser_accessibility"));
         assert!(names.contains(&"browser_snapshot"));
         assert!(names.contains(&"browser_click_index"));
+        assert!(names.contains(&"browser_find"));
+        assert!(names.contains(&"browser_dismiss_overlays"));
         assert!(names.contains(&"browser_markdown"));
         assert!(names.contains(&"browser_detect_challenge"));
         assert!(names.contains(&"browser_find_text"));

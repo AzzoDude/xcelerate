@@ -60,6 +60,12 @@ pub struct Page {
     /// Maps the `[index]` markers of the most recent agent snapshot to the
     /// element's CDP backend node id (see `page::snapshot`).
     pub(crate) snapshot_index: Arc<tokio::sync::Mutex<std::collections::HashMap<u32, i64>>>,
+    /// Maps the same `[index]` markers to the element's `(role, name)` identity
+    /// from the most recent agent snapshot, so [`Page::click_index`] can heal a
+    /// stale index by re-matching the element in a fresh snapshot
+    /// (see `page::snapshot`).
+    pub(crate) snapshot_identity:
+        Arc<tokio::sync::Mutex<std::collections::HashMap<u32, (String, String)>>>,
     /// Directory completed downloads are written to (see `page::downloads`).
     pub(crate) downloads_path: Arc<tokio::sync::Mutex<Option<String>>>,
     /// HAR entries accumulated while HAR recording is active (see `page::har`).

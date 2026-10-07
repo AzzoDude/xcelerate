@@ -746,6 +746,7 @@ impl Browser {
             default_timeout_ms: std::sync::atomic::AtomicU64::new(30_000),
             recording: tokio::sync::Mutex::new(None),
             snapshot_index: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
+            snapshot_identity: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
             downloads_path: Arc::new(tokio::sync::Mutex::new(None)),
             har_entries: Arc::new(tokio::sync::Mutex::new(Vec::new())),
             har_task: Arc::new(tokio::sync::Mutex::new(None)),

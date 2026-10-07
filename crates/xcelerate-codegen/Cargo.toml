@@ -1,0 +1,15 @@
+[package]
+name = "xcelerate-codegen"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Renders a recorded xcelerate browser session as a runnable script in any of the eleven languages xcelerate ships bindings for."
+publish = false
+
+[dependencies]
+
+[lints]
+workspace = true

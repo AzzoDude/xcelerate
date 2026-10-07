@@ -261,6 +261,42 @@ fn diff_snapshots(previous: &str, current: &str) -> String {
     out
 }
 
+/// Returns the lines of `text` that contain `pattern` (case-insensitive, literal),
+/// each shown with up to `context` surrounding lines, joined into one string.
+///
+/// Context windows are half-open ranges merged as the text is scanned, so a line
+/// that falls inside two windows is emitted once. Reports
+/// `no matches for "<pattern>"` when nothing matches. Backs
+/// [`Page::find_in_snapshot`].
+fn excerpt_matches(text: &str, pattern: &str, context: usize) -> String {
+    let needle = pattern.to_lowercase();
+    let lines: Vec<&str> = text.lines().collect();
+
+    // Half-open line ranges `[start, end)` to include, merged after each hit.
+    let mut windows: Vec<(usize, usize)> = Vec::new();
+    for (i, line) in lines.iter().enumerate() {
+        if !line.to_lowercase().contains(&needle) {
+            continue;
+        }
+        let start = i.saturating_sub(context);
+        let end = (i + context + 1).min(lines.len());
+        match windows.last_mut() {
+            Some(last) if start <= last.1 => last.1 = last.1.max(end),
+            _ => windows.push((start, end)),
+        }
+    }
+
+    if windows.is_empty() {
+        return format!("no matches for {pattern:?}");
+    }
+
+    let mut out: Vec<&str> = Vec::new();
+    for (start, end) in windows {
+        out.extend_from_slice(&lines[start..end]);
+    }
+    out.join("\n")
+}
+
 /// Removes invisible noise from an accessible name, then collapses whitespace
 /// and truncates to `max` characters (adding an ellipsis).
 ///
@@ -942,6 +978,13 @@ impl Page {
                 cache.insert(element.index, element.backend_node_id);
             }
         }
+        {
+            let mut identity = self.snapshot_identity.lock().await;
+            identity.clear();
+            for element in &elements {
+                identity.insert(element.index, (element.role.clone(), element.name.clone()));
+            }
+        }
 
         Ok((text, elements))
     }
@@ -1017,6 +1060,20 @@ impl Page {
         Ok(text)
     }
 
+    /// Searches the agent snapshot for `pattern` and returns only the matching
+    /// lines, each with up to `context` lines before and after it.
+    ///
+    /// The test is a case-insensitive literal substring match, applied line by
+    /// line; overlapping windows are merged so no line is repeated, and the
+    /// excerpt is returned as one string. When nothing matches, returns
+    /// `no matches for "<pattern>"`. Far cheaper in tokens than returning the
+    /// whole snapshot, and the `[index]` markers in the returned lines remain
+    /// valid for [`Page::click_index`].
+    pub async fn find_in_snapshot(&self, pattern: &str, context: usize) -> XcelerateResult<String> {
+        let (text, _) = self.build_agent_snapshot().await?;
+        Ok(excerpt_matches(&text, pattern, context))
+    }
+
     /// Returns only what changed since the previous call, as a compact line diff.
     ///
     /// A multi-step agent loop usually re-reads the page after every action;
@@ -1051,6 +1108,14 @@ impl Page {
     /// reuses the real-mouse click path (scroll into view + real mouse events), so
     /// no CSS selector is re-evaluated and click targets cannot drift between
     /// the snapshot and the click.
+    ///
+    /// Self-healing: the index cache also records each element's `(role, name)`
+    /// identity. If the cached `backendNodeId` no longer resolves (or its click
+    /// fails) - for example because the page re-rendered since the snapshot - the
+    /// snapshot is rebuilt once and the element whose identity matches is
+    /// clicked instead. There is exactly one retry, never a loop; if it also
+    /// fails the original error is returned. An index that was never seen still
+    /// reports "snapshot index N is unknown; call agent_snapshot first".
     pub async fn click_index(self: Arc<Self>, index: u32) -> XcelerateResult<Arc<Self>> {
         let backend_node_id = {
             let cache = self.snapshot_index.lock().await;
@@ -1061,7 +1126,49 @@ impl Page {
                 "snapshot index {index} is unknown; call agent_snapshot first"
             ))
         })?;
+        // Captured before any rebuild, which clears and repopulates the cache.
+        let identity = {
+            let cache = self.snapshot_identity.lock().await;
+            cache.get(&index).cloned()
+        };
 
+        match self.click_backend_node(backend_node_id, index).await {
+            Ok(()) => Ok(self),
+            Err(original) => {
+                let Some((role, name)) = identity else {
+                    return Err(original);
+                };
+                // One healing attempt: rebuild the snapshot and re-match identity.
+                let Ok((_, elements)) = self.build_agent_snapshot().await else {
+                    return Err(original);
+                };
+                let Some(element) = elements
+                    .iter()
+                    .find(|element| element.role == role && element.name == name)
+                else {
+                    return Err(original);
+                };
+                match self
+                    .click_backend_node(element.backend_node_id, index)
+                    .await
+                {
+                    Ok(()) => Ok(self),
+                    Err(_) => Err(original),
+                }
+            }
+        }
+    }
+
+    /// Resolves a cached snapshot `backendNodeId` and performs a real-mouse click.
+    ///
+    /// Shared by the first attempt and the single self-heal retry of
+    /// [`Page::click_index`]. The `index` is only used to phrase the error when
+    /// the node cannot be resolved to a live object.
+    async fn click_backend_node(
+        self: &Arc<Self>,
+        backend_node_id: i64,
+        index: u32,
+    ) -> XcelerateResult<()> {
         let resolved = self
             .client
             .execute_raw_with_session(
@@ -1080,11 +1187,11 @@ impl Page {
             })?;
 
         let element = Arc::new(Element {
-            page: Arc::clone(&self),
+            page: Arc::clone(self),
             object_id: object_id.to_string(),
         });
         element.click_mouse().await?;
-        Ok(self)
+        Ok(())
     }
 
     /// Releases the object group held by the last [`Page::click_index`] call.
@@ -1098,6 +1205,7 @@ impl Page {
             )
             .await;
         self.snapshot_index.lock().await.clear();
+        self.snapshot_identity.lock().await.clear();
         Ok(())
     }
 }
@@ -1257,6 +1365,38 @@ mod tests {
         assert_eq!(
             clean("\u{E000}Add\u{200B} to cart\u{E001}", 40),
             "Add to cart"
+        );
+    }
+
+    #[test]
+    fn excerpt_matches_returns_context_around_hits() {
+        let text = "a\nb\ntarget\nd\ne";
+        assert_eq!(excerpt_matches(text, "target", 1), "b\ntarget\nd");
+    }
+
+    #[test]
+    fn excerpt_matches_merges_overlapping_windows() {
+        let text = "target one\nmiddle\ntarget two";
+        // Both hits with one line of context overlap, so no line repeats.
+        assert_eq!(
+            excerpt_matches(text, "target", 1),
+            "target one\nmiddle\ntarget two"
+        );
+    }
+
+    #[test]
+    fn excerpt_matches_skips_gaps_with_zero_context() {
+        let text = "hit\nother\nhit";
+        assert_eq!(excerpt_matches(text, "hit", 0), "hit\nhit");
+    }
+
+    #[test]
+    fn excerpt_matches_is_case_insensitive_and_reports_misses() {
+        let text = "Sign In\nLog out";
+        assert_eq!(excerpt_matches(text, "sign in", 0), "Sign In");
+        assert_eq!(
+            excerpt_matches(text, "missing", 2),
+            "no matches for \"missing\""
         );
     }
 

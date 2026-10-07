@@ -5,23 +5,23 @@
 //! be chained the way a person browses: open, skip an ad, click a result, keep
 //! reading - without ever relaunching.
 //!
-//! Every step is mirrored into the native overlay (see `crate::overlay`), which
-//! also carries the human's Stop / Pause / screenshot requests back to this loop.
+//! Each step is echoed to the terminal as it runs. With `--codegen <LANG>` the
+//! session also records what it did and, when it ends, renders the run as a
+//! script in that language - written to `--codegen-out <PATH>` or printed.
 
 use std::sync::Arc;
 use std::time::Duration;
 
 use xcelerate::Page;
+use xcelerate_codegen::{Action, Language, Selector};
 
-use crate::cli::BrowserArgs;
+use crate::cli::{BrowserArgs, CodegenLang};
 use crate::launch::launch;
-use crate::overlay::{Bounds, OverlayHandle, Step, record_step};
 
-/// Runs the REPL until `quit`, EOF, or a Stop from the overlay.
+/// Runs the REPL until `quit` or EOF.
 pub async fn run_session(
     args: &BrowserArgs,
     start: Option<String>,
-    overlay: OverlayHandle,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use std::io::{IsTerminal, Write};
     use tokio::io::AsyncBufReadExt;
@@ -30,19 +30,11 @@ pub async fn run_session(
     // transcript where every command is echoed with `>>>` instead.
     let interactive = std::io::stdin().is_terminal();
     let initial = start.unwrap_or_else(|| "about:blank".to_string());
-    let (browser, page) = launch(args, &initial).await?;
-
-    // Keep the overlay pinned to the browser window while it is on screen, so it
-    // moves and resizes with the browser instead of floating at a fixed spot.
-    // Skipped when the browser is headless: there is no window to follow.
-    let follow = if args.live() {
-        Some(tokio::spawn(follow_browser(
-            Arc::clone(&page),
-            overlay.clone(),
-        )))
-    } else {
-        None
-    };
+    let (browser, first) = launch(args, &initial).await?;
+    // The session can own several tabs; `page` is the active one.
+    let mut page = first.clone();
+    let mut tabs: Vec<Arc<Page>> = vec![first];
+    let mut active_tab = 0usize;
 
     // Raise the input gate: while the run drives the page the human cannot click,
     // type or scroll it. Each step lowers the gate only for its own CDP input.
@@ -53,14 +45,26 @@ pub async fn run_session(
     if interactive {
         println!("xcelerate session - one browser, many steps.");
         if args.live() {
-            println!(
-                "overlay is on: the control bar and the interceptor log float over the browser."
-            );
+            println!("live mode: the screen is locked to the AI.");
         }
         println!("type `help` for commands, `quit` to exit.\n");
     } else {
         println!("# session start: {}", page.url().await.unwrap_or(initial));
     }
+
+    if let Some(lang) = args.codegen {
+        println!(
+            "codegen: recording this run as {}.",
+            codegen_language(lang).label()
+        );
+    }
+
+    // The recorded run, rendered as code when `--codegen` is set.
+    let mut recording: Vec<Action> = Vec::new();
+    // The last selector a step acted on, so focus-scoped steps (`press`,
+    // `submit`) can still be recorded: `fill #box text` then `submit` becomes a
+    // Fill plus a Press of Enter on `#box`.
+    let mut last_target: Option<Selector> = None;
 
     let mut lines = tokio::io::BufReader::new(tokio::io::stdin()).lines();
     'session: loop {
@@ -69,28 +73,13 @@ pub async fn run_session(
             let _ = std::io::stdout().flush();
         }
 
-        // Wait for the next command, but also notice the human closing the
-        // overlay: that ends the run - and shuts the browser down - rather than
-        // leaving the session blocked on input.
-        let line = {
-            let mut ticker = tokio::time::interval(Duration::from_millis(250));
-            loop {
-                tokio::select! {
-                    next = lines.next_line() => match next {
-                        Ok(Some(line)) => break line,
-                        Ok(None) => break 'session, // EOF (Ctrl-D, or piped input ended)
-                        Err(error) => {
-                            println!("input error: {error}");
-                            break 'session;
-                        }
-                    },
-                    _ = ticker.tick() => {
-                        if overlay.is_closed() {
-                            println!("overlay closed; shutting down");
-                            break 'session;
-                        }
-                    }
-                }
+        // Wait for the next command (or EOF, which ends the run).
+        let line = match lines.next_line().await {
+            Ok(Some(line)) => line,
+            Ok(None) => break 'session, // EOF (Ctrl-D, or piped input ended)
+            Err(error) => {
+                println!("input error: {error}");
+                break 'session;
             }
         };
         let line = line.trim();
@@ -109,7 +98,13 @@ pub async fn run_session(
         // The whole dispatch runs inside an async block so a `?` failure is
         // captured here rather than propagating out of the session.
         let mut quit = false;
-        let outcome: Result<(), Box<dyn std::error::Error>> = async {
+        // Self-heal: a step can fail because the CDP session was detached by a
+        // target churn. Re-attach the page and run the same step exactly once
+        // more, instead of leaving the session dead for the rest of the run.
+        let mut healed = false;
+        let mut outcome: Result<(), Box<dyn std::error::Error>>;
+        loop {
+            outcome = async {
             match verb.as_str() {
                 "help" | "?" => {
                     print_session_help();
@@ -209,8 +204,16 @@ pub async fn run_session(
                     }
                     Ok(())
                 }
-                "press" => {
-                    if rest.is_empty() {
+                "press" | "submit" | "send" => {
+                    // `submit` is the productive path: finish typing, then submit
+                    // from the field you are already in instead of hunting for a
+                    // Send button. It is Enter on the focused element.
+                    let key = if verb == "press" {
+                        rest.clone()
+                    } else {
+                        "Enter".to_string()
+                    };
+                    if key.is_empty() {
                         println!("usage: press <key>   (sends to the focused element)");
                         return Ok(());
                     }
@@ -218,8 +221,8 @@ pub async fn run_session(
                         .evaluate_handle("document.activeElement".to_string())
                         .await?;
                     crate::cursor::set_driving(&page, true).await;
-                    element.press(rest.clone()).await?;
-                    println!("pressed {rest}");
+                    element.press(key.clone()).await?;
+                    println!("pressed {key}");
                     Ok(())
                 }
                 "eval" | "js" => {
@@ -281,6 +284,24 @@ pub async fn run_session(
                     }
                     Ok(())
                 }
+                "wait-stable" | "stable" => {
+                    // Wait only as long as the page keeps changing, then stop -
+                    // the productive wait for a page that renders progressively.
+                    let quiet = rest.parse::<u64>().unwrap_or(700);
+                    match page.wait_for_dom_stable(quiet, 60_000).await {
+                        Ok(()) => println!("dom settled ({quiet}ms quiet)"),
+                        Err(error) => println!("not settled: {error}"),
+                    }
+                    Ok(())
+                }
+                "wait-idle" | "idle" => {
+                    let quiet = rest.parse::<u64>().unwrap_or(500);
+                    match page.wait_for_network_idle(quiet, 60_000).await {
+                        Ok(()) => println!("network idle ({quiet}ms quiet)"),
+                        Err(error) => println!("not idle: {error}"),
+                    }
+                    Ok(())
+                }
                 "click-text" | "text-click" => {
                     if rest.is_empty() {
                         println!("usage: click-text <visible text>");
@@ -309,6 +330,65 @@ pub async fn run_session(
                         } else {
                             println!("no visible element contains {rest:?}");
                         }
+                    }
+                    Ok(())
+                }
+                // DOM clicks that never move the mouse: transient menus close on
+                // `mouseleave`, so a curved mouse move to a submenu item can shut
+                // the menu before the click lands. These dispatch the click
+                // straight on the element instead.
+                "tap" | "click-js" | "js-click" | "dom-click" => {
+                    if rest.is_empty() {
+                        println!("usage: tap <selector>   (DOM click, no mouse movement)");
+                    } else {
+                        let element = Arc::clone(&page).wait_for_selector(rest.clone()).await?;
+                        // Lower the gate first: it blocks click events, and a DOM
+                        // click is still a click event.
+                        crate::cursor::set_driving(&page, true).await;
+                        element.click().await?;
+                        println!("tapped {rest}");
+                    }
+                    Ok(())
+                }
+                "tap-text" | "click-text-js" | "text-tap" => {
+                    if rest.is_empty() {
+                        println!("usage: tap-text <visible text>");
+                    } else {
+                        let needle = serde_json::to_string(&rest)?;
+                        let decl = "const els=[...document.querySelectorAll('a,button,[role=\"button\"],[role=\"link\"],summary,input[type=\"submit\"]')];";
+                        let expr = format!(
+                            "els.find(e=>e.offsetParent!==null&&(((e.innerText||'')+' '+(e.getAttribute('aria-label')||'')).toLowerCase().includes({needle}.toLowerCase())))"
+                        );
+                        if page
+                            .evaluate_bool(format!("(() => {{ {decl} return !!({expr}); }})()"))
+                            .await?
+                        {
+                            let element = Arc::clone(&page)
+                                .evaluate_handle(format!("(() => {{ {decl} return {expr}; }})()"))
+                                .await?;
+                            // Lower the gate first: it blocks click events.
+                            crate::cursor::set_driving(&page, true).await;
+                            element.click().await?;
+                            println!("tapped text {rest:?}");
+                        } else {
+                            println!("no visible element contains {rest:?}");
+                        }
+                    }
+                    Ok(())
+                }
+                "click-xy" | "click-at" | "xy" => {
+                    // Raw coordinate click: for canvases, maps and embedded
+                    // (cross-origin) widgets that DOM selectors cannot reach.
+                    let mut parts = rest.split_whitespace();
+                    let x = parts.next().and_then(|v| v.parse::<f64>().ok());
+                    let y = parts.next().and_then(|v| v.parse::<f64>().ok());
+                    match (x, y) {
+                        (Some(x), Some(y)) => {
+                            crate::cursor::set_driving(&page, true).await;
+                            Arc::clone(&page).click_mouse(x, y).await?;
+                            println!("clicked at ({x}, {y})");
+                        }
+                        _ => println!("usage: click-xy <x> <y>"),
                     }
                     Ok(())
                 }
@@ -356,6 +436,39 @@ pub async fn run_session(
                     println!("{count} match(es) for {rest:?}");
                     Ok(())
                 }
+                "challenge" | "detect" => {
+                    let report = page.detect_challenge().await?;
+                    println!("{}", report.to_json());
+                    Ok(())
+                }
+                "await-human" | "await" | "human" => {
+                    // Pause for a person to clear an anti-bot challenge in the
+                    // browser, then continue. xcelerate detects challenges; it
+                    // does not solve them. The input gate is lowered first, or
+                    // the person could not click the challenge either.
+                    let limit = rest.parse::<u64>().unwrap_or(60);
+                    crate::cursor::set_gate(&page, false).await;
+                    println!("waiting up to {limit}s for a human to clear the challenge...");
+                    let started = std::time::Instant::now();
+                    loop {
+                        let report = page.detect_challenge().await?;
+                        if !report.detected {
+                            println!("challenge cleared after {}s", started.elapsed().as_secs());
+                            break;
+                        }
+                        if started.elapsed().as_secs() >= limit {
+                            println!(
+                                "still challenged after {limit}s ({})",
+                                report.vendors.join(", ")
+                            );
+                            break;
+                        }
+                        tokio::time::sleep(Duration::from_millis(1000)).await;
+                    }
+                    // Re-raise the gate now that the human is done.
+                    crate::cursor::set_gate(&page, true).await;
+                    Ok(())
+                }
                 "guard" => {
                     if rest.is_empty() {
                         println!("usage: guard <path-to-js>");
@@ -373,6 +486,76 @@ pub async fn run_session(
                             Err(error) => println!("cannot read {rest}: {error}"),
                         }
                     }
+                    Ok(())
+                }
+                "new-tab" | "newtab" | "tab-new" => {
+                    let url = if rest.is_empty() {
+                        "about:blank".to_string()
+                    } else {
+                        rest.clone()
+                    };
+                    let opened = Arc::clone(&browser).new_page(url).await?;
+                    if args.live() {
+                        let _ = crate::cursor::install(&opened).await;
+                        crate::cursor::set_gate(&opened, true).await;
+                    }
+                    tabs.push(Arc::clone(&opened));
+                    active_tab = tabs.len() - 1;
+                    page = opened;
+                    // Bring the new tab to the front so the switch is visible.
+                    let _ = page
+                        .execute_cdp_cmd("Page.bringToFront".to_string(), "{}".to_string())
+                        .await;
+                    println!(
+                        "opened tab {active_tab} -> {}",
+                        page.url().await.unwrap_or_default()
+                    );
+                    Ok(())
+                }
+                "switch" | "tab" | "use" => {
+                    if rest.is_empty() {
+                        // No argument cycles to the next tab.
+                        active_tab = (active_tab + 1) % tabs.len();
+                        page = tabs[active_tab].clone();
+                    } else if let Ok(index) = rest.parse::<usize>() {
+                        if index < tabs.len() {
+                            active_tab = index;
+                            page = tabs[index].clone();
+                        } else {
+                            println!("no tab {index} (have {} open)", tabs.len());
+                            return Ok(());
+                        }
+                    } else if let Some(position) =
+                        tabs.iter().position(|tab| tab.target_id() == rest)
+                    {
+                        active_tab = position;
+                        page = tabs[position].clone();
+                    } else {
+                        // A target this session did not open (for example a popup).
+                        match Arc::clone(&browser).attach_page(rest.clone()).await {
+                            Ok(attached) => {
+                                if args.live() {
+                                    let _ = crate::cursor::install(&attached).await;
+                                    crate::cursor::set_gate(&attached, true).await;
+                                }
+                                tabs.push(Arc::clone(&attached));
+                                active_tab = tabs.len() - 1;
+                                page = attached;
+                            }
+                            Err(error) => {
+                                println!("could not switch to {rest}: {error}");
+                                return Ok(());
+                            }
+                        }
+                    }
+                    println!(
+                        "switched to tab {active_tab} -> {}",
+                        page.url().await.unwrap_or_default()
+                    );
+                    // Bring the tab to the front so the switch is actually visible.
+                    let _ = page
+                        .execute_cdp_cmd("Page.bringToFront".to_string(), "{}".to_string())
+                        .await;
                     Ok(())
                 }
                 "tabs" => {
@@ -415,6 +598,17 @@ pub async fn run_session(
                         page.execute_cdp_cmd("Target.closeTarget".to_string(), params)
                             .await?;
                         println!("closed target {rest}");
+                        // Drop it from the tab list, keeping the active tab valid.
+                        if let Some(position) = tabs.iter().position(|tab| tab.target_id() == rest)
+                        {
+                            if tabs.len() > 1 {
+                                tabs.remove(position);
+                                if active_tab >= tabs.len() {
+                                    active_tab = tabs.len() - 1;
+                                }
+                                page = tabs[active_tab].clone();
+                            }
+                        }
                     }
                     Ok(())
                 }
@@ -425,6 +619,27 @@ pub async fn run_session(
             }
         }
         .await;
+            match &outcome {
+                Ok(()) => break,
+                Err(error) if !healed && is_session_error(error.as_ref()) => {
+                    healed = true;
+                    match Arc::clone(&browser).attach_page(page.target_id()).await {
+                        Ok(fresh) => {
+                            if args.live() {
+                                let _ = crate::cursor::install(&fresh).await;
+                                crate::cursor::set_gate(&fresh, true).await;
+                            }
+                            println!(
+                                "session detached; re-attached the page and retrying the step"
+                            );
+                            page = fresh;
+                        }
+                        Err(_) => break,
+                    }
+                }
+                Err(_) => break,
+            }
+        }
 
         let ok = outcome.is_ok();
         if quit {
@@ -435,129 +650,24 @@ pub async fn run_session(
             println!("error: {error}");
         }
 
-        // Record the step for the codegen overlay, then re-raise the cursor gate:
-        // outside a mouse step the cursor stays inert.
-        if ok && let Some(step) = Step::parse(&verb, &rest) {
-            record_step(&overlay, step);
+        // Record the step for `--codegen`, when one was requested.
+        if ok && args.codegen.is_some() {
+            if let Some(action) = record_action(&verb, &rest, &mut last_target) {
+                recording.push(action);
+            }
         }
+
+        // Re-raise the cursor gate: outside a mouse step the cursor stays inert.
         crate::cursor::set_driving(&page, false).await;
     }
 
-    if let Some(handle) = follow {
-        handle.abort();
-    }
-    browser.close().await.ok();
+    let _ = tokio::time::timeout(Duration::from_secs(5), browser.close()).await;
     println!("session closed.");
+
+    if let Some(lang) = args.codegen {
+        emit_codegen(lang, &recording, args.codegen_out.as_deref());
+    }
     Ok(())
-}
-
-/// Follow cadence while the browser is moving (the fastest polling rate).
-const FOLLOW_ACTIVE: Duration = Duration::from_millis(6);
-/// Follow cadence once the browser has settled, to keep idle traffic low.
-const FOLLOW_IDLE: Duration = Duration::from_millis(24);
-/// Consecutive unchanged reads before backing off to [`FOLLOW_IDLE`].
-const FOLLOW_SETTLE: u32 = 4;
-/// Consecutive failed reads that mean the browser is gone.
-const FOLLOW_MISS_LIMIT: u32 = 40;
-
-/// Pins the overlay to the browser window, re-reading its rectangle often enough
-/// to track a drag, and closes the overlay once the browser is gone.
-async fn follow_browser(page: Arc<Page>, overlay: OverlayHandle) {
-    // Resolve the browser window once; without one there is nothing to follow.
-    let Some(window_id) = browser_window_id(&page).await else {
-        return;
-    };
-    let mut misses = 0u32;
-    let mut stable = FOLLOW_SETTLE + 1;
-    let mut last: Option<Bounds> = None;
-    loop {
-        // A dead connection can leave a CDP request pending forever, so every
-        // probe is bounded: a timeout counts as a miss like any other failure.
-        let bounds = tokio::time::timeout(
-            std::time::Duration::from_millis(500),
-            window_bounds(&page, &window_id),
-        )
-        .await
-        .ok()
-        .flatten();
-        match bounds {
-            Some(bounds) => {
-                // Only push a change, and go back to the fast cadence while it is
-                // moving; settle to a slower rate so an idle browser costs little.
-                if last.is_none_or(|previous| moved(previous, bounds)) {
-                    overlay.set_bounds(Some(bounds));
-                    last = Some(bounds);
-                    stable = 0;
-                } else {
-                    stable = stable.saturating_add(1);
-                }
-                misses = 0;
-            }
-            None => {
-                misses += 1;
-                // A stretch of silence: the browser is closed, so the overlay has
-                // nothing left to sit on and goes with it.
-                if misses >= FOLLOW_MISS_LIMIT {
-                    overlay.request_close();
-                    return;
-                }
-            }
-        }
-        let interval = if stable > FOLLOW_SETTLE {
-            FOLLOW_IDLE
-        } else {
-            FOLLOW_ACTIVE
-        };
-        tokio::time::sleep(interval).await;
-    }
-}
-
-/// Whether two window rectangles differ enough to be worth pushing.
-fn moved(a: Bounds, b: Bounds) -> bool {
-    (a.x - b.x).abs() > 0.5
-        || (a.y - b.y).abs() > 0.5
-        || (a.width - b.width).abs() > 0.5
-        || (a.height - b.height).abs() > 0.5
-}
-
-/// The window id that contains this page, or `None` when there is no real window.
-async fn browser_window_id(page: &Arc<Page>) -> Option<serde_json::Value> {
-    let params = serde_json::json!({ "targetId": page.target_id() }).to_string();
-    let raw = page
-        .execute_cdp_cmd("Browser.getWindowForTarget".to_string(), params)
-        .await
-        .ok()?;
-    let value: serde_json::Value = serde_json::from_str(&raw).ok()?;
-    value.get("windowId").cloned()
-}
-
-/// The browser window's screen rectangle, or `None` when CDP cannot report it
-/// (headless, or the browser is gone).
-async fn window_bounds(page: &Arc<Page>, window_id: &serde_json::Value) -> Option<Bounds> {
-    let params = serde_json::json!({ "windowId": window_id }).to_string();
-    let raw = page
-        .execute_cdp_cmd("Browser.getWindowBounds".to_string(), params)
-        .await
-        .ok()?;
-    let value: serde_json::Value = serde_json::from_str(&raw).ok()?;
-    parse_bounds(value.get("bounds")?)
-}
-
-/// Reads `{left, top, width, height}` from a CDP `Bounds` object.
-fn parse_bounds(bounds: &serde_json::Value) -> Option<Bounds> {
-    let x = bounds.get("left")?.as_f64()?;
-    let y = bounds.get("top")?.as_f64()?;
-    let width = bounds.get("width")?.as_f64()?;
-    let height = bounds.get("height")?.as_f64()?;
-    if width <= 1.0 || height <= 1.0 {
-        return None;
-    }
-    Some(Bounds {
-        x,
-        y,
-        width,
-        height,
-    })
 }
 
 fn print_session_help() {
@@ -570,16 +680,26 @@ fn print_session_help() {
          \x20 snapshot                       indexed interactive elements\n\
          \x20 click <index|selector>         click by snapshot index or CSS selector\n\
          \x20 click-text <text>              click the first element containing the text\n\
+         \x20 tap <selector>                 DOM-click without moving the mouse\n\
+         \x20 tap-text <text>                DOM-click a control by text (no mouse move)\n\
+         \x20 click-xy <x> <y>              raw coordinate click (canvas / embedded)\n\
          \x20 fill <selector> <text>         focus + type slowly (50 ms/char)\n\
          \x20 type <text>                    type into the focused element\n\
          \x20 press <key>                    press a key on the focused element\n\
+         \x20 submit                         press Enter on the focused element (send)\n\
          \x20 hover <selector>               move the mouse over an element\n\
          \x20 scroll <px|up|down|top|bottom> scroll the page\n\
          \x20 find <text>                    how many elements contain the text\n\
          \x20 wait <ms|selector>             sleep, or wait for an element\n\
+         \x20 wait-stable [ms]               wait until the DOM stops changing\n\
+         \x20 wait-idle [ms]                 wait until the network goes quiet\n\
+         \x20 challenge                       detect an anti-bot / CAPTCHA challenge\n\
+         \x20 await-human [s]                 wait until a person clears the challenge\n\
          \x20 eval <js>                      evaluate JavaScript, print the result\n\
          \x20 guard <path.js>               block popups/ads on this page and every new one\n\
          \x20 tabs                          list targets (id, type, url)\n\
+         \x20 new-tab [url]                 open a new tab and make it active\n\
+         \x20 switch <n|targetId>           switch the active tab (no arg cycles)\n\
          \x20 close-tab <targetId>          close one target (ids come from `tabs`)\n\
          \x20 shot [path]                    viewport screenshot (default screenshot.png)\n\
          \x20 shot-full [path]               full-page screenshot\n\
@@ -627,5 +747,128 @@ fn print_snapshot(json: &str) {
         } else {
             println!("[{index}] <{role}> {name:?} = {value:?}");
         }
+    }
+}
+
+/// Whether an error means the CDP session was detached, so re-attaching the
+/// page and retrying the step can recover it.
+fn is_session_error(error: &(dyn std::error::Error + 'static)) -> bool {
+    let text = error.to_string().to_ascii_lowercase();
+    text.contains("session with given id")
+        || text.contains("-32001")
+        || text.contains("session detached")
+}
+
+/// Maps a recorded session command into a codegen [`Action`], when it maps
+/// cleanly, tracking the last selector so focus-scoped steps can be recorded.
+///
+/// Index clicks (`click 3`) and bare `type` carry no portable locator, so they
+/// are left out. `press` / `submit` act on the focused element, which after a
+/// `fill` is the field just typed into, so they are recorded against `last`.
+fn record_action(verb: &str, rest: &str, last: &mut Option<Selector>) -> Option<Action> {
+    let rest = rest.trim();
+    match verb {
+        "open" | "goto" if !rest.is_empty() => Some(Action::Navigate {
+            url: rest.to_string(),
+        }),
+        "click" if !rest.is_empty() && rest.parse::<u32>().is_err() => {
+            let selector = Selector::parse(rest);
+            *last = Some(selector.clone());
+            Some(Action::Click { selector })
+        }
+        "click-text" | "text-click" if !rest.is_empty() => {
+            let selector = Selector::text(rest);
+            *last = Some(selector.clone());
+            Some(Action::Click { selector })
+        }
+        "tap" | "click-js" | "js-click" | "dom-click" if !rest.is_empty() => {
+            let selector = Selector::parse(rest);
+            *last = Some(selector.clone());
+            Some(Action::Click { selector })
+        }
+        "tap-text" | "click-text-js" | "text-tap" if !rest.is_empty() => {
+            let selector = Selector::text(rest);
+            *last = Some(selector.clone());
+            Some(Action::Click { selector })
+        }
+        "hover" if !rest.is_empty() => {
+            let selector = Selector::parse(rest);
+            *last = Some(selector.clone());
+            Some(Action::Hover { selector })
+        }
+        "wait" | "sleep" if !rest.is_empty() && rest.parse::<u64>().is_err() => {
+            let selector = Selector::parse(rest);
+            *last = Some(selector.clone());
+            Some(Action::WaitFor { selector })
+        }
+        "fill" => rest
+            .split_once(char::is_whitespace)
+            .map(|(selector, text)| {
+                let selector = Selector::parse(selector);
+                *last = Some(selector.clone());
+                Action::Fill {
+                    selector,
+                    text: text.trim().to_string(),
+                }
+            }),
+        // `press` / `submit` act on the focused element. After a `fill` that is
+        // the field just typed into, so record it against the last selector -
+        // otherwise the step would be lost from the generated script.
+        "press" | "submit" | "send" => {
+            let key = if verb == "press" {
+                rest.to_string()
+            } else {
+                "Enter".to_string()
+            };
+            last.clone().map(|selector| Action::Press { selector, key })
+        }
+        "shot" | "screenshot" | "shot-full" | "screenshot-full" => Some(Action::Screenshot {
+            path: if rest.is_empty() {
+                "screenshot.png".to_string()
+            } else {
+                rest.to_string()
+            },
+        }),
+        _ => None,
+    }
+}
+
+/// Maps the CLI `--codegen` language onto the codegen target.
+fn codegen_language(lang: CodegenLang) -> Language {
+    match lang {
+        CodegenLang::Rust => Language::Rust,
+        CodegenLang::Python => Language::Python,
+        CodegenLang::Javascript => Language::JavaScript,
+        CodegenLang::Csharp => Language::CSharp,
+        CodegenLang::Kotlin => Language::Kotlin,
+        CodegenLang::Java => Language::Java,
+        CodegenLang::Swift => Language::Swift,
+        CodegenLang::Ruby => Language::Ruby,
+        CodegenLang::Dart => Language::Dart,
+        CodegenLang::Go => Language::Go,
+        CodegenLang::Powershell => Language::PowerShell,
+    }
+}
+
+/// Renders the recorded run and writes it to `output`, or prints it when no
+/// path was given.
+fn emit_codegen(lang: CodegenLang, actions: &[Action], output: Option<&std::path::Path>) {
+    let language = codegen_language(lang);
+    let code = language.generate(actions);
+    match output {
+        Some(path) => match std::fs::write(path, code.as_bytes()) {
+            Ok(()) => println!(
+                "codegen: wrote {} ({} actions, {})",
+                path.display(),
+                actions.len(),
+                language.label()
+            ),
+            Err(error) => eprintln!("codegen: could not write {}: {error}", path.display()),
+        },
+        None => println!(
+            "\n# ---- generated {} ({} actions) ----\n{code}",
+            language.label(),
+            actions.len()
+        ),
     }
 }

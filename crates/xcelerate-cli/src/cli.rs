@@ -25,20 +25,17 @@ pub struct BrowserArgs {
     /// Show the browser window (headless by default).
     #[arg(long, global = true)]
     pub no_headless: bool,
-    /// AI-driven run: show the window, the codegen overlay and the OS-level input
-    /// gate together. The human cannot touch the page while the run drives it.
+    /// AI-driven run: show the window with the cursor.
     #[arg(long, global = true, alias = "live")]
     pub ai: bool,
-    /// Show the codegen overlay instead of the control bar: record each step and
-    /// render the equivalent script in LANG (`csharp`, `rust`, `python`, ...).
-    /// Implies a visible window, the cursor and the input gate.
+    /// Watchable run for codegen capture in LANG (`csharp`, `rust`, `python`,
+    /// ...): implies a visible window and the in-page cursor.
     #[arg(long, global = true, value_name = "LANG")]
     pub codegen: Option<CodegenLang>,
-    /// Input gate for live runs. `page` (default) blocks human input inside the
-    /// page; `os` also covers the browser window with the overlay so the OS
-    /// routes input there instead of the browser. `os` implies `--codegen`.
-    #[arg(long, global = true, value_name = "MODE", default_value = "page")]
-    pub gate: Gate,
+    /// Where to write the generated script. Omit to print it to stdout at the
+    /// end of the run. Pair with `--codegen <LANG>`.
+    #[arg(long = "codegen-out", global = true, value_name = "PATH")]
+    pub codegen_out: Option<PathBuf>,
     /// Detach the browser process so it outlives this command.
     #[arg(long, global = true)]
     pub detached: bool,
@@ -92,11 +89,10 @@ pub struct BrowserArgs {
 }
 
 impl BrowserArgs {
-    /// Whether the run is watchable: a visible window, the codegen overlay, the
-    /// in-page cursor and the input gate. True for `--ai`, `--codegen` and
-    /// `--gate os`.
+    /// Whether the run is watchable: a visible window and the in-page cursor.
+    /// True for `--ai` and `--codegen`.
     pub fn live(&self) -> bool {
-        self.ai || self.codegen.is_some() || matches!(self.gate, Gate::Os)
+        self.ai || self.codegen.is_some()
     }
 }
 
@@ -217,8 +213,8 @@ pub enum Command {
         #[arg(long, value_name = "URL")]
         start: Option<String>,
     },
-    /// Run an AI-driven session: a visible window, the overlay, and commands on
-    /// stdin. A human can watch, use the control bar, and Stop at any time.
+    /// Run an AI-driven session: a visible window, the cursor, and commands on
+    /// stdin. A human can watch and step in at any time.
     Live {
         /// Optional URL to open at startup.
         #[arg(long, value_name = "URL")]
@@ -255,7 +251,7 @@ pub enum ListKind {
     Device,
 }
 
-/// Target language for the `--codegen` overlay.
+/// Target language for `--codegen`.
 #[derive(Clone, Copy, Debug, ValueEnum)]
 pub enum CodegenLang {
     Rust,
@@ -272,13 +268,4 @@ pub enum CodegenLang {
     Go,
     #[value(alias = "pwsh", alias = "ps")]
     Powershell,
-}
-
-/// Input-gate strength for live runs.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
-pub enum Gate {
-    /// Block human input inside the page only (an in-page shield).
-    Page,
-    /// Also cover the browser window with the overlay (OS-level block).
-    Os,
 }

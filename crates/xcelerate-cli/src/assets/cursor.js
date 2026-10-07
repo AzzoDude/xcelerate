@@ -1,9 +1,8 @@
 // The in-page cursor: a small translucent dot marking where the agent acts,
 // plus a click "wave" ripple. Injected on every new document by the CLI.
 //
-// This is the only remaining in-page injection now that the old HUD (control
-// bar + interceptor log) lives in the native overlay window. It is deliberately
-// passive: it never reads page state and never consumes pointer events.
+// This is the only in-page injection, and it is deliberately passive: it never
+// reads page state and never consumes pointer events.
 (function () {
   if (window.__xcelerateCursor) return;
   window.__xcelerateCursor = true;
@@ -19,36 +18,37 @@
     "  position: absolute;",
     "  left: 0;",
     "  top: 0;",
-    "  width: 6px;",
-    "  height: 6px;",
-    "  margin: -3px 0 0 -3px;",
+    "  box-sizing: border-box;",
+    "  width: 12px;",
+    "  height: 12px;",
+    "  margin: -6px 0 0 -6px;",
     "  border-radius: 50%;",
-    "  background: rgba(255, 255, 255, 0.8);",
-    "  box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.45),",
-    "              0 0 14px 5px rgba(120, 200, 255, 0.35);",
+    "  background: radial-gradient(circle at 38% 32%, #ff8a7a 0%, #ff3b30 55%, #e0241a 100%);",
+    "  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);",
     "  pointer-events: none;",
     "  opacity: 0;",
     "  transform: translate(var(--x, " + OFF + "), var(--y, " + OFF + ")) scale(var(--s, 1));",
-    "  transition: transform .12s ease-out, opacity .45s ease;",
+    "  transition: transform .12s ease-out, opacity .3s ease;",
     "}",
     ".dot.down {",
-    "  --s: 0.6;",
+    "  --s: 0.8;",
     "}",
     ".wave {",
     "  position: absolute;",
     "  left: 0;",
     "  top: 0;",
-    "  width: 6px;",
-    "  height: 6px;",
-    "  margin: -3px 0 0 -3px;",
+    "  box-sizing: border-box;",
+    "  width: 12px;",
+    "  height: 12px;",
+    "  margin: -6px 0 0 -6px;",
     "  border-radius: 50%;",
-    "  background: radial-gradient(circle, rgba(255,255,255,0.55) 0%, rgba(120,200,255,0.35) 40%, rgba(120,200,255,0) 70%);",
+    "  background: radial-gradient(circle, rgba(255, 59, 48, 0.5) 0%, rgba(255, 59, 48, 0.25) 45%, rgba(255, 59, 48, 0) 72%);",
     "  pointer-events: none;",
     "  animation: xc-wave .6s ease-out forwards;",
     "}",
     "@keyframes xc-wave {",
-    "  from { transform: translate(var(--x, " + OFF + "), var(--y, " + OFF + ")) scale(1); opacity: .85; }",
-    "  to { transform: translate(var(--x, " + OFF + "), var(--y, " + OFF + ")) scale(16); opacity: 0; }",
+    "  from { transform: translate(var(--x, " + OFF + "), var(--y, " + OFF + ")) scale(1); opacity: .9; }",
+    "  to { transform: translate(var(--x, " + OFF + "), var(--y, " + OFF + ")) scale(9); opacity: 0; }",
     "}",
   ].join("\n");
 
@@ -57,7 +57,7 @@
   host.setAttribute("aria-hidden", "true");
   host.setAttribute("data-xcelerate-cursor", "");
   host.style.cssText =
-    "position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2147483647;";
+    "position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;z-index:2147483647;";
 
   var root = host.attachShadow ? host.attachShadow({ mode: "open" }) : host;
 
@@ -72,6 +72,9 @@
   function mount() {
     if (!document.documentElement) return false;
     if (!host.isConnected) document.documentElement.appendChild(host);
+    // Start in the middle of the viewport, visible, so the agent is on screen
+    // before it does anything.
+    moveTo(window.innerWidth / 2, window.innerHeight / 2);
     return true;
   }
   // At document-start the root may not exist yet; retry once the DOM is ready.
@@ -98,6 +101,22 @@
     root.appendChild(wave);
   }
 
+  function pos() {
+    return (
+      window.__xcelerateCursorPos || {
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+      }
+    );
+  }
+
+  // A soft pulse at the cursor, fired when the agent starts a step - so even
+  // keyboard-only actions (typing, Enter) are visible, not just clicks.
+  window.__xceleratePulse = function () {
+    var p = pos();
+    spawnWave(p.x, p.y, 0);
+  };
+
   function onMove(event) {
     if (!window.__xcelerateDriving) return;
     moveTo(event.clientX, event.clientY);
@@ -108,9 +127,7 @@
     if (!host.isConnected) mount();
     moveTo(event.clientX, event.clientY);
     dot.classList.add("down");
-    // Two staggered rings read as a single click ripple.
     spawnWave(event.clientX, event.clientY, 0);
-    spawnWave(event.clientX, event.clientY, 0.08);
   }
 
   function onUp() {
@@ -127,18 +144,13 @@
   };
 
   // --- input gate ---------------------------------------------------------
-  // A full-viewport shield the AI raises around its work so a human cannot
-  // click, type, scroll or drag the page while the run is driving it. The host
-  // is pointer-events:none, so at rest the shield is inert; when raised it takes
-  // pointer events and swallows keyboard events in the capture phase. CDP input
-  // is dispatched after the gate is lowered for the step (see `set_driving`).
-  var gate = document.createElement("div");
-  gate.setAttribute("aria-hidden", "true");
-  gate.setAttribute("data-xcelerate-gate", "");
-  gate.style.cssText =
-    "position:absolute;inset:0;pointer-events:none;cursor:default;";
-  root.appendChild(gate);
-
+  // A shield the AI raises around its work so a human cannot click, type,
+  // scroll or drag the page while the run is driving it. The block runs in the
+  // window capture phase (before any page handler) rather than through a
+  // covering element: a full-viewport overlay would be treated as an occluder
+  // by the indexed snapshot and would hide every interactive element on screen.
+  // CDP input is dispatched after the gate is lowered for the step (see
+  // `set_driving`).
   var gateOn = false;
   function block(event) {
     if (!gateOn) return;
@@ -156,7 +168,7 @@
     "contextmenu",
     "wheel",
   ].forEach(function (type) {
-    gate.addEventListener(type, block, { capture: true, passive: false });
+    window.addEventListener(type, block, { capture: true, passive: false });
   });
   ["keydown", "keypress", "keyup"].forEach(function (type) {
     window.addEventListener(type, block, { capture: true });
@@ -164,7 +176,6 @@
 
   window.__xcelerateGate = function (on) {
     gateOn = !!on;
-    gate.style.pointerEvents = gateOn ? "auto" : "none";
     return gateOn;
   };
 })();

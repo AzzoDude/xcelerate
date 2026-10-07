@@ -7,7 +7,6 @@ use xcelerate::VideoOptions;
 
 use crate::cli::{Cli, Command, ListKind, PluginAction};
 use crate::launch::{build_hint, launch};
-use crate::overlay::OverlayHandle;
 use crate::session::run_session;
 
 pub fn list_devices() {
@@ -66,7 +65,7 @@ pub fn list_plugins() {
     println!("  `xcelerate plugin new <id>`.");
 }
 
-pub async fn run(cli: Cli, overlay: OverlayHandle) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
         Command::List { kind, all } => match kind {
             Some(ListKind::Device) => list_devices(),
@@ -96,15 +95,15 @@ pub async fn run(cli: Cli, overlay: OverlayHandle) -> Result<(), Box<dyn std::er
             xcelerate_mcp::run_stdio().await?;
         }
         Command::Session { start } => {
-            run_session(&cli.browser, start, overlay).await?;
+            run_session(&cli.browser, start).await?;
         }
         Command::Live { start } => {
-            // Live mode is the session with the window, codegen overlay and OS-level
-            // input gate forced on: an AI drives while a human only watches.
+            // Live mode is the session with the window and OS-level input gate
+            // forced on: an AI drives while a human only watches.
             let mut args = cli.browser.clone();
             args.ai = true;
             args.no_headless = true;
-            run_session(&args, start, overlay).await?;
+            run_session(&args, start).await?;
         }
         Command::Open { url } => {
             let (browser, page) = launch(&cli.browser, &url).await?;
