@@ -279,7 +279,7 @@ Capabilities are grouped by risk. The host grants only what the user consents to
 | Group | Capabilities |
 | --- | --- |
 | Safe (allow-list per origin/context) | `navigate`, `query`, `click`, `fill`, `type_keys`, `wait_for`, `wait_for_navigation`, `get_text`, `get_attribute` |
-| Dangerous (explicit consent + audit) | `evaluate`, `cdp_proxy`, `read_cookies`, `write_cookies`, `init_script`, `screenshot`, `network_capture` |
+| Dangerous (explicit consent + audit) | `evaluate`, `cdp_proxy`, `read_cookies`, `write_cookies`, `init_script`, `screenshot`, `network_capture`, `invoke_plugin` |
 | Built-in only (never grantable) | `launch_control`, `binary_patch`, `detached_spawn` |
 
 `evaluate` and `cdp_proxy` give a plugin the same power as running arbitrary
@@ -305,6 +305,14 @@ granted capability first):
 | `log(message)` | always (redacted, never logs secrets) |
 | `get-cookies()` | `read_cookies` (dangerous) |
 | `set-cookie(cookie)` | `write_cookies` (dangerous) |
+| `invoke-plugin(plugin, op, args)` | `invoke_plugin` (dangerous) |
+
+`invoke-plugin` is how a plugin declares a *dependency* on another plugin's
+behaviour: instead of importing the dependency's wasm interface directly, it
+calls the target op through the host, which routes the call (honouring overrides
+and budgets) and records it in the audit log. A plugin must still list the
+dependency in its manifest `dependencies` for the host to resolve and enable it
+first.
 
 Payloads are MessagePack `list<u8>`, matching
 `PluginHandle::invoke(op, args_json) -> result_json` in every language binding

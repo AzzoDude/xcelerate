@@ -118,6 +118,11 @@ pub enum Capability {
     InitScript,
     Screenshot,
     NetworkCapture,
+    /// Call another enabled plugin's op through the host (`host.invoke-plugin`).
+    /// Dangerous + opt-in: lets one plugin drive another, so it is audited and
+    /// never granted by default. This is how a plugin declares a *dependency* on
+    /// another plugin's behaviour without importing its wasm interface directly.
+    InvokePlugin,
     // Host-only: never granted to loaded plugins.
     LaunchControl,
     BinaryPatch,
@@ -136,6 +141,7 @@ impl Capability {
                 | Capability::InitScript
                 | Capability::Screenshot
                 | Capability::NetworkCapture
+                | Capability::InvokePlugin
         )
     }
 
@@ -167,6 +173,7 @@ impl Capability {
             Capability::InitScript => "init_script",
             Capability::Screenshot => "screenshot",
             Capability::NetworkCapture => "network_capture",
+            Capability::InvokePlugin => "invoke_plugin",
             Capability::LaunchControl => "launch_control",
             Capability::BinaryPatch => "binary_patch",
             Capability::DetachedSpawn => "detached_spawn",
@@ -219,6 +226,28 @@ pub struct Manifest {
     /// Resource limits requested by the plugin (clamped to host maxima).
     #[serde(default)]
     pub limits: Budgets,
+    /// Central, authoritative config: per-op input schema and defaults. Only
+    /// populated for sandboxed components that advertise it via `describe`; a
+    /// built-in/library plugin leaves this empty and can expose `ops` directly.
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub config: std::collections::BTreeMap<String, OpSchema>,
+}
+
+/// The declarative input contract for a single op: a JSON Schema object and
+/// the flat defaults an agent can merge before invoking.
+///
+/// Both fields are JSON *strings* (not parsed values) so the exact bytes a
+/// plugin authored are preserved end-to-end; a client that wants structure
+/// parses them itself.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct OpSchema {
+    /// The JSON Schema (Draft 2020-12) describing the op's input object,
+    /// including per-field `default` values and a `required` array. A field is
+    /// *either* required *or* carries a default - never both.
+    pub schema: String,
+    /// A flat JSON object string holding only the fields that carry a default,
+    /// e.g. `{"role":"member","notify":false}`. Empty `{}` when nothing defaults.
+    pub defaults: String,
 }
 
 fn default_host_api() -> String {
@@ -1013,6 +1042,7 @@ mod tests {
                 dependencies: Default::default(),
                 overrides: Default::default(),
                 limits: Budgets::default(),
+                config: Default::default(),
             }
         }
         fn build(&self, reg: &mut Registry) {
@@ -1057,6 +1087,7 @@ mod tests {
                     vec!["ping".to_string()],
                 )]),
                 limits: Budgets::default(),
+                config: Default::default(),
             }
         }
         fn build(&self, reg: &mut Registry) {
@@ -1161,6 +1192,7 @@ mod tests {
                 )]),
                 overrides: Default::default(),
                 limits: Budgets::default(),
+                config: Default::default(),
             }
         }
         fn build(&self, reg: &mut Registry) {

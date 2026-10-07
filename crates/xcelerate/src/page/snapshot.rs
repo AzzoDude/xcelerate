@@ -109,6 +109,48 @@ const CONTAINER_ROLES: &[&str] = &["RootWebArea", "WebArea", "Iframe"];
 /// the caller there is more to reveal by scrolling.
 const SCROLL_HINT: &str = "... (more content below the viewport — scroll to reveal)";
 
+/// Self-contained JavaScript that detects a document's forms and returns a
+/// compact typed shape: `{ kind, fields, submit }`. Runs in the page realm; no
+/// per-node CDP round-trips, so reading a form's contract costs a single script
+/// evaluation rather than a full snapshot.
+const FORM_FACT_JS: &str = r#"
+(() => {
+  const inputs = [...document.querySelectorAll('input, select, textarea')];
+  const submitCandidates = [...document.querySelectorAll(
+    'button[type=submit], input[type=submit], button:not([type])'
+  )];
+  const isVisible = (el) => el.offsetParent !== null && !el.disabled;
+  const fields = [];
+  for (const el of inputs) {
+    if (!isVisible(el)) continue;
+    const tag = el.tagName.toLowerCase();
+    let type = tag === 'select' ? 'select' : tag === 'textarea' ? 'text' : (el.type || 'text').toLowerCase();
+    if (type === 'hidden' || type === 'submit' || type === 'button' || type === 'reset') continue;
+    const name = el.name || el.getAttribute('name') || '';
+    const placeholder = el.placeholder || '';
+    const autocomplete = (el.getAttribute('autocomplete') || '').toLowerCase();
+    let normalized = type;
+    if (type === 'text' && autocomplete) normalized = autocomplete;
+    if (type === 'text' && (name === 'email' || name.endsWith('email'))) normalized = 'email';
+    if (type === 'password') normalized = 'password';
+    const required = el.required === true;
+    fields.push({ name, type: normalized, required, placeholder });
+  }
+  const submit = submitCandidates.find(isVisible);
+  const text = (document.body && document.body.innerText || '').toLowerCase();
+  const hints = new Set(fields.map(f => f.type));
+  let kind = 'unknown';
+  if (hints.has('password')) kind = (hints.has('email') || text.includes('log in') || text.includes('sign in')) ? 'login' : 'register';
+  else if (hints.has('search')) kind = 'search';
+  else if (text.includes('checkout') || text.includes('card number')) kind = 'checkout';
+  return {
+    kind,
+    fields,
+    submit: submit ? { text: (submit.innerText || submit.value || '').trim() } : null
+  };
+})()
+"#;
+
 /// A rectangle in CSS pixels, viewport-relative where applicable.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct Rect {
@@ -1100,6 +1142,24 @@ impl Page {
         let (_, elements) = self.build_agent_snapshot().await?;
         let values: Vec<Value> = elements.iter().map(SnapshotElement::to_json).collect();
         Ok(Value::Array(values).to_string())
+    }
+
+    /// Returns a typed shape for a recognized form on the page, cheap to read.
+    ///
+    /// For auth/register/checkout/search patterns the agent does not need the raw
+    /// DOM - it needs the contract: which fields exist, their types/requiredness,
+    /// and which control submits. This detector inspects the document's forms and
+    /// returns `{ kind, fields: [{ name, type, required, placeholder }], submit:
+    /// { text } }`, where `kind` is a best-effort guess (`login`, `register`,
+    /// `checkout`, `search`, or `unknown`). It deliberately avoids per-node CDP
+    /// round-trips: one script read returns the whole shape for a handful of
+    /// tokens instead of a full snapshot.
+    pub async fn form_fact(&self) -> XcelerateResult<String> {
+        // Build the index map first so a subsequent click_index remains valid;
+        // the fact itself only reads the DOM shape once.
+        let _ = self.build_agent_snapshot().await;
+        let raw = self.evaluate_json(FORM_FACT_JS.to_string()).await?;
+        Ok(raw)
     }
 
     /// Clicks the element that carried `index` in the most recent snapshot.

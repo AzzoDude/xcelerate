@@ -91,6 +91,16 @@ pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
                 );
             }
         },
+        Command::Build {
+            lang,
+            wasm_only,
+            bindings_only,
+            check,
+            out,
+            offline,
+        } => {
+            crate::build::run(lang, wasm_only, bindings_only, check, out, offline)?;
+        }
         Command::Mcp => {
             xcelerate_mcp::run_stdio().await?;
         }

@@ -7,8 +7,6 @@ members = [
     "crates/xcelerate-cli",
     "crates/xcelerate-mcp",
     "crates/xcelerate-codegen",
-    "plugins/stealth",
-    "plugins/human",
 ]
 exclude = ["bindings", "tools", "adapters", "scripts", "docs"]
 resolver = "3"
@@ -35,8 +33,6 @@ xcelerate-core = { path = "crates/xcelerate-core", version = "1.0.13" }
 xcelerate-mcp = { path = "crates/xcelerate-mcp", version = "1.0.13" }
 xcelerate-codegen = { path = "crates/xcelerate-codegen", version = "1.0.13" }
 xcelerate-plugin = { path = "crates/xcelerate-plugin", version = "1.0.13" }
-xcelerate-plugin-stealth = { path = "plugins/stealth", version = "1.0.13" }
-xcelerate-plugin-human = { path = "plugins/human", version = "1.0.13" }
 
 # External crates.
 mimalloc = "0.1.52"

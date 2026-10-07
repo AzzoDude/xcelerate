@@ -12,6 +12,12 @@
 //! `#id` for an id, and a normalised XPath expression for text. This is the
 //! difference between code that pastes and code that runs: a bare XPath handed
 //! to a CSS lookup silently matches nothing.
+//!
+//! In addition to rendering recorded *scripts*, this crate can render a *typed
+//! client binding* for a plugin op from the op's JSON Schema. See the
+//! [`bindings`] module and [`Language::generate_binding`].
+
+mod bindings;
 
 /// How a recorded selector should be looked up.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -144,7 +150,7 @@ pub enum Action {
     Screenshot { path: String },
 }
 
-/// A codegen target: one of the languages xcelerate publishes bindings for.
+/// The codegen target: one of the languages xcelerate publishes bindings for.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Language {
     Rust,
@@ -226,6 +232,16 @@ impl Language {
             Language::Go => go(&ops),
             Language::PowerShell => powershell(&ops),
         }
+    }
+
+    /// Renders a typed client binding for a plugin op from its JSON Schema.
+    ///
+    /// `schema_json` is the op's input object schema (JSON Schema Draft
+    /// 2020-12, flattened object form) and `defaults_json` the flat default
+    /// values. The result is a source file exposing a typed client whose call
+    /// signature carries real types and native defaults in this language.
+    pub fn generate_binding(self, op_name: &str, schema_json: &str, defaults_json: &str) -> String {
+        bindings::render(self, op_name, schema_json, defaults_json)
     }
 }
 

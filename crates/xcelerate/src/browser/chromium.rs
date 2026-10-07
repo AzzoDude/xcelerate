@@ -354,8 +354,13 @@ impl Browser {
             let plugin_dir = manifest_path
                 .parent()
                 .unwrap_or_else(|| std::path::Path::new("."));
-            let plugin =
-                crate::plugin::wasm::load(&manifest, plugin_dir, Some(Arc::clone(&self.client)))?;
+            let cross_plugin = cross_plugin_bridge(Arc::clone(&self.plugins));
+            let plugin = crate::plugin::wasm::load(
+                &manifest,
+                plugin_dir,
+                Some(Arc::clone(&self.client)),
+                cross_plugin,
+            )?;
             self.plugins.install(Arc::new(plugin))?;
             Ok(format!("loaded plugin '{}'", manifest.name))
         }
@@ -832,6 +837,33 @@ fn setup_browser_args(
         cmd.arg("--headless=new");
         cmd.arg("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
     }
+}
+
+/// Builds the synchronous cross-plugin bridge handed to loaded wasm plugins.
+///
+/// A plugin may depend on another plugin's op via `host.invoke-plugin` (gated by
+/// the `invoke_plugin` capability). The host callback is synchronous, but the
+/// target op runs through [`PluginManager::invoke`], which is async and must run
+/// inside a tokio runtime. To bridge that without blocking the worker that is
+/// already driving the calling guest, each cross-plugin call is dispatched to a
+/// dedicated thread owning its own runtime, and the result is awaited there.
+#[cfg(feature = "wasm")]
+fn cross_plugin_bridge(manager: Arc<PluginManager>) -> Option<crate::plugin::wasm::CrossPlugin> {
+    Some(Arc::new(
+        move |plugin: String, op: String, args_json: String| -> Result<String, String> {
+            let manager = Arc::clone(&manager);
+            std::thread::spawn(move || -> Result<String, String> {
+                let runtime = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(|error| error.to_string())?;
+                let result = runtime.block_on(manager.invoke(&plugin, &op, args_json, None));
+                result.map_err(|error| error.to_string())
+            })
+            .join()
+            .map_err(|_| "cross-plugin worker panicked".to_string())?
+        },
+    ))
 }
 
 async fn wait_for_ws_url(

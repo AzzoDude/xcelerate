@@ -59,7 +59,18 @@ struct HostState {
     limits: StoreLimits,
     #[allow(dead_code)]
     client: Option<Arc<CdpClient>>,
+    /// Synchronous bridge to another plugin's op, used to implement a plugin's
+    /// *dependency* on another plugin (`host.invoke-plugin`). Runs the target op
+    /// on a dedicated thread so an async cross-plugin call never deadlocks the
+    /// tokio worker that is driving this guest.
+    cross_plugin: Option<CrossPlugin>,
 }
+
+/// A synchronous, thread-safe call into another enabled plugin: `(plugin, op,
+/// args_json) -> result_json`. Implemented by the browser host; the wasm
+/// transport invokes it when a guest asks to call a dependency.
+pub(crate) type CrossPlugin =
+    Arc<dyn Fn(String, String, String) -> Result<String, String> + Send + Sync>;
 
 impl WasiView for HostState {
     fn ctx(&mut self) -> WasiCtxView<'_> {
@@ -108,6 +119,26 @@ impl self::xcelerate::plugin::host::Host for HostState {
         self.require(Capability::WriteCookies)?;
         Err("wasm transport: cookie access is not implemented yet".to_string())
     }
+
+    fn invoke_plugin(
+        &mut self,
+        plugin: String,
+        op: String,
+        args: Vec<u8>,
+    ) -> Result<Vec<u8>, String> {
+        self.require(Capability::InvokePlugin)?;
+        let invoker = self
+            .cross_plugin
+            .clone()
+            .ok_or_else(|| "cross-plugin calls are not available on this host".to_string())?;
+        // The cross-plugin bridge speaks JSON (the language-agnostic args form).
+        let args_json = msgpack_to_json(&args).map_err(|error| error.to_string())?;
+        let result_json = invoker(plugin, op, args_json)?;
+        // The result comes back as JSON; re-encode to MessagePack for the guest.
+        let value: serde_json::Value = serde_json::from_str(&result_json)
+            .map_err(|error| format!("cross-plugin result is not JSON: {error}"))?;
+        rmp_serde::to_vec_named(&value).map_err(|error| error.to_string())
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -123,6 +154,24 @@ struct Describe {
     version: String,
     #[serde(default)]
     ops: Vec<String>,
+    /// Non-zero when the component also carries per-op config (schema + defaults)
+    /// in `schemas`. Optional and additive: legacy components omit it (0).
+    #[serde(default)]
+    #[allow(dead_code)]
+    schema_version: u32,
+    /// `op -> { schema, defaults }`, both JSON strings. Only trusted when
+    /// `schema_version >= 1`.
+    #[serde(default)]
+    schemas: std::collections::BTreeMap<String, DescribeSchema>,
+}
+
+/// Per-op config carried in `describe` when `schema_version >= 1`.
+#[derive(serde::Deserialize)]
+struct DescribeSchema {
+    #[serde(default)]
+    schema: String,
+    #[serde(default)]
+    defaults: String,
 }
 
 /// Shared, interior-mutable handle to a running component instance.
@@ -189,6 +238,7 @@ pub(crate) fn load(
     manifest: &Manifest,
     plugin_dir: &Path,
     client: Option<Arc<CdpClient>>,
+    cross_plugin: Option<CrossPlugin>,
 ) -> XcelerateResult<WasmPlugin> {
     if let Some(abi) = &manifest.abi
         && !is_wasm_abi(abi)
@@ -232,6 +282,7 @@ pub(crate) fn load(
             .memory_size(MAX_GUEST_MEMORY_BYTES)
             .build(),
         client,
+        cross_plugin,
     };
     let mut store = Store::new(&engine, state);
     // Cap the guest's memory, and arm the epoch deadline so instantiation and
@@ -274,6 +325,21 @@ pub(crate) fn load(
     } else {
         describe.ops
     };
+
+    // Fold any schema-advertising config into the manifest so callers (MCP/
+    // bindings) can discover an op's typed input shape and defaults.
+    let mut manifest = manifest.clone();
+    if describe.schema_version >= 1 {
+        for (op, schema) in describe.schemas {
+            manifest.config.insert(
+                op,
+                xcelerate_plugin::OpSchema {
+                    schema: schema.schema,
+                    defaults: schema.defaults,
+                },
+            );
+        }
+    }
 
     Ok(WasmPlugin {
         manifest: manifest.clone(),
@@ -452,7 +518,7 @@ mod tests {
 
         let manifest_text = std::fs::read_to_string(dir.join("plugin.json")).unwrap();
         let manifest = Manifest::from_json(&manifest_text).unwrap();
-        let plugin = load(&manifest, dir, None).unwrap();
+        let plugin = load(&manifest, dir, None, None).unwrap();
         assert_eq!(plugin.name(), "example.wasm-echo");
 
         let catalog: xcelerate_plugin::Catalog =
@@ -527,7 +593,7 @@ mod tests {
         };
         let dir = PathBuf::from(dir);
         let manifest = Manifest::load(&dir.join("plugin.json").to_string_lossy()).unwrap();
-        let plugin = load(&manifest, &dir, None).unwrap();
+        let plugin = load(&manifest, &dir, None, None).unwrap();
 
         let catalog: xcelerate_plugin::Catalog =
             Arc::new(|_: &str| -> Option<Arc<dyn Plugin>> { None });

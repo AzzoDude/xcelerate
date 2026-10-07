@@ -11,6 +11,7 @@
 
 use mimalloc::MiMalloc;
 
+mod build;
 mod cli;
 mod commands;
 mod cursor;

@@ -3250,24 +3250,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "xcelerate-plugin-human"
-version = "1.0.13"
-dependencies = [
- "serde_json",
- "tokio",
- "xcelerate-plugin",
-]
-
-[[package]]
-name = "xcelerate-plugin-stealth"
-version = "1.0.13"
-dependencies = [
- "serde_json",
- "thiserror",
- "xcelerate-plugin",
-]
-
-[[package]]
 name = "yoke"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

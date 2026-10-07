@@ -198,6 +198,28 @@ pub enum Command {
         #[arg(long)]
         all: bool,
     },
+    /// Build a scaffolded plugin: compile the `.wasm` core and/or generate +
+    /// package the typed client binding for a target language.
+    Build {
+        /// Target language (see `--lang`). Optional when a default is set or
+        /// exactly one toolchain is detected.
+        lang: Option<CodegenLang>,
+        /// Compile only the `.wasm` core; skip binding generation/package.
+        #[arg(long)]
+        wasm_only: bool,
+        /// Generate + package bindings only against an existing `.wasm`.
+        #[arg(long)]
+        bindings_only: bool,
+        /// Inspect the toolchain matrix and report, building nothing.
+        #[arg(long)]
+        check: bool,
+        /// Output directory (default `dist`).
+        #[arg(long, value_name = "DIR")]
+        out: Option<PathBuf>,
+        /// Forbid network fetches (registry/pub/dependency downloads).
+        #[arg(long)]
+        offline: bool,
+    },
     /// Alias for `list plugin`.
     Plugins,
     /// Create a new mod (plugin) from the starter template.

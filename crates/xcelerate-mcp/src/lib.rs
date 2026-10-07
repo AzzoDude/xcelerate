@@ -383,6 +383,13 @@ impl Server {
                     .map_err(to_message)?;
                 Ok(Outcome::Text(result))
             }
+            "browser_plugin_config" => {
+                let plugin = str_arg(args, "name")?;
+                let browser = self.ensure_browser().await?;
+                let handle = browser.plugin(plugin.to_string()).map_err(to_message)?;
+                let config = handle.config().map_err(to_message)?;
+                Ok(Outcome::Text(config))
+            }
             "browser_wait" => {
                 let milliseconds = u64_arg(args, "milliseconds").ok_or_else(|| {
                     "missing required integer argument 'milliseconds'".to_string()
@@ -424,6 +431,11 @@ impl Server {
                 let page = self.ensure_page().await?;
                 let snapshot = page.agent_snapshot().await.map_err(to_message)?;
                 Ok(Outcome::Text(snapshot))
+            }
+            "browser_form_fact" => {
+                let page = self.ensure_page().await?;
+                let fact = page.form_fact().await.map_err(to_message)?;
+                Ok(Outcome::Text(fact))
             }
             "browser_click_index" => {
                 let index = u32_arg(args, "index")
@@ -885,6 +897,17 @@ fn tool_definitions() -> Value {
             }
         },
         {
+            "name": "browser_plugin_config",
+            "description": "Return a plugin's per-op typed input schema and defaults (JSON, keyed by op), as advertised by the component. Use it to learn an op's expected arguments and default values without reading the DOM.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string", "description": "Plugin name." }
+                },
+                "required": ["name"]
+            }
+        },
+        {
             "name": "browser_wait",
             "description": "Pause for a number of milliseconds (max 60000).",
             "inputSchema": {
@@ -922,6 +945,11 @@ fn tool_definitions() -> Value {
         {
             "name": "browser_snapshot",
             "description": "Return an agent-friendly, indented snapshot of the page. Interactive elements are tagged with a stable [index] usable with browser_click_index; call it before every action instead of guessing CSS selectors.",
+            "inputSchema": { "type": "object", "properties": {} }
+        },
+        {
+            "name": "browser_form_fact",
+            "description": "Return a typed shape for a recognized form (login/register/checkout/search) as {kind, fields:[{name,type,required,placeholder}], submit:{text}}. Cheaper in tokens than a full snapshot when the task is just to understand and fill a form.",
             "inputSchema": { "type": "object", "properties": {} }
         },
         {

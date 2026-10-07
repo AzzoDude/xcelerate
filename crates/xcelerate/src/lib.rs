@@ -8,8 +8,9 @@
 //! * [`xcelerate_core`] — the WebSocket transport and typed command layer.
 //! * [`xcelerate_plugin`] — the plugin trait, manifest, audit log, and the
 //!   `PageHost` interface plugins use to reach a page. **No plugins are built
-//!   into the core**; plugin crates (`plugins/stealth`, `plugins/human`) are
-//!   external and are installed by the embedder.
+//!   into the core**; plugins are external: either sandboxed wasm components
+//!   loaded with [`Browser::load_plugin`], or in-process crates an embedder
+//!   installs with [`Browser::install_plugins`].
 //!
 //! This crate is the thin facade: it composes those pieces into the high-level
 //! [`Browser`], [`Page`], and [`Element`] API and exposes it to other languages
@@ -38,7 +39,7 @@ pub use element::Element;
 pub use error::{XcelerateError, XcelerateResult};
 pub use page::Page;
 pub use page::recording::VideoOptions;
-pub use plugin::{Capability, Manifest, Plugin, PluginHandle};
+pub use plugin::{Capability, Manifest, OpSchema, Plugin, PluginHandle};
 
 // Proxy configuration (Rust-only; other languages set `XCELERATE_PROXY[_POOL]`).
 pub use proxy::configure as configure_proxy;

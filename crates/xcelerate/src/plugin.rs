@@ -15,7 +15,7 @@ use crate::page::Page;
 use xcelerate_plugin::{ArcPageHost, BoxFut, Catalog, PageHost, PluginError, PluginResult};
 
 pub use xcelerate_plugin::{
-    AuditEvent, Capability, Manifest, Plugin, PluginManager, audit_entries, audit_verify,
+    AuditEvent, Capability, Manifest, OpSchema, Plugin, PluginManager, audit_entries, audit_verify,
 };
 
 #[cfg(feature = "wasm")]
@@ -174,6 +174,20 @@ impl PluginHandle {
         let result = self.invoke(op.into(), args_json).await?;
         serde_json::from_str(&result).map_err(|error| XcelerateError::SerdeError(error.to_string()))
     }
+
+    /// The plugin's per-op config (input schema + defaults) the component
+    /// advertised in its `describe` handshake, as a JSON object keyed by op:
+    /// `{"op": {"schema": "...json-schema...", "defaults": "{...}"}}`.
+    /// Empty `{}` for plugins that do not carry config (schema_version 0).
+    pub fn config(&self) -> XcelerateResult<String> {
+        let config = self
+            .manager
+            .manifest(&self.name)
+            .map(|manifest| manifest.config)
+            .unwrap_or_default();
+        serde_json::to_string(&config)
+            .map_err(|error| XcelerateError::SerdeError(error.to_string()))
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -209,6 +223,7 @@ mod tests {
                 dependencies: Default::default(),
                 overrides: Default::default(),
                 limits: Budgets::default(),
+                config: Default::default(),
             }
         }
 

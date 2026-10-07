@@ -65,6 +65,13 @@ pub async fn run_session(
     // `submit`) can still be recorded: `fill #box text` then `submit` becomes a
     // Fill plus a Press of Enter on `#box`.
     let mut last_target: Option<Selector> = None;
+    // Video recording state: `record` writes to this path, `stop-record`
+    // finalizes it. Only meaningful while `--codegen` is active.
+    let mut video_path: Option<String> = None;
+    // Whether the AI has declared the task complete with `done`. While an
+    // AI-driven run is still in flight, `quit` is treated as a first-class
+    // last resort and gated behind an explicit override.
+    let mut job_done = false;
 
     let mut lines = tokio::io::BufReader::new(tokio::io::stdin()).lines();
     'session: loop {
@@ -111,7 +118,43 @@ pub async fn run_session(
                     Ok(())
                 }
                 "quit" | "exit" | "q" => {
+                    // An AI-driven run is not allowed to walk away from the
+                    // browser mid-task. Exiting is a last resort: the job must
+                    // be declared done (`done`), or the agent must override it
+                    // explicitly (`quit!`) when it has genuinely hit a wall -
+                    // missing information or a feature gap it should surface to
+                    // the user instead.
+                    if args.ai && !job_done {
+                        println!(
+                            "not exiting: the job is not marked done.\n\
+                             \x20 finish the task and run `done`, or if you truly cannot\n\
+                             \x20 proceed (missing info / a needed feature), run `quit!` and\n\
+                             \x20 tell the user what is blocking you."
+                        );
+                        return Ok(());
+                    }
                     quit = true;
+                    Ok(())
+                }
+                "quit!" | "exit!" | "q!" => {
+                    // Explicit last-resort override: the agent acknowledges it
+                    // is leaving before the job is complete.
+                    if args.ai && !job_done {
+                        println!(
+                            "exiting before the job is done - please explain to the user\n\
+                             \x20 what is missing or blocked."
+                        );
+                    }
+                    quit = true;
+                    Ok(())
+                }
+                "done" | "complete" => {
+                    if rest.is_empty() {
+                        println!("usage: done [short summary]   (marks the task complete)");
+                    } else {
+                        println!("marked done: {rest}");
+                    }
+                    job_done = true;
                     Ok(())
                 }
                 "open" | "goto" => {
@@ -627,6 +670,111 @@ pub async fn run_session(
                     }
                     Ok(())
                 }
+                "record" | "rec" => {
+                    // Start a video capture of the live run. Tied to codegen: a
+                    // bare `--codegen` run records *actions*; `record` adds a
+                    // screen capture of the same run.
+                    if args.codegen.is_none() {
+                        println!("record is only available with --codegen <LANG>");
+                        return Ok(());
+                    }
+                    if video_path.is_some() {
+                        println!("already recording; `stop-record` first");
+                        return Ok(());
+                    }
+                    let output = if rest.is_empty() {
+                        "recording.mp4".to_string()
+                    } else {
+                        rest.to_string()
+                    };
+                    page.start_video(output.clone()).await?;
+                    video_path = Some(output);
+                    println!("recording started (will write on `stop-record`)");
+                    Ok(())
+                }
+                "stop-record" | "stop-rec" | "record-stop" => {
+                    if args.codegen.is_none() {
+                        println!("stop-record is only available with --codegen <LANG>");
+                        return Ok(());
+                    }
+                    match page.stop_video().await? {
+                        Some(path) => {
+                            println!("wrote {path}");
+                            video_path = None;
+                        }
+                        None => println!("no recording was in progress"),
+                    }
+                    Ok(())
+                }
+                "codegen" | "gen" => {
+                    if args.codegen.is_none() {
+                        println!("codegen is only available with --codegen <LANG>");
+                        return Ok(());
+                    }
+                    let (sub, arg) = match rest.split_once(char::is_whitespace) {
+                        Some((sub, arg)) => (sub.to_ascii_lowercase(), arg.trim().to_string()),
+                        None => (rest.to_ascii_lowercase(), String::new()),
+                    };
+                    let lang = args.codegen.expect("checked above");
+                    match sub.as_str() {
+                        // `codegen preview` / `codegen`: print the script so far.
+                        "" | "preview" | "show" | "print" => {
+                            let code = codegen_language(lang).generate(&recording);
+                            println!(
+                                "\n# ---- generated {} ({} actions, preview) ----\n{code}",
+                                codegen_language(lang).label(),
+                                recording.len()
+                            );
+                        }
+                        // `codegen out [path]`: write a snapshot without ending
+                        // the session (useful when the AI wants to hand off a draft).
+                        "out" | "write" | "save" => {
+                            let code = codegen_language(lang).generate(&recording);
+                            let path = if arg.is_empty() {
+                                codegen_language(lang).file_name().to_string()
+                            } else {
+                                arg
+                            };
+                            match std::fs::write(&path, code.as_bytes()) {
+                                Ok(()) => println!("codegen: wrote {path} ({} actions)", recording.len()),
+                                Err(error) => eprintln!("codegen: could not write {path}: {error}"),
+                            }
+                        }
+                        // `codegen undo` / `codegen remove <n>`: prune mistakes
+                        // from the recorded run before it is rendered.
+                        "undo" => {
+                            if recording.pop().is_some() {
+                                println!("removed the last recorded action ({} left)", recording.len());
+                            } else {
+                                println!("nothing recorded yet");
+                            }
+                        }
+                        "remove" | "drop" => {
+                            let n = arg.parse::<usize>().unwrap_or(1);
+                            if recording.len() <= n {
+                                recording.clear();
+                            } else {
+                                recording.truncate(recording.len() - n);
+                            }
+                            println!("removed {n} action(s) ({} left)", recording.len());
+                        }
+                        // `codegen clear`: start the recording over.
+                        "clear" | "reset" => {
+                            recording.clear();
+                            last_target = None;
+                            println!("recording cleared");
+                        }
+                        "status" | "stats" | "count" => {
+                            println!("{} action(s) recorded", recording.len());
+                        }
+                        _ => {
+                            println!(
+                                "usage: codegen [preview|out|undo|remove <n>|clear|status]"
+                            );
+                        }
+                    }
+                    Ok(())
+                }
                 other => {
                     println!("unknown command: {other}   (try `help`)");
                     Ok(())
@@ -718,9 +866,21 @@ fn print_session_help() {
          \x20 new-tab [url]                 open a new tab and make it active\n\
          \x20 switch <n|targetId>           switch the active tab (no arg cycles)\n\
          \x20 close-tab <targetId>          close one target (ids come from `tabs`)\n\
+         \x20 await-human [s]                 wait until a person clears the challenge\n\
+         \x20 eval <js>                       evaluate JavaScript, print the result\n\
+         \x20 guard <path.js>                block popups/ads on this page and every new one\n\
+         \x20 tabs                           list targets (id, type, url)\n\
+         \x20 new-tab [url]                  open a new tab and make it active\n\
+         \x20 switch <n|targetId>            switch the active tab (no arg cycles)\n\
+         \x20 close-tab <targetId>           close one target (ids come from `tabs`)\n\
          \x20 shot [path]                    viewport screenshot (default screenshot.png)\n\
          \x20 shot-full [path]               full-page screenshot\n\
-         \x20 help | quit"
+         \x20 record [path]                   start a video (only with --codegen)\n\
+         \x20 stop-record                     stop the video (only with --codegen)\n\
+         \x20 codegen [preview|out|undo|remove <n>|clear|status]\n\
+         \x20                                 preview / edit the recorded script\n\
+         \x20 done [summary]                  mark the task complete\n\
+         \x20 help | quit                    (an AI run must `done` or `quit!` to exit)"
     );
 }
 
