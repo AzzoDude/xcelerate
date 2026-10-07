@@ -4,6 +4,9 @@
 //! no continuity between invocations. A session keeps the page alive so steps can
 //! be chained the way a person browses: open, skip an ad, click a result, keep
 //! reading - without ever relaunching.
+//!
+//! Every step is mirrored into the native overlay (see `crate::overlay`), which
+//! also carries the human's Stop / Pause / screenshot requests back to this loop.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -12,12 +15,13 @@ use xcelerate::Page;
 
 use crate::cli::BrowserArgs;
 use crate::launch::launch;
-use crate::overlay;
+use crate::overlay::{Bounds, OverlayHandle, Step, record_step};
 
-/// Runs the REPL until `quit`, EOF, or a Stop from the page HUD.
+/// Runs the REPL until `quit`, EOF, or a Stop from the overlay.
 pub async fn run_session(
     args: &BrowserArgs,
     start: Option<String>,
+    overlay: OverlayHandle,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use std::io::{IsTerminal, Write};
     use tokio::io::AsyncBufReadExt;
@@ -27,12 +31,31 @@ pub async fn run_session(
     let interactive = std::io::stdin().is_terminal();
     let initial = start.unwrap_or_else(|| "about:blank".to_string());
     let (browser, page) = launch(args, &initial).await?;
-    let mut hud_active = args.hud;
+
+    // Keep the overlay pinned to the browser window while it is on screen, so it
+    // moves and resizes with the browser instead of floating at a fixed spot.
+    // Skipped when the browser is headless: there is no window to follow.
+    let follow = if args.live() {
+        Some(tokio::spawn(follow_browser(
+            Arc::clone(&page),
+            overlay.clone(),
+        )))
+    } else {
+        None
+    };
+
+    // Raise the input gate: while the run drives the page the human cannot click,
+    // type or scroll it. Each step lowers the gate only for its own CDP input.
+    if args.live() {
+        crate::cursor::set_gate(&page, true).await;
+    }
 
     if interactive {
         println!("xcelerate session - one browser, many steps.");
-        if hud_active {
-            println!("HUD is on: cursor, bottom bar, and the interceptor panel.");
+        if args.live() {
+            println!(
+                "overlay is on: the control bar and the interceptor log float over the browser."
+            );
         }
         println!("type `help` for commands, `quit` to exit.\n");
     } else {
@@ -40,18 +63,34 @@ pub async fn run_session(
     }
 
     let mut lines = tokio::io::BufReader::new(tokio::io::stdin()).lines();
-    loop {
+    'session: loop {
         if interactive {
             print!("xcelerate> ");
             let _ = std::io::stdout().flush();
         }
 
-        let line = match lines.next_line().await {
-            Ok(Some(line)) => line,
-            Ok(None) => break, // EOF (Ctrl-D, or the end of piped input)
-            Err(error) => {
-                println!("input error: {error}");
-                break;
+        // Wait for the next command, but also notice the human closing the
+        // overlay: that ends the run - and shuts the browser down - rather than
+        // leaving the session blocked on input.
+        let line = {
+            let mut ticker = tokio::time::interval(Duration::from_millis(250));
+            loop {
+                tokio::select! {
+                    next = lines.next_line() => match next {
+                        Ok(Some(line)) => break line,
+                        Ok(None) => break 'session, // EOF (Ctrl-D, or piped input ended)
+                        Err(error) => {
+                            println!("input error: {error}");
+                            break 'session;
+                        }
+                    },
+                    _ = ticker.tick() => {
+                        if overlay.is_closed() {
+                            println!("overlay closed; shutting down");
+                            break 'session;
+                        }
+                    }
+                }
             }
         };
         let line = line.trim();
@@ -69,7 +108,6 @@ pub async fn run_session(
 
         // The whole dispatch runs inside an async block so a `?` failure is
         // captured here rather than propagating out of the session.
-        let started = std::time::Instant::now();
         let mut quit = false;
         let outcome: Result<(), Box<dyn std::error::Error>> = async {
             match verb.as_str() {
@@ -79,22 +117,6 @@ pub async fn run_session(
                 }
                 "quit" | "exit" | "q" => {
                     quit = true;
-                    Ok(())
-                }
-                "hud" => {
-                    match rest.as_str() {
-                        "off" => {
-                            overlay::remove(&page).await;
-                            hud_active = false;
-                            println!("HUD off");
-                        }
-                        "" | "on" => {
-                            overlay::install(&page).await?;
-                            hud_active = true;
-                            println!("HUD on (cursor + bottom bar + interceptor)");
-                        }
-                        other => println!("usage: hud [on|off]   (got {other:?})"),
-                    }
                     Ok(())
                 }
                 "open" | "goto" => {
@@ -135,10 +157,8 @@ pub async fn run_session(
                         println!("usage: click <index|selector>   (index comes from `snapshot`)");
                         return Ok(());
                     }
-                    // The bar dims and becomes click-through while the mouse is being
-                    // driven, so an automated click cannot land on a HUD control.
-                    set_driving(&page, true).await;
                     if let Ok(index) = rest.parse::<u32>() {
+                        crate::cursor::set_driving(&page, true).await;
                         // The index map only exists after a snapshot; build it on
                         // first use so `click 3` works even if `snapshot` was never run.
                         if Arc::clone(&page).click_index(index).await.is_err() {
@@ -152,6 +172,7 @@ pub async fn run_session(
                         );
                     } else {
                         let element = Arc::clone(&page).wait_for_selector(rest.clone()).await?;
+                        crate::cursor::set_driving(&page, true).await;
                         element.click_mouse().await?;
                         tokio::time::sleep(Duration::from_millis(600)).await;
                         println!("clicked {rest} -> {}", page.url().await.unwrap_or_default());
@@ -160,12 +181,10 @@ pub async fn run_session(
                 }
                 "fill" => match rest.split_once(char::is_whitespace) {
                     Some((selector, text)) => {
-                        // Typing emits page input events; mark them as agent-driven
-                        // so the HUD's interceptor does not also record them as yours.
-                        set_driving(&page, true).await;
                         let element = Arc::clone(&page)
                             .wait_for_selector(selector.to_string())
                             .await?;
+                        crate::cursor::set_driving(&page, true).await;
                         let count = text.chars().count();
                         element.type_text(text.to_string()).await?;
                         println!("typed {count} chars into {selector}");
@@ -180,10 +199,10 @@ pub async fn run_session(
                     if rest.is_empty() {
                         println!("usage: type <text>   (types into the focused element)");
                     } else {
-                        set_driving(&page, true).await;
                         let element = Arc::clone(&page)
                             .evaluate_handle("document.activeElement".to_string())
                             .await?;
+                        crate::cursor::set_driving(&page, true).await;
                         let count = rest.chars().count();
                         element.type_text(rest.clone()).await?;
                         println!("typed {count} chars into the focused element");
@@ -191,10 +210,14 @@ pub async fn run_session(
                     Ok(())
                 }
                 "press" => {
-                    set_driving(&page, true).await;
+                    if rest.is_empty() {
+                        println!("usage: press <key>   (sends to the focused element)");
+                        return Ok(());
+                    }
                     let element = Arc::clone(&page)
                         .evaluate_handle("document.activeElement".to_string())
                         .await?;
+                    crate::cursor::set_driving(&page, true).await;
                     element.press(rest.clone()).await?;
                     println!("pressed {rest}");
                     Ok(())
@@ -262,7 +285,6 @@ pub async fn run_session(
                     if rest.is_empty() {
                         println!("usage: click-text <visible text>");
                     } else {
-                        set_driving(&page, true).await;
                         let needle = serde_json::to_string(&rest)?;
                         // Only real controls: a large wrapper div matched by text
                         // would be clicked at its centre, which is not the button.
@@ -277,6 +299,7 @@ pub async fn run_session(
                             let element = Arc::clone(&page)
                                 .evaluate_handle(format!("(() => {{ {decl} return {expr}; }})()"))
                                 .await?;
+                            crate::cursor::set_driving(&page, true).await;
                             element.click_mouse().await?;
                             tokio::time::sleep(Duration::from_millis(600)).await;
                             println!(
@@ -293,8 +316,8 @@ pub async fn run_session(
                     if rest.is_empty() {
                         println!("usage: hover <selector>");
                     } else {
-                        set_driving(&page, true).await;
                         let element = Arc::clone(&page).wait_for_selector(rest.clone()).await?;
+                        crate::cursor::set_driving(&page, true).await;
                         element.hover_mouse().await?;
                         println!("hovered {rest}");
                     }
@@ -315,7 +338,6 @@ pub async fn run_session(
                         },
                     };
                     if !js.is_empty() {
-                        set_driving(&page, true).await;
                         let _ = page.evaluate_string(js).await;
                         println!("scrolled {rest}");
                     }
@@ -404,7 +426,6 @@ pub async fn run_session(
         }
         .await;
 
-        let elapsed_ms = started.elapsed().as_millis();
         let ok = outcome.is_ok();
         if quit {
             break;
@@ -414,114 +435,129 @@ pub async fn run_session(
             println!("error: {error}");
         }
 
-        // The action is over: hand the bar back to the human. This is a no-op
-        // when no HUD is installed, so it is safe to call unconditionally.
-        set_driving(&page, false).await;
-        if hud_active {
-            log_action(&page, &verb, &rest, ok, elapsed_ms).await;
-            if stop_requested(&page).await {
-                println!("stop requested from the page HUD");
-                break;
-            }
-            flush_hud_screenshot(&page).await;
-            if wait_while_paused(&page).await {
-                println!("stopped from the page HUD while paused");
-                break;
-            }
+        // Record the step for the codegen overlay, then re-raise the cursor gate:
+        // outside a mouse step the cursor stays inert.
+        if ok && let Some(step) = Step::parse(&verb, &rest) {
+            record_step(&overlay, step);
         }
+        crate::cursor::set_driving(&page, false).await;
     }
 
+    if let Some(handle) = follow {
+        handle.abort();
+    }
     browser.close().await.ok();
     println!("session closed.");
     Ok(())
 }
 
-/// Records one step in the on-page inspector (no-op without a HUD). A
-/// structured record is sent so the panel can show the action, its target, the
-/// status and how long it took.
-async fn log_action(page: &Arc<Page>, action: &str, detail: &str, ok: bool, ms: u128) {
-    let detail: String = {
-        let mut text: String = detail.chars().take(120).collect();
-        if detail.chars().count() > 120 {
-            text.push('…');
-        }
-        text
-    };
-    let payload = serde_json::json!({
-        "action": action,
-        "detail": detail,
-        "status": if ok { "ok" } else { "error" },
-        "ms": ms.min(u64::MAX as u128) as u64,
-    })
-    .to_string();
-    let _ = page
-        .evaluate_json(format!(
-            "(()=>{{if(window.__xcelerateLog)window.__xcelerateLog({payload});return true}})()"
-        ))
-        .await;
-}
+/// Follow cadence while the browser is moving (the fastest polling rate).
+const FOLLOW_ACTIVE: Duration = Duration::from_millis(6);
+/// Follow cadence once the browser has settled, to keep idle traffic low.
+const FOLLOW_IDLE: Duration = Duration::from_millis(24);
+/// Consecutive unchanged reads before backing off to [`FOLLOW_IDLE`].
+const FOLLOW_SETTLE: u32 = 4;
+/// Consecutive failed reads that mean the browser is gone.
+const FOLLOW_MISS_LIMIT: u32 = 40;
 
-/// Toggles the HUD's "agent is driving" state. While set, the control bar is
-/// dimmed and click-through, so an automated click cannot land on a control and
-/// instead reaches the page underneath.
-async fn set_driving(page: &Arc<Page>, on: bool) {
-    let _ = page
-        .evaluate_json(format!(
-            "(()=>{{if(window.__xcelerateSetDriving){{window.__xcelerateSetDriving({on});}}return true}})()"
-        ))
-        .await;
-}
-
-/// Whether the page HUD's Stop button was pressed.
-async fn stop_requested(page: &Arc<Page>) -> bool {
-    page.evaluate_bool("!!window.__xcelerateStop".to_string())
-        .await
-        .unwrap_or(false)
-}
-
-/// Saves a screenshot if the HUD's camera button was pressed, then clears it.
-async fn flush_hud_screenshot(page: &Arc<Page>) {
-    let requested = page
-        .evaluate_bool("!!window.__xcelerateScreenshot".to_string())
-        .await
-        .unwrap_or(false);
-    if !requested {
+/// Pins the overlay to the browser window, re-reading its rectangle often enough
+/// to track a drag, and closes the overlay once the browser is gone.
+async fn follow_browser(page: Arc<Page>, overlay: OverlayHandle) {
+    // Resolve the browser window once; without one there is nothing to follow.
+    let Some(window_id) = browser_window_id(&page).await else {
         return;
-    }
-    let _ = page
-        .evaluate_json("window.__xcelerateScreenshot=false".to_string())
-        .await;
-    match page.screenshot().await {
-        Ok(png) => {
-            let stamp = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_secs())
-                .unwrap_or(0);
-            let path = format!("hud-screenshot-{stamp}.png");
-            match std::fs::write(&path, &png) {
-                Ok(()) => println!("HUD requested a screenshot -> {path}"),
-                Err(error) => println!("could not write {path}: {error}"),
+    };
+    let mut misses = 0u32;
+    let mut stable = FOLLOW_SETTLE + 1;
+    let mut last: Option<Bounds> = None;
+    loop {
+        // A dead connection can leave a CDP request pending forever, so every
+        // probe is bounded: a timeout counts as a miss like any other failure.
+        let bounds = tokio::time::timeout(
+            std::time::Duration::from_millis(500),
+            window_bounds(&page, &window_id),
+        )
+        .await
+        .ok()
+        .flatten();
+        match bounds {
+            Some(bounds) => {
+                // Only push a change, and go back to the fast cadence while it is
+                // moving; settle to a slower rate so an idle browser costs little.
+                if last.is_none_or(|previous| moved(previous, bounds)) {
+                    overlay.set_bounds(Some(bounds));
+                    last = Some(bounds);
+                    stable = 0;
+                } else {
+                    stable = stable.saturating_add(1);
+                }
+                misses = 0;
+            }
+            None => {
+                misses += 1;
+                // A stretch of silence: the browser is closed, so the overlay has
+                // nothing left to sit on and goes with it.
+                if misses >= FOLLOW_MISS_LIMIT {
+                    overlay.request_close();
+                    return;
+                }
             }
         }
-        Err(error) => println!("HUD screenshot failed: {error}"),
+        let interval = if stable > FOLLOW_SETTLE {
+            FOLLOW_IDLE
+        } else {
+            FOLLOW_ACTIVE
+        };
+        tokio::time::sleep(interval).await;
     }
 }
 
-/// Blocks while the HUD's Pause is engaged. Returns `true` if Stop fired meanwhile.
-async fn wait_while_paused(page: &Arc<Page>) -> bool {
-    loop {
-        if stop_requested(page).await {
-            return true;
-        }
-        let paused = page
-            .evaluate_bool("!!window.__xceleratePause".to_string())
-            .await
-            .unwrap_or(false);
-        if !paused {
-            return false;
-        }
-        tokio::time::sleep(Duration::from_millis(200)).await;
+/// Whether two window rectangles differ enough to be worth pushing.
+fn moved(a: Bounds, b: Bounds) -> bool {
+    (a.x - b.x).abs() > 0.5
+        || (a.y - b.y).abs() > 0.5
+        || (a.width - b.width).abs() > 0.5
+        || (a.height - b.height).abs() > 0.5
+}
+
+/// The window id that contains this page, or `None` when there is no real window.
+async fn browser_window_id(page: &Arc<Page>) -> Option<serde_json::Value> {
+    let params = serde_json::json!({ "targetId": page.target_id() }).to_string();
+    let raw = page
+        .execute_cdp_cmd("Browser.getWindowForTarget".to_string(), params)
+        .await
+        .ok()?;
+    let value: serde_json::Value = serde_json::from_str(&raw).ok()?;
+    value.get("windowId").cloned()
+}
+
+/// The browser window's screen rectangle, or `None` when CDP cannot report it
+/// (headless, or the browser is gone).
+async fn window_bounds(page: &Arc<Page>, window_id: &serde_json::Value) -> Option<Bounds> {
+    let params = serde_json::json!({ "windowId": window_id }).to_string();
+    let raw = page
+        .execute_cdp_cmd("Browser.getWindowBounds".to_string(), params)
+        .await
+        .ok()?;
+    let value: serde_json::Value = serde_json::from_str(&raw).ok()?;
+    parse_bounds(value.get("bounds")?)
+}
+
+/// Reads `{left, top, width, height}` from a CDP `Bounds` object.
+fn parse_bounds(bounds: &serde_json::Value) -> Option<Bounds> {
+    let x = bounds.get("left")?.as_f64()?;
+    let y = bounds.get("top")?.as_f64()?;
+    let width = bounds.get("width")?.as_f64()?;
+    let height = bounds.get("height")?.as_f64()?;
+    if width <= 1.0 || height <= 1.0 {
+        return None;
     }
+    Some(Bounds {
+        x,
+        y,
+        width,
+        height,
+    })
 }
 
 fn print_session_help() {
@@ -542,7 +578,6 @@ fn print_session_help() {
          \x20 find <text>                    how many elements contain the text\n\
          \x20 wait <ms|selector>             sleep, or wait for an element\n\
          \x20 eval <js>                      evaluate JavaScript, print the result\n\
-         \x20 hud [on|off]                   show/hide the HUD (cursor, bar, interceptor)\n\
          \x20 guard <path.js>               block popups/ads on this page and every new one\n\
          \x20 tabs                          list targets (id, type, url)\n\
          \x20 close-tab <targetId>          close one target (ids come from `tabs`)\n\

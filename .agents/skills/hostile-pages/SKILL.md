@@ -258,23 +258,3 @@ xcelerate --no-headless --user-data-dir .run/profile \
   (`backendNodeId`-pinned) or `click-text` over stored x/y.
 - **Forgetting new documents.** A guard installed only via `evaluate` is lost on
   the next navigation. Use `add_script_to_evaluate_on_new_document` / `inject_file`.
-
-## Case study — `youraislopbores.me`
-
-Observed: after the age gate and an intro modal, the site repeatedly opened a
-full-screen **ad interstitial** ("Close advertisement") that covered the chat
-textarea, so `type` dispatched into a blocked element and `textarea.value`
-stayed empty.
-
-Defence that works:
-
-1. `guard .agents/skills/hostile-pages/guardian.js` once, right after `open`;
-2. the guardian's rule 6 clicks "Close advertisement" the moment it appears, and
-   the MutationObserver keeps doing it on re-injection;
-3. `--deny-domain` for the ad hosts removes the requests entirely, so the
-   interstitial never renders. Find them with `tabs` (the ad **iframes** give the
-   hosts away) or `xcelerate har <url>`. Observed on this site:
-   `doubleclick.net`, `criteo.com`, `openx.net`, `3lift.com`, `adnxs.com`,
-   `pubmatic.com`, `rubiconproject.com`, `inmobi.com`, `amazon-adsystem.com`,
-   `adform.net`, `simpli.fi`, `temu.com/api/adx`;
-4. only then `click textarea` → `type` → `press Enter`.

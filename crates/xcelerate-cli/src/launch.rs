@@ -5,7 +5,6 @@ use std::sync::Arc;
 use xcelerate::{Browser, BrowserConfig, Page, XcelerateResult};
 
 use crate::cli::BrowserArgs;
-use crate::overlay;
 
 /// The build command to suggest after scaffolding, per platform.
 pub fn build_hint() -> &'static str {
@@ -42,8 +41,9 @@ pub async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Brows
         });
     }
     let config = BrowserConfig {
-        // `--ai` is a live run: the window must be on screen for the HUD to matter.
-        headless: !(args.no_headless || args.ai),
+        // A live run (`--hud` / `--ai` / `--codegen`) must be on screen for the
+        // overlay, cursor and input gate to matter.
+        headless: !(args.no_headless || args.live()),
         detached: args.detached,
         executable_path: args
             .browser
@@ -84,11 +84,10 @@ pub async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Brows
     // long-polling or constantly-mutating page from hanging the CLI.
     let _ = page.wait_for_dom_stable(300, 2_000).await;
 
-    // The HUD (cursor + control bar + interceptor) is injected on this document
-    // and every new one, so a visible run shows where the agent is pointing and
-    // offers a Stop. `--ai` turns it on implicitly.
-    if args.hud || args.ai {
-        overlay::install(&page).await?;
+    // The overlay runs double as a live, watchable run, so mark it with the
+    // in-page cursor dot (and its input gate).
+    if args.live() {
+        crate::cursor::install(&page).await?;
     }
 
     Ok((browser, page))

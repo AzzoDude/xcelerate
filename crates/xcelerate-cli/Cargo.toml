@@ -16,10 +16,17 @@ path = "src/main.rs"
 [dependencies]
 xcelerate.workspace = true
 xcelerate-mcp.workspace = true
+xcelerate-ui = { workspace = true, optional = true }
 clap.workspace = true
 tokio.workspace = true
 mimalloc.workspace = true
 serde_json.workspace = true
+
+[features]
+default = ["ui"]
+# The native overlay window (winit + egui). Build with `--no-default-features`
+# to drop the GUI stack; the overlay then becomes a no-op.
+ui = ["dep:xcelerate-ui"]
 
 [lints]
 workspace = true

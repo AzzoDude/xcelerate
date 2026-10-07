@@ -6,6 +6,7 @@ members = [
     "crates/xcelerate-bindgen",
     "crates/xcelerate-cli",
     "crates/xcelerate-mcp",
+    "crates/xcelerate-ui",
     "plugins/stealth",
     "plugins/human",
 ]
@@ -35,6 +36,20 @@ xcelerate-mcp = { path = "crates/xcelerate-mcp", version = "1.0.12" }
 xcelerate-plugin = { path = "crates/xcelerate-plugin", version = "1.0.12" }
 xcelerate-plugin-stealth = { path = "plugins/stealth", version = "1.0.12" }
 xcelerate-plugin-human = { path = "plugins/human", version = "1.0.12" }
+xcelerate-ui = { path = "crates/xcelerate-ui", version = "1.0.12" }
+
+# Native overlay: winit + egui, driven directly (no eframe), confined to the
+# `xcelerate-ui` crate so the core cdylib and every language binding stay free of
+# a GUI stack. Dropping eframe lets a browser move reposition the window without
+# waiting for a rendered frame.
+winit = { version = "0.30", features = ["rwh_06", "x11", "wayland"] }
+egui = "0.36"
+egui-winit = "0.36"
+egui_glow = { version = "0.36", default-features = false, features = ["winit"] }
+glow = "0.17"
+glutin = "0.32"
+glutin-winit = "0.5"
+egui_extras = { version = "0.36", default-features = false, features = ["svg"] }
 
 # External crates.
 mimalloc = "0.1.52"
