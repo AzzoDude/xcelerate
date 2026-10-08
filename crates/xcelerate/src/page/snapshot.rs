@@ -177,6 +177,43 @@ pub(crate) struct LayoutInfo {
     /// order are per-frame, so only boxes from the same document may be compared
     /// (see [`is_occluded`]).
     pub document_index: usize,
+    /// Media the node *is* (`<img>`/`<video>`/`<audio>`), when it is one.
+    pub media: Option<Media>,
+    /// Whether the node *contains* a hidden `<video>` — the usual hover-preview
+    /// idiom (a thumbnail that swaps in a video while the pointer is over it).
+    pub preview: bool,
+}
+
+/// A media element detected in a DOM snapshot.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct Media {
+    pub kind: MediaKind,
+    /// `alt` / `aria-label` / `title`, whichever is present.
+    pub label: Option<String>,
+    /// The last path segment of `src` — a readable file name.
+    pub source: Option<String>,
+    /// The poster frame (`<video poster>`), if any.
+    pub poster: Option<String>,
+    /// True when the element has no layout box (hidden until hover, or off-screen).
+    pub hidden: bool,
+}
+
+/// What kind of media a node is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum MediaKind {
+    Image,
+    Video,
+    Audio,
+}
+
+impl MediaKind {
+    fn as_str(self) -> &'static str {
+        match self {
+            MediaKind::Image => "image",
+            MediaKind::Video => "video",
+            MediaKind::Audio => "audio",
+        }
+    }
 }
 
 /// Fraction of `inner`'s area that lies within `outer` (0.0..=1.0).
@@ -238,6 +275,8 @@ pub(crate) struct SnapshotElement {
     /// attributes. Lets a caller act on the element without the index.
     pub selector: Option<String>,
     pub bounds: Option<Rect>,
+    /// The media kind (`image`/`video`/`audio`) when the element is media.
+    pub media: Option<String>,
 }
 
 impl SnapshotElement {
@@ -260,6 +299,9 @@ impl SnapshotElement {
         }
         if let Some(selector) = &self.selector {
             object.insert("selector".into(), json!(selector));
+        }
+        if let Some(media) = &self.media {
+            object.insert("kind".into(), json!(media));
         }
         if let Some(bounds) = self.bounds {
             object.insert(
@@ -631,10 +673,47 @@ pub(crate) fn build_layout_lookup(
             .and_then(|layout| layout.get("paintOrders"))
             .and_then(Value::as_array);
 
+        // Hover-preview idiom: a `<video>` that is present but not laid out
+        // (hidden until the pointer arrives). Mark every ancestor so the element
+        // an agent actually sees - the thumbnail - is annotated with the preview.
+        let parent_index = nodes.get("parentIndex").and_then(Value::as_array);
+        let mut preview_ancestors: HashSet<usize> = HashSet::new();
+        for (node_index, name) in node_names.iter().enumerate() {
+            if !name.is_some_and(|name| name.eq_ignore_ascii_case("video")) {
+                continue;
+            }
+            // A laid-out (visible) video is the media itself, not a preview.
+            let laid_out = layout_index_map
+                .get(&(node_index as u64))
+                .and_then(|layout_idx| bounds.and_then(|bounds| bounds.get(*layout_idx)))
+                .and_then(Value::as_array)
+                .is_some_and(|quad| quad.len() >= 4);
+            if laid_out {
+                continue;
+            }
+            let mut cursor = parent_index
+                .and_then(|parents| parents.get(node_index))
+                .and_then(Value::as_i64)
+                .unwrap_or(-1);
+            let mut guard = 0;
+            while cursor >= 0 && guard < 1024 {
+                preview_ancestors.insert(cursor as usize);
+                cursor = parent_index
+                    .and_then(|parents| parents.get(cursor as usize))
+                    .and_then(Value::as_i64)
+                    .unwrap_or(-1);
+                guard += 1;
+            }
+        }
+
         for (snapshot_index, backend_id) in backend_ids.iter().enumerate() {
             let Some(backend_id) = backend_id.as_i64() else {
                 continue;
             };
+
+            let attrs = attributes
+                .and_then(|attributes| attributes.get(snapshot_index))
+                .and_then(Value::as_array);
 
             let mut tag = node_names
                 .get(snapshot_index)
@@ -642,23 +721,21 @@ pub(crate) fn build_layout_lookup(
                 .flatten()
                 .filter(|name| !name.starts_with('#'))
                 .map(|name| name.to_ascii_lowercase());
+            let plain_tag = tag.clone();
 
             // The AX role cannot tell a file input from a text one; the DOM
             // `type` attribute can, and agents act on it (upload vs type).
             if tag.as_deref() == Some("input")
-                && let Some(kind) = attributes
-                    .and_then(|attributes| attributes.get(snapshot_index))
-                    .and_then(Value::as_array)
-                    .and_then(|attributes| attribute_value(&strings, attributes, "type"))
+                && let Some(kind) =
+                    attrs.and_then(|attributes| attribute_value(&strings, attributes, "type"))
                 && !kind.is_empty()
             {
                 tag = Some(format!("input[type={kind}]"));
             }
 
-            let selector = attributes
-                .and_then(|attributes| attributes.get(snapshot_index))
-                .and_then(Value::as_array)
-                .and_then(|attributes| selector_from_attributes(&strings, attributes));
+            let selector =
+                attrs.and_then(|attributes| selector_from_attributes(&strings, attributes));
+            let media = media_for(plain_tag.as_deref(), attrs.map(Vec::as_slice), &strings);
 
             let mut info = LayoutInfo {
                 is_clickable: clickable_set.contains(&(snapshot_index as u64)),
@@ -667,6 +744,8 @@ pub(crate) fn build_layout_lookup(
                 bounds: None,
                 paint_order: None,
                 document_index,
+                media,
+                preview: preview_ancestors.contains(&snapshot_index),
             };
 
             if let Some(layout_idx) = layout_index_map.get(&(snapshot_index as u64)) {
@@ -686,12 +765,75 @@ pub(crate) fn build_layout_lookup(
                     });
                 }
             }
+            if let Some(media) = &mut info.media {
+                media.hidden = info.bounds.is_none();
+            }
 
             lookup.insert(backend_id, info);
         }
     }
 
     lookup
+}
+
+/// Builds the media descriptor for a node, when its tag is an image/video/audio.
+fn media_for(tag: Option<&str>, attrs: Option<&[Value]>, strings: &[&str]) -> Option<Media> {
+    let kind = match tag? {
+        "img" => MediaKind::Image,
+        "video" => MediaKind::Video,
+        "audio" => MediaKind::Audio,
+        _ => return None,
+    };
+    let attr = |name: &str| {
+        attrs
+            .and_then(|attributes| attribute_value(strings, attributes, name))
+            .filter(|value| !value.is_empty())
+            .map(str::to_string)
+    };
+    let label = attr("alt")
+        .or_else(|| attr("aria-label"))
+        .or_else(|| attr("title"));
+    let source = attr("src").map(|src| file_name(&src));
+    let poster = attr("poster").map(|poster| file_name(&poster));
+    Some(Media {
+        kind,
+        label,
+        source,
+        poster,
+        hidden: false,
+    })
+}
+
+/// The last path segment of a URL, for a readable media file name.
+fn file_name(url: &str) -> String {
+    let path = url.split(['?', '#']).next().unwrap_or(url);
+    path.rsplit('/')
+        .next()
+        .filter(|name| !name.is_empty())
+        .unwrap_or(path)
+        .to_string()
+}
+
+/// A compact `image, 640x480, hero.png` descriptor for a media line.
+fn describe_media(media: &Media, bounds: Option<Rect>, preview: bool) -> String {
+    let mut parts = vec![media.kind.as_str().to_string()];
+    if let Some(bounds) = bounds {
+        parts.push(format!(
+            "{}x{}",
+            bounds.width.round() as i64,
+            bounds.height.round() as i64
+        ));
+    }
+    if media.hidden {
+        parts.push("hidden".to_string());
+    }
+    if preview {
+        parts.push("preview on hover".to_string());
+    }
+    if let Some(source) = &media.source {
+        parts.push(source.clone());
+    }
+    parts.join(", ")
 }
 
 /// Internal view over one accessibility node.
@@ -1041,6 +1183,7 @@ pub(crate) fn assemble_frames(
                 && !redundant[index]
                 && (index_it
                     || STRUCTURAL_AX_ROLES.contains(&node.role.as_str())
+                    || lookup.and_then(|info| info.media.as_ref()).is_some()
                     || !node.name.is_empty());
 
             if show {
@@ -1052,7 +1195,20 @@ pub(crate) fn assemble_frames(
                     None
                 };
 
-                let name = clean(&node.name, MAX_TEXT_LEN);
+                let name = {
+                    let cleaned = clean(&node.name, MAX_TEXT_LEN);
+                    if cleaned.is_empty() {
+                        // Fall back to an image/video's `alt`/`title` so the line
+                        // still describes what the media is.
+                        lookup
+                            .and_then(|info| info.media.as_ref())
+                            .and_then(|media| media.label.clone())
+                            .map(|label| clean(&label, MAX_TEXT_LEN))
+                            .unwrap_or_default()
+                    } else {
+                        cleaned
+                    }
+                };
                 let mut line = String::new();
                 line.push_str(&"  ".repeat(depth.min(MAX_INDENT)));
                 if let Some(assigned) = assigned {
@@ -1069,6 +1225,16 @@ pub(crate) fn assemble_frames(
                 }
                 if !node.states.is_empty() {
                     line.push_str(&format!(" ({})", node.states.join(", ")));
+                }
+                if let Some(info) = lookup {
+                    if let Some(media) = &info.media {
+                        line.push_str(&format!(
+                            " ({})",
+                            describe_media(media, info.bounds, info.preview)
+                        ));
+                    } else if info.preview {
+                        line.push_str(" (hover: video preview)");
+                    }
                 }
                 if let Some(selector) = lookup.and_then(|info| info.selector.as_deref()) {
                     line.push_str(&format!("  {}", quote_selector(selector)));
@@ -1089,6 +1255,9 @@ pub(crate) fn assemble_frames(
                         tag: lookup.and_then(|info| info.tag.clone()),
                         selector: lookup.and_then(|info| info.selector.clone()),
                         bounds: lookup.and_then(|info| info.bounds),
+                        media: lookup
+                            .and_then(|info| info.media.as_ref())
+                            .map(|media| media.kind.as_str().to_string()),
                     });
                 }
             }
@@ -1609,6 +1778,44 @@ mod tests {
     }
 
     #[test]
+    fn layout_lookup_detects_media_and_hover_previews() {
+        // A link containing a visible <img> and a hidden <video> (the hover
+        // preview idiom).
+        let snapshot = json!({
+            "strings": ["A", "IMG", "VIDEO", "alt", "Photo", "src", "/media/photo.png"],
+            "documents": [{
+                "nodes": {
+                    "backendNodeId": [10, 11, 12],
+                    "nodeName": [0, 1, 2],
+                    "parentIndex": [-1, 0, 0],
+                    "attributes": [[], [3, 4, 5, 6], []]
+                },
+                "layout": {
+                    "nodeIndex": [0, 1],
+                    "bounds": [[0.0, 0.0, 100.0, 100.0], [0.0, 0.0, 50.0, 50.0]]
+                }
+            }]
+        });
+
+        let lookup = build_layout_lookup(&snapshot, 1.0);
+
+        let image = lookup.get(&11).expect("image layout");
+        let media = image.media.as_ref().expect("image media");
+        assert_eq!(media.kind, MediaKind::Image);
+        assert_eq!(media.label.as_deref(), Some("Photo"));
+        assert_eq!(media.source.as_deref(), Some("photo.png"));
+        assert!(!media.hidden);
+        assert!(!image.preview);
+
+        let video = lookup.get(&12).expect("video layout");
+        assert_eq!(video.media.as_ref().map(|m| m.kind), Some(MediaKind::Video));
+        assert!(video.media.as_ref().expect("video media").hidden);
+
+        // The link (an ancestor of the hidden video) is the hover preview.
+        assert!(lookup.get(&10).expect("link layout").preview);
+    }
+
+    #[test]
     fn assemble_indexes_interactive_nodes_in_document_order() {
         let (text, elements) = assemble(&sample_ax(), &HashMap::new(), None);
 
@@ -1647,6 +1854,8 @@ mod tests {
                 selector: None,
                 paint_order: None,
                 document_index: 0,
+                media: None,
+                preview: false,
             },
         );
         let (_, elements) = assemble(&sample_ax(), &lookup, None);
@@ -1925,6 +2134,8 @@ mod tests {
                         selector: None,
                         paint_order: Some(0),
                         document_index: 0,
+                        media: None,
+                        preview: false,
                     },
                 )
             })
@@ -1992,6 +2203,8 @@ mod tests {
                 selector: None,
                 paint_order: Some(1),
                 document_index: 0,
+                media: None,
+                preview: false,
             },
         );
         layout.insert(
@@ -2008,6 +2221,8 @@ mod tests {
                 selector: None,
                 paint_order: Some(2),
                 document_index: 0,
+                media: None,
+                preview: false,
             },
         );
         // The remaining interactive nodes are laid out clear of the overlay.
@@ -2025,6 +2240,8 @@ mod tests {
                 selector: None,
                 paint_order: Some(0),
                 document_index: 0,
+                media: None,
+                preview: false,
             },
         );
         layout.insert(
@@ -2041,6 +2258,8 @@ mod tests {
                 selector: None,
                 paint_order: Some(0),
                 document_index: 0,
+                media: None,
+                preview: false,
             },
         );
 
@@ -2074,6 +2293,8 @@ mod tests {
                 selector: None,
                 paint_order: Some(1),
                 document_index: 0,
+                media: None,
+                preview: false,
             },
         );
         // A full-document container painted last (highest paint order).
@@ -2091,6 +2312,8 @@ mod tests {
                 selector: None,
                 paint_order: Some(999),
                 document_index: 0,
+                media: None,
+                preview: false,
             },
         );
 
@@ -2121,6 +2344,8 @@ mod tests {
                 selector: None,
                 paint_order: Some(1),
                 document_index: 0,
+                media: None,
+                preview: false,
             },
         );
         lookup.insert(
@@ -2137,6 +2362,8 @@ mod tests {
                 selector: None,
                 paint_order: Some(3),
                 document_index: 1,
+                media: None,
+                preview: false,
             },
         );
 

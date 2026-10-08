@@ -8,7 +8,7 @@
 
 use std::collections::HashMap;
 
-use super::ast::{Arg, Command, FuncDef, ParamDef, Step};
+use super::ast::{Arg, Callable, Command, FuncDef, ParamDef, Step};
 use super::lex::{Line, lex_line};
 
 /// A parse error with the 1-based line it occurred on.
@@ -42,8 +42,11 @@ pub struct Program {
     /// not inlined here; each [`Command::FuncStart`]/[`Command::FuncEnd`] pair
     /// is removed and the body captured into `funcs` instead).
     pub steps: Vec<Step>,
-    /// Functions by name, in definition order.
-    pub funcs: HashMap<String, FuncDef>,
+    /// Callables by `(name, arity)`. Keying on the parameter count lets a name be
+    /// overloaded (`human` with two params and `human` with four coexist) while an
+    /// exact duplicate is rejected. Values are script `func`s or `import`-bound
+    /// plugin ops.
+    pub funcs: HashMap<(String, usize), Callable>,
 }
 
 /// Parses an entire `.xcl` source into a [`Program`].
@@ -55,7 +58,7 @@ pub fn parse_program(source: &str) -> Result<Program, ParseError> {
 #[derive(Default)]
 struct Parser {
     steps: Vec<Step>,
-    funcs: HashMap<String, FuncDef>,
+    funcs: HashMap<(String, usize), Callable>,
     /// When inside a `func ... end`, the function under construction.
     active_func: Option<ActiveFunc>,
 }
@@ -153,10 +156,45 @@ impl Parser {
                 }
             }
             "import" => {
-                let name = rest
+                let plugin = rest
                     .first()
-                    .ok_or_else(|| ParseError::new(line, "usage: import <plugin-id>"))?;
-                Command::Import { name: name.clone() }
+                    .ok_or_else(|| ParseError::new(line, "usage: import <plugin-id> [op...]"))?;
+                // `import <plugin> <op>...` binds each named op as a bare callable, so
+                // it can be invoked as `<op> [json]` instead of `run <plugin> <op>
+                // [json]`. An op is callable with 0 args (no payload) or 1 (a JSON
+                // payload). With no ops listed, `import` only gates the plugin.
+                for op in &rest[1..] {
+                    let op = bare_name(op, line)?;
+                    for arity in 0..=1usize {
+                        if self.funcs.contains_key(&(op.clone(), arity)) {
+                            return Err(ParseError::new(
+                                line,
+                                format!(
+                                    "`{op}` is already defined; an imported op name must be unique"
+                                ),
+                            ));
+                        }
+                        if self.funcs.len() >= crate::security::MAX_FUNCS {
+                            return Err(ParseError::new(
+                                line,
+                                format!(
+                                    "too many functions/imports (max {})",
+                                    crate::security::MAX_FUNCS
+                                ),
+                            ));
+                        }
+                        self.funcs.insert(
+                            (op.clone(), arity),
+                            Callable::PluginOp {
+                                plugin: plugin.clone(),
+                                op: op.clone(),
+                            },
+                        );
+                    }
+                }
+                Command::Import {
+                    name: plugin.clone(),
+                }
             }
             "run" => {
                 let plugin = rest
@@ -266,7 +304,10 @@ impl Parser {
                     .iter()
                     .map(|v| parse_arg(v, line))
                     .collect::<Result<Vec<_>, _>>()?;
-                if self.funcs.contains_key(&verb) {
+                // A bare `name args...` is a call when *any* overload is defined for
+                // `name` (a `func` or an imported op); otherwise it is a pass-through
+                // browser verb. Arity is checked when the call is lowered.
+                if self.has_callable(&verb) {
                     Command::Call { name: verb, args }
                 } else {
                     Command::Raw { verb, args }
@@ -303,6 +344,12 @@ impl Parser {
         self.steps.push(Step { line, command });
     }
 
+    /// Whether any callable (a `func` or an imported op) is bound to `name`,
+    /// regardless of arity.
+    fn has_callable(&self, name: &str) -> bool {
+        self.funcs.keys().any(|(n, _)| n == name)
+    }
+
     fn open_func(&mut self, line: usize, rest: &[String]) -> Result<(), ParseError> {
         // The signature spans the rest of the line: `func name(a, b)` may lex as
         // `["name(a,", "b)"]` when there is whitespace after the comma, so join
@@ -312,10 +359,24 @@ impl Parser {
             return Err(ParseError::new(line, "usage: func <name>(<params...>)"));
         }
         let (name, params) = parse_signature(&header, line)?;
-        if self.funcs.contains_key(&name) {
+        // Overloading is by arity: a second `human(a, b, c, d)` is fine beside
+        // `human(a, b)`, but an exact duplicate (same name, same count) is not.
+        if self.funcs.contains_key(&(name.clone(), params.len())) {
             return Err(ParseError::new(
                 line,
-                format!("function `{name}` already defined"),
+                format!(
+                    "function `{name}` with {} parameter(s) already defined",
+                    params.len()
+                ),
+            ));
+        }
+        if self.funcs.len() >= crate::security::MAX_FUNCS {
+            return Err(ParseError::new(
+                line,
+                format!(
+                    "too many functions/imports (max {})",
+                    crate::security::MAX_FUNCS
+                ),
             ));
         }
         self.active_func = Some(ActiveFunc {
@@ -369,8 +430,8 @@ impl Parser {
             .ok_or_else(|| ParseError::new(line, "`end` without a matching `func`"))?;
         let mut def = active.def;
         def.body = active.body;
-        let name = def.name.clone();
-        self.funcs.insert(name, def);
+        let key = (def.name.clone(), def.params.len());
+        self.funcs.insert(key, Callable::Func(def));
         Ok(())
     }
 }
@@ -403,13 +464,13 @@ fn parse_signature(header: &str, line: usize) -> Result<(String, Vec<ParamDef>),
             });
         }
     }
-    if params.len() > crate::xcl::security::MAX_FUNC_PARAMS as usize {
+    if params.len() > crate::security::MAX_FUNC_PARAMS as usize {
         return Err(ParseError::new(
             line,
             format!(
                 "function has {} params; max is {}",
                 params.len(),
-                crate::xcl::security::MAX_FUNC_PARAMS
+                crate::security::MAX_FUNC_PARAMS
             ),
         ));
     }
@@ -473,7 +534,7 @@ fn count_arg(rest: &[String], line: usize) -> Result<u32, ParseError> {
     if n == 0 {
         return Err(ParseError::new(line, "repeat count must be positive"));
     }
-    let cap = crate::xcl::security::MAX_ITERATIONS;
+    let cap = crate::security::MAX_ITERATIONS;
     if n > cap {
         return Err(ParseError::new(
             line,
@@ -516,11 +577,70 @@ mod tests {
     fn parses_func_and_call() {
         let src = "func register(a, b)\nopen \"{BASE_URL}/signup\"\nfill \"#email\" $a\nend\ncall register \"x\" \"y\"\n";
         let p = parse_program(src).unwrap();
-        assert!(p.funcs.contains_key("register"));
-        assert_eq!(p.funcs["register"].params.len(), 2);
-        assert_eq!(p.funcs["register"].body.len(), 2);
+        match p.funcs.get(&("register".to_string(), 2)) {
+            Some(Callable::Func(def)) => {
+                assert_eq!(def.params.len(), 2);
+                assert_eq!(def.body.len(), 2);
+            }
+            other => panic!("expected func `register`, got {other:?}"),
+        }
         assert_eq!(p.steps.len(), 1);
         assert!(matches!(&p.steps[0].command, Command::Call { name, .. } if name == "register"));
+    }
+
+    #[test]
+    fn allows_overloads_by_arity() {
+        // Same name, different parameter counts: both are fine.
+        let src = "func human(a, b)\nprint $a\nend\nfunc human(a, b, c, d)\nprint $a\nend\nhuman 1 2\nhuman 1 2 3 4\n";
+        let p = parse_program(src).unwrap();
+        assert!(p.funcs.contains_key(&("human".to_string(), 2)));
+        assert!(p.funcs.contains_key(&("human".to_string(), 4)));
+        assert_eq!(p.steps.len(), 2);
+        assert!(
+            matches!(&p.steps[0].command, Command::Call { name, args } if name == "human" && args.len() == 2)
+        );
+        assert!(
+            matches!(&p.steps[1].command, Command::Call { name, args } if name == "human" && args.len() == 4)
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_function_same_arity() {
+        // Same name *and* same parameter count is a duplicate.
+        let src = "func human(a, b)\nprint $a\nend\nfunc human(x, y)\nprint $x\nend\n";
+        assert!(parse_program(src).is_err());
+    }
+
+    #[test]
+    fn import_binds_op_as_callable() {
+        let src = "import acme.mod echo\necho {\"message\":\"hi\"}\n";
+        let p = parse_program(src).unwrap();
+        // An op is callable with no payload or with one JSON payload.
+        assert!(p.funcs.contains_key(&("echo".to_string(), 0)));
+        assert!(p.funcs.contains_key(&("echo".to_string(), 1)));
+        assert!(matches!(&p.steps[0].command, Command::Import { name } if name == "acme.mod"));
+        assert!(
+            matches!(&p.steps[1].command, Command::Call { name, args } if name == "echo" && args.len() == 1)
+        );
+    }
+
+    #[test]
+    fn import_without_ops_only_gates() {
+        let p = parse_program("import acme.mod\n").unwrap();
+        assert!(p.funcs.is_empty());
+        assert!(matches!(&p.steps[0].command, Command::Import { name } if name == "acme.mod"));
+    }
+
+    #[test]
+    fn duplicate_import_name_is_rejected() {
+        // Two plugins both exporting `echo` collide on the same bare name.
+        assert!(parse_program("import a.mod echo\nimport b.mod echo\n").is_err());
+    }
+
+    #[test]
+    fn func_and_import_name_collide() {
+        let src = "import acme.mod echo\nfunc echo(x)\nprint $x\nend\n";
+        assert!(parse_program(src).is_err());
     }
 
     #[test]
@@ -555,5 +675,22 @@ mod tests {
     fn parses_request() {
         let p = parse_program("request POST https://api/x {\"A\":\"B\"} {\"k\":\"v\"}\n").unwrap();
         assert!(matches!(&p.steps[0].command, Command::Request { method, .. } if method == "POST"));
+    }
+
+    #[test]
+    fn parses_cookie_set_as_raw() {
+        let p = parse_program("cookie set sessionid abc example.com\n").unwrap();
+        assert!(matches!(&p.steps[0].command, Command::Raw { verb, args }
+                if verb == "cookie" && args.len() == 4));
+    }
+
+    #[test]
+    fn parses_cookie_add_with_json_literal() {
+        // A single-quoted JSON object stays one token, so it reaches the verb whole.
+        let src = "cookie add '[{\"name\":\"sessionid\",\"value\":\"x\"}]'\n";
+        let p = parse_program(src).unwrap();
+        let json = Arg::Literal("[{\"name\":\"sessionid\",\"value\":\"x\"}]".into());
+        assert!(matches!(&p.steps[0].command, Command::Raw { verb, args }
+                if verb == "cookie" && args.get(1) == Some(&json)));
     }
 }

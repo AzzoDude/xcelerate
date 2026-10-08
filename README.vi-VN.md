@@ -464,19 +464,32 @@ main();
 
 ## Giao diện dòng lệnh
 
-Lệnh `xcelerate` thực hiện một hành động trình duyệt mỗi lần gọi:
+Lệnh `xcelerate` thực hiện một hành động trình duyệt mỗi lần gọi. Nó được giữ nhỏ gọn có chủ đích: điều hướng, ghi sản phẩm ra đĩa, và quản lý cài đặt. Việc kiểm tra một trang *đang sống* (tiêu đề, văn bản, HTML, media, hay ảnh chụp nhanh có chỉ mục) là việc của phiên tương tác — nơi giữ trình duyệt luôn mở.
 
 ```bash
-xcelerate title https://example.com
+xcelerate open https://example.com              # điều hướng; in tiêu đề và URL
 xcelerate screenshot https://example.com -o shot.png --full
-xcelerate query https://example.com h1 --attr href
-xcelerate query-all https://example.com 'a'   # text of every match
-xcelerate evaluate https://example.com 'document.title'
-xcelerate list                                  # built-in devices + plugins
-xcelerate --device "iPhone 13" screenshot https://example.com -o phone.png
+xcelerate pdf https://example.com -o page.pdf
+xcelerate save https://example.com/logo.png -o logo.png
+xcelerate grab https://…/playlist.m3u8 -o movie.mp4
+xcelerate capture https://www.youtube.com/watch?v=… -o movie.mp4
+xcelerate har https://example.com -o network.har
+xcelerate record https://example.com -o video.mp4
+xcelerate list                                  # thiết bị + plugin tích hợp
 xcelerate plugins
-xcelerate snapshot https://example.com          # ảnh chụp nhanh có chỉ mục, thân thiện LLM
-xcelerate click-index https://example.com 2     # nhấp phần tử [2] từ ảnh chụp nhanh
+xcelerate --device "iPhone 13" screenshot https://example.com -o phone.png
+```
+
+Để kiểm tra một trang, hãy mở phiên và chạy lệnh tại đó:
+
+```bash
+xcelerate session
+xcelerate> open example.com
+xcelerate> title
+xcelerate> text
+xcelerate> snapshot        # có chỉ mục, thân thiện LLM
+xcelerate> media           # hình/ảnh/video/âm thanh dưới dạng JSON
+xcelerate> eval 'document.title'
 ```
 
 Các cờ toàn cục áp dụng cho mọi lệnh: `--headless` (mặc định vẫn hiển thị cửa sổ
@@ -620,12 +633,12 @@ Chrome --(HTTP/CONNECT)--> xcelerate gateway (127.0.0.1) --> upstream pool --> i
 
 ```bash
 # environment (works from every language binding)
-XCELERATE_PROXY=http://user:pass@proxy.example:8080 xcelerate title https://example.com
+XCELERATE_PROXY=http://user:pass@proxy.example:8080 xcelerate open https://example.com
 XCELERATE_PROXY_POOL=http://a:8080,http://b:8080 ./your-app      # round-robin
 
 # CLI flag (repeatable)
 xcelerate --proxy http://user:pass@proxy.example:8080 --proxy http://backup:8080 \
-  title https://example.com
+  open https://example.com
 ```
 
 ```rust
@@ -648,7 +661,7 @@ Hãy trỏ nó tới một thư mục để giữ cookie, thông tin đăng nh�
 trang giữa các lần chạy:
 
 ```bash
-XCELERATE_USER_DATA_DIR=~/.xcelerate/profile xcelerate title https://example.com
+XCELERATE_USER_DATA_DIR=~/.xcelerate/profile xcelerate open https://example.com
 xcelerate --user-data-dir ./profile title https://example.com
 ```
 
@@ -665,8 +678,7 @@ dựa trên cwd của chính Chrome), và `Browser::close` cho phép Chrome ghi 
 `page.accessibility_snapshot()` trả về một góc nhìn ngữ nghĩa thu gọn của trang -
 `[{ role, name, value? }]` theo thứ tự document - vốn vững chắc hơn nhiều so với các
 selector CSS khi cần khẳng định (assert) hoặc điều khiển một trang. Nó được cung cấp
-dưới dạng lệnh CLI `xcelerate accessibility <url>` và công cụ MCP
-`browser_accessibility`.
+dưới dạng công cụ MCP `browser_accessibility` (và qua thư viện `xcelerate`).
 
 ## Ảnh chụp nhanh cho agent
 
@@ -687,8 +699,8 @@ phân giải lại selector CSS (`page.snapshot_json()` trả về đúng các p
 role, name, bounds, selector và backend node id). Khi suy ra được một selector CSS
 dùng được từ thuộc tính DOM (`#id` hay `[name="…"]`), phần tử sẽ mang theo nó, nên
 có thể thao tác theo chỉ số (`click 1`) hoặc theo selector (`fill "#email" …`).
-Nó được cung cấp dưới dạng lệnh CLI
-`xcelerate snapshot <url>`, `xcelerate click-index <url> <index>`, và công cụ MCP
+Nó được cung cấp trong phiên tương tác (`snapshot`, rồi `click <index>` hoặc
+`click '<selector>'`), và dưới dạng các công cụ MCP
 `browser_snapshot`, `browser_click_index`.
 
 ## Bố cục workspace

@@ -24,7 +24,9 @@ mod snapshot;
 // Capability modules (markdown content, waits, downloads, HAR, highlights,
 // in-page search, challenge detection, per-call timeouts, popups). Each holds
 // inherent `impl Page` blocks and is kept out of the UniFFI-exported block.
+mod capture;
 mod challenge;
+mod dash;
 mod downloads;
 mod find;
 mod frames;
@@ -32,6 +34,7 @@ mod har;
 mod health;
 mod highlight;
 mod markdown;
+mod media;
 mod popups;
 mod response;
 mod timeout;
@@ -83,6 +86,10 @@ pub struct Page {
     /// off, the mouse travels in a straight line and typing is fast — the
     /// deterministic mode used for tests and CI (see [`Page::set_human`]).
     pub(crate) human_input: std::sync::atomic::AtomicBool,
+    /// Media requests captured while the page plays (see `page::capture`).
+    pub(crate) capture_entries: Arc<tokio::sync::Mutex<Vec<serde_json::Value>>>,
+    /// Background task that fills `capture_entries` from `Network.*` events.
+    pub(crate) capture_task: Arc<tokio::sync::Mutex<Option<tokio::task::JoinHandle<()>>>>,
 }
 
 /// Human-vs-linear input motion.

@@ -3199,13 +3199,12 @@ name = "xcelerate-cli"
 version = "1.0.14"
 dependencies = [
  "clap",
- "futures",
  "mimalloc",
- "reqwest",
  "serde_json",
  "tokio",
  "xcelerate",
  "xcelerate-codegen",
+ "xcelerate-interpreter",
  "xcelerate-mcp",
 ]
 
@@ -3227,6 +3226,17 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "webdriver-bidi",
+]
+
+[[package]]
+name = "xcelerate-interpreter"
+version = "1.0.14"
+dependencies = [
+ "futures",
+ "reqwest",
+ "serde_json",
+ "tokio",
+ "xcelerate",
 ]
 
 [[package]]

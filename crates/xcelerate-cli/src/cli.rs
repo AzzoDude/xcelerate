@@ -71,6 +71,12 @@ pub struct BrowserArgs {
     /// Attach to an existing browser's CDP websocket instead of launching one.
     #[arg(long, global = true, value_name = "WS_URL")]
     pub connect: Option<String>,
+    /// Attach to an existing target (window/tab) by id instead of opening a new
+    /// one. Pair with `--connect` to drive a running browser or an
+    /// Electron/CEF/WebView2 app without spawning a window. Find ids with
+    /// `xcelerate targets`.
+    #[arg(long, global = true, value_name = "TARGET_ID")]
+    pub attach: Option<String>,
     /// Extra browser flag passed verbatim (repeatable).
     #[arg(long = "extra-arg", global = true, value_name = "FLAG")]
     pub extra_arg: Vec<String>,
@@ -91,6 +97,11 @@ pub struct BrowserArgs {
     /// for reproducible runs and CI.
     #[arg(long, global = true)]
     pub linear: bool,
+    /// Directory that every file verb (`download`, `capture`, `shot`, `upload`)
+    /// is confined to. Defaults to the current directory; a script can never
+    /// name a path outside it (no absolute paths, no `..` escapes).
+    #[arg(long = "output-dir", global = true, value_name = "DIR")]
+    pub output_dir: Option<PathBuf>,
 }
 
 impl BrowserArgs {
@@ -119,12 +130,6 @@ impl BrowserArgs {
 pub enum Command {
     /// Open a URL and print its title and URL.
     Open { url: String },
-    /// Print the page title.
-    Title { url: String },
-    /// Print the page's HTML.
-    Content { url: String },
-    /// Print the page's visible text.
-    Text { url: String },
     /// Save a PNG screenshot.
     Screenshot {
         url: String,
@@ -140,35 +145,33 @@ pub enum Command {
         #[arg(short, long, default_value = "page.pdf")]
         output: PathBuf,
     },
-    /// Query a selector: print its text (default), an attribute, or its HTML.
-    Query {
+    /// Download a URL through the browser and save it to a file.
+    Save {
         url: String,
-        selector: String,
-        #[arg(long)]
-        attr: Option<String>,
-        #[arg(long)]
-        html: bool,
+        /// Destination file (default: the URL's last path segment).
+        #[arg(short, long, value_name = "PATH")]
+        output: Option<PathBuf>,
     },
-    /// Print the text of every element matching a selector.
-    QueryAll { url: String, selector: String },
-    /// Print the text of the first node matching an XPath expression.
-    Xpath { url: String, xpath: String },
-    /// Evaluate a JavaScript expression and print the JSON result.
-    Evaluate { url: String, expression: String },
-    /// Print the page's accessibility snapshot (semantic role/name/value nodes).
-    Accessibility { url: String },
-    /// Print an agent-friendly, indexed snapshot of the page's interactive elements.
-    Snapshot { url: String },
-    /// Click the element at `index` from the snapshot of this same run.
-    ClickIndex { url: String, index: u32 },
-    /// Print the page's main content as Markdown.
-    Markdown { url: String },
-    /// Report anti-bot / challenge markers found on the page (JSON).
-    Challenge { url: String },
-    /// Print how many elements contain the given text (1 = found).
-    Find { url: String, text: String },
-    /// Wait until the network is idle, then print the current URL.
-    WaitIdle { url: String },
+    /// Download media from a URL: a direct file, an HLS (`.m3u8`) stream, or a
+    /// DASH (`.mpd`) manifest, assembled natively.
+    Grab {
+        url: String,
+        /// Destination file (default: `out.mp4`).
+        #[arg(short, long, value_name = "PATH", default_value = "out.mp4")]
+        output: PathBuf,
+    },
+    /// Capture the media a page plays itself (MSE/HLS/DASH — YouTube, Facebook)
+    /// by recording the segment requests it makes, then reassembling them. No
+    /// external tool; the page must actually play.
+    Capture {
+        url: String,
+        /// Destination file (default: `out.mp4`); separate audio goes beside it.
+        #[arg(short, long, value_name = "PATH", default_value = "out.mp4")]
+        output: PathBuf,
+        /// How long to let the page play before assembling (seconds).
+        #[arg(long, default_value_t = 15)]
+        seconds: u64,
+    },
     /// Record network activity while loading a URL and save a HAR 1.2 file.
     Har {
         url: String,
@@ -188,8 +191,6 @@ pub enum Command {
     ReuseProfile { source: String, dest: PathBuf },
     /// List installed Chrome profiles discovered on this machine.
     Profiles,
-    /// Print a browser health report (JSON) for a URL.
-    Health { url: String },
     /// Record a video of a page for a fixed duration.
     Record {
         url: String,
@@ -241,6 +242,8 @@ pub enum Command {
     },
     /// Alias for `list plugin`.
     Plugins,
+    /// List the pages/windows of a running browser or app (requires `--connect`).
+    Targets,
     /// Create a new mod (plugin) from the starter template.
     Plugin {
         #[command(subcommand)]

@@ -6,6 +6,7 @@
 //! session, not here.
 
 use std::collections::HashMap;
+use std::path::{Component, Path, PathBuf};
 
 use super::security::{Permissions, Source};
 
@@ -13,14 +14,14 @@ use super::security::{Permissions, Source};
 /// literal (values are bool / number / string / `$var` / `{builtin}`), so a bare
 /// integer is milliseconds and anything else returns `None` - the caller then
 /// treats it as a selector.
-pub(crate) fn parse_duration_ms(arg: &str) -> Option<u64> {
+pub fn parse_duration_ms(arg: &str) -> Option<u64> {
     arg.trim().parse().ok()
 }
 
 /// Sleeps for `count * unit_ms` milliseconds, where `count` is a bare number.
 /// Used by the unit-suffixed verbs (`wait-sec 2`, `wait-min 1`, ...), so durations
 /// never need a `2s`-style literal.
-pub(crate) async fn wait_scaled(arg: &str, unit_ms: u64) -> Result<String, String> {
+pub async fn wait_scaled(arg: &str, unit_ms: u64) -> Result<String, String> {
     let count: u64 = arg
         .trim()
         .parse()
@@ -196,7 +197,7 @@ impl Builtins {
 }
 
 /// Parses a `wait` bound as a whole number of milliseconds.
-pub(crate) fn parse_ms(arg: &str) -> Result<i64, String> {
+pub fn parse_ms(arg: &str) -> Result<i64, String> {
     arg.trim()
         .parse()
         .map_err(|_| format!("expected a number of milliseconds, got {arg:?}"))
@@ -205,7 +206,7 @@ pub(crate) fn parse_ms(arg: &str) -> Result<i64, String> {
 /// Normalizes a navigation target so a bare domain works: `facebook.com` becomes
 /// `https://facebook.com`. Targets that already carry a scheme (`https://…`,
 /// `about:blank`, `file://…`, `data:…`) are left untouched.
-pub(crate) fn normalize_url(raw: &str) -> String {
+pub fn normalize_url(raw: &str) -> String {
     let url = raw.trim();
     if url.is_empty() || has_scheme(url) {
         return url.to_string();
@@ -252,6 +253,10 @@ pub struct Context {
     pub source: Source,
     /// Budget ledger: executed step count.
     pub steps_executed: u32,
+    /// The workspace root every file-writing/​reading verb is confined to. A
+    /// script may not name an absolute path or climb out of this directory, so
+    /// `download`/`capture`/`shot`/`upload` can only ever touch files under it.
+    pub root: PathBuf,
 }
 
 impl Context {
@@ -262,7 +267,26 @@ impl Context {
             permissions,
             source,
             steps_executed: 0,
+            root: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
         }
+    }
+
+    /// Sets the workspace root (the directory relative paths resolve against and
+    /// the boundary no path may escape). Used by the CLI `--output-dir`.
+    pub fn with_root(mut self, root: impl Into<PathBuf>) -> Self {
+        self.root = root.into();
+        self
+    }
+
+    /// Resolves a script-supplied path against the workspace root.
+    ///
+    /// Rejects empty paths, absolute paths (`/etc/x`, `C:\x`), and any `..`
+    /// component that would climb above the root. When the destination already
+    /// exists the resolved parent is canonicalized and re-checked, so a symlink
+    /// inside the root cannot point back out of it. Every file verb routes through
+    /// here; the resulting path is what the run actually writes to or reads from.
+    pub fn resolve_path(&self, raw: &str) -> Result<PathBuf, String> {
+        resolve_in_root(&self.root, raw)
     }
 
     /// Interpolates an [`Arg`] against the current variables/builtins.
@@ -282,9 +306,69 @@ impl Context {
     }
 }
 
+/// Resolves `raw` against `root`, keeping the result inside `root`.
+///
+/// Shared by [`Context::resolve_path`] and the interactive session so every
+/// file verb in the language obeys the same boundary. Refuses empty paths,
+/// absolute paths, `..` traversal above the root, and (on a best-effort basis)
+/// symlinked directories that resolve outside it.
+pub fn resolve_in_root(root: &Path, raw: &str) -> Result<PathBuf, String> {
+    let raw = raw.trim();
+    if raw.is_empty() {
+        return Err("empty path".to_string());
+    }
+
+    let mut normalized = PathBuf::new();
+    for component in Path::new(raw).components() {
+        match component {
+            Component::Normal(part) => normalized.push(part),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if !normalized.pop() {
+                    return Err(format!("path escapes the workspace root: {raw:?}"));
+                }
+            }
+            Component::RootDir | Component::Prefix(_) => {
+                return Err(format!("absolute paths are not allowed: {raw:?}"));
+            }
+        }
+    }
+    if normalized.as_os_str().is_empty() {
+        return Err("empty path".to_string());
+    }
+
+    let full = root.join(&normalized);
+    // When the root and the destination's nearest existing ancestor both
+    // resolve, make sure the ancestor still sits inside the root — this catches
+    // a symlinked directory that would otherwise escape it.
+    if let (Ok(root), Ok(existing)) = (
+        std::fs::canonicalize(root),
+        canonical_existing_ancestor(&full),
+    ) && !existing.starts_with(&root)
+    {
+        return Err(format!("path escapes the workspace root: {raw:?}"));
+    }
+    Ok(full)
+}
+
+/// Canonicalizes the nearest ancestor of `path` that exists on disk (the parent
+/// chain is walked upward because the final file may not have been created yet).
+fn canonical_existing_ancestor(path: &Path) -> Result<PathBuf, std::io::Error> {
+    let mut probe = path;
+    loop {
+        if probe.exists() {
+            return std::fs::canonicalize(probe);
+        }
+        match probe.parent() {
+            Some(parent) => probe = parent,
+            None => return std::fs::canonicalize(path),
+        }
+    }
+}
+
 /// A random millisecond value in `[min, max]` for the `wait-random` verb. Shared
 /// by the script runner and the interactive session via a process-wide PRNG.
-pub(crate) fn random_ms(min: i64, max: i64) -> i64 {
+pub fn random_ms(min: i64, max: i64) -> i64 {
     static RNG: std::sync::OnceLock<std::sync::Mutex<Rng>> = std::sync::OnceLock::new();
     let rng = RNG.get_or_init(|| std::sync::Mutex::new(Rng::from_clock()));
     rng.lock()
@@ -319,6 +403,36 @@ mod tests {
 
     fn ctx() -> Context {
         Context::new(Permissions::default(), Source::Repl, "https://x")
+    }
+
+    #[test]
+    fn resolve_path_confines_to_the_root() {
+        let ctx = ctx().with_root(std::env::temp_dir());
+        let root = ctx.root.clone();
+
+        // A plain relative path lands under the root.
+        assert_eq!(ctx.resolve_path("logo.png").unwrap(), root.join("logo.png"));
+        // Nested paths and `.` are fine, and `..` that stays inside is folded.
+        assert_eq!(
+            ctx.resolve_path("a/b/../c.mp4").unwrap(),
+            root.join("a").join("c.mp4")
+        );
+        assert_eq!(ctx.resolve_path("./x").unwrap(), root.join("x"));
+    }
+
+    #[test]
+    fn resolve_path_rejects_escapes_and_absolute() {
+        let ctx = ctx().with_root(std::env::temp_dir());
+
+        // Climbing above the root is refused.
+        assert!(ctx.resolve_path("../secrets.txt").is_err());
+        assert!(ctx.resolve_path("a/../../x").is_err());
+        // Absolute paths (POSIX and Windows-style) are refused.
+        assert!(ctx.resolve_path("/etc/passwd").is_err());
+        assert!(ctx.resolve_path("C:\\Windows\\x").is_err());
+        // Empty and `.`-only paths are refused.
+        assert!(ctx.resolve_path("").is_err());
+        assert!(ctx.resolve_path(".").is_err());
     }
 
     #[test]

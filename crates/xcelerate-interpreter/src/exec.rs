@@ -125,6 +125,11 @@ pub async fn dispatch(ctx: &mut Context, cmd: &Command, exe: &Executor) -> Outco
             Err(e) => Outcome::fail(e.to_string()),
         },
         Command::Run { plugin, op, json } => {
+            // `lower_step` routes an unresolvable `call` here as a deliberate
+            // failure, with the human-readable reason carried in `op`.
+            if plugin == "__call__" {
+                return Outcome::fail(op.clone());
+            }
             if !ctx.permissions.plugin_allowed(plugin) {
                 return Outcome::fail(format!(
                     "plugin `{plugin}` is not allowed (use --allow-plugin)"
@@ -241,7 +246,6 @@ async fn dispatch_raw(
             .await
             .unwrap_or_default()),
         "markdown" | "md" => Ok(page.markdown().await.unwrap_or_default()),
-        "snapshot" | "snap" => Ok(page.agent_snapshot().await.unwrap_or_default()),
         "content" | "html" => Ok(page.content().await.unwrap_or_default()),
         "hover" => {
             let sel = resolved.first().cloned().unwrap_or_default();
@@ -253,42 +257,79 @@ async fn dispatch_raw(
             Ok(format!("hover {sel}"))
         }
         "mouse" => {
-            // Move the cursor without clicking: `mouse <x> <y>`, `mouse <index>`,
-            // `mouse <selector>`, or `mouse "<text>"`.
-            if resolved.len() == 2
-                && let (Ok(x), Ok(y)) = (resolved[0].parse::<f64>(), resolved[1].parse::<f64>())
+            // `mouse [click|move] <x> <y>|<index>|<selector>|<text>`. A leading
+            // `click` moves the cursor to the target and clicks it.
+            let mut args: &[String] = &resolved;
+            let mut click = false;
+            if let Some(first) = args.first() {
+                if first.eq_ignore_ascii_case("click") {
+                    click = true;
+                    args = &args[1..];
+                } else if first.eq_ignore_ascii_case("move") {
+                    args = &args[1..];
+                }
+            }
+            if args.len() == 2
+                && let (Ok(x), Ok(y)) = (args[0].parse::<f64>(), args[1].parse::<f64>())
             {
+                if click {
+                    Arc::clone(&page)
+                        .click_mouse(x, y)
+                        .await
+                        .map_err(|e| e.to_string())?;
+                    return Ok(format!("click {x} {y}"));
+                }
                 Arc::clone(&page)
                     .move_mouse(x, y)
                     .await
                     .map_err(|e| e.to_string())?;
                 return Ok(format!("mouse {x} {y}"));
             }
-            let target = resolved.first().cloned().unwrap_or_default();
+            let target = args.first().cloned().unwrap_or_default();
             if target.is_empty() {
-                return Err("usage: mouse <index|selector|text> | mouse <x> <y>".to_string());
+                return Err(
+                    "usage: mouse [click] <index|selector|text> | mouse <x> <y>".to_string()
+                );
             }
             if let Ok(index) = target.parse::<u32>() {
-                Arc::clone(&page)
-                    .move_to_index(index)
-                    .await
-                    .map_err(|e| e.to_string())?;
-                Ok(format!("mouse {index}"))
+                if click {
+                    Arc::clone(&page)
+                        .click_index(index)
+                        .await
+                        .map_err(|e| e.to_string())?;
+                    Ok(format!("click {index}"))
+                } else {
+                    Arc::clone(&page)
+                        .move_to_index(index)
+                        .await
+                        .map_err(|e| e.to_string())?;
+                    Ok(format!("mouse {index}"))
+                }
             } else if crate::interact::looks_like_a_selector(&target) {
                 let el = Arc::clone(&page)
                     .wait_for_selector(target.clone())
                     .await
                     .map_err(|e| e.to_string())?;
-                el.hover_mouse().await.map_err(|e| e.to_string())?;
-                Ok(format!("mouse {target}"))
+                if click {
+                    el.click_mouse().await.map_err(|e| e.to_string())?;
+                    Ok(format!("click {target}"))
+                } else {
+                    el.hover_mouse().await.map_err(|e| e.to_string())?;
+                    Ok(format!("mouse {target}"))
+                }
             } else {
                 match crate::interact::control_by_text(&page, &target)
                     .await
                     .map_err(|e| e.to_string())?
                 {
                     Some(el) => {
-                        el.hover_mouse().await.map_err(|e| e.to_string())?;
-                        Ok(format!("mouse {target:?}"))
+                        if click {
+                            el.click_mouse().await.map_err(|e| e.to_string())?;
+                            Ok(format!("click {target:?}"))
+                        } else {
+                            el.hover_mouse().await.map_err(|e| e.to_string())?;
+                            Ok(format!("mouse {target:?}"))
+                        }
                     }
                     None => Err(format!("no visible element contains {target:?}")),
                 }
@@ -325,22 +366,191 @@ async fn dispatch_raw(
             Ok(report.to_json().to_string())
         }
         "shot" | "screenshot" => {
-            let path = resolved
+            let raw = resolved
                 .first()
                 .cloned()
                 .unwrap_or_else(|| "screenshot.png".to_string());
+            let path = ctx.resolve_path(&raw)?;
             let png = page.screenshot().await.map_err(|e| e.to_string())?;
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
             std::fs::write(&path, &png).map_err(|e| e.to_string())?;
-            Ok(format!("wrote {path} ({} bytes)", png.len()))
+            Ok(format!("wrote {} ({} bytes)", path.display(), png.len()))
         }
         "shot-full" | "screenshot-full" => {
-            let path = resolved
+            let raw = resolved
                 .first()
                 .cloned()
                 .unwrap_or_else(|| "screenshot.png".to_string());
+            let path = ctx.resolve_path(&raw)?;
             let png = page.screenshot_full().await.map_err(|e| e.to_string())?;
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
             std::fs::write(&path, &png).map_err(|e| e.to_string())?;
-            Ok(format!("wrote {path} ({} bytes)", png.len()))
+            Ok(format!("wrote {} ({} bytes)", path.display(), png.len()))
+        }
+        "media" => page.media_json().await.map_err(|e| e.to_string()),
+        "download" => {
+            // `download <url> <path>`: fetch through the browser. A direct file is
+            // streamed; an HLS (`.m3u8`) stream is assembled from its segments.
+            // The path is confined to the workspace root (see `resolve_path`).
+            let url = resolved.first().cloned().unwrap_or_default();
+            let raw = resolved.get(1).cloned().unwrap_or_default();
+            if url.is_empty() || raw.is_empty() {
+                return Err("usage: download <url> <path>".to_string());
+            }
+            let path = ctx.resolve_path(&raw)?;
+            let target = path.to_string_lossy().into_owned();
+            page.grab(url.clone(), target)
+                .await
+                .map_err(|e| e.to_string())
+        }
+        "capture" => {
+            // `capture <url> <path> [seconds]`: open a page, let it play, and
+            // reassemble the media it fetches itself (Media Source Extensions —
+            // YouTube, Facebook). Capturing starts before navigating so the init
+            // segment is seen. The path is confined to the workspace root.
+            let url = resolved.first().cloned().unwrap_or_default();
+            let raw = resolved.get(1).cloned().unwrap_or_default();
+            if url.is_empty() || raw.is_empty() {
+                return Err("usage: capture <url> <path> [seconds]".to_string());
+            }
+            let path = ctx.resolve_path(&raw)?;
+            let seconds = resolved
+                .get(2)
+                .and_then(|value| value.parse::<u64>().ok())
+                .unwrap_or(15);
+            page.start_media_capture()
+                .await
+                .map_err(|e| e.to_string())?;
+            page.navigate(super::runtime::normalize_url(&url))
+                .await
+                .map_err(|e| e.to_string())?;
+            let _ = page.wait_for_navigation().await;
+            let _ = page
+                .evaluate_string(
+                    "(function(){ const v=document.querySelector('video'); \
+                     if (v) { v.muted = true; if (v.play) v.play().catch(function(){}); } \
+                     return true; })()"
+                        .to_string(),
+                )
+                .await;
+            tokio::time::sleep(std::time::Duration::from_secs(seconds)).await;
+            page.save_capture(path.to_string_lossy().into_owned())
+                .await
+                .map_err(|e| e.to_string())
+        }
+        "upload" | "set-input-files" => {
+            // `<input type="file">` cannot be set from page JS; this uses CDP
+            // `DOM.setFileInputFiles` under the hood. The source is confined to
+            // the workspace root so a script cannot exfiltrate files by path.
+            let selector = resolved.first().cloned().unwrap_or_default();
+            let raw = resolved.get(1).cloned().unwrap_or_default();
+            if selector.is_empty() || raw.is_empty() {
+                return Err("usage: upload <selector> <path>".to_string());
+            }
+            let path = ctx.resolve_path(&raw)?;
+            let files = serde_json::json!([path.to_string_lossy()]).to_string();
+            Arc::clone(&page)
+                .set_input_files(selector.clone(), files)
+                .await
+                .map_err(|e| e.to_string())?;
+            Ok(format!("upload {selector} <- {}", path.display()))
+        }
+        "cookie" | "cookies" => {
+            // `cookie [get [name]]` / `cookie set <name> <value> [domain] [path]`
+            // / `cookie add <json>` / `cookie delete <name>` / `cookie clear`.
+            // Cookies are set through CDP (`Network.setCookie`) so `HttpOnly`
+            // session cookies - which page JS cannot write - can be restored.
+            let sub = resolved
+                .first()
+                .map(|s| s.to_ascii_lowercase())
+                .unwrap_or_default();
+            match sub.as_str() {
+                // No subcommand, or `get`/`list`: dump cookies as JSON. A name
+                // argument narrows it to that one cookie.
+                "" | "get" | "list" => match resolved.get(1) {
+                    Some(name) if !name.is_empty() => {
+                        page.cookie(name.clone()).await.map_err(|e| e.to_string())
+                    }
+                    _ => page.cookies().await.map_err(|e| e.to_string()),
+                },
+                "set" => {
+                    let name = resolved.get(1).cloned().unwrap_or_default();
+                    let value = resolved.get(2).cloned().unwrap_or_default();
+                    if name.is_empty() {
+                        return Err("usage: cookie set <name> <value> [domain] [path]".to_string());
+                    }
+                    let mut cookie =
+                        serde_json::json!({ "name": name, "value": value, "path": "/" });
+                    match resolved.get(3).filter(|d| !d.is_empty()) {
+                        Some(domain) => {
+                            cookie["domain"] = serde_json::Value::String(domain.clone());
+                            if let Some(path) = resolved.get(4).filter(|p| !p.is_empty()) {
+                                cookie["path"] = serde_json::Value::String(path.clone());
+                            }
+                        }
+                        // `Network.setCookie` needs a `url` or a `domain`; fall
+                        // back to the page's own URL so `cookie set` works on the
+                        // page that is open right now.
+                        None => {
+                            cookie["url"] =
+                                serde_json::Value::String(page.url().await.unwrap_or_default());
+                        }
+                    }
+                    page.execute_cdp_cmd("Network.setCookie".to_string(), cookie.to_string())
+                        .await
+                        .map_err(|e| e.to_string())?;
+                    Ok(format!("cookie set {name}"))
+                }
+                // `cookie add <json>` - full control (object or array) so
+                // `httpOnly`/`secure`/`sameSite`/expiry survive a round-trip.
+                "add" | "import" => {
+                    let json = resolved.get(1).cloned().unwrap_or_default();
+                    if json.is_empty() {
+                        return Err("usage: cookie add <json>".to_string());
+                    }
+                    let parsed: serde_json::Value = serde_json::from_str(&json)
+                        .map_err(|e| format!("cookie add: invalid JSON: {e}"))?;
+                    let list = match parsed {
+                        serde_json::Value::Array(list) => list,
+                        other => vec![other],
+                    };
+                    for cookie in &list {
+                        page.execute_cdp_cmd("Network.setCookie".to_string(), cookie.to_string())
+                            .await
+                            .map_err(|e| e.to_string())?;
+                    }
+                    Ok(format!("added {} cookie(s)", list.len()))
+                }
+                "delete" | "remove" | "rm" => {
+                    let name = resolved.get(1).cloned().unwrap_or_default();
+                    if name.is_empty() {
+                        return Err("usage: cookie delete <name>".to_string());
+                    }
+                    page.execute_cdp_cmd(
+                        "Network.deleteCookies".to_string(),
+                        serde_json::json!({ "name": name }).to_string(),
+                    )
+                    .await
+                    .map_err(|e| e.to_string())?;
+                    Ok(format!("cookie delete {name}"))
+                }
+                "clear" | "clear-all" => {
+                    page.execute_cdp_cmd(
+                        "Network.clearBrowserCookies".to_string(),
+                        "{}".to_string(),
+                    )
+                    .await
+                    .map_err(|e| e.to_string())?;
+                    Ok("cookies cleared".to_string())
+                }
+                other => Err(format!(
+                    "usage: cookie [get [name]|set <name> <value> [domain] [path]|add <json>|delete <name>|clear] (got `{other}`)"
+                )),
+            }
         }
         "click" | "tap" => {
             let target = resolved.first().cloned().unwrap_or_default();
@@ -579,7 +789,7 @@ async fn request(
         Err(e) => return Outcome::fail(e),
     };
     if let Some(host) = host_of(&url)
-        && crate::xcl::security::is_private_host(&host)
+        && crate::security::is_private_host(&host)
         && !ctx.permissions.allow_private
     {
         return Outcome::fail(format!(

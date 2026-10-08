@@ -446,19 +446,32 @@ main();
 
 ## 命令行界面
 
-`xcelerate` 命令每次调用执行一个浏览器操作：
+`xcelerate` 命令每次调用执行一个浏览器操作。它刻意保持精简：导航、将产物写入磁盘，以及管理安装。查看*实时*页面（标题、文本、HTML、媒体或索引化快照）由保持浏览器打开的交互式会话来负责。
 
 ```bash
-xcelerate title https://example.com
+xcelerate open https://example.com              # 导航；打印标题和 URL
 xcelerate screenshot https://example.com -o shot.png --full
-xcelerate query https://example.com h1 --attr href
-xcelerate query-all https://example.com 'a'   # text of every match
-xcelerate evaluate https://example.com 'document.title'
-xcelerate list                                  # built-in devices + plugins
-xcelerate --device "iPhone 13" screenshot https://example.com -o phone.png
+xcelerate pdf https://example.com -o page.pdf
+xcelerate save https://example.com/logo.png -o logo.png
+xcelerate grab https://…/playlist.m3u8 -o movie.mp4
+xcelerate capture https://www.youtube.com/watch?v=… -o movie.mp4
+xcelerate har https://example.com -o network.har
+xcelerate record https://example.com -o video.mp4
+xcelerate list                                  # 内置设备 + 插件
 xcelerate plugins
-xcelerate snapshot https://example.com          # 索引化、面向 LLM 的快照
-xcelerate click-index https://example.com 2     # 点击快照中的元素 [2]
+xcelerate --device "iPhone 13" screenshot https://example.com -o phone.png
+```
+
+要查看页面，请打开会话并在其中运行命令：
+
+```bash
+xcelerate session
+xcelerate> open example.com
+xcelerate> title
+xcelerate> text
+xcelerate> snapshot        # 索引化，LLM 友好
+xcelerate> media           # 以 JSON 输出图片/视频/音频
+xcelerate> eval 'document.title'
 ```
 
 全局标志适用于每个命令：`--headless`（默认显示浏览器窗口）、`--detached`、
@@ -594,12 +607,12 @@ Chrome --(HTTP/CONNECT)--> xcelerate gateway (127.0.0.1) --> upstream pool --> i
 
 ```bash
 # environment (works from every language binding)
-XCELERATE_PROXY=http://user:pass@proxy.example:8080 xcelerate title https://example.com
+XCELERATE_PROXY=http://user:pass@proxy.example:8080 xcelerate open https://example.com
 XCELERATE_PROXY_POOL=http://a:8080,http://b:8080 ./your-app      # round-robin
 
 # CLI flag (repeatable)
 xcelerate --proxy http://user:pass@proxy.example:8080 --proxy http://backup:8080 \
-  title https://example.com
+  open https://example.com
 ```
 
 ```rust
@@ -621,7 +634,7 @@ let browser = Browser::launch(BrowserConfig::default()).await?;
 某个目录即可在多次运行之间保留 cookie、登录状态和站点存储：
 
 ```bash
-XCELERATE_USER_DATA_DIR=~/.xcelerate/profile xcelerate title https://example.com
+XCELERATE_USER_DATA_DIR=~/.xcelerate/profile xcelerate open https://example.com
 xcelerate --user-data-dir ./profile title https://example.com
 ```
 
@@ -636,8 +649,7 @@ xcelerate::configure_user_data_dir(Some("./profile".to_string()))?;
 
 `page.accessibility_snapshot()` 返回页面的紧凑语义视图 —— 按文档顺序排列的
 `[{ role, name, value? }]` —— 在断言或驱动页面时，它比 CSS 选择器稳健得多。
-它以 CLI 命令 `xcelerate accessibility <url>` 和 MCP 工具
-`browser_accessibility` 的形式暴露。
+它以 MCP 工具 `browser_accessibility`（以及 `xcelerate` 库）的形式暴露。
 
 ## Agent 快照
 
@@ -656,8 +668,7 @@ xcelerate::configure_user_data_dir(Some("./profile".to_string()))?;
 元素，无需重新解析 CSS 选择器（`page.snapshot_json()` 会返回带有 role、name、
 bounds、selector 和 backend node id 的相同元素）；若能从 DOM 属性推导出可用的
 CSS 选择器（`#id` 或 `[name="…"]`），元素还会带上它，因此既可按索引（`click 1`）
-也可按选择器（`fill "#email" …`）操作。它以 CLI 命令 `xcelerate snapshot <url>`、
-`xcelerate click-index <url> <index>` 以及 MCP 工具 `browser_snapshot`、
+也可按选择器（`fill "#email" …`）操作。它以交互式会话（`snapshot`，然后 `click <index>` 或 `click '<selector>'`）以及 MCP 工具 `browser_snapshot`、
 `browser_click_index` 的形式暴露。
 
 ## 工作区布局

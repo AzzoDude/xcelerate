@@ -1,0 +1,47 @@
+# media.xcl - find what a page offers and download it.
+#
+# Three verbs do the work here:
+#
+#   media                    list the page's media URLs as JSON
+#   download <url> <path>    save a direct file, an HLS (.m3u8) playlist, or a
+#                            DASH (.mpd) manifest - assembled natively
+#   capture <url> <path> [s] open a page, let it play, and reassemble the media
+#                            it fetches itself (MSE: YouTube, Facebook)
+#
+# To *look* at a page (the indexed snapshot with images/video and hover
+# previews), use the session instead - `snapshot` is a session/AI command, not
+# part of the XCL language:
+#
+#   xcelerate session --ai
+#   xcelerate> open https://example.com
+#   xcelerate> snapshot
+#
+# Run this script:
+#   xcelerate run media.xcl --verbose
+#
+# Every path below is confined to the workspace root (the directory you run from,
+# or `--output-dir <dir>`): absolute paths and `..` escapes are refused, so a
+# script can never write outside the workspace you chose.
+
+param base  "https://www.python.org"
+param image "https://www.python.org/static/img/python-logo.png"
+
+open $base
+wait-idle
+
+# 1. Ask for the media URLs (JSON, absolute):
+#      {"count":1,"media":[{"kind":"image","url":".../python-logo.png",...}]}
+media
+
+# 2. Save a direct file. `download` runs the request through the browser, so the
+#    page's cookies apply and CORS never blocks it. It also assembles a segmented
+#    stream, so a playlist URL "just downloads":
+download $image "media-out/logo.png"
+#   download "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" "media-out/movie.ts"   # HLS
+#   download "https://.../manifest.mpd" "media-out/movie.mp4"                            # DASH
+
+# 3. A page that plays through Media Source Extensions has no file URL - point
+#    `capture` at the page and it records the segments the player fetches:
+#   capture "https://www.youtube.com/watch?v=..." "media-out/video.mp4" 20
+
+done

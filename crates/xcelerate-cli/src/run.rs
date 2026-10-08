@@ -4,11 +4,14 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use super::engine::Next;
-use super::exec::{Executor, dispatch};
-use super::parse::parse_program;
-use super::runtime::{Context, RuntimeLimits};
-use super::security::{Permissions, Source};
+use xcelerate_interpreter::Engine;
+use xcelerate_interpreter::ast::Command;
+use xcelerate_interpreter::engine::Next;
+use xcelerate_interpreter::exec::{Executor, dispatch};
+use xcelerate_interpreter::parse::parse_program;
+use xcelerate_interpreter::runtime::{Context, RuntimeLimits};
+use xcelerate_interpreter::security::{MAX_STEPS, Permissions, Source};
+
 use crate::cli::BrowserArgs;
 use crate::launch::launch;
 
@@ -45,13 +48,16 @@ pub async fn run_file(
     // Build context + apply `--param key=value` overrides.
     let base_url = std::env::var("XCELERATE_BASE_URL").unwrap_or_default();
     let mut ctx = Context::new(permissions, Source::File, base_url);
+    if let Some(dir) = &args.output_dir {
+        ctx = ctx.with_root(dir);
+    }
     for entry in params {
         if let Some((k, v)) = entry.split_once('=') {
             ctx.vars.insert(k.to_string(), v.to_string());
         }
     }
 
-    let mut engine = super::Engine::new(program, RuntimeLimits::default());
+    let mut engine = Engine::new(program, RuntimeLimits::default());
 
     // Execute: pull the next action, await its dispatch, feed the outcome back.
     loop {
@@ -65,7 +71,7 @@ pub async fn run_file(
         };
         // Read anything we need off the borrowed command before dispatching it
         // (the borrow ends once `dispatch` returns).
-        let is_print = matches!(cmd, super::ast::Command::Print { .. });
+        let is_print = matches!(cmd, Command::Print { .. });
 
         let outcome = dispatch(&mut ctx, cmd, &exe).await;
         engine.observe(outcome.ok);
@@ -83,7 +89,7 @@ pub async fn run_file(
             break;
         }
         // Guard against a command that never advances (defensive, not expected).
-        if ctx.steps_executed > super::security::MAX_STEPS * 2 {
+        if ctx.steps_executed > MAX_STEPS * 2 {
             println!("fail runaway guard tripped");
             break;
         }

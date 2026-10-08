@@ -5,6 +5,7 @@ members = [
     "crates/xcelerate-plugin",
     "crates/xcelerate-bindgen",
     "crates/xcelerate-cli",
+    "crates/xcelerate-interpreter",
     "crates/xcelerate-mcp",
     "crates/xcelerate-codegen",
 ]
@@ -32,6 +33,7 @@ xcelerate = { path = "crates/xcelerate", version = "1.0.14" }
 xcelerate-core = { path = "crates/xcelerate-core", version = "1.0.14" }
 xcelerate-mcp = { path = "crates/xcelerate-mcp", version = "1.0.14" }
 xcelerate-codegen = { path = "crates/xcelerate-codegen", version = "1.0.14" }
+xcelerate-interpreter = { path = "crates/xcelerate-interpreter", version = "1.0.14" }
 xcelerate-plugin = { path = "crates/xcelerate-plugin", version = "1.0.14" }
 
 # External crates.

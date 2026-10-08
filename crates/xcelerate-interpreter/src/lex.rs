@@ -5,7 +5,7 @@
 //! * tokens are whitespace-separated, but `"..."` (with backslash escapes) and
 //!   `'...'` (raw, no escapes) group spaces into one token;
 //! * a token may embed `$name` / `{BUILTIN}` references, which the parser turns
-//!   into [`crate::xcl::ast::Arg`] values.
+//!   into [`crate::ast::Arg`] values.
 
 /// The result of lexing one physical line.
 #[derive(Debug, Clone, PartialEq, Eq)]

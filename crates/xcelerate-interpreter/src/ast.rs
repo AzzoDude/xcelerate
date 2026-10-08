@@ -49,6 +49,19 @@ pub struct FuncDef {
     pub body: Vec<Step>,
 }
 
+/// A callable bound to a bare name. Registered per `(name, arity)`, so a name
+/// may be **overloaded by parameter count** (`human` with two params and `human`
+/// with four coexist) while an exact duplicate - same name, same arity - is
+/// rejected at parse time.
+#[derive(Debug, Clone)]
+pub enum Callable {
+    /// A `func name(params) ... end` definition.
+    Func(FuncDef),
+    /// A plugin op bound by `import <plugin> <op>`: invoking `<op> [json]` lowers
+    /// to `run <plugin> <op> [json]`.
+    PluginOp { plugin: String, op: String },
+}
+
 /// A single executable command.
 #[derive(Debug, Clone)]
 pub enum Command {

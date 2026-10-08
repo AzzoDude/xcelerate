@@ -1,8 +1,6 @@
 //! One-shot subcommands: launch a browser, do one thing, exit. Also the
 //! `list` helpers and the top-level `run` dispatcher.
 
-use std::sync::Arc;
-
 use xcelerate::VideoOptions;
 
 use crate::cli::{Cli, Command, ListKind, PluginAction};
@@ -65,6 +63,45 @@ pub fn list_plugins() {
     println!("  `xcelerate plugin new <id>`.");
 }
 
+/// Formats `Target.getTargets` output as printable lines (page targets only), so
+/// the ids can be fed straight to `--attach <id>`.
+fn format_targets(json: &str) -> Vec<String> {
+    let parsed: serde_json::Value = match serde_json::from_str(json) {
+        Ok(value) => value,
+        Err(_) => return vec![json.to_string()],
+    };
+    let infos = parsed
+        .get("targetInfos")
+        .and_then(serde_json::Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let mut lines = Vec::new();
+    let mut index = 0usize;
+    for info in infos {
+        if info.get("type").and_then(serde_json::Value::as_str) != Some("page") {
+            continue;
+        }
+        let id = info
+            .get("targetId")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("");
+        let title = info
+            .get("title")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("");
+        let url = info
+            .get("url")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("");
+        lines.push(format!("[{index}] \"{title}\"  {url}\n      id: {id}"));
+        index += 1;
+    }
+    if lines.is_empty() {
+        lines.push("(no page targets)".to_string());
+    }
+    lines
+}
+
 pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.command {
         Command::List { kind, all } => match kind {
@@ -80,6 +117,18 @@ pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             }
         },
         Command::Plugins => list_plugins(),
+        Command::Targets => {
+            let ws_url = cli
+                .browser
+                .connect
+                .clone()
+                .ok_or("`targets` requires --connect <WS_URL> (list a running browser/app)")?;
+            let browser = xcelerate::Browser::connect(ws_url).await?;
+            let json = browser.targets().await?;
+            for line in format_targets(&json) {
+                println!("{line}");
+            }
+        }
         Command::Plugin { action } => match action {
             PluginAction::New { name, dir, force } => {
                 let path = crate::scaffold::new_mod(&name, dir, force)?;
@@ -124,7 +173,7 @@ pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             param,
             verbose,
         } => {
-            crate::xcl::run_file(
+            crate::run::run_file(
                 &cli.browser,
                 &path,
                 allow_unsafe,
@@ -140,24 +189,6 @@ pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             let (browser, page) = launch(&cli.browser, &url).await?;
             println!("title: {}", page.title().await?);
             println!("url:   {}", page.url().await?);
-            browser.close().await?;
-        }
-        Command::Title { url } => {
-            let (browser, page) = launch(&cli.browser, &url).await?;
-            println!("{}", page.title().await?);
-            browser.close().await?;
-        }
-        Command::Content { url } => {
-            let (browser, page) = launch(&cli.browser, &url).await?;
-            println!("{}", page.content().await?);
-            browser.close().await?;
-        }
-        Command::Text { url } => {
-            let (browser, page) = launch(&cli.browser, &url).await?;
-            let text = page
-                .evaluate_string("document.body ? document.body.innerText : ''".to_string())
-                .await?;
-            println!("{text}");
             browser.close().await?;
         }
         Command::Screenshot { url, output, full } => {
@@ -178,89 +209,52 @@ pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             println!("wrote {} ({} bytes)", output.display(), pdf.len());
             browser.close().await?;
         }
-        Command::Query {
+        Command::Save { url, output } => {
+            let (browser, page) = launch(&cli.browser, &url).await?;
+            let target = output
+                .map(|path| path.to_string_lossy().into_owned())
+                .unwrap_or_else(|| {
+                    // Fall back to the URL's last path segment, or `download`.
+                    url.rsplit('/')
+                        .next()
+                        .filter(|name| !name.is_empty())
+                        .unwrap_or("download")
+                        .to_string()
+                });
+            let bytes = page.save_url(url.clone(), target.clone()).await?;
+            println!("{target} ({bytes} bytes)");
+            browser.close().await?;
+        }
+        Command::Grab { url, output } => {
+            let target = output.to_string_lossy().into_owned();
+            let (browser, page) = launch(&cli.browser, "about:blank").await?;
+            let summary = page.grab(url.clone(), target.clone()).await?;
+            println!("{summary}");
+            browser.close().await?;
+        }
+        Command::Capture {
             url,
-            selector,
-            attr,
-            html,
+            output,
+            seconds,
         } => {
-            let (browser, page) = launch(&cli.browser, &url).await?;
-            let element = Arc::clone(&page).wait_for_selector(selector).await?;
-            if let Some(attribute) = attr {
-                println!(
-                    "{}",
-                    element.attribute(attribute).await?.unwrap_or_default()
-                );
-            } else if html {
-                println!("{}", element.inner_html().await?);
-            } else {
-                println!("{}", element.text().await?);
-            }
-            browser.close().await?;
-        }
-        Command::QueryAll { url, selector } => {
-            let (browser, page) = launch(&cli.browser, &url).await?;
-            // Like `query`, wait for the selector to appear before reading: a
-            // client-rendered page may not have populated the DOM when the load
-            // event fires. The wait is bounded by the page timeout; if nothing
-            // shows up we still print nothing rather than failing.
-            let _ = Arc::clone(&page).wait_for_selector(selector.clone()).await;
-            for element in Arc::clone(&page).query_selector_all(selector).await? {
-                println!("{}", element.text().await.unwrap_or_default());
-            }
-            browser.close().await?;
-        }
-        Command::Xpath { url, xpath } => {
-            let (browser, page) = launch(&cli.browser, &url).await?;
-            // Wait: client-rendered pages may not have the element yet when the
-            // load event fires.
-            let element = Arc::clone(&page).wait_for_xpath(xpath, 30_000).await?;
-            println!("{}", element.text().await?);
-            browser.close().await?;
-        }
-        Command::Evaluate { url, expression } => {
-            let (browser, page) = launch(&cli.browser, &url).await?;
-            println!("{}", page.evaluate_json(expression).await?);
-            browser.close().await?;
-        }
-        Command::Accessibility { url } => {
-            let (browser, page) = launch(&cli.browser, &url).await?;
-            println!("{}", page.accessibility_snapshot().await?);
-            browser.close().await?;
-        }
-        Command::Snapshot { url } => {
-            let (browser, page) = launch(&cli.browser, &url).await?;
-            println!("{}", page.agent_snapshot().await?);
-            browser.close().await?;
-        }
-        Command::ClickIndex { url, index } => {
-            let (browser, page) = launch(&cli.browser, &url).await?;
-            // Build a snapshot so the index refers to this page state, then act on it.
-            page.agent_snapshot().await?;
-            Arc::clone(&page).click_index(index).await?;
-            println!("clicked snapshot index {index}");
-            browser.close().await?;
-        }
-        Command::Markdown { url } => {
-            let (browser, page) = launch(&cli.browser, &url).await?;
-            println!("{}", page.markdown().await?);
-            browser.close().await?;
-        }
-        Command::Challenge { url } => {
-            let (browser, page) = launch(&cli.browser, &url).await?;
-            println!("{}", page.detect_challenge().await?.to_json());
-            browser.close().await?;
-        }
-        Command::Find { url, text } => {
-            let (browser, page) = launch(&cli.browser, &url).await?;
-            println!("{}", page.find_text(text).await?);
-            browser.close().await?;
-        }
-        Command::WaitIdle { url } => {
-            let (browser, page) = launch(&cli.browser, &url).await?;
-            page.wait_for_network_idle(500, cli.browser.timeout.max(1))
-                .await?;
-            println!("{}", page.url().await?);
+            let target = output.to_string_lossy().into_owned();
+            let (browser, page) = launch(&cli.browser, "about:blank").await?;
+            // Start capturing before navigating so the init segment is seen too.
+            page.start_media_capture().await?;
+            page.navigate(url.clone()).await?;
+            let _ = page.wait_for_navigation().await;
+            // Best effort: give the player a nudge (autoplay is often blocked).
+            let _ = page
+                .evaluate_string(
+                    "(function(){ const v=document.querySelector('video'); \
+                     if (v) { v.muted = true; if (v.play) v.play().catch(function(){}); } \
+                     return true; })()"
+                        .to_string(),
+                )
+                .await;
+            tokio::time::sleep(std::time::Duration::from_secs(seconds)).await;
+            let summary = page.save_capture(target.clone()).await?;
+            println!("{summary}");
             browser.close().await?;
         }
         Command::Har {
@@ -310,11 +304,6 @@ pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
                 println!("{}\t{}\t{}", profile.name, profile.directory, profile.path);
             }
         }
-        Command::Health { url } => {
-            let (browser, page) = launch(&cli.browser, &url).await?;
-            println!("{}", page.health().await?);
-            browser.close().await?;
-        }
         Command::Record {
             url,
             output,
@@ -342,14 +331,42 @@ pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         }
         #[cfg(feature = "http")]
         Command::Fetch { url } => {
-            let body = crate::net::fetch(&url).await?;
+            let body = xcelerate_interpreter::net::fetch(&url).await?;
             println!("{body}");
         }
         #[cfg(feature = "http")]
         Command::FetchTo { url, output } => {
-            let bytes = crate::net::download(&url, &output).await?;
+            let bytes = xcelerate_interpreter::net::download(&url, &output).await?;
             println!("wrote {} ({bytes} bytes)", output.display());
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::format_targets;
+
+    #[test]
+    fn formats_only_page_targets() {
+        let json = r#"{"targetInfos":[
+            {"targetId":"A1","type":"page","title":"GitHub Desktop","url":"app://index.html"},
+            {"targetId":"B2","type":"background_page","title":"bg","url":"devtools://bg"}
+        ]}"#;
+        let lines = format_targets(json);
+        assert_eq!(lines.len(), 1);
+        assert!(lines[0].contains("GitHub Desktop"));
+        assert!(
+            lines[0].contains("A1"),
+            "the id must be printable for --attach"
+        );
+    }
+
+    #[test]
+    fn reports_when_there_are_no_page_targets() {
+        assert_eq!(
+            format_targets(r#"{"targetInfos":[]}"#),
+            vec!["(no page targets)".to_string()]
+        );
+    }
 }

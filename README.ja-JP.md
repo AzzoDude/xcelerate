@@ -468,19 +468,32 @@ main();
 
 ## コマンドラインインターフェース
 
-`xcelerate` コマンドは、呼び出しごとに 1 つのブラウザアクションを実行します:
+`xcelerate` コマンドは、呼び出しごとに 1 つのブラウザアクションを実行します。意図的に小さく保たれています: ナビゲートし、成果物をディスクに書き込み、インストールを管理します。*ライブ*のページ（タイトル、テキスト、HTML、メディア、索引付きスナップショット）を調べるのは、ブラウザーを開いたままにする対話型セッションの役割です。
 
 ```bash
-xcelerate title https://example.com
+xcelerate open https://example.com              # ナビゲートしてタイトルと URL を表示
 xcelerate screenshot https://example.com -o shot.png --full
-xcelerate query https://example.com h1 --attr href
-xcelerate query-all https://example.com 'a'   # text of every match
-xcelerate evaluate https://example.com 'document.title'
-xcelerate list                                  # built-in devices + plugins
-xcelerate --device "iPhone 13" screenshot https://example.com -o phone.png
+xcelerate pdf https://example.com -o page.pdf
+xcelerate save https://example.com/logo.png -o logo.png
+xcelerate grab https://…/playlist.m3u8 -o movie.mp4
+xcelerate capture https://www.youtube.com/watch?v=… -o movie.mp4
+xcelerate har https://example.com -o network.har
+xcelerate record https://example.com -o video.mp4
+xcelerate list                                  # 組み込みデバイス + プラグイン
 xcelerate plugins
-xcelerate snapshot https://example.com          # インデックス付きの LLM 向けスナップショット
-xcelerate click-index https://example.com 2     # スナップショットの要素 [2] をクリック
+xcelerate --device "iPhone 13" screenshot https://example.com -o phone.png
+```
+
+ページを調べるには、セッションを開き、そこでコマンドを実行します:
+
+```bash
+xcelerate session
+xcelerate> open example.com
+xcelerate> title
+xcelerate> text
+xcelerate> snapshot        # 索引付き、LLM 向け
+xcelerate> media           # 画像/動画/音声を JSON で
+xcelerate> eval 'document.title'
 ```
 
 グローバルフラグはすべてのコマンドに適用されます: `--headless`（既定でブラウザー
@@ -623,12 +636,12 @@ Chrome --(HTTP/CONNECT)--> xcelerate gateway (127.0.0.1) --> upstream pool --> i
 
 ```bash
 # environment (works from every language binding)
-XCELERATE_PROXY=http://user:pass@proxy.example:8080 xcelerate title https://example.com
+XCELERATE_PROXY=http://user:pass@proxy.example:8080 xcelerate open https://example.com
 XCELERATE_PROXY_POOL=http://a:8080,http://b:8080 ./your-app      # round-robin
 
 # CLI flag (repeatable)
 xcelerate --proxy http://user:pass@proxy.example:8080 --proxy http://backup:8080 \
-  title https://example.com
+  open https://example.com
 ```
 
 ```rust
@@ -650,7 +663,7 @@ let browser = Browser::launch(BrowserConfig::default()).await?;
 ディレクトリを指定すると、実行間で Cookie、ログイン、サイトストレージを保持できます:
 
 ```bash
-XCELERATE_USER_DATA_DIR=~/.xcelerate/profile xcelerate title https://example.com
+XCELERATE_USER_DATA_DIR=~/.xcelerate/profile xcelerate open https://example.com
 xcelerate --user-data-dir ./profile title https://example.com
 ```
 
@@ -666,9 +679,8 @@ xcelerate::configure_user_data_dir(Some("./profile".to_string()))?;
 
 `page.accessibility_snapshot()` は、ページのコンパクトな意味的ビュー -
 ドキュメント順の `[{ role, name, value? }]` - を返します。これは、ページの検証や
-操作において CSS セレクターよりもはるかに堅牢です。CLI コマンド
-`xcelerate accessibility <url>` および MCP ツール `browser_accessibility` として
-公開されています。
+操作において CSS セレクターよりもはるかに堅牢です。MCP ツール
+`browser_accessibility`（および `xcelerate` ライブラリ）として公開されています。
 
 ## エージェントスナップショット
 
@@ -689,9 +701,8 @@ xcelerate::configure_user_data_dir(Some("./profile".to_string()))?;
 selector、backend node id を持つ同じ要素を返します）。DOM 属性から使える CSS
 セレクター（`#id` や `[name="…"]`）を導出できる場合はそれが添えられるので、
 インデックス（`click 1`）でもセレクター（`fill "#email" …`）でも操作できます。
-CLI コマンド `xcelerate snapshot <url>`、
-`xcelerate click-index <url> <index>`、および MCP ツール `browser_snapshot`、
-`browser_click_index` として公開されています。
+対話型セッション（`snapshot`、そして `click <index>` または `click '<selector>'`）、
+および MCP ツール `browser_snapshot`、`browser_click_index` として公開されています。
 
 ## ワークスペース構成
 

@@ -7,7 +7,7 @@
 
 use std::collections::HashMap;
 
-use super::ast::{Arg, Command, ParamDef, Step};
+use super::ast::{Arg, Callable, Command, ParamDef, Step};
 use super::parse::Program;
 use super::runtime::{Context, Outcome, RuntimeLimits};
 
@@ -57,8 +57,6 @@ enum Op {
     LoopEnd { target: usize },
     /// Jump to `target` only if the previous action succeeded (`ok == true`).
     JumpIfOk { target: usize },
-    /// Jump to `target` only if the previous action failed (`ok == false`).
-    JumpIfFail { target: usize },
 }
 
 impl Engine {
@@ -162,13 +160,6 @@ impl Engine {
                         self.pc += 1;
                     }
                 }
-                Op::JumpIfFail { target } => {
-                    if !self.last_ok {
-                        self.pc = *target;
-                    } else {
-                        self.pc += 1;
-                    }
-                }
             }
         }
     }
@@ -232,15 +223,6 @@ impl Engine {
                     Outcome::ok("if-ok skipped".to_string())
                 }
             }
-            Op::JumpIfFail { target } => {
-                if !self.last_ok {
-                    self.pc = *target;
-                    Outcome::ok("if-fail taken".to_string())
-                } else {
-                    self.pc += 1;
-                    Outcome::ok("if-fail skipped".to_string())
-                }
-            }
             Op::LoopStart { n } => {
                 self.loops[self.pc] = *n;
                 self.pc += 1;
@@ -281,26 +263,53 @@ fn is_action(cmd: &Command) -> bool {
 }
 
 /// Lowers a top-level [`Step`] into ops, inlining any `call`.
-fn lower_step(step: &Step, ops: &mut Vec<Op>, funcs: &HashMap<String, super::ast::FuncDef>) {
+fn lower_step(step: &Step, ops: &mut Vec<Op>, funcs: &HashMap<(String, usize), Callable>) {
     match &step.command {
         Command::FuncStart(_) | Command::FuncEnd => {}
-        Command::Call { name, args } => match funcs.get(name) {
-            Some(func) => {
-                for body_step in &func.body {
-                    let mut cmd = body_step.command.clone();
-                    substitute_args(&mut cmd, &func.params, args);
-                    ops.push(Op::Command(cmd));
+        Command::Call { name, args } => {
+            // Overload resolution is by arity (the argument count).
+            match funcs.get(&(name.clone(), args.len())) {
+                Some(Callable::Func(func)) => {
+                    for body_step in &func.body {
+                        let mut cmd = body_step.command.clone();
+                        substitute_args(&mut cmd, &func.params, args);
+                        ops.push(Op::Command(cmd));
+                    }
+                }
+                Some(Callable::PluginOp { plugin, op }) => {
+                    // An `import`-bound op: `<op> [json]` becomes `run <plugin> <op> [json]`.
+                    ops.push(Op::Command(Command::Run {
+                        plugin: plugin.clone(),
+                        op: op.clone(),
+                        json: args.first().cloned(),
+                    }));
+                }
+                None => {
+                    // No overload takes this many arguments. Emit a command that
+                    // fails clearly at run time, naming the arities that do exist.
+                    let mut arities: Vec<usize> = funcs
+                        .keys()
+                        .filter(|(n, _)| n == name)
+                        .map(|(_, arity)| *arity)
+                        .collect();
+                    arities.sort_unstable();
+                    let message = if arities.is_empty() {
+                        format!("unknown function `{name}`")
+                    } else {
+                        format!(
+                            "`{name}` has no overload taking {} argument(s); defined for {:?}",
+                            args.len(),
+                            arities
+                        )
+                    };
+                    ops.push(Op::Command(Command::Run {
+                        plugin: "__call__".into(),
+                        op: message,
+                        json: Some(Arg::Literal("{}".into())),
+                    }));
                 }
             }
-            None => {
-                // Emit a command that fails clearly at run time.
-                ops.push(Op::Command(Command::Run {
-                    plugin: "__call__".into(),
-                    op: format!("unknown function `{name}`"),
-                    json: Some(Arg::Literal("{}".into())),
-                }));
-            }
-        },
+        }
         Command::Label { .. } | Command::Goto { .. } => {
             ops.push(Op::Command(step.command.clone()));
         }
@@ -457,6 +466,25 @@ mod tests {
         let src = "func go()\nclick 1\nend\ncall go\n";
         let out = run(src);
         assert!(out.iter().any(|o| o.message == "click"));
+    }
+
+    #[test]
+    fn imported_op_call_lowers_to_run() {
+        let out = run("import acme.mod echo\necho {\"message\":\"hi\"}\n");
+        assert!(
+            out.iter().any(|o| o.message == "run acme.mod.echo"),
+            "expected the bound op to lower to a run, got {out:?}"
+        );
+    }
+
+    #[test]
+    fn arity_mismatch_fails_with_a_hint() {
+        let out = run("func human(a, b)\nprint $a\nend\nhuman 1 2 3\n");
+        assert!(
+            out.iter()
+                .any(|o| !o.ok && o.message.contains("no overload")),
+            "expected an arity error, got {out:?}"
+        );
     }
 
     #[test]

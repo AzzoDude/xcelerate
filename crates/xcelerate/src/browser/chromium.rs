@@ -765,6 +765,8 @@ impl Browser {
             har_body_mode: Arc::new(tokio::sync::Mutex::new("omit".to_string())),
             last_snapshot: Arc::new(tokio::sync::Mutex::new(None)),
             human_input: std::sync::atomic::AtomicBool::new(true),
+            capture_entries: Arc::new(tokio::sync::Mutex::new(Vec::new())),
+            capture_task: Arc::new(tokio::sync::Mutex::new(None)),
         })
     }
 

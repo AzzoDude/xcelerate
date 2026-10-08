@@ -501,25 +501,42 @@ main();
 
 ## Command-line interface
 
-The `xcelerate` command performs one browser action per invocation:
+The `xcelerate` command performs one browser action per invocation. It is
+deliberately small: it navigates, writes artifacts to disk, and manages the
+install. Reading a *live* page — its title, text, HTML, media, or an indexed
+snapshot — is the job of the interactive session, which keeps the browser open.
 
 ```bash
-xcelerate title https://example.com
+xcelerate open https://example.com              # navigate; prints the title and URL
 xcelerate screenshot https://example.com -o shot.png --full
-xcelerate query https://example.com h1 --attr href
-xcelerate query-all https://example.com 'a'   # text of every match
-xcelerate evaluate https://example.com 'document.title'
+xcelerate pdf https://example.com -o page.pdf
+xcelerate save https://example.com/logo.png -o logo.png   # download through the browser
+xcelerate grab https://…/playlist.m3u8 -o movie.mp4       # HLS/DASH: assemble the segments
+xcelerate capture https://www.youtube.com/watch?v=… -o movie.mp4   # MSE: capture what the page plays
+xcelerate har https://example.com -o network.har          # record network activity (HAR)
+xcelerate record https://example.com -o video.mp4         # video of a run
 xcelerate list                                  # built-in devices + plugins
-xcelerate --device "iPhone 13" screenshot https://example.com -o phone.png
 xcelerate plugins
-xcelerate snapshot https://example.com          # indexed, LLM-friendly snapshot
-xcelerate click-index https://example.com 2     # click element [2] from the snapshot
+xcelerate --device "iPhone 13" screenshot https://example.com -o phone.png
+```
+
+To inspect a page, open a session and run the verb there:
+
+```bash
+xcelerate session
+xcelerate> open example.com
+xcelerate> title
+xcelerate> text
+xcelerate> snapshot        # indexed, LLM-friendly
+xcelerate> media           # images/video/audio as JSON
+xcelerate> eval 'document.title'
 ```
 
 Global flags apply to every command: `--headless` (the browser window is shown
 by default), `--detached`, `--executable-path <path>`, `--plugins <path,...>`,
 `--device <name>`, `--linear` (straight-line mouse and fast typing instead of the
-default human-like input), and `--timeout <ms>`. `xcelerate --device <name> <command>` renders as a built-in
+default human-like input), `--output-dir <dir>` (the workspace root every file
+verb is confined to), and `--timeout <ms>`. `xcelerate --device <name> <command>` renders as a built-in
 mobile device, and `xcelerate list` prints every device and plugin.
 Install it with `cargo install --path crates/xcelerate-cli` (the installed
 binary is `xcelerate-cli`; the release archives and winget ship it as
@@ -578,16 +595,29 @@ done
 | `func <name>(a, b)` … `end` | A named, no-return callable (depth 1, no recursion). |
 | `<name> <arg>…` | Invoke a function defined above (`call <name> …` also works). |
 | `open` / `goto` `<url>` | Navigate. |
-| `back` `reload` `title` `url` `text` `markdown` `snapshot` | Read the page. |
-| `click <index\|selector\|text>` `mouse <index\|selector\|text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | Interact. |
+| `back` `reload` `title` `url` `text` `markdown` | Read the page. |
+| `click <selector\|text>` `mouse [click] <selector\|text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | Interact. |
+| `media` `download <url> <path>` `upload <sel> <path>` | Discover media, save a URL/HLS/DASH stream, or send a file to a file input. |
+| `cookie [get] [name]` `cookie set <name> <value> [domain] [path]` `cookie add <json>` `cookie delete <name>` `cookie clear` | Read, set (including `HttpOnly` session cookies), or clear cookies. |
+| `capture <url> <path> [secs]` | Record an MSE page's own segments (YouTube/Facebook). |
+| `shot [path]` `shot-full [path]` | Save a viewport or full-page screenshot. |
 | `wait <ms\|selector>` `wait-sec` `wait-min` `wait-hr` `wait-idle` `wait-stable` | Wait. |
 | `eval <js>` | Run JavaScript (requires `--allow-unsafe`). |
 | `request <METHOD> <url> [headers] [body]` | HTTP without a browser (requires `--allow-http`). |
-| `import <id>` `run <plugin> <op> [json]` `plugins` `plugin-config <id>` | Plugins / workers. |
+| `import <id> [op]…` `run <plugin> <op> [json]` `plugins` `plugin-config <id>` | Plugins / workers; each imported `op` becomes a bare callable. |
 | `repeat <n> …` `retry <n> …` `if-ok …` `if-fail …` `goto <label>` `label <name>` | Bounded control flow. |
 | `assert <subject> <op> <value>` | Fail-fast check (`url`, `title`, `status`, `contains`, `==`, …). |
 | `print <arg>...` | Write the resolved arguments to stdout (the explicit log channel). |
 | `done` / `quit` | End the run. |
+
+### Files and paths
+
+Every path a script names — in `download`, `capture`, `shot`/`shot-full`, and
+`upload` — is resolved against a **workspace root** and confined to it. The root
+is the directory you run from, or the `--output-dir <dir>` you pass. Absolute
+paths and `..` escapes are refused (`path escapes the workspace root`), and
+missing parent directories are created. A `.xcl` file is executable input, so it
+can never read or write outside the workspace you chose.
 
 ## MCP server
 
@@ -658,12 +688,12 @@ Chrome --(HTTP/CONNECT)--> xcelerate gateway (127.0.0.1) --> upstream pool --> i
 
 ```bash
 # environment (works from every language binding)
-XCELERATE_PROXY=http://user:pass@proxy.example:8080 xcelerate title https://example.com
+XCELERATE_PROXY=http://user:pass@proxy.example:8080 xcelerate open https://example.com
 XCELERATE_PROXY_POOL=http://a:8080,http://b:8080 ./your-app      # round-robin
 
 # CLI flag (repeatable)
 xcelerate --proxy http://user:pass@proxy.example:8080 --proxy http://backup:8080 \
-  title https://example.com
+  open https://example.com
 ```
 
 ```rust
@@ -684,8 +714,8 @@ By default each browser gets a throwaway profile that is deleted on close. Point
 it at a directory to keep cookies, logins, and site storage between runs:
 
 ```bash
-XCELERATE_USER_DATA_DIR=~/.xcelerate/profile xcelerate title https://example.com
-xcelerate --user-data-dir ./profile title https://example.com
+XCELERATE_USER_DATA_DIR=~/.xcelerate/profile xcelerate open https://example.com
+xcelerate --user-data-dir ./profile open https://example.com
 ```
 
 ```rust
@@ -700,8 +730,8 @@ disk before it exits.
 
 `page.accessibility_snapshot()` returns a compact semantic view of the page -
 `[{ role, name, value? }]` in document order - which is far more resilient than
-CSS selectors for asserting or driving a page. It is exposed as the CLI command
-`xcelerate accessibility <url>` and the MCP tool `browser_accessibility`.
+CSS selectors for asserting or driving a page. It is exposed as the MCP tool
+`browser_accessibility` (and through the `xcelerate` library).
 
 ## Agent snapshots
 
@@ -725,15 +755,30 @@ tokens) change between renders, so they are **skipped**: such an element falls
 back to its `name` / `aria-label` / `placeholder`, or shows no selector at all
 when none of those is stable.
 
+**Images and video are rendered too** (the AX tree alone hides them), with a
+compact descriptor, so an agent can tell a thumbnail from a hero image from a
+player, and can see a hover preview before touching it:
+
+```
+[3]<img> "Golden retriever" (image, 640x480, hero.jpg)  '#hero'
+   <video> (video, 1280x720, clip.mp4)  '#player'
+[4]<a> "Trailer" (hover: video preview)  '[aria-label="Trailer"]'
+```
+
+The descriptor is `kind, WxH, file`. A hidden `<video>` (the usual hover-preview
+idiom) is shown as `hidden`, and the element that contains it - the thumbnail an
+agent actually sees - is tagged `hover: video preview`. `snapshot_json()` carries
+the same information as a `"kind"` field (`image`/`video`/`audio`).
+
 The snapshot is built entirely in Rust from a single
 `Accessibility.getFullAXTree` and `DOMSnapshot.captureSnapshot` call on the
 persistent CDP session, so it is far cheaper and more predictable than
 serializing the DOM in a scripting language. Pass an index to
 `page.click_index(n)` to click that element without re-resolving a CSS selector
 (`page.snapshot_json()` returns the same elements with roles, names, selector,
-bounds, and backend node ids). It is exposed as the CLI commands
-`xcelerate snapshot <url>` and `xcelerate click-index <url> <index>`, and the MCP
-tools `browser_snapshot` and `browser_click_index`.
+bounds, and backend node ids). It is exposed in the interactive session
+(`snapshot`, then `click <index>` or `click '<selector>'`), and as the MCP tools
+`browser_snapshot` and `browser_click_index`.
 
 ## Workspace layout
 

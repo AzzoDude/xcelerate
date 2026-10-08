@@ -38,7 +38,7 @@ You need Chrome or Edge installed; Xcelerate finds it automatically. Confirm it
 works:
 
 ```bash
-xcelerate title https://example.com
+xcelerate open https://example.com
 ```
 
 ## 1. Your first script
@@ -81,49 +81,42 @@ Markdown. That is the whole shape of XCL: a list of actions, top to bottom.
 | `text` | The visible text. |
 | `markdown` | The main content as clean Markdown (scripts/nav stripped). |
 | `content` | The full HTML. |
-| `snapshot` | An indexed, agent-friendly view of the interactive elements. |
 | `eval <js>` | The JSON result of a JavaScript expression (needs `--allow-unsafe`). |
 
-`snapshot` is the one to reach for when you need to *act* on a page. It tags
-every interactive element with a stable index, and where it can derive a usable
-CSS selector from the element's DOM attributes (`#id`, `[name="…"]`, …) it shows
-that too:
+These print a value into the run log (use `--verbose` to see it). To *check* the
+page, prefer `assert <subject> ...` (`url`, `title`, `text`, `content`, …), which
+fails the step when the check does not hold.
+
+The **indexed snapshot** — the agent-friendly view that tags every interactive
+element with a stable `[index]` (and now also shows images and `<video>` with a
+`kind, WxH, file` descriptor and hover previews) — is a **session/AI command**, not
+part of the XCL language. Reach for it when driving a page interactively:
 
 ```text
-open https://www.practicesoftwaretesting.com
-wait-idle
-snapshot
-done
-```
-
-```text
-ok snapshot
+xcelerate> snapshot
 [0]<a> "Home"  '#home'
-[1]<a> "Categories"  '[aria-label="Categories"]'
+[1]<img> "Hero" (image, 1200x400, hero.jpg)  '#hero'
 [2]<button> "Sign in"  '#signin'
 ```
 
-Selectors are shown as quoted string literals so you can copy them straight into a
-command (`fill '#email' …`).
-
-Framework-generated ids (React's `_R_…`, Radix/MUI `:r0:`, long random tokens)
-are unstable between renders, so they are skipped and a stable
-`name`/`aria-label`/`placeholder` is used instead - or no selector is shown, in
-which case use the index.
+In a script, act by CSS selector or visible text (`click '#signin'`,
+`click "Sign in"`) rather than by a snapshot index.
 
 ## 3. Acting on a page
 
 | Verb | Action |
 | --- | --- |
-| `click <index\|selector\|text>` | Click by snapshot index (`click 2`), CSS selector, or visible text (`click "Sign in"`). |
+| `click <selector\|text>` | Click by CSS selector or visible text (`click "Sign in"`). |
 | `tap <selector\|text>` | The same pick, but a DOM click that never moves the mouse. |
-| `fill <selector|index> <text>` | Type text into a field, by CSS selector or snapshot index. |
+| `fill <selector> <text>` | Type text into a field, by CSS selector. |
 | `select <selector> <value>` | Choose an option in a native `<select>` (by value or label). |
 | `type <text>` | Type into the already-focused element. |
 | `press <key>` | Press a key on the focused element (`press Enter`). |
 | `submit` | Press Enter on the focused element — the productive way to finish a form. |
 | `hover <selector>` | Move the mouse over an element. |
-| `mouse <index\|selector\|text>` | Move the cursor there without clicking (or `mouse <x> <y>`). |
+| `mouse <selector\|text>` | Move the cursor there without clicking; `mouse click <target>` also clicks (or `mouse <x> <y>`). |
+| `media` | List the page's images/video/audio URLs as JSON. |
+| `download <url> <path>` | Fetch a URL through the browser (cookies apply, no CORS) and save it to a file. |
 | `scroll <pixels\|up\|down\|top\|bottom>` | Scroll the page. |
 
 `click` takes an index, a selector, or visible text, so every style works:
@@ -145,6 +138,44 @@ done
 
 The `wait "#email"` line waits for the field before filling it (see the next
 section), and `submit` presses Enter from the field you are already in.
+
+### Media and files
+
+`media` lists what the page references — images (including `srcset` and CSS
+backgrounds) and `<video>`/`<audio>` sources — as absolute URLs. `download <url>
+<path>` saves any of them through the browser, so the page's cookies apply and
+CORS never blocks it:
+
+```text
+open https://www.python.org
+media                                   # → {"count":1,"media":[{"kind":"image","url":"…/python-logo.png",…}]}
+download "https://www.python.org/static/img/python-logo.png" "logo.png"
+```
+
+Images and direct video/audio files download this way. A segmented stream is
+assembled too, natively: **HLS** (`.m3u8`) follows the master to its best variant,
+and **DASH** (`.mpd`) picks the best video and audio representations (separate
+audio is written to `<name>.audio.m4a`):
+
+```text
+download "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" "movie.ts"
+download "https://…/manifest.mpd" "movie.mp4"
+```
+
+From the shell, the one-shot `xcelerate grab <url> -o movie.mp4` does the same.
+Everything runs in-process — no external tool. `media` reporting a source as
+`{"streaming": true}` means the bytes only exist as Media Source Extensions
+segments behind a `blob:` URL. For those pages (YouTube, Facebook), use
+`xcelerate capture <page> -o movie.mp4 --seconds 20`: it records the segment
+requests the player makes — its already-signed URLs — and reassembles them. The
+page must actually play. Encrypted HLS (`EXT-X-KEY`) and DRM are refused rather
+than silently corrupted.
+
+Every path a script names (`download`, `capture`, `shot`, `upload`) is confined
+to the directory you run from — or the `--output-dir <DIR>` you pass. Absolute
+paths and `..` escapes are refused (`path escapes the workspace root`), and
+missing parent folders are created, so a `.xcl` file can never touch files
+outside the workspace you chose.
 
 ## 4. Waiting for the page
 
@@ -385,8 +416,10 @@ also implies `--allow-http`.
   first wrong step.
 - `fail` stops the run. Wrap a step in `retry` / `if-fail` when failure is
   expected.
-- Insert `snapshot`, `markdown`, `title`, or `url` to see what the script sees.
-- Prefer `snapshot` + `click <index>` over long CSS selectors for robustness.
+- Insert `title`, `url`, `text`, or `markdown` to see what the script sees (or
+  `assert <subject> …` to check it).
+- Prefer a stable CSS selector or visible text over a long chain; the indexed
+  snapshot (a session command) is the place to copy selectors from.
 - Prefer `wait-idle` / `wait-stable` over fixed `wait`s.
 - For a human pace, use `wait-random <min> <max>` between steps and prefer
   `click` (real mouse) over `tap` (instant DOM click). Human-like

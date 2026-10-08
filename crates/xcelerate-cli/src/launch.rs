@@ -103,7 +103,13 @@ pub async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Brows
         Some(ws_url) => Browser::connect(ws_url).await?,
         None => Browser::launch(config).await?,
     };
-    let page = if let Some(device) = args.device.clone() {
+    // `--attach <id>` takes over an existing window (Electron/CEF/WebView2, or a
+    // live browser) instead of opening a new tab. Nothing is navigated, so the
+    // window keeps whatever it is showing.
+    let attached = args.attach.is_some();
+    let page = if let Some(target_id) = args.attach.clone() {
+        Arc::clone(&browser).attach_page(target_id).await?
+    } else if let Some(device) = args.device.clone() {
         // Emulate before navigating so the UA, touch, and viewport are in place
         // for the first request and the initial layout.
         let page = Arc::clone(&browser)
@@ -122,8 +128,11 @@ pub async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Brows
     // switches the mouse to a straight line and typing to a fixed fast cadence.
     page.set_human(!args.linear);
     // `new_page` returns as soon as navigation is issued; wait for the load
-    // event so client-rendered pages are populated before we read them.
-    let _ = page.wait_for_navigation().await;
+    // event so client-rendered pages are populated before we read them. An
+    // attached target was not navigated, so there is no load event to await.
+    if !attached {
+        let _ = page.wait_for_navigation().await;
+    }
     // A client-rendered page can keep rendering after the load event, so give
     // the DOM a brief, capped window to settle. This keeps the one-shot readers
     // (`content`, `text`, `evaluate`, `find`, `markdown`, `accessibility`,

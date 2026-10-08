@@ -56,6 +56,9 @@ register!(browser_protocol; lt
     dom::SetFileInputFilesParams,
     emulation::SetUserAgentOverrideParams,
     network::GetCookiesParams,
+    network::LoadNetworkResourceParams,
+    io::ReadParams,
+    io::CloseParams,
 );
 
 register!(browser_protocol; plain

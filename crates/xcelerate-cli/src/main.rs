@@ -15,13 +15,10 @@ mod build;
 mod cli;
 mod commands;
 mod cursor;
-mod interact;
 mod launch;
-#[cfg(feature = "http")]
-mod net;
+mod run;
 mod scaffold;
 mod session;
-mod xcl;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;

@@ -197,7 +197,9 @@ These are ordinary DOM; the failures come from *timing*, not detection.
 Detect before you scrape:
 
 ```sh
-xcelerate challenge https://target/          # JSON: {"detected":…,"vendors":…,"signals":…}
+xcelerate session
+xcelerate> open https://target/
+xcelerate> challenge        # JSON: {"detected":…,"vendors":…,"signals":…}
 ```
 
 ```rust

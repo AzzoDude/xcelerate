@@ -1,0 +1,30 @@
+[package]
+name = "xcelerate-interpreter"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The XCL interpreter for xcelerate: lexer, parser, bounded engine, and execution over the CDP engine."
+publish = false
+
+[lib]
+name = "xcelerate_interpreter"
+path = "src/lib.rs"
+
+[dependencies]
+xcelerate.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+# The `request` verb's in-process HTTP client and the CLI `fetch` helpers.
+futures = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+
+[features]
+# Opt in to the `request` verb (browserless HTTP). Off by default so the
+# interpreter stays dependency-light; the CLI forwards its own `http` feature.
+http = ["dep:reqwest", "dep:futures"]
+
+[lints]
+workspace = true
