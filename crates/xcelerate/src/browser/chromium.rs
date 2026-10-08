@@ -134,7 +134,9 @@ impl Browser {
                 XcelerateError::NotFound(format!(
                     "no Chromium-based browser found; set executable_path or XCELERATE_BROWSER\
                      (try one of: {})",
-                    super::known::ids().collect::<Vec<_>>().join(", ")
+                    super::known::ids_for(Engine::Chromium)
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 ))
             })?;
 
@@ -210,10 +212,13 @@ impl Browser {
                 .spawn()
                 .map_err(|e| XcelerateError::NotFound(format!("Failed to start Chrome: {}", e)))?;
             let pid = child.id().ok_or(XcelerateError::InternalError)?;
-            let guard = ProcessGuard {
-                pid,
-                auto_kill: !keep_alive,
-            };
+            let auto_kill = !keep_alive;
+            if auto_kill {
+                // Track it so an abrupt exit (error/Ctrl+C) can still close it;
+                // a `keep_alive` browser is intentionally left running.
+                crate::process::register(pid);
+            }
+            let guard = ProcessGuard { pid, auto_kill };
             (Some(child), Some(guard))
         };
 
@@ -257,11 +262,13 @@ impl Browser {
     }
 
     pub async fn new_page(self: Arc<Self>, url: String) -> XcelerateResult<Arc<Page>> {
-        // 1. Create target with about:blank so we can inject scripts before loading the real URL
+        // 1. Create target with about:blank so we can inject scripts before loading the real URL.
+        //    `background: false` makes the new tab the foreground tab in its window.
         let target = self
             .client
             .execute(browser_protocol::target::CreateTargetParams {
                 url: "about:blank".into(),
+                background: Some(false),
                 ..Default::default()
             })
             .await?;
@@ -757,6 +764,7 @@ impl Browser {
             har_task: Arc::new(tokio::sync::Mutex::new(None)),
             har_body_mode: Arc::new(tokio::sync::Mutex::new("omit".to_string())),
             last_snapshot: Arc::new(tokio::sync::Mutex::new(None)),
+            human_input: std::sync::atomic::AtomicBool::new(true),
         })
     }
 

@@ -437,6 +437,12 @@ pub fn resolve(requested: Option<&str>, engine: Engine) -> Option<PathBuf> {
             return Some(path);
         }
         if let Some(browser) = lookup(value) {
+            // A known id names exactly one engine. Asking for a Firefox id on the
+            // Chromium path (or vice versa) must not hand back the wrong
+            // executable - it should fail so the caller can report it.
+            if browser.engine != engine {
+                return None;
+            }
             return first_existing(browser);
         }
         // Not a known id and not on disk: hand the path back so the launch error
@@ -476,6 +482,21 @@ fn discovered(engine: Engine) -> &'static Option<PathBuf> {
 /// All known browser ids, for error messages and the CLI.
 pub fn ids() -> impl Iterator<Item = &'static str> {
     KNOWN.iter().map(|browser| browser.id)
+}
+
+/// Every known id for `engine` (e.g. so an error can list only the ids that
+/// actually work for the backend the caller is using).
+pub fn ids_for(engine: Engine) -> impl Iterator<Item = &'static str> {
+    KNOWN
+        .iter()
+        .filter(move |browser| browser.engine == engine)
+        .map(|browser| browser.id)
+}
+
+/// The engine a known id (or alias) belongs to, if `id` names a known browser.
+/// Lets a caller tell "you asked for Firefox" from "nothing is installed".
+pub fn engine_of(id: &str) -> Option<Engine> {
+    lookup(id).map(|browser| browser.engine)
 }
 
 /// Expand `%NAME%` environment tokens in a candidate path.

@@ -39,7 +39,7 @@ push defence to the four *edges* where the page gets control:
 CLI flags that remove whole categories of noise (compose them):
 
 ```sh
-xcelerate --no-headless \
+xcelerate \
   --user-data-dir .run/profile \        # keep consent cookies so walls don't return
   --extra-arg --mute-audio \            # ad video audio can't hijack the session
   --extra-arg --autoplay-policy=user-gesture-required \
@@ -96,7 +96,7 @@ cookies") — those are app UI the agent should decide about, not the guardian.
 Install it:
 
 ```sh
-xcelerate --no-headless session
+xcelerate session
 xcelerate> guard .agents/skills/hostile-pages/guardian.js
 ```
 
@@ -176,7 +176,7 @@ These are ordinary DOM; the failures come from *timing*, not detection.
    `wait_for_function("document.querySelector('.modal').offsetParent === null")`
    before clicking what was underneath.
 2. **Dismiss with an accessible name**, not coordinates:
-   `click-text close`, `click-text accept all`, `click-text got it`. `click-text`
+   `click close`, `click accept all`, `click got it`. `click`
    matches visible text **and** `aria-label`, so icon-only close buttons work.
 3. **Verify the click landed**: re-read `page.url()` / `find <text>` instead of
    assuming.
@@ -215,8 +215,7 @@ session needs a real profile (`--user-data-dir`) or a slower, human-paced run.
 | `guard <path.js>` | install the guardian in this page and every future document |
 | `tabs` | list targets: id, type, url |
 | `close-tab <id>` | `Target.closeTarget` for one target |
-| `click-text <text>` | click a control by visible text or `aria-label` |
-| `click <index\|selector>` | click by snapshot index or CSS selector |
+| `click <index\|selector\|text>` | click by snapshot index, CSS selector, or visible text / `aria-label` |
 | `eval <js>` | run JS; `window.__xcelerateDismiss(/…/i)` to click by pattern |
 | `wait <ms\|selector>` | sleep, or wait for a selector |
 | `snapshot` | indexed interactive elements (a fresh view after ads are removed) |
@@ -224,7 +223,7 @@ session needs a real profile (`--user-data-dir`) or a slower, human-paced run.
 ## Recipe — a hardened session for a hostile site
 
 ```sh
-xcelerate --no-headless --user-data-dir .run/profile \
+xcelerate --user-data-dir .run/profile \
   --extra-arg --mute-audio session
 ```
 ```
@@ -232,7 +231,7 @@ xcelerate --no-headless --user-data-dir .run/profile \
 >>> open https://hostile.example/
 >>> wait 2500
 >>> snapshot                      # confirm what is actually interactable
->>> click-text got it             # app modal (not an ad) — dismiss consciously
+>>> click got it                  # app modal (not an ad) — dismiss consciously
 >>> tabs                          # any popup that slipped through?
 >>> close-tab 9C02…               # if yes
 >>> click textarea
@@ -254,7 +253,7 @@ xcelerate --no-headless --user-data-dir .run/profile \
   may be `disabled`/`readonly` or have a `maxlength` of `0` — and often an overlay
   is still covering it. Check `document.activeElement.tagName`, `textarea.disabled`
   and `textarea.readOnly`, and confirm `textarea.value` before assuming success.
-- **Coordinates drift.** Ad re-flows move elements; prefer `click-index`
-  (`backendNodeId`-pinned) or `click-text` over stored x/y.
+- **Coordinates drift.** Ad re-flows move elements; prefer `click <index>`
+  (`backendNodeId`-pinned) or `click "<text>"` over stored x/y.
 - **Forgetting new documents.** A guard installed only via `evaluate` is lost on
   the next navigation. Use `add_script_to_evaluate_on_new_document` / `inject_file`.

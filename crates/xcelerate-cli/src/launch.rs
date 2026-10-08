@@ -2,7 +2,8 @@
 
 use std::sync::Arc;
 
-use xcelerate::{Browser, BrowserConfig, Page, XcelerateResult};
+use xcelerate::browser::known::Engine;
+use xcelerate::{Browser, BrowserConfig, Page, XcelerateError, XcelerateResult};
 
 use crate::cli::BrowserArgs;
 
@@ -15,8 +16,51 @@ pub fn build_hint() -> &'static str {
     }
 }
 
+/// Whether `requested` names (or points at) a Firefox-family browser. The
+/// command-line tools speak CDP; Firefox speaks WebDriver BiDi, so this is used
+/// to refuse one up front rather than mislaunching it.
+fn is_firefox_like(requested: &str) -> bool {
+    if xcelerate::browser::known::engine_of(requested) == Some(Engine::Firefox) {
+        return true;
+    }
+    // An explicit executable path: fall back to inspecting the file name.
+    let name = std::path::Path::new(requested)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(requested)
+        .to_ascii_lowercase();
+    [
+        "firefox",
+        "librewolf",
+        "waterfox",
+        "floorp",
+        "icecat",
+        "mullvad",
+    ]
+    .iter()
+    .any(|needle| name.contains(needle))
+}
+
 /// Launches a browser and opens `url`, applying the shared browser options.
 pub async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Browser>, Arc<Page>)> {
+    // The command-line tools drive Chromium over CDP. A Firefox-family browser
+    // speaks WebDriver BiDi instead, so refuse it up front with a clear message
+    // rather than launching it with CDP flags and hanging on the handshake.
+    let requested = args
+        .browser
+        .clone()
+        .or_else(|| std::env::var("XCELERATE_BROWSER").ok())
+        .or_else(|| args.executable_path.clone());
+    if let Some(id) = requested.as_deref()
+        && is_firefox_like(id)
+    {
+        return Err(XcelerateError::Unsupported(format!(
+            "`{id}` is a Firefox-family browser; the xcelerate CLI drives Chromium over \
+             CDP only. Pick a Chromium browser (e.g. --browser edge), or drive Firefox \
+             from Rust with `xcelerate::firefox::FirefoxBrowser`."
+        )));
+    }
+
     if !args.proxy.is_empty() {
         xcelerate::configure_proxy(&args.proxy)?;
     }
@@ -74,6 +118,9 @@ pub async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Brows
     if args.timeout > 0 {
         page.set_default_timeout(args.timeout as f64).await?;
     }
+    // Human vs deterministic input. Human-like motion is the default; `--linear`
+    // switches the mouse to a straight line and typing to a fixed fast cadence.
+    page.set_human(!args.linear);
     // `new_page` returns as soon as navigation is issued; wait for the load
     // event so client-rendered pages are populated before we read them.
     let _ = page.wait_for_navigation().await;

@@ -43,8 +43,7 @@ import Xcelerate
 let config = BrowserConfig(
     headless: true,
     detached: true,
-    executablePath: nil,                // auto-discover Chrome/Edge
-    plugins: ["stealth", "human"]       // opt into built-in plugins
+    executablePath: nil                 // auto-discover Chrome/Edge
 )
 let browser = try await Browser.launch(config: config)
 let page = try await browser.newPage(url: "https://example.com")

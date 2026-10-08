@@ -22,9 +22,9 @@ pub struct Cli {
 
 #[derive(Args, Clone)]
 pub struct BrowserArgs {
-    /// Show the browser window (headless by default).
+    /// Run without a visible window. The browser is shown by default.
     #[arg(long, global = true)]
-    pub no_headless: bool,
+    pub headless: bool,
     /// AI-driven run: show the window with the cursor.
     #[arg(long, global = true, alias = "live")]
     pub ai: bool,
@@ -86,6 +86,11 @@ pub struct BrowserArgs {
     /// Keep the browser process alive after the command exits.
     #[arg(long, global = true)]
     pub keep_alive: bool,
+    /// Input with a straight-line mouse move and fast typing instead of the
+    /// default human-like motion (curved, jittered path; paced typing). Use it
+    /// for reproducible runs and CI.
+    #[arg(long, global = true)]
+    pub linear: bool,
 }
 
 impl BrowserArgs {
@@ -97,7 +102,9 @@ impl BrowserArgs {
 
     /// Whether the browser will run headless (no visible window).
     pub fn headless(&self) -> bool {
-        !(self.no_headless || self.live())
+        // Visible by default; `--headless` opts into a hidden window. A live run
+        // (`--ai` / `--codegen`) always needs the window on screen.
+        self.headless && !self.live()
     }
 
     /// Whether the in-page cursor dot should be installed. The cursor is only

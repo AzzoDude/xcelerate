@@ -48,6 +48,11 @@ let page = browser.clone().new_page("https://example.com".to_string()).await?;
 println!("{}", page.title().await?);
 ```
 
+> **各界面支持的引擎。** CLI（`xcelerate run` / `session` / 一次性命令）和 XCL 运行器
+> 只驱动 **基于 CDP 的 Chromium**；传入 Firefox 系列浏览器（`--browser firefox`）
+> 会立即以清晰的错误信息失败。Firefox 可通过上面的 Rust API
+> （`xcelerate::firefox::FirefoxBrowser`）使用。
+
 ## 绑定
 
 | 语言 | 包 | 注册表 |
@@ -296,8 +301,8 @@ handle.invoke("ping".into(), "{}".into()).await?;
 ### 内置目录
 
 没有。`available_plugins()` 会报告此浏览器上已安装或加载的内容，在你添加之前
-它是空的。（旧的 `stealth` 和 `human` 插件已被移除：类人的鼠标和键盘输入已内置于
-核心的输入路径中，而指纹相关工作应放在你自己的插件里。）
+它是空的。类人的鼠标和键盘输入已内置于核心的输入路径中，而指纹相关工作应放在
+你自己的插件里。
 
 每个操作都在调用预算（invocation budget）下运行，并写入审计日志；插件只会
 作用于交给它的页面。
@@ -456,7 +461,7 @@ xcelerate snapshot https://example.com          # 索引化、面向 LLM 的快�
 xcelerate click-index https://example.com 2     # 点击快照中的元素 [2]
 ```
 
-全局标志适用于每个命令：`--no-headless`、`--detached`、
+全局标志适用于每个命令：`--headless`（默认显示浏览器窗口）、`--detached`、
 `--executable-path <path>`、`--plugins <path,...>`、`--device <name>` 和 `--timeout <ms>`。
 `xcelerate --device <name> <command>` 会以内置移动设备渲染，`xcelerate list`
 会列出所有设备和插件。
@@ -489,8 +494,8 @@ func fill_field(id, value)
 end
 
 open $base
-wait 2s
-click-text "Register"
+wait 2000
+click "Register"
 fill_field "#email" "ada@example.com"
 fill_field "#password" "correct-horse-battery"
 submit
@@ -514,8 +519,8 @@ done
 | `<name> <arg>…` | 调用上方定义的函数（`call` 关键字可选）。 |
 | `open` / `goto` `<url>` | 导航。 |
 | `back` `reload` `title` `url` `text` `markdown` `snapshot` | 读取页面。 |
-| `click <index\|selector>` `click-text <text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | 交互。 |
-| `wait <ms\|s\|selector>` `wait-idle` `wait-stable` | 等待。 |
+| `click <index\|selector\|text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | 交互。 |
+| `wait <ms\|selector>` `wait-sec` `wait-min` `wait-hr` `wait-idle` `wait-stable` | 等待。 |
 | `eval <js>` | 运行 JavaScript（需要 `--allow-unsafe`）。 |
 | `request <METHOD> <url> [headers] [body]` | 无需浏览器的 HTTP（需要 `--allow-http`）。 |
 | `import <id>` `run <plugin> <op> [json]` `plugins` `plugin-config <id>` | 插件 / worker。 |
@@ -649,7 +654,9 @@ xcelerate::configure_user_data_dir(Some("./profile".to_string()))?;
 `Accessibility.getFullAXTree` 和一次 `DOMSnapshot.captureSnapshot`，因此比在脚本
 语言中序列化 DOM 更廉价、更可预测。把索引传给 `page.click_index(n)` 即可点击该
 元素，无需重新解析 CSS 选择器（`page.snapshot_json()` 会返回带有 role、name、
-bounds 和 backend node id 的相同元素）。它以 CLI 命令 `xcelerate snapshot <url>`、
+bounds、selector 和 backend node id 的相同元素）；若能从 DOM 属性推导出可用的
+CSS 选择器（`#id` 或 `[name="…"]`），元素还会带上它，因此既可按索引（`click 1`）
+也可按选择器（`fill "#email" …`）操作。它以 CLI 命令 `xcelerate snapshot <url>`、
 `xcelerate click-index <url> <index>` 以及 MCP 工具 `browser_snapshot`、
 `browser_click_index` 的形式暴露。
 

@@ -40,8 +40,7 @@ require "xcelerate"
 config = Xcelerate::BrowserConfig.new(
   headless: true,
   detached: true,
-  executable_path: nil,              # auto-discover Chrome/Edge
-  plugins: ["stealth", "human"]      # opt into built-in plugins
+  executable_path: nil               # auto-discover Chrome/Edge
 )
 browser = Xcelerate::Browser.launch(config)
 page = browser.new_page("https://example.com")

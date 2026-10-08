@@ -9,7 +9,7 @@ Xcelerate is a high-performance, lightweight Chrome DevTools Protocol (CDP) clie
 
 - **Managed Lifecycle**: Fully supports `IDisposable` patterns to ensure clean browser and process termination.
 - **Async/Await First**: Standard `Task`-based asynchronous API for modern C# applications.
-- **Security-first Plugins**: Default-deny plugin system; `stealth` (binary patching + Chrome API masking) is a built-in plugin you opt into.
+- **Security-first Plugins**: Default-deny plugin system; the built-in catalog is empty, and plugins are loaded from disk, sandboxed (WebAssembly) and capability-gated.
 - **NativeAOT Compatible**: Designed for high performance and low memory footprints.
 - **Simplified Deployment**: Bundles the required native binaries for Windows (x64), removing the need for external C++ or Rust installations on the target machine.
 
@@ -29,9 +29,9 @@ Xcelerate emphasizes a clean, readable API. The library handles port polling, br
 using Xcelerate;
 
 // Launch a browser instance with intelligent defaults
-// (Optional: headless=true, stealth=false, detached=true, executablePath=null)
-// Plugins are opt-in: pass Plugins to enable the stealth plugin.
-using var browser = await Browser.Launch(new BrowserConfig(Plugins: new[] { "stealth" }));
+// (Optional: headless=true, detached=true, executablePath=null)
+// plugins: none by default — load one from disk to opt in
+using var browser = await Browser.Launch(new BrowserConfig());
 
 // Initialize a new page and perform navigation
 using var page = await browser.NewPage("https://www.example.com");
@@ -53,7 +53,7 @@ File.WriteAllBytes("capture.png", screenshot);
 
 The SDK supports specialized launch options for complex automation scenarios:
 
-- **Plugins**: Default-deny list of built-in plugins to enable. `new BrowserConfig(Plugins: new[] { "stealth", "human" })` opts into stealth and human-like input; nothing runs unless listed. `load_plugin` loads a sandboxed (WebAssembly) plugin from disk, capability-gated.
+- **Plugins**: Default-deny and loaded from disk; the built-in catalog is empty. `BrowserConfig.Plugins` takes paths to plugin directories or `plugin.json` manifests, or use `Browser.LoadPlugin(path)` after launch. Inspect loaded plugins with `PluginNames()` / `AvailablePlugins()`.
 - **Detached Mode**: Allows the browser process to persist independently of the parent .NET application.
 - **Headless=New**: Utilizes the modern Chromium headless engine for improved rendering and compatibility.
 

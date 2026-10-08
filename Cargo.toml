@@ -58,7 +58,8 @@ rustls = { version = "0.23.45", default-features = false, features = ["ring", "s
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 # Not `full`. Everything listed is needed by the CDP client, the CLIs, or
-# wasmtime-wasi; only `signal` is dropped (nothing in the tree uses it).
+# wasmtime-wasi. `signal` is used by the CLI to close a browser it owns on
+# Ctrl+C so the window is never orphaned.
 # `parking_lot` is kept deliberately: it swaps tokio's internal locks for the
 # faster ones, which is a runtime win not worth trading for the few KiB.
 tokio = { version = "1.53.2", features = [
@@ -71,6 +72,7 @@ tokio = { version = "1.53.2", features = [
     "process",
     "rt",
     "rt-multi-thread",
+    "signal",
     "sync",
     "time",
 ] }

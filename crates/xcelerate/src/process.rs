@@ -15,6 +15,9 @@ use crate::error::{XcelerateError, XcelerateResult};
 static REGISTERED_PIDS: LazyLock<Mutex<Vec<u32>>> = LazyLock::new(|| Mutex::new(Vec::new()));
 
 /// Spawn `cmd` detached so the child outlives this process, and return its PID.
+///
+/// A detached browser is deliberately **not** registered for exit cleanup: the
+/// `--detached` contract is that it outlives the command that spawned it.
 pub fn spawn_detached(mut cmd: Command) -> XcelerateResult<u32> {
     #[cfg(windows)]
     {
@@ -38,9 +41,7 @@ pub fn spawn_detached(mut cmd: Command) -> XcelerateResult<u32> {
     let child = cmd
         .spawn()
         .map_err(|e| XcelerateError::NotFound(format!("Failed to spawn detached process: {e}")))?;
-    let pid = child.id();
-    register(pid);
-    Ok(pid)
+    Ok(child.id())
 }
 
 /// Owns a browser process and kills it on drop unless it was spawned detached.
@@ -58,12 +59,15 @@ impl Drop for ProcessGuard {
     }
 }
 
-/// Forcefully kills a process by PID.
+/// Forcefully kills a process by PID, and on Windows its whole process tree.
+///
+/// A Chromium browser is a tree (browser + GPU + renderers); killing only the
+/// root can leave the window orphaned, so `/T` is used deliberately.
 pub fn kill_pid(pid: u32) {
     #[cfg(windows)]
     {
         let _ = Command::new("taskkill")
-            .args(["/F", "/PID", &pid.to_string()])
+            .args(["/F", "/T", "/PID", &pid.to_string()])
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .status();
@@ -77,7 +81,8 @@ pub fn kill_pid(pid: u32) {
     }
 }
 
-/// Kills every browser this process spawned and still tracks. Call on exit.
+/// Kills every browser this process spawned and still tracks. Call on exit --
+/// normal, error, or signal -- so a browser is never orphaned.
 pub fn cleanup_all() {
     if let Ok(mut pids) = REGISTERED_PIDS.lock() {
         for &pid in pids.iter() {
@@ -87,13 +92,15 @@ pub fn cleanup_all() {
     }
 }
 
-fn register(pid: u32) {
+/// Tracks a spawned browser for [`cleanup_all`]. Used for browsers this process
+/// owns (not detached, not `keep_alive`), so an abrupt exit does not orphan them.
+pub(crate) fn register(pid: u32) {
     if let Ok(mut pids) = REGISTERED_PIDS.lock() {
         pids.push(pid);
     }
 }
 
-fn unregister(pid: u32) {
+pub(crate) fn unregister(pid: u32) {
     if let Ok(mut pids) = REGISTERED_PIDS.lock() {
         pids.retain(|&p| p != pid);
     }

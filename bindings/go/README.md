@@ -52,11 +52,10 @@ import (
 )
 
 func main() {
-    plugins := []string{"stealth", "human"} // opt into built-in plugins
+    // plugins: none by default — load one from disk to opt in
     browser, err := xcelerate.BrowserLaunch(xcelerate.BrowserConfig{
         Headless: true,
         Detached: true,
-        Plugins:  &plugins,
     })
     if err != nil {
         panic(err)
@@ -70,10 +69,13 @@ func main() {
 
     title, _ := page.Title()
     fmt.Println("title:", title)
-    fmt.Println("plugins:", browser.PluginNames())
+    fmt.Println("plugins:", browser.PluginNames()) // [] until one is loaded
 
-    human, _ := browser.Plugin("human")
-    fmt.Println(human.Invoke("move", `{"x": 320, "y": 240}`))
+    name, _ := browser.LoadPlugin("plugins/my-plugin")
+    fmt.Println("loaded:", name)
+
+    myPlugin, _ := browser.Plugin("my-plugin")
+    fmt.Println(myPlugin.Invoke("info", `{}`))
 }
 ```
 

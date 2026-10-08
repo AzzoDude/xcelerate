@@ -579,7 +579,7 @@ pub type ArcPageHost = Arc<dyn PageHost>;
 /// A plugin. In-process plugins implement this in Rust; loaded (sandboxed)
 /// plugins are adapted onto it by the runner.
 pub trait Plugin: Send + Sync + 'static {
-    /// Unique, reserved name (e.g. `"stealth"`).
+    /// Unique, reserved name (e.g. `"my-plugin"`).
     fn name(&self) -> &str;
 
     /// Whether the plugin must be enabled before the browser launches.

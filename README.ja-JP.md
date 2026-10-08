@@ -50,6 +50,11 @@ let page = browser.clone().new_page("https://example.com".to_string()).await?;
 println!("{}", page.title().await?);
 ```
 
+> **サーフェスごとのエンジン対応。** CLI（`xcelerate run` / `session` / 単発コマンド）
+> と XCL ランナーは **CDP 経由の Chromium** のみを駆動します。Firefox 系
+> （`--browser firefox`）を指定すると、明確なエラーで即座に失敗します。Firefox は
+> 上記の Rust API（`xcelerate::firefox::FirefoxBrowser`）から利用できます。
+
 ## バインディング
 
 | 言語 | パッケージ | レジストリ |
@@ -308,9 +313,9 @@ handle.invoke("ping".into(), "{}".into()).await?;
 ### 組み込みカタログ
 
 存在しません。`available_plugins()` はこのブラウザにインストールまたは読み込み済みの
-プラグインを報告し、何かを追加するまで空です。（旧 `stealth` プラグインと旧 `human`
-プラグインは削除されました。人間らしいマウスとキーボードの入力はコアの入力パスに
-組み込まれており、フィンガープリント関連の作業は自作のプラグインに属します。）
+プラグインを報告し、何かを追加するまで空です。人間らしいマウスとキーボードの入力は
+コアの入力パスに組み込まれており、フィンガープリント関連の作業は自作のプラグインに
+属します。
 
 各操作は呼び出し予算の下で実行され、監査ログに記録されます。プラグインは、渡された
 ページに対してのみ動作します。
@@ -478,8 +483,9 @@ xcelerate snapshot https://example.com          # インデックス付きの LL
 xcelerate click-index https://example.com 2     # スナップショットの要素 [2] をクリック
 ```
 
-グローバルフラグはすべてのコマンドに適用されます: `--no-headless`、`--detached`、
-`--executable-path <path>`、`--plugins <path,...>`、`--device <name>`、`--timeout <ms>`。
+グローバルフラグはすべてのコマンドに適用されます: `--headless`（既定でブラウザー
+ウィンドウを表示）、`--detached`、`--executable-path <path>`、`--plugins <path,...>`、
+`--device <name>`、`--timeout <ms>`。
 `xcelerate --device <name> <command>` は組み込みのモバイル デバイスとして描画し、
 `xcelerate list` はすべてのデバイスとプラグインを一覧表示します。
 インストールには `cargo install --path crates/xcelerate-cli`（インストールされる
@@ -513,8 +519,8 @@ func fill_field(id, value)
 end
 
 open $base
-wait 2s
-click-text "Register"
+wait 2000
+click "Register"
 fill_field "#email" "ada@example.com"
 fill_field "#password" "correct-horse-battery"
 submit
@@ -538,8 +544,8 @@ done
 | `<name> <arg>…` | 上で定義した関数を呼び出します（`call` キーワードは省略可能）。 |
 | `open` / `goto` `<url>` | ナビゲートします。 |
 | `back` `reload` `title` `url` `text` `markdown` `snapshot` | ページを読み取ります。 |
-| `click <index\|selector>` `click-text <text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | 操作します。 |
-| `wait <ms\|s\|selector>` `wait-idle` `wait-stable` | 待機します。 |
+| `click <index\|selector\|text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | 操作します。 |
+| `wait <ms\|selector>` `wait-sec` `wait-min` `wait-hr` `wait-idle` `wait-stable` | 待機します。 |
 | `eval <js>` | JavaScript を実行します（`--allow-unsafe` が必要）。 |
 | `request <METHOD> <url> [headers] [body]` | ブラウザなしの HTTP（`--allow-http` が必要）。 |
 | `import <id>` `run <plugin> <op> [json]` `plugins` `plugin-config <id>` | プラグイン / ワーカー。 |
@@ -680,7 +686,10 @@ xcelerate::configure_user_data_dir(Some("./profile".to_string()))?;
 だけで済むため、スクリプト言語で DOM をシリアライズするよりもはるかに安価で予測
 可能です。インデックスを `page.click_index(n)` に渡すと、CSS セレクターを再解決
 せずにその要素をクリックできます（`page.snapshot_json()` は role、name、bounds、
-backend node id を持つ同じ要素を返します）。CLI コマンド `xcelerate snapshot <url>`、
+selector、backend node id を持つ同じ要素を返します）。DOM 属性から使える CSS
+セレクター（`#id` や `[name="…"]`）を導出できる場合はそれが添えられるので、
+インデックス（`click 1`）でもセレクター（`fill "#email" …`）でも操作できます。
+CLI コマンド `xcelerate snapshot <url>`、
 `xcelerate click-index <url> <index>`、および MCP ツール `browser_snapshot`、
 `browser_click_index` として公開されています。
 

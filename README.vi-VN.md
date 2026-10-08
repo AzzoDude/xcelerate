@@ -48,6 +48,11 @@ let page = browser.clone().new_page("https://example.com".to_string()).await?;
 println!("{}", page.title().await?);
 ```
 
+> **Hỗ trợ engine theo từng bề mặt.** CLI (`xcelerate run` / `session` / các lệnh
+> một lần) và trình chạy XCL chỉ điều khiển **Chromium qua CDP**; truyền trình duyệt
+> họ Firefox (`--browser firefox`) sẽ thất bại ngay với thông báo rõ ràng. Firefox
+> dùng được qua Rust API (`xcelerate::firefox::FirefoxBrowser`) ở trên.
+
 ## Các binding
 
 | Ngôn ngữ | Gói | Kho |
@@ -305,10 +310,9 @@ handle.invoke("ping".into(), "{}".into()).await?;
 ### Danh mục tích hợp
 
 Không có. `available_plugins()` báo cáo những gì đã được cài đặt hoặc nạp trên trình
-duyệt này, danh sách này rỗng cho tới khi bạn thêm thứ gì đó. (Các plugin `stealth` và
-`human` cũ đã bị gỡ bỏ: nhập liệu chuột và bàn phím như người thật được tích hợp sẵn
-trong đường nhập liệu của lõi, còn công việc chống dấu vết thuộc về plugin của chính
-bạn.)
+duyệt này, danh sách này rỗng cho tới khi bạn thêm thứ gì đó. Nhập liệu chuột và bàn
+phím như người thật được tích hợp sẵn trong đường nhập liệu của lõi, còn công việc
+chống dấu vết thuộc về plugin của chính bạn.
 
 Mỗi op chạy trong hạn mức (budget) của lần gọi và được ghi vào nhật ký kiểm toán;
 một plugin chỉ tác động lên những page mà nó được giao.
@@ -475,8 +479,9 @@ xcelerate snapshot https://example.com          # ảnh chụp nhanh có chỉ m
 xcelerate click-index https://example.com 2     # nhấp phần tử [2] từ ảnh chụp nhanh
 ```
 
-Các cờ toàn cục áp dụng cho mọi lệnh: `--no-headless`, `--detached`,
-`--executable-path <path>`, `--plugins <path,...>`, `--device <name>`, và `--timeout <ms>`.
+Các cờ toàn cục áp dụng cho mọi lệnh: `--headless` (mặc định vẫn hiển thị cửa sổ
+trình duyệt), `--detached`, `--executable-path <path>`, `--plugins <path,...>`,
+`--device <name>`, và `--timeout <ms>`.
 `xcelerate --device <name> <command>` hiển thị như một thiết bị di động có sẵn, và
 `xcelerate list` liệt kê mọi thiết bị và plugin. Cài đặt
 nó bằng `cargo install --path crates/xcelerate-cli` (binary được cài đặt tên là
@@ -510,8 +515,8 @@ func fill_field(id, value)
 end
 
 open $base
-wait 2s
-click-text "Register"
+wait 2000
+click "Register"
 fill_field "#email" "ada@example.com"
 fill_field "#password" "correct-horse-battery"
 submit
@@ -535,8 +540,8 @@ done
 | `<name> <arg>…` | Gọi một hàm đã định nghĩa ở trên (`call` là tùy chọn). |
 | `open` / `goto` `<url>` | Điều hướng. |
 | `back` `reload` `title` `url` `text` `markdown` `snapshot` | Đọc trang. |
-| `click <index\|selector>` `click-text <text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | Tương tác. |
-| `wait <ms\|s\|selector>` `wait-idle` `wait-stable` | Chờ. |
+| `click <index\|selector\|text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | Tương tác. |
+| `wait <ms\|selector>` `wait-sec` `wait-min` `wait-hr` `wait-idle` `wait-stable` | Chờ. |
 | `eval <js>` | Chạy JavaScript (yêu cầu `--allow-unsafe`). |
 | `request <METHOD> <url> [headers] [body]` | HTTP không cần trình duyệt (yêu cầu `--allow-http`). |
 | `import <id>` `run <plugin> <op> [json]` `plugins` `plugin-config <id>` | Plugin / worker. |
@@ -679,7 +684,10 @@ có thể tương tác được gắn một `[index]` ổn định:
 CDP liên tục, nên rẻ và ổn định hơn nhiều so với việc tuần tự hóa DOM bằng ngôn ngữ
 script. Truyền chỉ số cho `page.click_index(n)` để nhấp vào phần tử đó mà không cần
 phân giải lại selector CSS (`page.snapshot_json()` trả về đúng các phần tử đó kèm
-role, name, bounds và backend node id). Nó được cung cấp dưới dạng lệnh CLI
+role, name, bounds, selector và backend node id). Khi suy ra được một selector CSS
+dùng được từ thuộc tính DOM (`#id` hay `[name="…"]`), phần tử sẽ mang theo nó, nên
+có thể thao tác theo chỉ số (`click 1`) hoặc theo selector (`fill "#email" …`).
+Nó được cung cấp dưới dạng lệnh CLI
 `xcelerate snapshot <url>`, `xcelerate click-index <url> <index>`, và công cụ MCP
 `browser_snapshot`, `browser_click_index`.
 

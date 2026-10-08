@@ -1,5 +1,6 @@
-// The in-page cursor: a small translucent dot marking where the agent acts,
-// plus a click "wave" ripple. Injected on every new document by the CLI.
+// The in-page cursor: a small bluish dot marking where the agent acts, a wavy
+// trail that traces its path, and a click "ripple". Injected on every new
+// document by the CLI.
 //
 // This is the only in-page injection, and it is deliberately passive: it never
 // reads page state and never consumes pointer events.
@@ -10,6 +11,10 @@
   var HOST_ID = "__xc_cursor_host";
   var OFF = "-100px";
 
+  // How many trailing dots follow the cursor. They lag behind the path, so a
+  // curved (human) mouse path reads as a wavy blue tail.
+  var TAIL = 8;
+
   // Built as an array (not a template literal) so no backtick can ever sit
   // inside the CSS and terminate the source.
   var css = [
@@ -19,19 +24,34 @@
     "  left: 0;",
     "  top: 0;",
     "  box-sizing: border-box;",
-    "  width: 8px;",
-    "  height: 8px;",
-    "  margin: -4px 0 0 -4px;",
+    "  width: 6px;",
+    "  height: 6px;",
+    "  margin: -3px 0 0 -3px;",
     "  border-radius: 50%;",
-    "  background: radial-gradient(circle at 38% 32%, rgba(255,138,122,0.9) 0%, rgba(255,59,48,0.8) 55%, rgba(224,36,26,0.8) 100%);",
-    "  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);",
+    "  background: radial-gradient(circle at 38% 32%, rgba(168,214,255,0.95) 0%, rgba(84,156,255,0.9) 55%, rgba(38,104,240,0.9) 100%);",
+    "  box-shadow: 0 0 6px rgba(84,156,255,0.55), 0 1px 2px rgba(0, 0, 32, 0.28);",
     "  pointer-events: none;",
     "  opacity: 0;",
     "  transform: translate(var(--x, " + OFF + "), var(--y, " + OFF + ")) scale(var(--s, 1));",
     "  transition: transform .12s ease-out, opacity .35s ease;",
     "}",
     ".dot.down {",
-    "  --s: 0.8;",
+    "  --s: 0.75;",
+    "}",
+    ".tail {",
+    "  position: absolute;",
+    "  left: 0;",
+    "  top: 0;",
+    "  box-sizing: border-box;",
+    "  width: 4px;",
+    "  height: 4px;",
+    "  margin: -2px 0 0 -2px;",
+    "  border-radius: 50%;",
+    "  background: rgba(96,164,255,0.85);",
+    "  pointer-events: none;",
+    "  opacity: 0;",
+    "  transform: translate(var(--x, " + OFF + "), var(--y, " + OFF + ")) scale(var(--s, 1));",
+    "  transition: transform .09s linear, opacity .3s ease;",
     "}",
     ".wave {",
     "  position: absolute;",
@@ -42,7 +62,7 @@
     "  height: 10px;",
     "  margin: -5px 0 0 -5px;",
     "  border-radius: 50%;",
-    "  background: radial-gradient(circle, rgba(255, 59, 48, 0.45) 0%, rgba(255, 59, 48, 0.22) 45%, rgba(255, 59, 48, 0) 72%);",
+    "  background: radial-gradient(circle, rgba(84,156,255,0.5) 0%, rgba(84,156,255,0.22) 45%, rgba(84,156,255,0) 72%);",
     "  pointer-events: none;",
     "  animation: xc-wave .6s ease-out forwards;",
     "}",
@@ -65,6 +85,14 @@
   style.textContent = css;
   root.appendChild(style);
 
+  var tail = [];
+  for (var i = 0; i < TAIL; i++) {
+    var node = document.createElement("div");
+    node.className = "tail";
+    root.appendChild(node);
+    tail.push(node);
+  }
+
   var dot = document.createElement("div");
   dot.className = "dot";
   root.appendChild(dot);
@@ -81,11 +109,44 @@
     document.addEventListener("DOMContentLoaded", mount, { once: true });
   }
 
+  // The path the cursor has traced, newest last, one entry per `moveTo`. Each
+  // tail dot renders an older point, and a small perpendicular wobble turns the
+  // line of dots into a gentle wave.
+  var trail = [];
+
+  function renderTail() {
+    for (var i = 0; i < TAIL; i++) {
+      var point = trail[trail.length - 1 - i];
+      if (!point) continue;
+      // Wobble grows with distance from the head, so the tail ripples.
+      var wobble = Math.sin(i * 1.1) * (i * 0.6);
+      var nx = point.nx * wobble;
+      var ny = point.ny * wobble;
+      tail[i].style.setProperty("--x", point.x + nx + "px");
+      tail[i].style.setProperty("--y", point.y + ny + "px");
+      tail[i].style.setProperty("--s", (1 - i / (TAIL + 1)).toFixed(2));
+      tail[i].style.opacity = (0.55 - i * 0.06).toFixed(2);
+    }
+  }
+
   function moveTo(x, y) {
+    var prev = trail.length ? trail[trail.length - 1] : { x: x, y: y };
+    var dx = x - prev.x;
+    var dy = y - prev.y;
+    var len = Math.hypot(dx, dy) || 1;
+    // Unit normal, used by `renderTail` to wobble the trail sideways.
+    trail.push({ x: x, y: y, nx: -dy / len, ny: dx / len });
+    if (trail.length > 64) trail.shift();
+
     dot.style.setProperty("--x", x + "px");
     dot.style.setProperty("--y", y + "px");
     dot.style.opacity = "1";
     window.__xcelerateCursorPos = { x: x, y: y };
+    renderTail();
+  }
+
+  function hideTail() {
+    for (var i = 0; i < TAIL; i++) tail[i].style.opacity = "0";
   }
 
   function spawnWave(x, y, delay) {
@@ -137,6 +198,7 @@
 
   window.__xcelerateCursorHide = function (hidden) {
     dot.style.display = hidden ? "none" : "block";
+    if (hidden) hideTail();
   };
 
   // --- input gate ---------------------------------------------------------

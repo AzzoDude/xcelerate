@@ -12,7 +12,7 @@ Future<void> main() async {
       headless: true,
       detached: true,
       executablePath: null, // auto-discover Chrome or Edge
-      plugins: ['stealth', 'human'], // opt into the built-in plugins
+      plugins: null, // none by default — load one from disk to opt in
     ),
   );
 

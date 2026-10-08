@@ -78,6 +78,132 @@ pub struct Page {
     /// Text of the most recent `agent_snapshot_diff`, so the next call can report
     /// only what changed (see `page::snapshot`).
     pub(crate) last_snapshot: Arc<tokio::sync::Mutex<Option<String>>>,
+    /// Whether synthetic input imitates a person: a curved (Bezier) mouse path
+    /// with jittered timing, and per-character typing at a human cadence. When
+    /// off, the mouse travels in a straight line and typing is fast — the
+    /// deterministic mode used for tests and CI (see [`Page::set_human`]).
+    pub(crate) human_input: std::sync::atomic::AtomicBool,
+}
+
+/// Human-vs-linear input motion.
+///
+/// Kept out of the UniFFI-exported block: `move_mouse` is the public entry
+/// point, and these are the two paths it chooses between.
+impl Page {
+    /// Moves the mouse along a curved, jittered Bezier path — the human path.
+    async fn move_mouse_human(self: Arc<Self>, x: f64, y: f64) -> XcelerateResult<Arc<Self>> {
+        let (start_x, start_y) = self.mouse_position();
+
+        let dx = x - start_x;
+        let dy = y - start_y;
+        let distance = (dx * dx + dy * dy).sqrt();
+
+        if distance < 1.0 {
+            self.set_mouse_position(x, y);
+            return Ok(self);
+        }
+
+        let mut rng = Lcg::new();
+        let (px, py) = if distance > 0.0 {
+            (-dy / distance, dx / distance)
+        } else {
+            (0.0, 0.0)
+        };
+
+        let offset_scale1 = rng.range(-0.2, 0.2) * distance;
+        let offset_scale2 = rng.range(-0.2, 0.2) * distance;
+
+        let p1_x = start_x + dx * 0.25 + px * offset_scale1;
+        let p1_y = start_y + dy * 0.25 + py * offset_scale1;
+
+        let p2_x = start_x + dx * 0.75 + px * offset_scale2;
+        let p2_y = start_y + dy * 0.75 + py * offset_scale2;
+
+        let steps_f = (distance / rng.range(12.0, 25.0)).clamp(12.0, 60.0);
+        let steps = steps_f as usize;
+
+        for i in 1..=steps {
+            let s = (i as f64) / (steps as f64);
+
+            // Ease-in-out, so the cursor accelerates then settles like a hand.
+            let t = if s < 0.5 {
+                4.0 * s * s * s
+            } else {
+                let f = -2.0 * s + 2.0;
+                1.0 - f * f * f / 2.0
+            };
+
+            let mt = 1.0 - t;
+            let mt2 = mt * mt;
+            let mt3 = mt2 * mt;
+            let t2 = t * t;
+            let t3 = t2 * t;
+
+            let mut curr_x = mt3 * start_x + 3.0 * mt2 * t * p1_x + 3.0 * mt * t2 * p2_x + t3 * x;
+            let mut curr_y = mt3 * start_y + 3.0 * mt2 * t * p1_y + 3.0 * mt * t2 * p2_y + t3 * y;
+
+            if i < steps {
+                curr_x += rng.range(-0.4, 0.4);
+                curr_y += rng.range(-0.4, 0.4);
+            }
+
+            self.dispatch_mouse_moved(curr_x, curr_y).await?;
+
+            let delay_ms = rng.range(6.0, 14.0) as u64;
+            tokio::time::sleep(tokio::time::Duration::from_millis(delay_ms)).await;
+        }
+
+        self.set_mouse_position(x, y);
+        Ok(self)
+    }
+
+    /// Moves the mouse straight to (x, y) in a few even steps — the deterministic
+    /// path when human input is off. No jitter, no easing, no per-step sleep.
+    async fn move_mouse_linear(self: Arc<Self>, x: f64, y: f64) -> XcelerateResult<Arc<Self>> {
+        let (start_x, start_y) = self.mouse_position();
+        let dx = x - start_x;
+        let dy = y - start_y;
+        let distance = (dx * dx + dy * dy).sqrt();
+
+        if distance < 1.0 {
+            self.set_mouse_position(x, y);
+            return Ok(self);
+        }
+
+        // A handful of intermediate points so hover/drag handlers still fire,
+        // but a straight line rather than a curve.
+        let steps = ((distance / 80.0).ceil() as usize).clamp(2, 24);
+        for i in 1..=steps {
+            let s = (i as f64) / (steps as f64);
+            self.dispatch_mouse_moved(start_x + dx * s, start_y + dy * s)
+                .await?;
+        }
+
+        self.set_mouse_position(x, y);
+        Ok(self)
+    }
+
+    fn mouse_position(&self) -> (f64, f64) {
+        (*self.mouse_x.lock().unwrap(), *self.mouse_y.lock().unwrap())
+    }
+
+    fn set_mouse_position(&self, x: f64, y: f64) {
+        *self.mouse_x.lock().unwrap() = x;
+        *self.mouse_y.lock().unwrap() = y;
+    }
+
+    async fn dispatch_mouse_moved(&self, x: f64, y: f64) -> XcelerateResult<()> {
+        let params = browser_protocol::input::DispatchMouseEventParams {
+            type_: "mouseMoved".into(),
+            x,
+            y,
+            ..Default::default()
+        };
+        self.client
+            .execute_with_session(Some(&self.session_id), params)
+            .await?;
+        Ok(())
+    }
 }
 
 /// A declarative network-interception rule.
@@ -387,94 +513,32 @@ impl Page {
             .map_err(|e| XcelerateError::SerdeError(format!("Base64 decode failed: {}", e)))
     }
 
-    /// Moves the mouse cursor from the current position to the target (x, y) along a realistic Bezier curve.
+    /// Moves the mouse from the current position to the target (x, y).
+    ///
+    /// When [human input](Page::set_human) is on (the default) the cursor travels
+    /// a curved, jittered Bezier path at a hand-like pace; when off it moves in a
+    /// straight line.
     pub async fn move_mouse(self: Arc<Self>, x: f64, y: f64) -> XcelerateResult<Arc<Self>> {
-        let (start_x, start_y) = {
-            let cx = *self.mouse_x.lock().unwrap();
-            let cy = *self.mouse_y.lock().unwrap();
-            (cx, cy)
-        };
-
-        let dx = x - start_x;
-        let dy = y - start_y;
-        let distance = (dx * dx + dy * dy).sqrt();
-
-        if distance < 1.0 {
-            {
-                let mut cx = self.mouse_x.lock().unwrap();
-                let mut cy = self.mouse_y.lock().unwrap();
-                *cx = x;
-                *cy = y;
-            }
-            return Ok(self);
-        }
-
-        let mut rng = Lcg::new();
-        let (px, py) = if distance > 0.0 {
-            (-dy / distance, dx / distance)
+        if self.human() {
+            self.clone().move_mouse_human(x, y).await
         } else {
-            (0.0, 0.0)
-        };
-
-        let offset_scale1 = rng.range(-0.2, 0.2) * distance;
-        let offset_scale2 = rng.range(-0.2, 0.2) * distance;
-
-        let p1_x = start_x + dx * 0.25 + px * offset_scale1;
-        let p1_y = start_y + dy * 0.25 + py * offset_scale1;
-
-        let p2_x = start_x + dx * 0.75 + px * offset_scale2;
-        let p2_y = start_y + dy * 0.75 + py * offset_scale2;
-
-        let steps_f = (distance / rng.range(12.0, 25.0)).clamp(12.0, 60.0);
-        let steps = steps_f as usize;
-
-        for i in 1..=steps {
-            let s = (i as f64) / (steps as f64);
-
-            let t = if s < 0.5 {
-                4.0 * s * s * s
-            } else {
-                let f = -2.0 * s + 2.0;
-                1.0 - f * f * f / 2.0
-            };
-
-            let mt = 1.0 - t;
-            let mt2 = mt * mt;
-            let mt3 = mt2 * mt;
-            let t2 = t * t;
-            let t3 = t2 * t;
-
-            let mut curr_x = mt3 * start_x + 3.0 * mt2 * t * p1_x + 3.0 * mt * t2 * p2_x + t3 * x;
-            let mut curr_y = mt3 * start_y + 3.0 * mt2 * t * p1_y + 3.0 * mt * t2 * p2_y + t3 * y;
-
-            if i < steps {
-                curr_x += rng.range(-0.4, 0.4);
-                curr_y += rng.range(-0.4, 0.4);
-            }
-
-            let params = browser_protocol::input::DispatchMouseEventParams {
-                type_: "mouseMoved".into(),
-                x: curr_x,
-                y: curr_y,
-                ..Default::default()
-            };
-
-            self.client
-                .execute_with_session(Some(&self.session_id), params)
-                .await?;
-
-            let delay_ms = rng.range(6.0, 14.0) as u64;
-            tokio::time::sleep(tokio::time::Duration::from_millis(delay_ms)).await;
+            self.clone().move_mouse_linear(x, y).await
         }
+    }
 
-        {
-            let mut cx = self.mouse_x.lock().unwrap();
-            let mut cy = self.mouse_y.lock().unwrap();
-            *cx = x;
-            *cy = y;
-        }
+    /// Enables or disables human-like input.
+    ///
+    /// On (the default): the mouse follows a curved, jittered path, and typing
+    /// paces itself per character. Off: the mouse moves in a straight line and
+    /// typing is fast — reproducible, and the right choice for tests and CI.
+    pub fn set_human(&self, human: bool) {
+        self.human_input
+            .store(human, std::sync::atomic::Ordering::Relaxed);
+    }
 
-        Ok(self)
+    /// Whether human-like input is enabled (default `true`).
+    pub fn human(&self) -> bool {
+        self.human_input.load(std::sync::atomic::Ordering::Relaxed)
     }
 
     /// Triggers a mousePress event at the current mouse coordinates.

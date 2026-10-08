@@ -84,8 +84,10 @@ Markdown. That is the whole shape of XCL: a list of actions, top to bottom.
 | `snapshot` | An indexed, agent-friendly view of the interactive elements. |
 | `eval <js>` | The JSON result of a JavaScript expression (needs `--allow-unsafe`). |
 
-`snapshot` is the one to reach for when you need to *act* on a page without
-brittle CSS selectors. It tags every interactive element with a stable index:
+`snapshot` is the one to reach for when you need to *act* on a page. It tags
+every interactive element with a stable index, and where it can derive a usable
+CSS selector from the element's DOM attributes (`#id`, `[name="…"]`, …) it shows
+that too:
 
 ```text
 open https://www.practicesoftwaretesting.com
@@ -96,29 +98,41 @@ done
 
 ```text
 ok snapshot
-[0]<a> "Home"  [1]<a> "Categories"  [2]<button> "Sign in"  ...
+[0]<a> "Home"  '#home'
+[1]<a> "Categories"  '[aria-label="Categories"]'
+[2]<button> "Sign in"  '#signin'
 ```
+
+Selectors are shown as quoted string literals so you can copy them straight into a
+command (`fill '#email' …`).
+
+Framework-generated ids (React's `_R_…`, Radix/MUI `:r0:`, long random tokens)
+are unstable between renders, so they are skipped and a stable
+`name`/`aria-label`/`placeholder` is used instead - or no selector is shown, in
+which case use the index.
 
 ## 3. Acting on a page
 
 | Verb | Action |
 | --- | --- |
-| `click <index\|selector>` | Click by snapshot index (`click 2`) or a CSS selector. |
-| `click-text <text>` | Click a visible link/button by its text. |
-| `fill <selector> <text>` | Type text into a field (waits for it to appear). |
+| `click <index\|selector\|text>` | Click by snapshot index (`click 2`), CSS selector, or visible text (`click "Sign in"`). |
+| `tap <selector\|text>` | The same pick, but a DOM click that never moves the mouse. |
+| `fill <selector|index> <text>` | Type text into a field, by CSS selector or snapshot index. |
+| `select <selector> <value>` | Choose an option in a native `<select>` (by value or label). |
 | `type <text>` | Type into the already-focused element. |
 | `press <key>` | Press a key on the focused element (`press Enter`). |
 | `submit` | Press Enter on the focused element — the productive way to finish a form. |
 | `hover <selector>` | Move the mouse over an element. |
+| `mouse <index\|selector\|text>` | Move the cursor there without clicking (or `mouse <x> <y>`). |
 | `scroll <pixels\|up\|down\|top\|bottom>` | Scroll the page. |
 
-`click` accepts either an index or a selector, so both styles work:
+`click` takes an index, a selector, or visible text, so every style works:
 
 ```text
 open https://www.practicesoftwaretesting.com
 wait-idle
 
-click-text "Sign in"
+click "Sign in"
 wait "#email"
 fill "#email" "customer@practicesoftwaretesting.com"
 fill "#password" "welcome01"
@@ -138,16 +152,16 @@ Fixed sleeps are the root of flaky automation. XCL offers three waits:
 
 | Verb | Waits for |
 | --- | --- |
-| `wait <duration>` | A fixed time — `2s`, `500ms`, or a bare millisecond count. |
+| `wait <ms>` | A fixed time in milliseconds; `wait-sec` / `wait-min` / `wait-hr` for other units. |
 | `wait <selector>` | A selector to appear (`wait "#results"`). |
 | `wait-idle` | The network to go quiet. |
 | `wait-stable` | The DOM to stop mutating. |
 
 ```text
 open https://example.com
-wait 2s
+wait 2000
 wait-idle
-click-text "More information..."
+click "More information..."
 wait-stable
 ```
 
@@ -176,6 +190,12 @@ submit
 - An **undefined** `$name` is a hard error — never a silent empty string.
 - Builtins: `{BASE_URL}` (from the `XCELERATE_BASE_URL` environment variable),
   `{TIMESTAMP}` (frozen once per run), and `{UUID}` (unique per mention).
+
+For varied timing, use `wait-random <min> <max>`:
+
+```text
+wait-random 200 700
+```
 
 Override a `param` from the command line:
 
@@ -224,7 +244,7 @@ Control flow is bounded and cannot nest.
 
 ```text
 open $base
-click-text "Sign in"
+click "Sign in"
 retry 10 wait "#email"
 fill "#email" $email
 ```
@@ -368,6 +388,10 @@ also implies `--allow-http`.
 - Insert `snapshot`, `markdown`, `title`, or `url` to see what the script sees.
 - Prefer `snapshot` + `click <index>` over long CSS selectors for robustness.
 - Prefer `wait-idle` / `wait-stable` over fixed `wait`s.
+- For a human pace, use `wait-random <min> <max>` between steps and prefer
+  `click` (real mouse) over `tap` (instant DOM click). Human-like
+  typing and mouse travel are built in; pass `--linear` for a straight-line,
+  fast-input run. See [`examples/human-login.xcl`](../examples/human-login.xcl).
 - Keep scripts small and linear — XCL is deliberately not a real programming
   language, and that is the point.
 

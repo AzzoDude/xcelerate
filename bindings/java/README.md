@@ -37,9 +37,9 @@ import uniffi.xcelerate.Page;
 
 public class Demo {
     public static void main(String[] args) throws Exception {
-        // headless, detached, executablePath, plugins
+        // headless, detached, executablePath, plugins (none by default)
         Browser browser = Browser.launch(
-                new BrowserConfig(true, false, null, java.util.List.of("stealth"))).get();
+                new BrowserConfig(true, false, null, null)).get();
         Page page = browser.newPage("https://example.com").get();
         System.out.println(page.title().get());
         byte[] png = page.screenshotFull().get();
@@ -63,15 +63,18 @@ name (resolved via `java.library.path`). Without it the generated code calls
 
 ## Plugins
 
-Plugins are default-deny. Enable the built-in `stealth` plugin with the fifth
-`BrowserConfig` argument (`java.util.List.of("stealth")`) before launch. The same
-fixed bridge is available in Java:
+Plugins are default-deny and loaded from disk; the built-in catalog is empty.
+`BrowserConfig` takes plugin **paths** (a directory or a `plugin.json`) as its
+fourth argument, or call `browser.loadPlugin("plugins/my-plugin")` after launch.
+The same fixed bridge is available in Java:
 
 ```java
-System.out.println(browser.pluginNames());       // ["stealth"]
-System.out.println(browser.availablePlugins());  // ["stealth", "human"]
-var stealth = browser.plugin("stealth");
-System.out.println(stealth.invoke("info", "{}").get());
+System.out.println(browser.pluginNames());       // [] — nothing loaded yet
+browser.loadPlugin("plugins/my-plugin");        // a directory or a plugin.json
+System.out.println(browser.pluginNames());       // ["my-plugin"]
+System.out.println(browser.availablePlugins());  // ["my-plugin"]
+var myPlugin = browser.plugin("my-plugin");
+System.out.println(myPlugin.invoke("info", "{}").get());
 ```
 
 `loadPlugin` loads a sandboxed (WebAssembly) plugin from disk, capability-gated;

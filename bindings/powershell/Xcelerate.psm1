@@ -97,7 +97,7 @@ function New-XcelerateConfig {
         Builds a BrowserConfig with xcelerate's defaults (headless, detached).
 
     .EXAMPLE
-        New-XcelerateConfig -Plugins stealth, human -NoHeadless
+        New-XcelerateConfig -Plugins plugins/my-plugin -NoHeadless
     #>
     [CmdletBinding()]
     [OutputType([object])]
@@ -122,7 +122,7 @@ function Start-XcelerateBrowser {
         Launches a browser and returns the Browser object.
 
     .EXAMPLE
-        $browser = Start-XcelerateBrowser -Plugins stealth -NoHeadless
+        $browser = Start-XcelerateBrowser -Plugins plugins/my-plugin -NoHeadless
     #>
     [CmdletBinding()]
     [OutputType([object])]
@@ -183,7 +183,7 @@ function Get-XceleratePlugin {
         Returns a handle to an enabled plugin.
 
     .EXAMPLE
-        Receive-XcelerateTask (Get-XceleratePlugin -Browser $browser -Name human).Invoke('move', '{"x":320,"y":240}')
+        Receive-XcelerateTask (Get-XceleratePlugin -Browser $browser -Name my-plugin).Invoke('info', '{}')
     #>
     [CmdletBinding()]
     [OutputType([object])]

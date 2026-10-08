@@ -119,9 +119,9 @@ pub enum Command {
     /// shared command table.
     Raw { verb: String, args: Vec<Arg> },
 
-    /// `done` — mark the task complete.
+    /// `done` — mark the task complete and end the run.
     Done,
-    /// `quit` — end the run.
+    /// `quit` — end the run early.
     Quit,
 }
 

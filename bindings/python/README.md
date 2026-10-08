@@ -1,11 +1,11 @@
 # Xcelerate Python SDK
 
-A high-performance, lightweight Chrome DevTools Protocol (CDP) client for Python, designed for speed and stealth.
+A high-performance, lightweight Chrome DevTools Protocol (CDP) client for Python, designed for speed.
 
 ## Features
 
 - **Blazing Fast**: Direct CDP communication over WebSockets.
-- **Security-first plugins**: Default-deny; `stealth` is a built-in plugin you opt into.
+- **Security-first plugins**: Default-deny and loaded from disk; the built-in catalog is empty. Pass paths via `plugins` or use `load_plugin(path)` to opt in.
 - **Universal**: Native bindings for high performance.
 - **Async/Await**: Full support for Python's asyncio.
 
@@ -22,10 +22,10 @@ import asyncio
 from xcelerate import Browser, BrowserConfig
 
 async def main():
-    # Launch with intelligent defaults (headless=True, stealth=False,
-    # detached=True, executable_path=None). Plugins are opt-in:
-    # (Optional: plugins=["stealth", "human"])
-    config = BrowserConfig(plugins=["stealth"])
+    # Launch with intelligent defaults (headless=True, detached=True,
+    # executable_path=None). plugins: none by default — load one from disk to
+    # opt in.
+    config = BrowserConfig()
     browser = await Browser.launch(config)
     
     # Create a new page
@@ -55,10 +55,10 @@ if __name__ == "__main__":
 
 The `BrowserConfig` object allows you to fine-tune the browser behavior:
 
-- **plugins (default: None)**: Built-in plugins to enable, e.g.
-  `["stealth", "human"]`. Nothing runs unless it is listed here (default-deny).
-  `stealth` masks automation fingerprints; `human` makes input behave like a
-  person (`info`, `move`, `click`, `type`, `scroll`, `delay`).
+- **plugins (default: None)**: Paths to plugin directories (or `plugin.json`
+  manifests) to load at launch. Plugins are default-deny and the built-in
+  catalog is empty; nothing runs unless you load one from disk. Opt in at
+  runtime with `load_plugin(path)`, then `use_plugin(name)`.
 - **detached (default: True)**: Spawns the browser as an independent process that stays open even if your script finishes.
 - **headless (default: True)**: Runs the browser without a visible window.
 - **executable_path (default: None)**: Manually specify the location of Chrome or Edge.
@@ -68,10 +68,14 @@ The `BrowserConfig` object allows you to fine-tune the browser behavior:
 Inspect and drive plugins at runtime with the cross-language bridge:
 
 ```python
-print(browser.plugin_names())       # ['stealth']
-print(browser.available_plugins())  # ['stealth', 'human']
-stealth = browser.plugin("stealth")
-print(await stealth.invoke("info", "{}"))
+print(browser.plugin_names())       # [] — empty until you load one
+print(browser.available_plugins())  # [] — the built-in catalog is empty
+
+browser.load_plugin("plugins/my-plugin")
+print(browser.plugin_names())       # ['my-plugin']
+
+plug = browser.plugin("my-plugin")
+print(await plug.invoke("info", "{}"))
 ```
 
 Plugins load from disk sandboxed in a WebAssembly store behind the capability

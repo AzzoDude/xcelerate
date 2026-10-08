@@ -56,8 +56,7 @@ public disclosure.
 In scope:
 
 - **The Rust core and facade** (`xcelerate-core`, `xcelerate`,
-  `xcelerate-plugin`, and the external `plugins/stealth` and
-  `plugins/human` crates).
+  `xcelerate-plugin`).
 - **The plugin trust model** - anything that lets a plugin exceed its granted
   capabilities, bypass manifest validation, escape the default-deny rules, or
   tamper with the append-only audit log.
@@ -70,8 +69,6 @@ In scope:
 
 Out of scope:
 
-- **The `stealth` plugin's intended behaviour.** Reducing common automation
-  fingerprints is a documented feature, not a vulnerability.
 - **Sandboxed plugin code.** How a sandboxed plugin behaves is the author's
   responsibility and is used at your own risk. Report flaws in a *specific
   plugin* to that plugin's author. A flaw in the **host** that grants a plugin

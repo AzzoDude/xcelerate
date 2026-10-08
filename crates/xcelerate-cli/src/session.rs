@@ -16,6 +16,7 @@ use xcelerate::Page;
 use xcelerate_codegen::{Action, Language, Selector};
 
 use crate::cli::{BrowserArgs, CodegenLang};
+use crate::interact::{control_by_text, looks_like_a_selector};
 use crate::launch::launch;
 
 /// Runs the REPL until `quit` or EOF.
@@ -97,10 +98,20 @@ pub async fn run_session(
             println!(">>> {line}");
         }
 
-        let (verb, rest) = match line.split_once(char::is_whitespace) {
-            Some((verb, rest)) => (verb.to_ascii_lowercase(), rest.trim().to_string()),
-            None => (line.to_ascii_lowercase(), String::new()),
+        // Parse the line with the XCL lexer, exactly as a `.xcl` script is parsed,
+        // so quotes group arguments and a leading `#` is a comment. The verb is the
+        // first token; the remaining tokens are rejoined for the arms that take
+        // free text.
+        let tokens = match crate::xcl::lex::lex_line(line) {
+            Ok(crate::xcl::lex::Line::Statement(tokens)) if !tokens.is_empty() => tokens,
+            Ok(_) => continue,
+            Err(error) => {
+                println!("input error: {error}");
+                continue;
+            }
         };
+        let verb = tokens[0].to_ascii_lowercase();
+        let rest = tokens[1..].join(" ");
 
         // The whole dispatch runs inside an async block so a `?` failure is
         // captured here rather than propagating out of the session.
@@ -117,7 +128,7 @@ pub async fn run_session(
                     print_session_help();
                     Ok(())
                 }
-                "quit" | "exit" | "q" => {
+                "quit" => {
                     // An AI-driven run is not allowed to walk away from the
                     // browser mid-task. Exiting is a last resort: the job must
                     // be declared done (`done`), or the agent must override it
@@ -162,7 +173,7 @@ pub async fn run_session(
                         println!("usage: open <url>");
                         return Ok(());
                     }
-                    page.navigate(rest.clone()).await?;
+                    page.navigate(crate::xcl::runtime::normalize_url(&rest)).await?;
                     let _ = page.wait_for_navigation().await;
                     let _ = page.wait_for_dom_stable(300, 2_000).await;
                     println!("title: {}", page.title().await.unwrap_or_default());
@@ -192,7 +203,7 @@ pub async fn run_session(
                 }
                 "click" => {
                     if rest.is_empty() {
-                        println!("usage: click <index|selector>   (index comes from `snapshot`)");
+                        println!("usage: click <index|selector|text>");
                         return Ok(());
                     }
                     if let Ok(index) = rest.parse::<u32>() {
@@ -208,28 +219,70 @@ pub async fn run_session(
                             "clicked [{index}] -> {}",
                             page.url().await.unwrap_or_default()
                         );
-                    } else {
+                    } else if looks_like_a_selector(&rest) {
                         let element = Arc::clone(&page).wait_for_selector(rest.clone()).await?;
                         crate::cursor::set_driving(&page, true).await;
                         element.click_mouse().await?;
                         tokio::time::sleep(Duration::from_millis(600)).await;
                         println!("clicked {rest} -> {}", page.url().await.unwrap_or_default());
+                    } else {
+                        // Neither a snapshot index nor a selector: match visible text.
+                        match control_by_text(&page, &rest).await? {
+                            Some(element) => {
+                                crate::cursor::set_driving(&page, true).await;
+                                element.click_mouse().await?;
+                                tokio::time::sleep(Duration::from_millis(600)).await;
+                                println!(
+                                    "clicked {rest:?} -> {}",
+                                    page.url().await.unwrap_or_default()
+                                );
+                            }
+                            None => report_no_text_match(&rest),
+                        }
                     }
                     Ok(())
                 }
-                "fill" => match rest.split_once(char::is_whitespace) {
+                "fill" => match split_selector_text(&tokens) {
                     Some((selector, text)) => {
-                        let element = Arc::clone(&page)
-                            .wait_for_selector(selector.to_string())
-                            .await?;
                         crate::cursor::set_driving(&page, true).await;
+                        // A bare integer is a snapshot index: many framework-
+                        // rendered fields (e.g. Facebook signup) expose no stable
+                        // selector. Focus it by index, then type.
+                        let element = if let Ok(index) = selector.parse::<u32>() {
+                            if Arc::clone(&page).click_index(index).await.is_err() {
+                                let _ = page.snapshot_json().await;
+                                Arc::clone(&page).click_index(index).await?;
+                            }
+                            Arc::clone(&page)
+                                .evaluate_handle("document.activeElement".to_string())
+                                .await?
+                        } else {
+                            Arc::clone(&page).wait_for_selector(selector.clone()).await?
+                        };
                         let count = text.chars().count();
-                        element.type_text(text.to_string()).await?;
+                        element.type_text(text).await?;
                         println!("typed {count} chars into {selector}");
                         Ok(())
                     }
                     None => {
-                        println!("usage: fill <selector> <text>");
+                        println!("usage: fill <selector|index> <text>");
+                        Ok(())
+                    }
+                },
+                "select" => match split_selector_text(&tokens) {
+                    Some((selector, value)) => {
+                        // Native `<select>` only (matches option by value or label).
+                        // For a custom listbox, click the control to open it, then
+                        // `click "<option>"`.
+                        let values = serde_json::json!([value]).to_string();
+                        Arc::clone(&page)
+                            .select_option(selector.clone(), values)
+                            .await?;
+                        println!("selected {value:?} in {selector}");
+                        Ok(())
+                    }
+                    None => {
+                        println!("usage: select <selector> <value>   (native <select>)");
                         Ok(())
                     }
                 },
@@ -310,12 +363,57 @@ pub async fn run_session(
                     let _ = page.wait_for_navigation().await;
                     Ok(())
                 }
+                // Unit-suffixed sleeps (the unit is in the verb; the value is a
+                // plain number - there is no `2s` literal).
+                "wait-ms" => {
+                    match crate::xcl::runtime::wait_scaled(&rest, 1).await {
+                        Ok(msg) => println!("{msg}"),
+                        Err(e) => println!("usage: wait-ms <number>  ({e})"),
+                    }
+                    Ok(())
+                }
+                "wait-sec" => {
+                    match crate::xcl::runtime::wait_scaled(&rest, 1_000).await {
+                        Ok(msg) => println!("{msg}"),
+                        Err(e) => println!("usage: wait-sec <number>  ({e})"),
+                    }
+                    Ok(())
+                }
+                "wait-min" => {
+                    match crate::xcl::runtime::wait_scaled(&rest, 60_000).await {
+                        Ok(msg) => println!("{msg}"),
+                        Err(e) => println!("usage: wait-min <number>  ({e})"),
+                    }
+                    Ok(())
+                }
+                "wait-hr" => {
+                    match crate::xcl::runtime::wait_scaled(&rest, 3_600_000).await {
+                        Ok(msg) => println!("{msg}"),
+                        Err(e) => println!("usage: wait-hr <number>  ({e})"),
+                    }
+                    Ok(())
+                }
+                "wait-random" => {
+                    let mut bounds = rest.split_whitespace();
+                    match (
+                        bounds.next().map(crate::xcl::runtime::parse_ms),
+                        bounds.next().map(crate::xcl::runtime::parse_ms),
+                    ) {
+                        (Some(Ok(min)), Some(Ok(max))) => {
+                            let ms = crate::xcl::runtime::random_ms(min, max);
+                            tokio::time::sleep(Duration::from_millis(ms as u64)).await;
+                            println!("waited {ms}ms");
+                        }
+                        _ => println!("usage: wait-random <min> <max>   (milliseconds)"),
+                    }
+                    Ok(())
+                }
                 "wait" | "sleep" => {
                     if let Some(ms) = crate::xcl::runtime::parse_duration_ms(&rest) {
                         tokio::time::sleep(Duration::from_millis(ms)).await;
                         println!("waited {ms}ms");
                     } else if rest.is_empty() {
-                        println!("usage: wait <ms|s|selector>");
+                        println!("usage: wait <ms|selector>");
                     } else {
                         let started = std::time::Instant::now();
                         match Arc::clone(&page).wait_for_selector(rest.clone()).await {
@@ -345,76 +443,28 @@ pub async fn run_session(
                     }
                     Ok(())
                 }
-                "click-text" | "text-click" => {
-                    if rest.is_empty() {
-                        println!("usage: click-text <visible text>");
-                    } else {
-                        let needle = serde_json::to_string(&rest)?;
-                        // Only real controls: a large wrapper div matched by text
-                        // would be clicked at its centre, which is not the button.
-                        let decl = "const els=[...document.querySelectorAll('a,button,[role=\"button\"],[role=\"link\"],summary,input[type=\"submit\"]')];";
-                        let expr = format!(
-                            "els.find(e=>e.offsetParent!==null&&(((e.innerText||'')+' '+(e.getAttribute('aria-label')||'')).toLowerCase().includes({needle}.toLowerCase())))"
-                        );
-                        if page
-                            .evaluate_bool(format!("(() => {{ {decl} return !!({expr}); }})()"))
-                            .await?
-                        {
-                            let element = Arc::clone(&page)
-                                .evaluate_handle(format!("(() => {{ {decl} return {expr}; }})()"))
-                                .await?;
-                            crate::cursor::set_driving(&page, true).await;
-                            element.click_mouse().await?;
-                            tokio::time::sleep(Duration::from_millis(600)).await;
-                            println!(
-                                "clicked text {rest:?} -> {}",
-                                page.url().await.unwrap_or_default()
-                            );
-                        } else {
-                            println!("no visible element contains {rest:?}");
-                        }
-                    }
-                    Ok(())
-                }
                 // DOM clicks that never move the mouse: transient menus close on
                 // `mouseleave`, so a curved mouse move to a submenu item can shut
                 // the menu before the click lands. These dispatch the click
                 // straight on the element instead.
-                "tap" | "click-js" | "js-click" | "dom-click" => {
+                "tap" => {
                     if rest.is_empty() {
-                        println!("usage: tap <selector>   (DOM click, no mouse movement)");
-                    } else {
+                        println!("usage: tap <selector|text>   (DOM click, no mouse movement)");
+                    } else if looks_like_a_selector(&rest) {
                         let element = Arc::clone(&page).wait_for_selector(rest.clone()).await?;
                         // Lower the gate first: it blocks click events, and a DOM
                         // click is still a click event.
                         crate::cursor::set_driving(&page, true).await;
                         element.click().await?;
                         println!("tapped {rest}");
-                    }
-                    Ok(())
-                }
-                "tap-text" | "click-text-js" | "text-tap" => {
-                    if rest.is_empty() {
-                        println!("usage: tap-text <visible text>");
                     } else {
-                        let needle = serde_json::to_string(&rest)?;
-                        let decl = "const els=[...document.querySelectorAll('a,button,[role=\"button\"],[role=\"link\"],summary,input[type=\"submit\"]')];";
-                        let expr = format!(
-                            "els.find(e=>e.offsetParent!==null&&(((e.innerText||'')+' '+(e.getAttribute('aria-label')||'')).toLowerCase().includes({needle}.toLowerCase())))"
-                        );
-                        if page
-                            .evaluate_bool(format!("(() => {{ {decl} return !!({expr}); }})()"))
-                            .await?
-                        {
-                            let element = Arc::clone(&page)
-                                .evaluate_handle(format!("(() => {{ {decl} return {expr}; }})()"))
-                                .await?;
-                            // Lower the gate first: it blocks click events.
-                            crate::cursor::set_driving(&page, true).await;
-                            element.click().await?;
-                            println!("tapped text {rest:?}");
-                        } else {
-                            println!("no visible element contains {rest:?}");
+                        match control_by_text(&page, &rest).await? {
+                            Some(element) => {
+                                crate::cursor::set_driving(&page, true).await;
+                                element.click().await?;
+                                println!("tapped {rest:?}");
+                            }
+                            None => report_no_text_match(&rest),
                         }
                     }
                     Ok(())
@@ -437,13 +487,13 @@ pub async fn run_session(
                 }
                 "upload" | "set-input-files" => {
                     // `<input type="file">` cannot be set from page JS; this uses
-                    // CDP `DOM.setFileInputFiles` under the hood.
-                    match rest.split_once(char::is_whitespace) {
+                    // CDP `DOM.setFileInputFiles` under the hood. Tokens (not
+                    // `rest`) so a selector containing spaces stays intact.
+                    match split_selector_text(&tokens) {
                         Some((selector, path)) => {
-                            let path = path.trim();
                             let files = serde_json::json!([path]).to_string();
                             Arc::clone(&page)
-                                .set_input_files(selector.to_string(), files)
+                                .set_input_files(selector.clone(), files)
                                 .await?;
                             println!("set {selector} <- {path}");
                         }
@@ -459,6 +509,41 @@ pub async fn run_session(
                         crate::cursor::set_driving(&page, true).await;
                         element.hover_mouse().await?;
                         println!("hovered {rest}");
+                    }
+                    Ok(())
+                }
+                "mouse" => {
+                    // Move the real cursor without clicking: by snapshot index,
+                    // CSS selector, visible text, or raw `x y` coordinates.
+                    if rest.is_empty() {
+                        println!("usage: mouse <index|selector|text> | mouse <x> <y>");
+                    } else if let Some((x, y)) = parse_coordinates(&rest) {
+                        crate::cursor::set_driving(&page, true).await;
+                        Arc::clone(&page).move_mouse(x, y).await?;
+                        println!("moved to ({x}, {y})");
+                    } else if let Ok(index) = rest.parse::<u32>() {
+                        crate::cursor::set_driving(&page, true).await;
+                        // The index map only exists after a snapshot; build it on
+                        // first use so `mouse 3` works even if `snapshot` was never run.
+                        if Arc::clone(&page).move_to_index(index).await.is_err() {
+                            let _ = page.snapshot_json().await?;
+                            Arc::clone(&page).move_to_index(index).await?;
+                        }
+                        println!("moved to [{index}]");
+                    } else if looks_like_a_selector(&rest) {
+                        let element = Arc::clone(&page).wait_for_selector(rest.clone()).await?;
+                        crate::cursor::set_driving(&page, true).await;
+                        element.hover_mouse().await?;
+                        println!("moved to {rest}");
+                    } else {
+                        match control_by_text(&page, &rest).await? {
+                            Some(element) => {
+                                crate::cursor::set_driving(&page, true).await;
+                                element.hover_mouse().await?;
+                                println!("moved to {rest:?}");
+                            }
+                            None => report_no_text_match(&rest),
+                        }
                     }
                     Ok(())
                 }
@@ -554,6 +639,7 @@ pub async fn run_session(
                         rest.clone()
                     };
                     let opened = Arc::clone(&browser).new_page(url).await?;
+                    opened.set_human(!args.linear);
                     if args.cursor_active() {
                         let _ = crate::cursor::install(&opened).await;
                         crate::cursor::set_gate(&opened, true).await;
@@ -561,10 +647,8 @@ pub async fn run_session(
                     tabs.push(Arc::clone(&opened));
                     active_tab = tabs.len() - 1;
                     page = opened;
-                    // Bring the new tab to the front so the switch is visible.
-                    let _ = page
-                        .execute_cdp_cmd("Page.bringToFront".to_string(), "{}".to_string())
-                        .await;
+                    // Bring the new tab (and its window) to the front.
+                    focus_page(&page).await;
                     println!(
                         "opened tab {active_tab} -> {}",
                         page.url().await.unwrap_or_default()
@@ -593,6 +677,7 @@ pub async fn run_session(
                         // A target this session did not open (for example a popup).
                         match Arc::clone(&browser).attach_page(rest.clone()).await {
                             Ok(attached) => {
+                                attached.set_human(!args.linear);
                                 if args.cursor_active() {
                                     let _ = crate::cursor::install(&attached).await;
                                     crate::cursor::set_gate(&attached, true).await;
@@ -611,10 +696,8 @@ pub async fn run_session(
                         "switched to tab {active_tab} -> {}",
                         page.url().await.unwrap_or_default()
                     );
-                    // Bring the tab to the front so the switch is actually visible.
-                    let _ = page
-                        .execute_cdp_cmd("Page.bringToFront".to_string(), "{}".to_string())
-                        .await;
+                    // Bring the tab (and its window) to the front.
+                    focus_page(&page).await;
                     Ok(())
                 }
                 "tabs" => {
@@ -627,46 +710,92 @@ pub async fn run_session(
                         .and_then(serde_json::Value::as_array)
                         .cloned()
                         .or_else(|| parsed.as_array().cloned());
-                    match infos {
-                        Some(items) => {
-                            for item in items {
-                                let id = item
-                                    .get("targetId")
-                                    .and_then(serde_json::Value::as_str)
-                                    .unwrap_or("");
-                                let kind = item
-                                    .get("type")
-                                    .and_then(serde_json::Value::as_str)
-                                    .unwrap_or("");
-                                let url = item
-                                    .get("url")
-                                    .and_then(serde_json::Value::as_str)
-                                    .unwrap_or("");
-                                println!("{id}  {kind}  {url}");
-                            }
+                    let Some(items) = infos else {
+                        println!("{raw}");
+                        return Ok(());
+                    };
+
+                    // The tabs this session opened, in the order `switch` /
+                    // `close-tab` index them. The active one is marked `*`.
+                    let session_ids: Vec<String> =
+                        tabs.iter().map(|tab| tab.target_id().to_string()).collect();
+                    for (index, tab) in tabs.iter().enumerate() {
+                        let mark = if index == active_tab { "*" } else { " " };
+                        let url = tab.url().await.unwrap_or_default();
+                        println!("{mark} [{index}]  {}  {url}", tab.target_id());
+                    }
+                    // Everything else the browser reports (extensions, workers,
+                    // popups this session did not open): no index, id only.
+                    for item in items {
+                        let id = item
+                            .get("targetId")
+                            .and_then(serde_json::Value::as_str)
+                            .unwrap_or("");
+                        if session_ids.iter().any(|known| known == id) {
+                            continue;
                         }
-                        None => println!("{raw}"),
+                        let kind = item
+                            .get("type")
+                            .and_then(serde_json::Value::as_str)
+                            .unwrap_or("");
+                        let url = item
+                            .get("url")
+                            .and_then(serde_json::Value::as_str)
+                            .unwrap_or("");
+                        println!("  -   {id}  {kind}  {url}");
                     }
                     Ok(())
                 }
                 "close-tab" | "closetab" => {
                     if rest.is_empty() {
-                        println!("usage: close-tab <targetId>   (ids come from `tabs`)");
-                    } else {
-                        let params = serde_json::json!({ "targetId": rest.clone() }).to_string();
-                        page.execute_cdp_cmd("Target.closeTarget".to_string(), params)
-                            .await?;
-                        println!("closed target {rest}");
-                        // Drop it from the tab list, keeping the active tab valid.
-                        if let Some(position) = tabs.iter().position(|tab| tab.target_id() == rest)
-                            && tabs.len() > 1
-                        {
-                            tabs.remove(position);
-                            if active_tab >= tabs.len() {
-                                active_tab = tabs.len() - 1;
+                        println!("usage: close-tab <index|targetId>   (indices/ids come from `tabs`)");
+                        return Ok(());
+                    }
+                    // Accept the same session index `switch` uses, or a raw id.
+                    let target_id = if let Ok(index) = rest.parse::<usize>() {
+                        match tabs.get(index) {
+                            Some(tab) => tab.target_id().to_string(),
+                            None => {
+                                println!("no tab {index} (have {} open)", tabs.len());
+                                return Ok(());
                             }
-                            page = tabs[active_tab].clone();
                         }
+                    } else {
+                        rest.clone()
+                    };
+                    // Never close the session's last tab: that would leave the
+                    // session with nothing to drive.
+                    if tabs.len() <= 1
+                        && tabs
+                            .iter()
+                            .any(|tab| tab.target_id() == target_id.as_str())
+                    {
+                        println!("cannot close the last tab");
+                        return Ok(());
+                    }
+                    let params = serde_json::json!({ "targetId": target_id }).to_string();
+                    match page
+                        .execute_cdp_cmd("Target.closeTarget".to_string(), params)
+                        .await
+                    {
+                        Ok(_) => {
+                            println!("closed tab {target_id}");
+                            // Drop it from the list, keeping the active tab valid.
+                            if let Some(position) = tabs
+                                .iter()
+                                .position(|tab| tab.target_id() == target_id.as_str())
+                            {
+                                tabs.remove(position);
+                                if active_tab >= tabs.len() {
+                                    active_tab = tabs.len().saturating_sub(1);
+                                }
+                                if !tabs.is_empty() {
+                                    page = tabs[active_tab].clone();
+                                    focus_page(&page).await;
+                                }
+                            }
+                        }
+                        Err(error) => println!("could not close {target_id}: {error}"),
                     }
                     Ok(())
                 }
@@ -788,6 +917,7 @@ pub async fn run_session(
                     healed = true;
                     match Arc::clone(&browser).attach_page(page.target_id()).await {
                         Ok(fresh) => {
+                            fresh.set_human(!args.linear);
                             if args.cursor_active() {
                                 let _ = crate::cursor::install(&fresh).await;
                                 crate::cursor::set_gate(&fresh, true).await;
@@ -816,7 +946,7 @@ pub async fn run_session(
         // Record the step for `--codegen`, when one was requested.
         if ok
             && args.codegen.is_some()
-            && let Some(action) = record_action(&verb, &rest, &mut last_target)
+            && let Some(action) = record_action(&tokens, &mut last_target)
         {
             recording.push(action);
         }
@@ -844,37 +974,31 @@ fn print_session_help() {
          \x20 title | url | text | markdown  read the page\n\
          \x20 content                        raw HTML\n\
          \x20 snapshot                       indexed interactive elements\n\
-         \x20 click <index|selector>         click by snapshot index or CSS selector\n\
-         \x20 click-text <text>              click the first element containing the text\n\
-         \x20 tap <selector>                 DOM-click without moving the mouse\n\
-         \x20 tap-text <text>                DOM-click a control by text (no mouse move)\n\
+         \x20 click <index|selector|text>   click by snapshot index, CSS selector, or visible text\n\
+         \x20 tap <selector|text>           same pick, but a DOM click that never moves the mouse\n\
          \x20 click-xy <x> <y>              raw coordinate click (canvas / embedded)\n\
          \x20 upload <selector> <path>      set a file input to a local file\n\
-         \x20 fill <selector> <text>         focus + type slowly (50 ms/char)\n\
+         \x20 fill <selector|index> <text>  focus + type slowly (50 ms/char)\n\
+         \x20 select <selector> <value>     choose an option in a native <select>\n\
          \x20 type <text>                    type into the focused element\n\
          \x20 press <key>                    press a key on the focused element\n\
          \x20 submit                         press Enter on the focused element (send)\n\
          \x20 hover <selector>               move the mouse over an element\n\
+         \x20 mouse <index|selector|text>   move the cursor there (or `mouse <x> <y>`); no click\n\
          \x20 scroll <px|up|down|top|bottom> scroll the page\n\
          \x20 find <text>                    how many elements contain the text\n\
          \x20 wait <ms|selector>             sleep, or wait for an element\n\
          \x20 wait-stable [ms]               wait until the DOM stops changing\n\
          \x20 wait-idle [ms]                 wait until the network goes quiet\n\
+         \x20 wait-random <min> <max>        sleep a uniform random hold (ms)\n\
          \x20 challenge                       detect an anti-bot / CAPTCHA challenge\n\
          \x20 await-human [s]                 wait until a person clears the challenge\n\
          \x20 eval <js>                      evaluate JavaScript, print the result\n\
          \x20 guard <path.js>               block popups/ads on this page and every new one\n\
          \x20 tabs                          list targets (id, type, url)\n\
          \x20 new-tab [url]                 open a new tab and make it active\n\
-         \x20 switch <n|targetId>           switch the active tab (no arg cycles)\n\
-         \x20 close-tab <targetId>          close one target (ids come from `tabs`)\n\
-         \x20 await-human [s]                 wait until a person clears the challenge\n\
-         \x20 eval <js>                       evaluate JavaScript, print the result\n\
-         \x20 guard <path.js>                block popups/ads on this page and every new one\n\
-         \x20 tabs                           list targets (id, type, url)\n\
-         \x20 new-tab [url]                  open a new tab and make it active\n\
-         \x20 switch <n|targetId>            switch the active tab (no arg cycles)\n\
-         \x20 close-tab <targetId>           close one target (ids come from `tabs`)\n\
+         \x20 switch <n|targetId>            make a tab active (index from `tabs`; no arg cycles)\n\
+         \x20 close-tab <index|targetId>     close a tab (index or id from `tabs`)\n\
          \x20 shot [path]                    viewport screenshot (default screenshot.png)\n\
          \x20 shot-full [path]               full-page screenshot\n\
          \x20 record [path]                   start a video (only with --codegen)\n\
@@ -921,10 +1045,21 @@ fn print_snapshot(json: &str) {
             .get("value")
             .and_then(serde_json::Value::as_str)
             .unwrap_or("");
-        if value.is_empty() {
-            println!("[{index}] <{role}> {name:?}");
+        // A derived CSS selector, when one exists, so the element can be driven by
+        // `fill "#email" …` / `click "#submit"` instead of only by index.
+        let selector = entry
+            .get("selector")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("");
+        let suffix = if selector.is_empty() {
+            String::new()
         } else {
-            println!("[{index}] <{role}> {name:?} = {value:?}");
+            format!("  {}", quote_selector(selector))
+        };
+        if value.is_empty() {
+            println!("[{index}] <{role}> {name:?}{suffix}");
+        } else {
+            println!("[{index}] <{role}> {name:?} = {value:?}{suffix}");
         }
     }
 }
@@ -944,29 +1079,25 @@ fn is_session_error(error: &(dyn std::error::Error + 'static)) -> bool {
 /// Index clicks (`click 3`) and bare `type` carry no portable locator, so they
 /// are left out. `press` / `submit` act on the focused element, which after a
 /// `fill` is the field just typed into, so they are recorded against `last`.
-fn record_action(verb: &str, rest: &str, last: &mut Option<Selector>) -> Option<Action> {
+fn record_action(tokens: &[String], last: &mut Option<Selector>) -> Option<Action> {
+    let verb = tokens
+        .first()
+        .map(|v| v.to_ascii_lowercase())
+        .unwrap_or_default();
+    let rest = tokens.get(1..).map_or(String::new(), |rest| rest.join(" "));
     let rest = rest.trim();
-    match verb {
+    match verb.as_str() {
         "open" | "goto" if !rest.is_empty() => Some(Action::Navigate {
             url: rest.to_string(),
         }),
-        "click" if !rest.is_empty() && rest.parse::<u32>().is_err() => {
-            let selector = Selector::parse(rest);
-            *last = Some(selector.clone());
-            Some(Action::Click { selector })
-        }
-        "click-text" | "text-click" if !rest.is_empty() => {
-            let selector = Selector::text(rest);
-            *last = Some(selector.clone());
-            Some(Action::Click { selector })
-        }
-        "tap" | "click-js" | "js-click" | "dom-click" if !rest.is_empty() => {
-            let selector = Selector::parse(rest);
-            *last = Some(selector.clone());
-            Some(Action::Click { selector })
-        }
-        "tap-text" | "click-text-js" | "text-tap" if !rest.is_empty() => {
-            let selector = Selector::text(rest);
+        // `click` / `tap` take an index, a selector, or visible text. An index
+        // carries no portable locator, so it is left out of the recording.
+        "click" | "tap" if !rest.is_empty() && rest.parse::<u32>().is_err() => {
+            let selector = if looks_like_a_selector(rest) {
+                Selector::parse(rest)
+            } else {
+                Selector::text(rest)
+            };
             *last = Some(selector.clone());
             Some(Action::Click { selector })
         }
@@ -975,21 +1106,37 @@ fn record_action(verb: &str, rest: &str, last: &mut Option<Selector>) -> Option<
             *last = Some(selector.clone());
             Some(Action::Hover { selector })
         }
+        // `mouse` moves the pointer; recorded as a hover. Coordinates and
+        // snapshot indices carry no portable locator, so they are left out.
+        "mouse"
+            if !rest.is_empty()
+                && parse_coordinates(rest).is_none()
+                && rest.parse::<u32>().is_err() =>
+        {
+            let selector = if looks_like_a_selector(rest) {
+                Selector::parse(rest)
+            } else {
+                Selector::text(rest)
+            };
+            *last = Some(selector.clone());
+            Some(Action::Hover { selector })
+        }
         "wait" | "sleep" if !rest.is_empty() && rest.parse::<u64>().is_err() => {
             let selector = Selector::parse(rest);
             *last = Some(selector.clone());
             Some(Action::WaitFor { selector })
         }
-        "fill" => rest
-            .split_once(char::is_whitespace)
-            .map(|(selector, text)| {
-                let selector = Selector::parse(selector);
-                *last = Some(selector.clone());
-                Action::Fill {
-                    selector,
-                    text: text.trim().to_string(),
-                }
-            }),
+        "fill" => {
+            // Tokens, not `rest`: a quoted selector may contain spaces.
+            let selector = tokens.get(1)?;
+            let text = tokens.get(2..).filter(|rest| !rest.is_empty())?.join(" ");
+            let selector = Selector::parse(selector);
+            *last = Some(selector.clone());
+            Some(Action::Fill {
+                selector,
+                text: text.trim().to_string(),
+            })
+        }
         // `press` / `submit` act on the focused element. After a `fill` that is
         // the field just typed into, so record it against the last selector -
         // otherwise the step would be lost from the generated script.
@@ -1049,5 +1196,153 @@ fn emit_codegen(lang: CodegenLang, actions: &[Action], output: Option<&std::path
             language.label(),
             actions.len()
         ),
+    }
+}
+
+/// Splits a session statement into the `(selector, text)` pair used by `fill`
+/// and `upload`: the token right after the verb is the selector and the rest are
+/// rejoined with single spaces, so a quoted selector that itself contains spaces
+/// (`fill '[aria-label="Email address"]' hi`) stays intact. `None` when either
+/// half is missing.
+fn split_selector_text(tokens: &[String]) -> Option<(String, String)> {
+    let selector = tokens.get(1)?;
+    let rest = tokens.get(2..)?;
+    if rest.is_empty() {
+        return None;
+    }
+    Some((selector.clone(), rest.join(" ")))
+}
+
+/// Renders a selector as a quoted string literal so it can be copied verbatim into
+/// a command (`fill '[name="email"]' …`). Single quotes unless the selector
+/// itself contains one, in which case double quotes with `\"` escapes are used.
+fn quote_selector(selector: &str) -> String {
+    if selector.contains('\'') {
+        format!("\"{}\"", selector.replace('"', "\\\""))
+    } else {
+        format!("'{selector}'")
+    }
+}
+
+/// Reports that a text-based click matched nothing.
+fn report_no_text_match(text: &str) {
+    println!("no visible element contains {text:?}");
+}
+
+/// Parses a bare `"x y"` pair into cursor coordinates, when both parts are
+/// numbers and there is nothing else.
+fn parse_coordinates(value: &str) -> Option<(f64, f64)> {
+    let mut parts = value.split_whitespace();
+    let x = parts.next()?.parse::<f64>().ok()?;
+    let y = parts.next()?.parse::<f64>().ok()?;
+    if parts.next().is_some() {
+        return None;
+    }
+    Some((x, y))
+}
+
+/// Brings a tab and its window to the front. `Target.activateTarget` (browser
+/// domain) raises the window; `Page.bringToFront` is a page-scoped fallback for
+/// browsers or modes that reject it.
+async fn focus_page(page: &std::sync::Arc<xcelerate::Page>) {
+    if page.activate().await.is_err() {
+        let _ = page.bring_to_front().await;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::split_selector_text;
+    use crate::interact::looks_like_a_selector;
+    use crate::xcl::lex::{Line, lex_line};
+
+    fn tokens(line: &str) -> Vec<String> {
+        match lex_line(line).expect("lexes") {
+            Line::Statement(tokens) => tokens,
+            other => panic!("expected a statement, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn splits_selector_and_text() {
+        assert_eq!(
+            split_selector_text(&tokens("fill #email hello")),
+            Some(("#email".into(), "hello".into()))
+        );
+        // Text keeps its internal spaces.
+        assert_eq!(
+            split_selector_text(&tokens("fill #name Ada Lovelace")),
+            Some(("#name".into(), "Ada Lovelace".into()))
+        );
+    }
+
+    #[test]
+    fn keeps_spaces_inside_a_quoted_selector() {
+        assert_eq!(
+            split_selector_text(&tokens("fill '[aria-label=\"Email address\"]' hi")),
+            Some(("[aria-label=\"Email address\"]".into(), "hi".into()))
+        );
+    }
+
+    #[test]
+    fn requires_both_selector_and_text() {
+        assert_eq!(split_selector_text(&tokens("fill")), None);
+        assert_eq!(split_selector_text(&tokens("fill #email")), None);
+    }
+
+    #[test]
+    fn parses_a_bare_coordinate_pair() {
+        use super::parse_coordinates;
+        assert_eq!(parse_coordinates("120 90"), Some((120.0, 90.0)));
+        assert_eq!(parse_coordinates("-4.5 3"), Some((-4.5, 3.0)));
+        // A single number (a snapshot index) is not a coordinate pair.
+        assert_eq!(parse_coordinates("3"), None);
+        assert_eq!(parse_coordinates("#email"), None);
+        assert_eq!(parse_coordinates("1 2 3"), None);
+    }
+
+    #[test]
+    fn spots_selectors_passed_to_text_clicks() {
+        assert!(looks_like_a_selector("[name=\"pass\"]"));
+        assert!(looks_like_a_selector("#email"));
+        assert!(looks_like_a_selector(".btn"));
+        assert!(looks_like_a_selector("//a[@id='x']"));
+        assert!(!looks_like_a_selector("Log in"));
+        assert!(!looks_like_a_selector("Sign up"));
+    }
+
+    #[test]
+    fn click_records_index_selector_and_text() {
+        use super::record_action;
+        use xcelerate_codegen::{Action, Selector};
+
+        // A bare index carries no portable locator, so it is left out.
+        let mut last = None;
+        assert_eq!(record_action(&tokens("click 3"), &mut last), None);
+
+        // A selector-looking argument records a CSS selector.
+        let mut last = None;
+        assert_eq!(
+            record_action(&tokens("click '#email'"), &mut last),
+            Some(Action::Click {
+                selector: Selector::parse("#email")
+            })
+        );
+
+        // Anything else records a visible-text match, for `click` and `tap` alike.
+        let mut last = None;
+        assert_eq!(
+            record_action(&tokens("click 'Sign in'"), &mut last),
+            Some(Action::Click {
+                selector: Selector::text("Sign in")
+            })
+        );
+        let mut last = None;
+        assert_eq!(
+            record_action(&tokens("tap 'Accept all'"), &mut last),
+            Some(Action::Click {
+                selector: Selector::text("Accept all")
+            })
+        );
     }
 }

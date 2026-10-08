@@ -38,7 +38,7 @@ the hosting runtime). The staged `lib/` is not committed.
 ```powershell
 Import-Module Xcelerate            # or: Import-Module ./bindings/powershell/Xcelerate.psd1
 
-$browser = Start-XcelerateBrowser -Plugins stealth, human -NoHeadless
+$browser = Start-XcelerateBrowser -NoHeadless
 $page    = New-XceleratePage -Browser $browser -Url 'https://example.com'
 
 Write-Host "Title: $(Receive-XcelerateTask $page.Title())"
@@ -69,17 +69,22 @@ Every engine method is `async`; the wrapper functions resolve tasks for you, and
 
 ## Plugins
 
-Plugins are opt-in (default-deny). Enable them at launch or at runtime:
+Plugins are default-deny and the built-in catalog is empty: nothing runs unless
+you load one from disk. The `-Plugins` option takes paths to plugin directories
+(or `plugin.json` manifests), or load one at runtime with `LoadPlugin`:
 
 ```powershell
-$browser = Start-XcelerateBrowser -Plugins stealth
+$browser = Start-XcelerateBrowser
 
-$browser.PluginNames()            # enabled on this browser
-$browser.AvailablePlugins()       # compiled-in catalog
+$browser.PluginNames()            # [] — empty until you load one
+$browser.AvailablePlugins()       # [] — the built-in catalog is empty
 
-$stealth = Get-XceleratePlugin -Browser $browser -Name stealth
-$stealth.Ops()                    # operations it exposes
-$stealth.Invoke('info', '{}')     # JSON in, JSON out
+$browser.LoadPlugin('plugins/my-plugin')
+$browser.PluginNames()            # ['my-plugin']
+
+$plugin = Get-XceleratePlugin -Browser $browser -Name my-plugin
+$plugin.Ops()                     # operations it exposes
+$plugin.Invoke('info', '{}')      # JSON in, JSON out
 ```
 
 Plugins load from disk sandboxed (WebAssembly) behind the capability gate;
@@ -91,7 +96,7 @@ Because the module is a thin wrapper, any method on the generated types is
 available directly:
 
 ```powershell
-$config = [uniffi.xcelerate.BrowserConfig]::new($false, $true, $null, @('stealth'))
+$config = [uniffi.xcelerate.BrowserConfig]::new($false, $true, $null, @('plugins/my-plugin'))
 $browser = [uniffi.xcelerate.Browser]::Launch($config).GetAwaiter().GetResult()
 ```
 

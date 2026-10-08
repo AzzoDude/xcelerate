@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "xcelerate"
 version = "1.0.14"
-description = "A high-performance, lightweight Chrome DevTools Protocol (CDP) client with built-in stealth."
+description = "A high-performance, lightweight Chrome DevTools Protocol (CDP) client."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "AzzoDude" }]

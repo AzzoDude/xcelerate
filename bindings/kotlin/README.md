@@ -35,9 +35,9 @@ import uniffi.xcelerate.BrowserConfig
 import kotlinx.coroutines.runBlocking
 
 fun main() = runBlocking {
-    // headless = true, stealth = false, detached = true, executablePath = null,
-    // plugins = null. Stealth is opt-in via the built-in plugin.
-    val browser = Browser.launch(BrowserConfig(plugins = listOf("stealth")))
+    // headless = true, detached = true, executablePath = null, plugins = null.
+    // Plugins are none by default — load one from disk to opt in.
+    val browser = Browser.launch(BrowserConfig())
     val page = browser.newPage("https://example.com")
     println(page.title())
     val png = page.screenshotFull()
@@ -50,15 +50,19 @@ Every call is a `suspend` function, so run inside a coroutine
 
 ## Plugins
 
-Plugins are default-deny. Enable the built-in `stealth` plugin by listing it
-in `BrowserConfig(plugins = listOf("stealth"))` before launch. The same fixed
-bridge is available in Kotlin:
+Plugins are default-deny and loaded from disk; the built-in catalog is empty.
+`BrowserConfig(plugins = listOf("plugins/my-plugin"))` takes **paths** (a
+directory or a `plugin.json`) before launch, or call
+`browser.loadPlugin("plugins/my-plugin")` after. The same fixed bridge is
+available in Kotlin:
 
 ```kotlin
-println(browser.pluginNames())        // ["stealth"]
-println(browser.availablePlugins())   // ["stealth", "human"]
-val stealth = browser.plugin("stealth")
-println(stealth.invoke("info", "{}"))
+println(browser.pluginNames())        // [] — nothing loaded yet
+browser.loadPlugin("plugins/my-plugin") // a directory or a plugin.json
+println(browser.pluginNames())        // ["my-plugin"]
+println(browser.availablePlugins())   // ["my-plugin"]
+val myPlugin = browser.plugin("my-plugin")
+println(myPlugin.invoke("info", "{}"))
 ```
 
 `loadPlugin` loads a sandboxed (WebAssembly) plugin from disk, capability-gated;

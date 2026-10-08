@@ -22,11 +22,11 @@ func fill_field(id, value)
 end
 
 open $base/auth/register
-wait 2s
+wait 2000
 fill_field "#email" "ada@example.com"
 fill_field "#password" "correct-horse-battery"
-click-text "Register"
-wait 6s
+click "Register"
+wait 6000
 assert url contains "/login"
 done
 ```
@@ -40,14 +40,19 @@ done
 | `func` … `end` / `<name> …` | Define and call a bounded, non-recursive function. |
 | `open` / `goto` / `back` / `reload` | Navigate. |
 | `title` `url` `text` `markdown` `content` `snapshot` | Read the page. |
-| `click` `click-text` `tap` `fill` `type` `press` `submit` `hover` `scroll` | Interact. |
-| `wait` `wait-idle` `wait-stable` | Wait (a selector, seconds, or `500ms`). |
+| `click` `mouse` `tap` `fill` `select` `type` `press` `submit` `hover` `scroll` | Interact. |
+| `wait` `wait-idle` `wait-stable` | Wait for a selector, or sleep a number (`wait` = ms; `wait-sec`/`wait-min`/`wait-hr` for other units). |
+| `wait-random` | Sleep a random number of milliseconds between two bounds (`wait-random <min> <max>`, inclusive). |
 | `assert <subject> <op> <value>` | Fail-fast check (`url`, `title`, `status`, `contains`, `==`, …). |
 | `print <arg>...` | Write the resolved arguments to stdout (the explicit log channel). |
 | `repeat` / `retry` / `if-ok` / `if-fail` / `label` / `goto` | Bounded control flow. |
 | `eval` / `request` | Opt-in: JavaScript (`--allow-unsafe`), browserless HTTP (`--allow-http`). |
 | `import` / `run` / `plugins` / `plugin-config` | Plugins / workers (`--allow-plugin`). |
 | `done` / `quit` | End the run. |
+
+When a run ends - the last line, `done`, `quit`, an error, or Ctrl+C - the
+browser this command launched is closed. (`--detached` / `--keep-alive` opt out
+and let it outlive the process.)
 
 Runs are **quiet by default**: a script prints only `print` output and failures
 (`fail <reason>`). Pass `--verbose` to also see an `ok <step>` line for every step.
@@ -170,15 +175,58 @@ Operators: `==` `!=` `contains` `matches` `>` `<` `>=` `<=`.
 
 A script and the interactive session share one verb set: `open`, `goto`, `back`,
 `reload`, `title`, `url`, `text`, `markdown`, `content`, `snapshot`, `click`/`tap`,
-`click-text`, `fill`, `type`, `press`/`submit`, `hover`, `scroll`, `find`,
-`wait`, `wait-stable`, `wait-idle`, `challenge`, `eval`, `shot`, `shot-full`,
-`tabs`, `new-tab`, `switch`, `done`, `quit`.
+`mouse`, `fill`, `select`, `type`, `press`/`submit`, `hover`, `scroll`, `find`,
+`wait`, `wait-ms`, `wait-sec`, `wait-min`, `wait-hr`, `wait-stable`, `wait-idle`,
+`wait-random`, `challenge`, `eval`, `shot`, `shot-full`, `tabs`, `new-tab`,
+`switch`, `done`, `quit`.
 
-The interactive session adds a few verbs a script does not need: `tap-text`,
-`click-xy`, `upload`, `await-human`, and `guard`.
+`click` and `tap` take a snapshot `[index]` (`click 3`), a CSS selector
+(`click '#email'`), or visible text (`click "Sign in"`), in that order. Text is
+matched against the control's visible text **and** its `aria-label`, so icon-only
+buttons are reachable too. `click` moves the real mouse to the target; `tap`
+fires a DOM click without moving the mouse (for menus that close on `mouseleave`).
 
-`wait` takes a duration — `2s`, `500ms`, or a bare millisecond count — or, when
-the argument is not a duration, a selector (`#id`, `.class`, `//xpath`, `input`, …).
+`mouse` moves the real cursor **without clicking** — to a snapshot `[index]`, a
+CSS selector, visible text, or raw `mouse <x> <y>` coordinates. Use it to reveal a
+hover menu before a click, or to make the cursor travel visibly across the page.
+The path is human-like by default (a curved, jittered Bezier); `--linear` switches
+to a straight line.
+
+`fill` accepts either a CSS selector or a snapshot `[index]` (`fill 3 "text"`) -
+useful when a framework-rendered field exposes no stable selector (the snapshot
+then shows the element with no quoted selector).
+
+`select <selector> <value>` chooses an option in a native `<select>` (matched by
+value or label). A page that draws its own dropdown (a `div[role="combobox"]` with
+a `listbox`) is driven instead by clicking the control, then `click "<option>"` -
+the same text match reaches dropdown options.
+
+The interactive session adds a few verbs a script does not need: `click-xy`,
+`upload`, `await-human`, and `guard`.
+
+`open` (and `new-tab`) accept either a full URL or a bare host: a target with no
+scheme gets `https://` prepended, so `open facebook.com` navigates to
+`https://facebook.com`. Targets that already have a scheme (`https://…`,
+`about:blank`, `file://…`, `data:…`) are used as-is. As everywhere in XCL the
+argument is a **string** - `open facebook.com` and `open "facebook.com"` are the
+same value; quotes are only needed when the value contains spaces.
+
+`wait` takes a **number** (milliseconds) or, when the argument is not a number, a
+selector (`#id`, `.class`, `//xpath`, `input`, …). For other units use the unit
+verb: `wait-sec 2`, `wait-min 1`, `wait-hr 1` (there is no `2s` literal).
+
+For varied timing, `wait-random <min> <max>` sleeps a uniform random hold in
+`[min, max]` ms. The bounds are ordinary values, so `$vars` and `func` parameters
+work:
+
+```text
+wait-random 200 700
+
+func beat(lo, hi)
+  wait-random $lo $hi
+end
+beat 80 400
+```
 
 ## A complete example
 
@@ -193,13 +241,13 @@ func fill_field(field_id, value)
 end
 
 open $base/auth/register
-wait 2s
+wait 2000
 
 fill_field "#first_name" "Ada"
 fill_field "#last_name" "Lovelace"
 fill_field "#email" $email
 fill_field "#password" $password
-click-text "Register"
+click "Register"
 wait 6s
 
 retry 10 assert url contains "/login"

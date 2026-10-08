@@ -32,23 +32,24 @@ await element.click()
 await driver.quit()
 ```
 
-## Stealth and plugins
+## Plugins
 
-Stealth is no longer on by default: it is a built-in **plugin** you opt into
-through the launch config. Every adapter's `launch(config)` forwards that config
-to the core `Browser`, so enabling stealth works the same in all three styles:
+Xcelerate ships no built-in plugins, and every adapter's `launch(config)` forwards
+its config straight to the core `Browser`, so plugin handling is identical in all
+three styles. `BrowserConfig.plugins` takes **paths** to plugin directories or
+`plugin.json` manifests; nothing runs unless it is listed (default-deny).
 
 ```python
 from xcelerate import BrowserConfig, use
 
-config = BrowserConfig(plugins=["stealth", "human"])  # opt into built-in plugins
+config = BrowserConfig(plugins=["plugins/my-plugin"])  # path to a plugin dir
 pw = use("playwright")
 browser = await pw.launch(config)
 ```
 
-Nothing runs unless it is listed (default-deny). Plugins load with
-`Browser::load_plugin` and run sandboxed (WebAssembly) behind the capability gate.
-See the
+Plugins load with `Browser::load_plugin` and run sandboxed (WebAssembly) behind the
+capability gate; `Browser::use_plugin` enables a loaded plugin at runtime.
+Human-like mouse and keyboard input is built into the core, not a plugin. See the
 [plugins section](../README.md#plugins) of the top-level README for the
 capabilities and the append-only audit log.
 

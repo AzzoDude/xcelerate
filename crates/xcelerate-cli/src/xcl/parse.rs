@@ -257,7 +257,7 @@ impl Parser {
                 }
             }
             "done" => Command::Done,
-            "quit" | "exit" | "q" => Command::Quit,
+            "quit" => Command::Quit,
             // Any other verb is a browser/session pass-through command — unless it
             // names a function defined above, in which case a bare `name args...`
             // is a call, so the `call` keyword is optional.

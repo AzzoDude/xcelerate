@@ -93,6 +93,12 @@ let page = browser.clone().new_page("https://example.com".to_string()).await?;
 println!("{}", page.title().await?);
 ```
 
+> **Engine support by surface.** The CLI (`xcelerate run` / `session` / one-shot
+> commands) and the XCL runner drive **Chromium over CDP** only; passing a
+> Firefox-family browser (`--browser firefox`) fails fast with a clear message.
+> Firefox is available through the Rust API
+> (`xcelerate::firefox::FirefoxBrowser`) shown above.
+
 ## Bindings
 
 | Language | Package | Registry |
@@ -118,7 +124,8 @@ println!("{}", page.title().await?);
   path with sandboxed, capability-gated host calls.
 - **Human-like input by default** - clicks and typing drive the real mouse and
   keyboard: the cursor travels to the element along a Bezier path and text is
-  typed at a human pace, so runs look less robotic.
+  typed at a human pace, so runs look less robotic. Pass `--linear` for a
+  straight-line mouse and fast typing when you want a reproducible run.
 - **Async-first** - built on `tokio` in Rust and `async`/`await` in every binding.
 - **Three familiar API styles first** - write Playwright, Puppeteer, or Selenium
   code unchanged over the same engine, each generated from a declarative profile.
@@ -343,9 +350,9 @@ handle.invoke("ping".into(), "{}".into()).await?;
 ### Built-in catalog
 
 There is none. `available_plugins()` reports what is installed or loaded on this
-browser, which is empty until you add something. (The old `stealth` and `human`
-plugins are gone: human-like mouse and keyboard input is built into the core's
-input path, and fingerprint work belongs in your own plugin.)
+browser, which is empty until you add something. Human-like mouse and keyboard
+input is built into the core's input path; fingerprint work belongs in your own
+plugin.
 
 Each op runs under the invocation budget and is written to the audit log; a
 plugin only ever acts on pages it has been handed.
@@ -509,9 +516,10 @@ xcelerate snapshot https://example.com          # indexed, LLM-friendly snapshot
 xcelerate click-index https://example.com 2     # click element [2] from the snapshot
 ```
 
-Global flags apply to every command: `--no-headless`, `--detached`,
-`--executable-path <path>`, `--plugins <path,...>`, `--device <name>`, and
-`--timeout <ms>`. `xcelerate --device <name> <command>` renders as a built-in
+Global flags apply to every command: `--headless` (the browser window is shown
+by default), `--detached`, `--executable-path <path>`, `--plugins <path,...>`,
+`--device <name>`, `--linear` (straight-line mouse and fast typing instead of the
+default human-like input), and `--timeout <ms>`. `xcelerate --device <name> <command>` renders as a built-in
 mobile device, and `xcelerate list` prints every device and plugin.
 Install it with `cargo install --path crates/xcelerate-cli` (the installed
 binary is `xcelerate-cli`; the release archives and winget ship it as
@@ -546,8 +554,8 @@ func fill_field(id, value)
 end
 
 open $base
-wait 2s
-click-text "Register"
+wait 2000
+click "Register"
 fill_field "#email" "ada@example.com"
 fill_field "#password" "correct-horse-battery"
 submit
@@ -571,8 +579,8 @@ done
 | `<name> <arg>…` | Invoke a function defined above (`call <name> …` also works). |
 | `open` / `goto` `<url>` | Navigate. |
 | `back` `reload` `title` `url` `text` `markdown` `snapshot` | Read the page. |
-| `click <index\|selector>` `click-text <text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | Interact. |
-| `wait <ms\|s\|selector>` `wait-idle` `wait-stable` | Wait. |
+| `click <index\|selector\|text>` `mouse <index\|selector\|text>` `tap` `fill <sel> <text>` `type` `press` `submit` `hover` `scroll` | Interact. |
+| `wait <ms\|selector>` `wait-sec` `wait-min` `wait-hr` `wait-idle` `wait-stable` | Wait. |
 | `eval <js>` | Run JavaScript (requires `--allow-unsafe`). |
 | `request <METHOD> <url> [headers] [body]` | HTTP without a browser (requires `--allow-http`). |
 | `import <id>` `run <plugin> <op> [json]` `plugins` `plugin-config <id>` | Plugins / workers. |
@@ -698,23 +706,34 @@ CSS selectors for asserting or driving a page. It is exposed as the CLI command
 ## Agent snapshots
 
 `page.agent_snapshot()` renders the page as indented text where every
-interactive element is tagged with a stable `[index]`:
+interactive element is tagged with a stable `[index]` and, when one can be
+derived from its DOM attributes, a usable CSS selector (`#id`, or
+`[name="…"]`/`[aria-label="…"]`/`[placeholder="…"]`):
 
 ```
-[0]<link> "Home"
-[1]<textbox> "Email" = "a@b.com"
-[2]<button> "Sign in"
+[0]<link> "Home"  '#nav-home'
+[1]<textbox> "Email" = "a@b.com"  '[name="email"]'
+[2]<button> "Sign in"  '#signin'
 ```
+
+Selectors are shown as quoted string literals (`'[name="email"]'`) so they can be
+copied straight into a command (`fill '[name="email"]' …`, `click '#signin'`). An
+element can be acted on either by index (`click 1`) or by that selector.
+
+Framework-generated ids (React's `_R_…`, Radix/MUI `:r0:`, and other long random
+tokens) change between renders, so they are **skipped**: such an element falls
+back to its `name` / `aria-label` / `placeholder`, or shows no selector at all
+when none of those is stable.
 
 The snapshot is built entirely in Rust from a single
 `Accessibility.getFullAXTree` and `DOMSnapshot.captureSnapshot` call on the
 persistent CDP session, so it is far cheaper and more predictable than
 serializing the DOM in a scripting language. Pass an index to
 `page.click_index(n)` to click that element without re-resolving a CSS selector
-(`page.snapshot_json()` returns the same elements with roles, names, bounds, and
-backend node ids). It is exposed as the CLI commands `xcelerate snapshot <url>`
-and `xcelerate click-index <url> <index>`, and the MCP tools `browser_snapshot`
-and `browser_click_index`.
+(`page.snapshot_json()` returns the same elements with roles, names, selector,
+bounds, and backend node ids). It is exposed as the CLI commands
+`xcelerate snapshot <url>` and `xcelerate click-index <url> <index>`, and the MCP
+tools `browser_snapshot` and `browser_click_index`.
 
 ## Workspace layout
 

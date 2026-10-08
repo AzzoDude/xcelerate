@@ -4,6 +4,7 @@
 use std::path::Path;
 use std::sync::Arc;
 
+use super::engine::Next;
 use super::exec::{Executor, dispatch};
 use super::parse::parse_program;
 use super::runtime::{Context, RuntimeLimits};
@@ -53,33 +54,33 @@ pub async fn run_file(
     let mut engine = super::Engine::new(program, RuntimeLimits::default());
 
     // Execute: pull the next action, await its dispatch, feed the outcome back.
-    let mut terminated = false;
-    while !terminated {
-        let Some((cmd, signal)) = engine.next_action(&mut ctx) else {
-            break;
-        };
-        match signal {
-            super::engine::RunOutcome::Halt(err) => {
+    loop {
+        let cmd = match engine.next_action(&mut ctx) {
+            Next::End => break,
+            Next::Halt(err) => {
                 println!("fail {err}");
                 break;
             }
-            super::engine::RunOutcome::Continue => {}
-        }
+            Next::Action(cmd) => cmd,
+        };
+        // Read anything we need off the borrowed command before dispatching it
+        // (the borrow ends once `dispatch` returns).
+        let is_print = matches!(cmd, super::ast::Command::Print { .. });
 
-        let outcome = dispatch(&mut ctx, &cmd, &exe).await;
+        let outcome = dispatch(&mut ctx, cmd, &exe).await;
         engine.observe(outcome.ok);
         // Quiet by default: a run reads as its own log, so only failures and
         // explicit `print` output are shown. `--verbose` restores the per-step
         // `ok <step>` transcript.
         if !outcome.ok {
             println!("fail {}", outcome.message);
-        } else if matches!(cmd, super::ast::Command::Print { .. }) {
+        } else if is_print {
             println!("{}", outcome.message);
         } else if verbose {
             println!("ok {}", outcome.message);
         }
         if outcome.should_quit {
-            terminated = true;
+            break;
         }
         // Guard against a command that never advances (defensive, not expected).
         if ctx.steps_executed > super::security::MAX_STEPS * 2 {

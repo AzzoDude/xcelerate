@@ -110,7 +110,12 @@ impl Element {
         // 1. Focus the element first
         self.clone().focus().await?;
 
-        // 2. Dispatch key events for each character
+        // 2. Dispatch key events for each character. With human input on, the
+        //    cadence varies per character and lingers after a space or
+        //    punctuation, the way a person types; with it off, a short uniform
+        //    delay keeps key events flowing without dragging the run out.
+        let human = self.page.human();
+        let mut rng = Lcg::new();
         for c in text.chars() {
             let mut params = browser_protocol::input::DispatchKeyEventParams {
                 type_: "char".into(),
@@ -124,8 +129,18 @@ impl Element {
                 .execute_with_session(Some(&self.page.session_id), params)
                 .await?;
 
-            // Subtle delay to mimic human typing
-            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+            let delay_ms = if human {
+                let beat = rng.range(38.0, 96.0);
+                // A short pause at word boundaries reads as human.
+                if c.is_whitespace() {
+                    (beat + rng.range(30.0, 90.0)) as u64
+                } else {
+                    beat as u64
+                }
+            } else {
+                8
+            };
+            tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
         }
 
         Ok(self)

@@ -193,7 +193,7 @@ pub async fn dispatch(ctx: &mut Context, cmd: &Command, exe: &Executor) -> Outco
                 ))
             }
         }
-        Command::Done => Outcome::ok("done".to_string()),
+        Command::Done => Outcome::done("done".to_string()),
         Command::Quit => Outcome::quit("quit".to_string()),
         Command::FuncStart(_)
         | Command::FuncEnd
@@ -227,7 +227,7 @@ async fn dispatch_raw(
 
     match verb {
         "open" | "goto" => {
-            let url = resolved.first().cloned().unwrap_or_default();
+            let url = super::runtime::normalize_url(&resolved.first().cloned().unwrap_or_default());
             page.navigate(url.clone())
                 .await
                 .map_err(|e| e.to_string())?;
@@ -251,6 +251,48 @@ async fn dispatch_raw(
                 .map_err(|e| e.to_string())?;
             el.hover_mouse().await.map_err(|e| e.to_string())?;
             Ok(format!("hover {sel}"))
+        }
+        "mouse" => {
+            // Move the cursor without clicking: `mouse <x> <y>`, `mouse <index>`,
+            // `mouse <selector>`, or `mouse "<text>"`.
+            if resolved.len() == 2
+                && let (Ok(x), Ok(y)) = (resolved[0].parse::<f64>(), resolved[1].parse::<f64>())
+            {
+                Arc::clone(&page)
+                    .move_mouse(x, y)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                return Ok(format!("mouse {x} {y}"));
+            }
+            let target = resolved.first().cloned().unwrap_or_default();
+            if target.is_empty() {
+                return Err("usage: mouse <index|selector|text> | mouse <x> <y>".to_string());
+            }
+            if let Ok(index) = target.parse::<u32>() {
+                Arc::clone(&page)
+                    .move_to_index(index)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                Ok(format!("mouse {index}"))
+            } else if crate::interact::looks_like_a_selector(&target) {
+                let el = Arc::clone(&page)
+                    .wait_for_selector(target.clone())
+                    .await
+                    .map_err(|e| e.to_string())?;
+                el.hover_mouse().await.map_err(|e| e.to_string())?;
+                Ok(format!("mouse {target}"))
+            } else {
+                match crate::interact::control_by_text(&page, &target)
+                    .await
+                    .map_err(|e| e.to_string())?
+                {
+                    Some(el) => {
+                        el.hover_mouse().await.map_err(|e| e.to_string())?;
+                        Ok(format!("mouse {target:?}"))
+                    }
+                    None => Err(format!("no visible element contains {target:?}")),
+                }
+            }
         }
         "scroll" => {
             let arg = resolved.first().cloned().unwrap_or_default();
@@ -301,59 +343,83 @@ async fn dispatch_raw(
             Ok(format!("wrote {path} ({} bytes)", png.len()))
         }
         "click" | "tap" => {
-            let sel = resolved.first().cloned().unwrap_or_default();
-            if let Ok(index) = sel.parse::<u32>() {
+            let target = resolved.first().cloned().unwrap_or_default();
+            if target.is_empty() {
+                return Err("usage: click <index|selector|text>".to_string());
+            }
+            // A bare integer is a snapshot index, a selector-looking string is a
+            // CSS selector, anything else is matched against visible text - the
+            // same rule the interactive session uses.
+            if let Ok(index) = target.parse::<u32>() {
                 Arc::clone(&page)
                     .click_index(index)
                     .await
                     .map_err(|e| e.to_string())?;
                 tokio::time::sleep(std::time::Duration::from_millis(600)).await;
                 Ok(format!("click {index}"))
-            } else {
+            } else if crate::interact::looks_like_a_selector(&target) {
                 let el = Arc::clone(&page)
-                    .wait_for_selector(sel.clone())
+                    .wait_for_selector(target.clone())
                     .await
                     .map_err(|e| e.to_string())?;
                 // Move the real mouse to the element and click, so the cursor
                 // travels to the target instead of firing a synthetic DOM click.
-                // (Matches `click-text` and the interactive session.)
                 el.click_mouse().await.map_err(|e| e.to_string())?;
-                Ok(format!("click {sel}"))
-            }
-        }
-        "click-text" => {
-            let text = resolved.first().cloned().unwrap_or_default();
-            let needle = serde_json::to_string(&text).unwrap_or_default();
-            let decl = "const els=[...document.querySelectorAll('a,button,[role=\"button\"],[role=\"link\"],summary,input[type=\"submit\"]')];";
-            let expr = format!(
-                "els.find(e=>e.offsetParent!==null&&(((e.innerText||'')+' '+(e.getAttribute('aria-label')||'')).toLowerCase().includes({needle}.toLowerCase())))"
-            );
-            let found = page
-                .evaluate_bool(format!("(() => {{ {decl} return !!({expr}); }})()"))
-                .await
-                .unwrap_or(false);
-            if found {
-                let el = page
-                    .evaluate_handle(format!("(() => {{ {decl} return {expr}; }})()"))
-                    .await
-                    .map_err(|e| e.to_string())?;
-                el.click_mouse().await.map_err(|e| e.to_string())?;
-                Ok(format!("click-text {text:?}"))
+                Ok(format!("click {target}"))
             } else {
-                Err(format!("no visible element contains {text:?}"))
+                match crate::interact::control_by_text(&page, &target)
+                    .await
+                    .map_err(|e| e.to_string())?
+                {
+                    Some(el) => {
+                        el.click_mouse().await.map_err(|e| e.to_string())?;
+                        Ok(format!("click {target:?}"))
+                    }
+                    None => Err(format!("no visible element contains {target:?}")),
+                }
             }
         }
         "fill" => {
             let sel = resolved.first().cloned().unwrap_or_default();
             let text = resolved.get(1).cloned().unwrap_or_default();
-            let el = Arc::clone(&page)
-                .wait_for_selector(sel.clone())
-                .await
-                .map_err(|e| e.to_string())?;
+            // A bare integer is a snapshot index (framework-rendered fields often
+            // expose no stable selector) - the same rule `click` already uses.
+            let el = if let Ok(index) = sel.parse::<u32>() {
+                if Arc::clone(&page).click_index(index).await.is_err() {
+                    let _ = page.agent_snapshot().await;
+                    Arc::clone(&page)
+                        .click_index(index)
+                        .await
+                        .map_err(|e| e.to_string())?;
+                }
+                page.evaluate_handle("document.activeElement".to_string())
+                    .await
+                    .map_err(|e| e.to_string())?
+            } else {
+                Arc::clone(&page)
+                    .wait_for_selector(sel.clone())
+                    .await
+                    .map_err(|e| e.to_string())?
+            };
             el.type_text(text.clone())
                 .await
                 .map_err(|e| e.to_string())?;
             Ok(format!("fill {sel}"))
+        }
+        "select" => {
+            let selector = resolved.first().cloned().unwrap_or_default();
+            let value = resolved.get(1).cloned().unwrap_or_default();
+            if selector.is_empty() || value.is_empty() {
+                return Err("usage: select <selector> <value>".to_string());
+            }
+            // Native `<select>` only (matches by value or label). A custom
+            // listbox is driven with `click` (open it, then click the option).
+            let values = serde_json::json!([value]).to_string();
+            Arc::clone(&page)
+                .select_option(selector.clone(), values)
+                .await
+                .map_err(|e| e.to_string())?;
+            Ok(format!("select {selector} = {value}"))
         }
         "type" => {
             let text = resolved.first().cloned().unwrap_or_default();
@@ -378,6 +444,30 @@ async fn dispatch_raw(
                 .map_err(|e| e.to_string())?;
             el.press(key.clone()).await.map_err(|e| e.to_string())?;
             Ok(format!("press {key}"))
+        }
+        // Unit-suffixed sleeps: the unit lives in the verb, the value is a plain
+        // number (there is no `2s`/`500ms` literal in the language).
+        "wait-ms" => {
+            super::runtime::wait_scaled(&resolved.first().cloned().unwrap_or_default(), 1).await
+        }
+        "wait-sec" => {
+            super::runtime::wait_scaled(&resolved.first().cloned().unwrap_or_default(), 1_000).await
+        }
+        "wait-min" => {
+            super::runtime::wait_scaled(&resolved.first().cloned().unwrap_or_default(), 60_000)
+                .await
+        }
+        "wait-hr" => {
+            super::runtime::wait_scaled(&resolved.first().cloned().unwrap_or_default(), 3_600_000)
+                .await
+        }
+        // Randomized sleep: two millisecond bounds (inclusive).
+        "wait-random" => {
+            let min = super::runtime::parse_ms(&resolved.first().cloned().unwrap_or_default())?;
+            let max = super::runtime::parse_ms(&resolved.get(1).cloned().unwrap_or_default())?;
+            let ms = super::runtime::random_ms(min, max);
+            tokio::time::sleep(std::time::Duration::from_millis(ms as u64)).await;
+            Ok(format!("wait-random {ms}ms"))
         }
         "wait" | "sleep" => {
             let arg = resolved.first().cloned().unwrap_or_default();
@@ -435,10 +525,12 @@ async fn dispatch_raw(
             Ok(format!("{} tab(s)", tabs.len()))
         }
         "new-tab" | "newtab" | "tab-new" => {
-            let url = resolved
-                .first()
-                .cloned()
-                .unwrap_or_else(|| "about:blank".to_string());
+            let url = super::runtime::normalize_url(
+                &resolved
+                    .first()
+                    .cloned()
+                    .unwrap_or_else(|| "about:blank".to_string()),
+            );
             let opened = Arc::clone(&exe.browser)
                 .new_page(url.clone())
                 .await

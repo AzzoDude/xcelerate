@@ -166,6 +166,10 @@ pub(crate) struct LayoutInfo {
     pub bounds: Option<Rect>,
     pub is_clickable: bool,
     pub tag: Option<String>,
+    /// A best-effort CSS selector for the node (`#id`, `[name="…"]`, …), derived
+    /// from its DOM attributes so a user can target it directly (`fill "#email" …`)
+    /// instead of only by snapshot index.
+    pub selector: Option<String>,
     /// Stacking/paint order from `DOMSnapshot` (present when `includePaintOrder`
     /// is requested). Higher values are painted later, i.e. on top of lower ones.
     pub paint_order: Option<i64>,
@@ -230,6 +234,9 @@ pub(crate) struct SnapshotElement {
     pub value: Option<String>,
     pub states: Vec<String>,
     pub tag: Option<String>,
+    /// A usable CSS selector, when one could be derived from the node's DOM
+    /// attributes. Lets a caller act on the element without the index.
+    pub selector: Option<String>,
     pub bounds: Option<Rect>,
 }
 
@@ -250,6 +257,9 @@ impl SnapshotElement {
         }
         if let Some(tag) = &self.tag {
             object.insert("tag".into(), json!(tag));
+        }
+        if let Some(selector) = &self.selector {
+            object.insert("selector".into(), json!(selector));
         }
         if let Some(bounds) = self.bounds {
             object.insert(
@@ -436,6 +446,106 @@ fn attribute_value<'a>(strings: &[&'a str], attributes: &[Value], name: &str) ->
     })
 }
 
+/// Builds a best-effort CSS selector for a node from its DOM attributes, in the
+/// order a user would try them: `#id`, then `[name="…"]`, `[aria-label="…"]`,
+/// `[placeholder="…"]`. Returns `None` when nothing usable is present.
+fn selector_from_attributes(strings: &[&str], attributes: &[Value]) -> Option<String> {
+    if let Some(id) = attribute_value(strings, attributes, "id").filter(|id| !id.is_empty()) {
+        // Generated ids (React's `_R_…`, Radix/MUI `:r0:`, long random tokens)
+        // change between renders, so they are skipped in favour of a stable
+        // `name` / `aria-label` / `placeholder` below.
+        if is_stable_id(id) {
+            return Some(if is_simple_ident(id) {
+                format!("#{id}")
+            } else {
+                format!("[id=\"{}\"]", css_escape_value(id))
+            });
+        }
+    }
+    for attr in ["name", "aria-label", "placeholder"] {
+        if let Some(value) = attribute_value(strings, attributes, attr).filter(|v| !v.is_empty()) {
+            return Some(format!("[{attr}=\"{}\"]", css_escape_value(value)));
+        }
+    }
+    None
+}
+
+/// Whether an `id` is a hand-written, stable identifier rather than one a
+/// framework generated per render. Generated ids make brittle selectors, so they
+/// are rejected and a `name` / `aria-label` / `placeholder` is used instead.
+fn is_stable_id(id: &str) -> bool {
+    // Radix/MUI/Emotion and friends use `:`-delimited generated tokens.
+    if id.contains(':') {
+        return false;
+    }
+    // A leading underscore is the usual marker of a generated id (`_R_…`).
+    if id.starts_with('_') {
+        return false;
+    }
+    const GENERATED_PREFIXES: [&str; 5] = ["radix-", "headlessui-", "mui-", "downshift-", "react-"];
+    if GENERATED_PREFIXES
+        .iter()
+        .any(|prefix| id.starts_with(prefix))
+    {
+        return false;
+    }
+    // Absurdly long ids are almost always machine-generated.
+    if id.len() > 24 {
+        return false;
+    }
+    // A long, separator-free run that mixes case and digits reads as random.
+    !id.split(['-', '_']).any(looks_random)
+}
+
+/// Whether a token mixes upper/lower case with several digits over a long run -
+/// which is almost always machine-generated (`c9l6neappb6amH1`), unlike a plain
+/// camelCase name such as `signinButton2`.
+fn looks_random(segment: &str) -> bool {
+    if segment.len() < 10 {
+        return false;
+    }
+    let mut has_lower = false;
+    let mut has_upper = false;
+    let mut digits = 0;
+    for c in segment.chars() {
+        if c.is_ascii_lowercase() {
+            has_lower = true;
+        } else if c.is_ascii_uppercase() {
+            has_upper = true;
+        } else if c.is_ascii_digit() {
+            digits += 1;
+        }
+    }
+    has_lower && has_upper && digits >= 3
+}
+
+/// Whether `value` is a plain CSS identifier that can follow `#` verbatim.
+fn is_simple_ident(value: &str) -> bool {
+    let mut chars = value.chars();
+    match chars.next() {
+        Some(c) if c.is_ascii_alphabetic() || c == '_' => {}
+        _ => return false,
+    }
+    chars.all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
+/// Escapes a value for use inside a double-quoted CSS attribute selector.
+fn css_escape_value(value: &str) -> String {
+    value.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+/// Renders a selector as a quoted string literal so it can be copied verbatim into
+/// a command (`fill '[name="email"]' …`). Single quotes are used unless the
+/// selector itself contains one, in which case double quotes with `\"` escapes
+/// are used.
+fn quote_selector(selector: &str) -> String {
+    if selector.contains('\'') {
+        format!("\"{}\"", selector.replace('"', "\\\""))
+    } else {
+        format!("'{selector}'")
+    }
+}
+
 /// Builds a `backendNodeId -> LayoutInfo` map from a `DOMSnapshot.captureSnapshot`
 /// response.
 ///
@@ -545,9 +655,15 @@ pub(crate) fn build_layout_lookup(
                 tag = Some(format!("input[type={kind}]"));
             }
 
+            let selector = attributes
+                .and_then(|attributes| attributes.get(snapshot_index))
+                .and_then(Value::as_array)
+                .and_then(|attributes| selector_from_attributes(&strings, attributes));
+
             let mut info = LayoutInfo {
                 is_clickable: clickable_set.contains(&(snapshot_index as u64)),
                 tag,
+                selector,
                 bounds: None,
                 paint_order: None,
                 document_index,
@@ -778,6 +894,21 @@ pub(crate) fn assemble_frames(
         }
     }
 
+    // Map each backend id to its parent's backend id, so the occlusion test can
+    // ignore an element's own ancestors: a container that geometrically contains
+    // a field is not an overlay covering it.
+    let mut parent_backend: HashMap<i64, i64> = HashMap::new();
+    for node in &nodes {
+        let Some(parent_backend_id) = node.backend_id else {
+            continue;
+        };
+        for &child in &node.children {
+            if let Some(child_backend) = nodes[child].backend_id {
+                parent_backend.insert(child_backend, parent_backend_id);
+            }
+        }
+    }
+
     // Roots are nodes without a parent (normally the RootWebArea), rendered in
     // the order they appear in the protocol response.
     let roots: Vec<usize> = nodes
@@ -801,13 +932,21 @@ pub(crate) fn assemble_frames(
     // paint order are per-frame, so an occlusion test must only ever compare boxes
     // from the *same* document (mixing an iframe's own box with the parent frame's
     // nodes yields false positives).
-    let mut ordered_rects: HashMap<usize, Vec<(Rect, Option<i64>)>> = HashMap::new();
-    for info in layout.values() {
+    let mut ordered_rects: HashMap<usize, Vec<(Rect, Option<i64>, i64)>> = HashMap::new();
+    // Per-document extent (max x+width, y+height), used to spot a box that spans
+    // the whole document - a layout container or backdrop, never a targeted
+    // overlay, so it must not be treated as an occluder.
+    let mut doc_extent: HashMap<usize, (f64, f64)> = HashMap::new();
+    for (backend, info) in layout {
         if let Some(bounds) = info.bounds {
-            ordered_rects
-                .entry(info.document_index)
-                .or_default()
-                .push((bounds, info.paint_order));
+            let extent = doc_extent.entry(info.document_index).or_insert((0.0, 0.0));
+            extent.0 = extent.0.max(bounds.x + bounds.width);
+            extent.1 = extent.1.max(bounds.y + bounds.height);
+            ordered_rects.entry(info.document_index).or_default().push((
+                bounds,
+                info.paint_order,
+                *backend,
+            ));
         }
     }
 
@@ -858,16 +997,46 @@ pub(crate) fn assemble_frames(
             // not a real target: drop it so agents do not click through an
             // overlay. Conservative - see [`is_occluded`].
             let candidate = interactive && visible;
+            // Ancestor backend ids of this node (self excluded): a containing
+            // layout box is not an overlay, so it must not count as an occluder.
+            let mut ancestors: HashSet<i64> = HashSet::new();
+            if let Some(mut cursor) = node.backend_id {
+                while let Some(&parent) = parent_backend.get(&cursor) {
+                    if !ancestors.insert(parent) {
+                        break;
+                    }
+                    cursor = parent;
+                }
+            }
             let occluded = candidate
                 && lookup
                     .and_then(|info| {
                         let bounds = info.bounds?;
                         let rects = ordered_rects.get(&info.document_index)?;
-                        Some(is_occluded((bounds, info.paint_order), rects))
+                        let (doc_w, doc_h) = doc_extent
+                            .get(&info.document_index)
+                            .copied()
+                            .unwrap_or((0.0, 0.0));
+                        let visible_rects: Vec<(Rect, Option<i64>)> = rects
+                            .iter()
+                            .filter(|(rect, _, backend)| {
+                                if ancestors.contains(backend) {
+                                    return false;
+                                }
+                                // A box spanning the whole document is a
+                                // container/backdrop, not an overlay.
+                                let full_page = doc_w > 0.0
+                                    && doc_h > 0.0
+                                    && rect.width >= 0.95 * doc_w
+                                    && rect.height >= 0.95 * doc_h;
+                                !full_page
+                            })
+                            .map(|(rect, order, _)| (*rect, *order))
+                            .collect();
+                        Some(is_occluded((bounds, info.paint_order), &visible_rects))
                     })
                     .unwrap_or(false);
             let index_it = candidate && !occluded;
-            // Print anything interactive, structural, or that carries text.
             let show = !occluded
                 && !redundant[index]
                 && (index_it
@@ -901,6 +1070,9 @@ pub(crate) fn assemble_frames(
                 if !node.states.is_empty() {
                     line.push_str(&format!(" ({})", node.states.join(", ")));
                 }
+                if let Some(selector) = lookup.and_then(|info| info.selector.as_deref()) {
+                    line.push_str(&format!("  {}", quote_selector(selector)));
+                }
                 lines.push(line);
                 rendered = true;
 
@@ -915,6 +1087,7 @@ pub(crate) fn assemble_frames(
                         value: node.value.clone(),
                         states: node.states.clone(),
                         tag: lookup.and_then(|info| info.tag.clone()),
+                        selector: lookup.and_then(|info| info.selector.clone()),
                         bounds: lookup.and_then(|info| info.bounds),
                     });
                 }
@@ -1136,7 +1309,10 @@ impl Page {
 
     /// Returns the indexed interactive elements of the page as a JSON array.
     ///
-    /// Each entry is `{ index, backendNodeId, role, name?, value?, tag?, bounds? }`.
+    /// Each entry is
+    /// `{ index, backendNodeId, role, name?, value?, tag?, selector?, bounds? }`,
+    /// where `selector` is a usable CSS selector derived from the node's DOM
+    /// attributes (`#id`, `[name="…"]`, …) when one is available.
     /// Also refreshes the index map used by [`Page::click_index`].
     pub async fn snapshot_json(&self) -> XcelerateResult<String> {
         let (_, elements) = self.build_agent_snapshot().await?;
@@ -1229,6 +1405,77 @@ impl Page {
         backend_node_id: i64,
         index: u32,
     ) -> XcelerateResult<()> {
+        self.resolve_backend_node(backend_node_id, index)
+            .await?
+            .click_mouse()
+            .await?;
+        Ok(())
+    }
+
+    /// Moves the real mouse to the element that carried `index` in the most
+    /// recent snapshot (without clicking).
+    ///
+    /// Mirrors [`Page::click_index`], including its single self-heal: a stale
+    /// index is re-matched by `(role, name)` in a fresh snapshot. Useful for
+    /// revealing hover menus before a click, or for a deliberate, visible cursor
+    /// move.
+    pub async fn move_to_index(self: Arc<Self>, index: u32) -> XcelerateResult<Arc<Self>> {
+        let backend_node_id = {
+            let cache = self.snapshot_index.lock().await;
+            cache.get(&index).copied()
+        }
+        .ok_or_else(|| {
+            XcelerateError::NotFound(format!(
+                "snapshot index {index} is unknown; call agent_snapshot first"
+            ))
+        })?;
+        let identity = {
+            let cache = self.snapshot_identity.lock().await;
+            cache.get(&index).cloned()
+        };
+
+        match self.move_backend_node(backend_node_id, index).await {
+            Ok(()) => Ok(self),
+            Err(original) => {
+                let Some((role, name)) = identity else {
+                    return Err(original);
+                };
+                let Ok((_, elements)) = self.build_agent_snapshot().await else {
+                    return Err(original);
+                };
+                let Some(element) = elements
+                    .iter()
+                    .find(|element| element.role == role && element.name == name)
+                else {
+                    return Err(original);
+                };
+                match self.move_backend_node(element.backend_node_id, index).await {
+                    Ok(()) => Ok(self),
+                    Err(_) => Err(original),
+                }
+            }
+        }
+    }
+
+    /// Resolves a cached snapshot `backendNodeId` and moves the mouse to it.
+    async fn move_backend_node(
+        self: &Arc<Self>,
+        backend_node_id: i64,
+        index: u32,
+    ) -> XcelerateResult<()> {
+        self.resolve_backend_node(backend_node_id, index)
+            .await?
+            .hover_mouse()
+            .await?;
+        Ok(())
+    }
+
+    /// Resolves a cached snapshot `backendNodeId` to a live [`Element`].
+    async fn resolve_backend_node(
+        self: &Arc<Self>,
+        backend_node_id: i64,
+        index: u32,
+    ) -> XcelerateResult<Arc<Element>> {
         let resolved = self
             .client
             .execute_raw_with_session(
@@ -1245,13 +1492,10 @@ impl Page {
                     "could not resolve a live node for snapshot index {index}"
                 ))
             })?;
-
-        let element = Arc::new(Element {
+        Ok(Arc::new(Element {
             page: Arc::clone(self),
             object_id: object_id.to_string(),
-        });
-        element.click_mouse().await?;
-        Ok(())
+        }))
     }
 
     /// Releases the object group held by the last [`Page::click_index`] call.
@@ -1400,6 +1644,7 @@ mod tests {
                 }),
                 is_clickable: true,
                 tag: Some("input".into()),
+                selector: None,
                 paint_order: None,
                 document_index: 0,
             },
@@ -1551,6 +1796,116 @@ mod tests {
         );
     }
 
+    #[test]
+    fn layout_lookup_derives_a_usable_selector() {
+        // `id` -> `#id`; otherwise `name`, then `aria-label`, then `placeholder`.
+        let snapshot = json!({
+            "strings": ["INPUT", "id", "email", "name", "user[email]", "aria-label", "Search"],
+            "documents": [{
+                "nodes": {
+                    "backendNodeId": [1, 2, 3],
+                    "nodeName": [0, 0, 0],
+                    "attributes": [
+                        [1, 2],
+                        [3, 4],
+                        [5, 6]
+                    ]
+                }
+            }]
+        });
+        let lookup = build_layout_lookup(&snapshot, 1.0);
+        assert_eq!(lookup.get(&1).unwrap().selector.as_deref(), Some("#email"));
+        assert_eq!(
+            lookup.get(&2).unwrap().selector.as_deref(),
+            Some("[name=\"user[email]\"]")
+        );
+        assert_eq!(
+            lookup.get(&3).unwrap().selector.as_deref(),
+            Some("[aria-label=\"Search\"]")
+        );
+    }
+
+    #[test]
+    fn layout_lookup_selector_escapes_quotes_and_bad_ids() {
+        let snapshot = json!({
+            "strings": ["INPUT", "id", "1bad", "placeholder", "say \"hi\""],
+            "documents": [{
+                "nodes": {
+                    "backendNodeId": [1, 2],
+                    "nodeName": [0, 0],
+                    "attributes": [
+                        [1, 2],
+                        [3, 4]
+                    ]
+                }
+            }]
+        });
+        let lookup = build_layout_lookup(&snapshot, 1.0);
+        // A leading digit is not a plain identifier, so `#` cannot be used.
+        assert_eq!(
+            lookup.get(&1).unwrap().selector.as_deref(),
+            Some("[id=\"1bad\"]")
+        );
+        assert_eq!(
+            lookup.get(&2).unwrap().selector.as_deref(),
+            Some("[placeholder=\"say \\\"hi\\\"\"]")
+        );
+    }
+
+    #[test]
+    fn layout_lookup_skips_generated_ids() {
+        // A React-generated id is unstable, so the stable `name` is preferred;
+        // a hand-written id is used directly.
+        let snapshot = json!({
+            "strings": ["INPUT", "id", "_R_c9l6neappb6amH1_", "name", "email", "id", "signin"],
+            "documents": [{
+                "nodes": {
+                    "backendNodeId": [1, 2],
+                    "nodeName": [0, 0],
+                    "attributes": [
+                        [1, 2, 3, 4],
+                        [5, 6]
+                    ]
+                }
+            }]
+        });
+        let lookup = build_layout_lookup(&snapshot, 1.0);
+        assert_eq!(
+            lookup.get(&1).unwrap().selector.as_deref(),
+            Some("[name=\"email\"]")
+        );
+        assert_eq!(lookup.get(&2).unwrap().selector.as_deref(), Some("#signin"));
+    }
+
+    #[test]
+    fn stable_id_heuristic_rejects_generated_tokens() {
+        for generated in [
+            "_R_c9l6neappb6amH1_",
+            "_r_0_",
+            ":r0:",
+            "radix-1",
+            "mui-3",
+            "c9l6neappb6amH1",
+            "aB3kL9mN2pQ",
+        ] {
+            assert!(!is_stable_id(generated), "{generated} should be rejected");
+        }
+        for stable in ["email", "signin", "user-profile", "signinButton2", "q"] {
+            assert!(is_stable_id(stable), "{stable} should be accepted");
+        }
+    }
+
+    #[test]
+    fn quote_selector_picks_a_usable_quote_style() {
+        assert_eq!(quote_selector("#email"), "'#email'");
+        assert_eq!(quote_selector("[name=\"email\"]"), "'[name=\"email\"]'");
+        // Contains a single quote: switch to double quotes with `\"` escapes.
+        assert_eq!(
+            quote_selector("[name=\"O'Brien\"]"),
+            "\"[name=\\\"O'Brien\\\"]\""
+        );
+    }
+
     /// Layout lookup for `sample_ax`'s backend ids, each with a paint order.
     fn layout_with(entries: &[(i64, f64, f64, f64, f64)]) -> HashMap<i64, LayoutInfo> {
         entries
@@ -1567,6 +1922,7 @@ mod tests {
                         }),
                         is_clickable: false,
                         tag: None,
+                        selector: None,
                         paint_order: Some(0),
                         document_index: 0,
                     },
@@ -1633,6 +1989,7 @@ mod tests {
                 }),
                 is_clickable: true,
                 tag: Some("a".into()),
+                selector: None,
                 paint_order: Some(1),
                 document_index: 0,
             },
@@ -1648,6 +2005,7 @@ mod tests {
                 }),
                 is_clickable: false,
                 tag: Some("div".into()),
+                selector: None,
                 paint_order: Some(2),
                 document_index: 0,
             },
@@ -1664,6 +2022,7 @@ mod tests {
                 }),
                 is_clickable: false,
                 tag: Some("input".into()),
+                selector: None,
                 paint_order: Some(0),
                 document_index: 0,
             },
@@ -1679,6 +2038,7 @@ mod tests {
                 }),
                 is_clickable: false,
                 tag: Some("button".into()),
+                selector: None,
                 paint_order: Some(0),
                 document_index: 0,
             },
@@ -1691,6 +2051,54 @@ mod tests {
         assert!(elements.iter().all(|element| element.backend_node_id != 10));
         assert!(!text.contains("\"Home\""));
         assert!(text.contains("[0]<input> \"Email\""));
+    }
+
+    #[test]
+    fn assemble_keeps_nodes_under_a_full_page_container() {
+        // A box spanning the whole document is a layout container/backdrop, not
+        // a targeted overlay, so it must never occlude. (Regression: Facebook's
+        // signup page dropped every control because a full-page box carried the
+        // highest paint order.)
+        let mut lookup = HashMap::new();
+        lookup.insert(
+            10,
+            LayoutInfo {
+                bounds: Some(Rect {
+                    x: 8.0,
+                    y: 80.0,
+                    width: 85.0,
+                    height: 21.0,
+                }),
+                is_clickable: true,
+                tag: Some("a".into()),
+                selector: None,
+                paint_order: Some(1),
+                document_index: 0,
+            },
+        );
+        // A full-document container painted last (highest paint order).
+        lookup.insert(
+            500,
+            LayoutInfo {
+                bounds: Some(Rect {
+                    x: 0.0,
+                    y: 0.0,
+                    width: 800.0,
+                    height: 600.0,
+                }),
+                is_clickable: false,
+                tag: Some("div".into()),
+                selector: None,
+                paint_order: Some(999),
+                document_index: 0,
+            },
+        );
+
+        let (_, elements) = assemble(&sample_ax(), &lookup, None);
+        assert!(
+            elements.iter().any(|element| element.backend_node_id == 10),
+            "a full-page container must not occlude the elements inside it"
+        );
     }
 
     #[test]
@@ -1710,6 +2118,7 @@ mod tests {
                 }),
                 is_clickable: false,
                 tag: Some("button".into()),
+                selector: None,
                 paint_order: Some(1),
                 document_index: 0,
             },
@@ -1725,6 +2134,7 @@ mod tests {
                 }),
                 is_clickable: false,
                 tag: Some("iframe".into()),
+                selector: None,
                 paint_order: Some(3),
                 document_index: 1,
             },

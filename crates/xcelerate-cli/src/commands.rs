@@ -109,10 +109,10 @@ pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         }
         Command::Live { start } => {
             // Live mode is the session with the window and OS-level input gate
-            // forced on: an AI drives while a human only watches.
+            // forced on: an AI drives while a human only watches. Visible is the
+            // default (and `live()` forces it), so nothing else to set.
             let mut args = cli.browser.clone();
             args.ai = true;
-            args.no_headless = true;
             run_session(&args, start).await?;
         }
         Command::Run {

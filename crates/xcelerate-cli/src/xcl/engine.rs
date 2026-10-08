@@ -11,27 +11,34 @@ use super::ast::{Arg, Command, ParamDef, Step};
 use super::parse::Program;
 use super::runtime::{Context, Outcome, RuntimeLimits};
 
-/// A control-flow signal returned alongside the next action: whether the engine
-/// should surface an error (e.g. step budget) rather than a normal action.
-#[derive(Debug, Clone)]
-pub enum RunOutcome {
-    /// Proceed normally with the returned command.
-    Continue,
-    /// Halt with this error (no command was returned — a `Command::Quit` was
-    /// chosen to terminate the run).
+/// What the engine hands back to its driver on each poll.
+///
+/// Borrowing the action (`Action(&Command)`) keeps the interpreter's hot loop
+/// allocation-free: a `Command` owns `String`s and `Vec<Arg>`s, so returning it
+/// by value forced a deep clone on every step.
+#[derive(Debug)]
+pub enum Next<'a> {
+    /// Execute this command, then feed the outcome back via [`Engine::observe`].
+    Action(&'a Command),
+    /// The run must stop before executing anything; surface this error (e.g. the
+    /// step budget was exceeded).
     Halt(String),
+    /// The program has finished.
+    End,
 }
 
-/// The engine advances one op at a time via [`Engine::step`] until it is
+/// The engine advances one op at a time via [`Engine::next_action`] (the driver
+/// entry point) or [`Engine::step`] (synchronous helper) until it is
 /// [`Engine::done`]. It is transport-agnostic: browser/plugin/HTTP glue is
-/// injected through the `dispatch` closure.
+/// injected through the driver.
 pub struct Engine {
     /// Flattened, fully-lowered instruction stream.
     ops: Vec<Op>,
     pc: usize,
     limits: RuntimeLimits,
-    /// Loop registers: loop-start op index → remaining iterations.
-    loops: HashMap<usize, u32>,
+    /// Loop registers indexed by the `LoopStart` op index: remaining iterations
+    /// (0 = inactive). A dense `Vec` avoids hashing on every loop iteration.
+    loops: Vec<u32>,
     /// The outcome of the most recently executed *action* op (for `if-ok`/`if-fail`).
     last_ok: bool,
 }
@@ -60,7 +67,9 @@ impl Engine {
         let funcs = program.funcs.clone();
 
         // Lower top-level steps into ops + resolve `goto` labels afterwards.
-        let mut ops: Vec<Op> = Vec::new();
+        // Lowering expands each step into a handful of ops (`repeat`/`retry` emit
+        // three, inlined `call`s emit their body), so pre-size to avoid regrowth.
+        let mut ops: Vec<Op> = Vec::with_capacity(program.steps.len().saturating_mul(2));
         for step in &program.steps {
             lower_step(step, &mut ops, &funcs);
         }
@@ -79,11 +88,12 @@ impl Engine {
             }
         }
 
+        let loops = vec![0u32; ops.len()];
         Self {
             ops,
             pc: 0,
             limits,
-            loops: HashMap::new(),
+            loops,
             last_ok: true,
         }
     }
@@ -93,25 +103,23 @@ impl Engine {
         self.pc >= self.ops.len()
     }
 
-    /// Returns the next `Command` to execute, advancing the PC past any control-
-    /// flow ops (jumps/loops) synchronously. Returns `None` at end of program.
+    /// Returns the next [`Next`] for the driver, advancing the PC past any
+    /// control-flow ops (jumps/loops) synchronously.
     ///
-    /// This is the async-friendly entry point: the caller `.await`s the command,
-    /// then calls [`Engine::observe`] with the resulting [`Outcome`] so the
-    /// `if-ok`/`if-fail`/`retry` register stays accurate, then loops.
-    pub fn next_action(&mut self, ctx: &mut Context) -> Option<(Command, RunOutcome)> {
+    /// This is the async-friendly entry point: the caller `.await`s the returned
+    /// [`Next::Action`] command, then calls [`Engine::observe`] with the resulting
+    /// [`Outcome`] so the `if-ok`/`if-fail`/`retry` register stays accurate, then
+    /// polls again. The command is returned by reference (no clone).
+    pub fn next_action(&mut self, ctx: &mut Context) -> Next<'_> {
         loop {
             if self.done() {
-                return None;
+                return Next::End;
             }
             if ctx.steps_executed >= self.limits.max_steps {
                 self.pc = self.ops.len();
-                return Some((
-                    Command::Quit,
-                    RunOutcome::Halt(format!("step budget ({}) exceeded", self.limits.max_steps)),
-                ));
+                return Next::Halt(format!("step budget ({}) exceeded", self.limits.max_steps));
             }
-            match self.ops[self.pc].clone() {
+            match &self.ops[self.pc] {
                 Op::Command(cmd) => {
                     // A label is a no-op control marker.
                     if matches!(cmd, Command::Label { .. }) {
@@ -124,47 +132,39 @@ impl Engine {
                         self.pc += 1;
                     }
                     ctx.steps_executed += 1;
-                    return Some((cmd, RunOutcome::Continue));
+                    return Next::Action(cmd);
                 }
                 Op::Jump(target) => {
-                    if target == usize::MAX {
+                    if *target == usize::MAX {
                         self.pc = self.ops.len();
-                        return Some((
-                            Command::Quit,
-                            RunOutcome::Halt("unresolved `goto` label".into()),
-                        ));
+                        return Next::Halt("unresolved `goto` label".into());
                     }
-                    self.pc = target;
+                    self.pc = *target;
                 }
                 Op::LoopStart { n } => {
-                    self.loops.insert(self.pc, n);
+                    self.loops[self.pc] = *n;
                     self.pc += 1;
                 }
                 Op::LoopEnd { target } => {
-                    let remaining = self
-                        .loops
-                        .get(&target)
-                        .copied()
-                        .unwrap_or(0)
-                        .saturating_sub(1);
+                    let remaining = self.loops[*target].saturating_sub(1);
                     if remaining > 0 {
-                        self.loops.insert(target, remaining);
-                        self.pc = target + 1;
+                        self.loops[*target] = remaining;
+                        self.pc = *target + 1;
                     } else {
-                        self.loops.remove(&target);
+                        self.loops[*target] = 0;
                         self.pc += 1;
                     }
                 }
                 Op::JumpIfOk { target } => {
                     if self.last_ok {
-                        self.pc = target;
+                        self.pc = *target;
                     } else {
                         self.pc += 1;
                     }
                 }
                 Op::JumpIfFail { target } => {
                     if !self.last_ok {
-                        self.pc = target;
+                        self.pc = *target;
                     } else {
                         self.pc += 1;
                     }
@@ -196,14 +196,18 @@ impl Engine {
             )));
         }
 
-        let outcome = match self.ops[self.pc].clone() {
+        // Borrow the op instead of cloning it: a `Command` owns `String`s and
+        // `Vec<Arg>`s, so cloning it every step was the interpreter's hottest
+        // allocation (felt in tight `repeat` loops). `self.ops` is a disjoint
+        // field from `pc`/`last_ok`/`loops`, so the borrow is fine.
+        let outcome = match &self.ops[self.pc] {
             Op::Command(cmd) => {
                 ctx.steps_executed += 1;
-                let out = disp(ctx, &cmd);
-                if is_action(&cmd) {
+                let out = disp(ctx, cmd);
+                if is_action(cmd) {
                     self.last_ok = out.ok;
                 }
-                if let Command::Quit = cmd {
+                if matches!(cmd, Command::Quit) {
                     self.pc = self.ops.len();
                 } else {
                     self.pc += 1;
@@ -211,17 +215,17 @@ impl Engine {
                 out
             }
             Op::Jump(target) => {
-                if target == usize::MAX {
+                if *target == usize::MAX {
                     self.pc = self.ops.len();
                     Outcome::fail("unresolved `goto` label".to_string())
                 } else {
-                    self.pc = target;
+                    self.pc = *target;
                     Outcome::ok("goto".to_string())
                 }
             }
             Op::JumpIfOk { target } => {
                 if self.last_ok {
-                    self.pc = target;
+                    self.pc = *target;
                     Outcome::ok("if-ok taken".to_string())
                 } else {
                     self.pc += 1;
@@ -230,7 +234,7 @@ impl Engine {
             }
             Op::JumpIfFail { target } => {
                 if !self.last_ok {
-                    self.pc = target;
+                    self.pc = *target;
                     Outcome::ok("if-fail taken".to_string())
                 } else {
                     self.pc += 1;
@@ -238,23 +242,18 @@ impl Engine {
                 }
             }
             Op::LoopStart { n } => {
-                self.loops.insert(self.pc, n);
+                self.loops[self.pc] = *n;
                 self.pc += 1;
                 Outcome::ok(format!("repeat {n}"))
             }
             Op::LoopEnd { target } => {
-                let remaining = self
-                    .loops
-                    .get(&target)
-                    .copied()
-                    .unwrap_or(0)
-                    .saturating_sub(1);
+                let remaining = self.loops[*target].saturating_sub(1);
                 if remaining > 0 {
-                    self.loops.insert(target, remaining);
-                    self.pc = target + 1; // step past the LoopStart into the body
+                    self.loops[*target] = remaining;
+                    self.pc = *target + 1; // step past the LoopStart into the body
                     Outcome::ok("loop".to_string())
                 } else {
-                    self.loops.remove(&target);
+                    self.loops[*target] = 0;
                     self.pc += 1;
                     Outcome::ok("loop done".to_string())
                 }
@@ -429,6 +428,8 @@ mod tests {
                 }
             }
             Command::Repeat { n, .. } | Command::Retry { n, .. } => Outcome::ok(format!("r{n}")),
+            Command::Done => Outcome::done("done"),
+            Command::Quit => Outcome::quit("quit"),
             _ => Outcome::ok("ok"),
         }) {
             out.push(o);
@@ -456,6 +457,14 @@ mod tests {
         let src = "func go()\nclick 1\nend\ncall go\n";
         let out = run(src);
         assert!(out.iter().any(|o| o.message == "click"));
+    }
+
+    #[test]
+    fn done_terminates_the_run() {
+        // `done` marks the task complete, so anything after it must not run.
+        let out = run("done\nopen https://x\n");
+        assert_eq!(out.len(), 1, "expected only the `done` step, got {out:?}");
+        assert!(out[0].should_quit);
     }
 
     #[test]

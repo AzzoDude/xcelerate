@@ -6,7 +6,7 @@ bindings.
 | Example | What it does |
 | --- | --- |
 | [`bin/quickstart.dart`](bin/quickstart.dart) | Launches Chrome, opens `example.com`, reads the title and a paragraph, and saves a screenshot. |
-| [`bin/pixelscan_scroll.dart`](bin/pixelscan_scroll.dart) | Opens the Pixelscan bot-check page in a **visible** window and scrolls around it like a person via the built-in `human` plugin, saving screenshots. |
+| [`bin/pixelscan_scroll.dart`](bin/pixelscan_scroll.dart) | Opens the Pixelscan bot-check page in a **visible** window and scrolls around it like a person, saving screenshots. |
 
 ## Prerequisites
 
@@ -75,8 +75,6 @@ dart run bin/pixelscan_scroll.dart [url] [options]
   --rounds N        Down/up scroll bursts to perform (default 4)
   --out DIR         Screenshot directory (default pixelscan_shots)
   --executable PATH Path to the Chrome/Edge binary
-  --plugins a,b     Plugins to enable (default stealth,human)
-  --human-ops       Print the human plugin's operations and info
 ```
 
 It always runs a real, visible window. The bot-check page reports headless

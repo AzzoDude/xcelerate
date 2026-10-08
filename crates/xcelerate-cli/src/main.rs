@@ -15,6 +15,7 @@ mod build;
 mod cli;
 mod commands;
 mod cursor;
+mod interact;
 mod launch;
 #[cfg(feature = "http")]
 mod net;
@@ -29,7 +30,12 @@ fn main() {
     use clap::Parser;
 
     let cli = cli::Cli::parse();
-    if let Err(error) = run(cli) {
+    let result = run(cli);
+    // Belt-and-braces: never leave behind a browser this process owns, whatever
+    // path we exit by (the normal path closes it already; this catches errors,
+    // panics that unwind, and anything that skipped `Browser::close`).
+    xcelerate::process::cleanup_all();
+    if let Err(error) = result {
         eprintln!("error: {error}");
         std::process::exit(1);
     }
@@ -50,7 +56,17 @@ fn run(cli: cli::Cli) -> Result<(), Box<dyn std::error::Error>> {
                 .build()
                 .map_err(|error| error.to_string())?;
             runtime
-                .block_on(commands::run(cli))
+                .block_on(async move {
+                    // If the user interrupts the command (Ctrl+C), close the
+                    // browser this process owns so the window is not orphaned.
+                    tokio::spawn(async {
+                        if tokio::signal::ctrl_c().await.is_ok() {
+                            xcelerate::process::cleanup_all();
+                            std::process::exit(130);
+                        }
+                    });
+                    commands::run(cli).await
+                })
                 .map_err(|error| error.to_string())
         })?;
 
