@@ -126,9 +126,19 @@ pub async fn dispatch(ctx: &mut Context, cmd: &Command, exe: &Executor) -> Outco
             let actual: String = match subject.as_str() {
                 "url" => exe.page.url().await.unwrap_or_default(),
                 "title" => exe.page.title().await.unwrap_or_default(),
+                "content" => exe.page.content().await.unwrap_or_default(),
+                "text" => exe
+                    .page
+                    .evaluate_string("document.body ? document.body.innerText : ''".to_string())
+                    .await
+                    .unwrap_or_default(),
                 "status" => ctx.vars.get("STATUS").cloned().unwrap_or_default(),
                 "body" | "response" => ctx.vars.get("RESPONSE_BODY").cloned().unwrap_or_default(),
-                other => ctx.vars.get(other).cloned().unwrap_or_default(),
+                other => ctx
+                    .vars
+                    .get(other.strip_prefix('$').unwrap_or(other))
+                    .cloned()
+                    .unwrap_or_default(),
             };
             let passed = match op.as_str() {
                 "==" | "eq" => actual == expected,
@@ -198,6 +208,64 @@ async fn dispatch_raw(
             .unwrap_or_default()),
         "markdown" | "md" => Ok(page.markdown().await.unwrap_or_default()),
         "snapshot" | "snap" => Ok(page.agent_snapshot().await.unwrap_or_default()),
+        "content" | "html" => Ok(page.content().await.unwrap_or_default()),
+        "hover" => {
+            let sel = resolved.first().cloned().unwrap_or_default();
+            let el = Arc::clone(&page)
+                .wait_for_selector(sel.clone())
+                .await
+                .map_err(|e| e.to_string())?;
+            el.hover_mouse().await.map_err(|e| e.to_string())?;
+            Ok(format!("hover {sel}"))
+        }
+        "scroll" => {
+            let arg = resolved.first().cloned().unwrap_or_default();
+            let js = match arg.as_str() {
+                "" | "down" => "window.scrollBy(0, window.innerHeight * 0.9)".to_string(),
+                "up" => "window.scrollBy(0, -window.innerHeight * 0.9)".to_string(),
+                "top" => "window.scrollTo(0, 0)".to_string(),
+                "bottom" => "window.scrollTo(0, document.body.scrollHeight)".to_string(),
+                other => match other.parse::<i64>() {
+                    Ok(pixels) => format!("window.scrollBy(0, {pixels})"),
+                    Err(_) => return Err("usage: scroll <pixels|up|down|top|bottom>".to_string()),
+                },
+            };
+            let _ = page.evaluate_string(js).await;
+            Ok(format!(
+                "scroll {}",
+                if arg.is_empty() { "down" } else { arg.as_str() }
+            ))
+        }
+        "find" => {
+            let text = resolved.first().cloned().unwrap_or_default();
+            let count = page
+                .find_text(text.clone())
+                .await
+                .map_err(|e| e.to_string())?;
+            Ok(format!("{count} match(es) for {text:?}"))
+        }
+        "challenge" | "detect" => {
+            let report = page.detect_challenge().await.map_err(|e| e.to_string())?;
+            Ok(report.to_json().to_string())
+        }
+        "shot" | "screenshot" => {
+            let path = resolved
+                .first()
+                .cloned()
+                .unwrap_or_else(|| "screenshot.png".to_string());
+            let png = page.screenshot().await.map_err(|e| e.to_string())?;
+            std::fs::write(&path, &png).map_err(|e| e.to_string())?;
+            Ok(format!("wrote {path} ({} bytes)", png.len()))
+        }
+        "shot-full" | "screenshot-full" => {
+            let path = resolved
+                .first()
+                .cloned()
+                .unwrap_or_else(|| "screenshot.png".to_string());
+            let png = page.screenshot_full().await.map_err(|e| e.to_string())?;
+            std::fs::write(&path, &png).map_err(|e| e.to_string())?;
+            Ok(format!("wrote {path} ({} bytes)", png.len()))
+        }
         "click" => {
             let sel = resolved.first().cloned().unwrap_or_default();
             if let Ok(index) = sel.parse::<u32>() {
@@ -275,12 +343,19 @@ async fn dispatch_raw(
             Ok(format!("press {key}"))
         }
         "wait" | "sleep" => {
-            let ms = resolved
-                .first()
-                .and_then(|v| v.parse::<u64>().ok())
-                .unwrap_or(1000);
-            tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
-            Ok(format!("wait {ms}ms"))
+            let arg = resolved.first().cloned().unwrap_or_default();
+            if let Some(ms) = super::runtime::parse_duration_ms(&arg) {
+                tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
+                Ok(format!("wait {ms}ms"))
+            } else if !arg.is_empty() {
+                Arc::clone(&page)
+                    .wait_for_selector(arg.clone())
+                    .await
+                    .map_err(|e| e.to_string())?;
+                Ok(format!("wait for {arg}"))
+            } else {
+                Ok("wait".to_string())
+            }
         }
         "wait-idle" | "idle" => {
             page.wait_for_network_idle(500, 30_000)

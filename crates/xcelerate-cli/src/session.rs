@@ -311,11 +311,11 @@ pub async fn run_session(
                     Ok(())
                 }
                 "wait" | "sleep" => {
-                    if let Ok(ms) = rest.parse::<u64>() {
+                    if let Some(ms) = crate::xcl::runtime::parse_duration_ms(&rest) {
                         tokio::time::sleep(Duration::from_millis(ms)).await;
                         println!("waited {ms}ms");
                     } else if rest.is_empty() {
-                        println!("usage: wait <ms|selector>");
+                        println!("usage: wait <ms|s|selector>");
                     } else {
                         let started = std::time::Instant::now();
                         match Arc::clone(&page).wait_for_selector(rest.clone()).await {

@@ -6,7 +6,8 @@ to read and an AI agent to emit**: one line = one action, no nesting, no
 expression sublanguage, and bounded control flow.
 
 > Run a script with `xcelerate run script.xcl`. See the [README](../README.md)
-> for the installation and the security (default-deny) flags.
+> for the installation and the security (default-deny) flags, and the
+> [tutorial](xcl-tutorial.md) for a guided, hands-on walkthrough.
 
 ## Quick example
 
@@ -163,15 +164,17 @@ Operators: `==` `!=` `contains` `matches` `>` `<` `>=` `<=`.
 
 ## Browser commands
 
-Any session command works verbatim in a script: `open`, `goto`, `back`,
+A script and the interactive session share one verb set: `open`, `goto`, `back`,
 `reload`, `title`, `url`, `text`, `markdown`, `content`, `snapshot`, `click`,
-`click-text`, `tap`, `tap-text`, `click-xy`, `upload`, `fill`, `type`, `press`,
-`submit`, `hover`, `scroll`, `find`, `wait`, `wait-stable`, `wait-idle`,
-`challenge`, `await-human`, `eval`, `guard`, `shot`, `shot-full`, `done`, `quit`.
+`click-text`, `fill`, `type`, `press`, `submit`, `hover`, `scroll`, `find`,
+`wait`, `wait-stable`, `wait-idle`, `challenge`, `eval`, `shot`, `shot-full`,
+`done`, `quit`.
 
-`wait` resolves its argument as: a selector (`#id`, `.class`, `//xpath`, `input`,
-…), else an integer (0–60 = seconds, >60 = milliseconds), or an explicitly
-suffixed `5s` / `500ms`.
+The interactive session adds a few verbs a script does not need: `tap`,
+`tap-text`, `click-xy`, `upload`, `await-human`, `guard`, and `new-tab`.
+
+`wait` takes a duration — `2s`, `500ms`, or a bare millisecond count — or, when
+the argument is not a duration, a selector (`#id`, `.class`, `//xpath`, `input`, …).
 
 ## A complete example
 

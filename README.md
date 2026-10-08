@@ -567,6 +567,8 @@ Turing-complete: loops are bounded, functions are flat and do not recurse, and
 there is no expression sublanguage — so a script is safe to emit, safe to read,
 and cannot hang the runner.
 
+New to XCL? Start with the [tutorial](docs/xcl-tutorial.md).
+
 ```bash
 xcelerate run login.xcl                # run a script
 xcelerate run login.xcl --param user=ada@example.com

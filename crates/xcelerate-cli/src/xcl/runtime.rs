@@ -9,6 +9,24 @@ use std::collections::HashMap;
 
 use super::security::{Permissions, Source};
 
+/// Parses a `wait` argument into milliseconds. Accepts an explicit unit (`2s`,
+/// `500ms`) or a bare millisecond count; returns `None` when the argument is not
+/// a duration, so the caller can treat it as a selector.
+pub(crate) fn parse_duration_ms(arg: &str) -> Option<u64> {
+    let arg = arg.trim();
+    if let Some(value) = arg.strip_suffix("ms") {
+        return value.trim().parse().ok();
+    }
+    if let Some(value) = arg.strip_suffix('s') {
+        return value
+            .trim()
+            .parse::<u64>()
+            .ok()
+            .map(|seconds| seconds.saturating_mul(1000));
+    }
+    arg.parse().ok()
+}
+
 /// Hard runtime limits (defense against hangs).
 #[derive(Debug, Clone)]
 pub struct RuntimeLimits {
@@ -162,5 +180,19 @@ impl Context {
                 .resolve(name)
                 .ok_or_else(|| format!("unknown builtin `{{{name}}}`")),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_duration_ms;
+
+    #[test]
+    fn parses_wait_durations() {
+        assert_eq!(parse_duration_ms("2s"), Some(2000));
+        assert_eq!(parse_duration_ms("500ms"), Some(500));
+        assert_eq!(parse_duration_ms("1500"), Some(1500));
+        assert_eq!(parse_duration_ms("#submit"), None);
+        assert_eq!(parse_duration_ms(""), None);
     }
 }
