@@ -38,8 +38,8 @@ let handle = browser.plugin("my.plugin".to_string())?;
 handle.invoke("ping".into(), "{}".into()).await?;
 ```
 
-An installed plugin is in-process and therefore trusted exactly like `stealth`
-and `human`: it may use the whole `PageHost` interface. `install_plugins`
+An installed plugin is in-process and therefore fully trusted: it may use the
+whole `PageHost` interface. `install_plugins`
 refuses any name the host catalog already owns, so a library plugin can never
 shadow a built-in one. It is a **Rust-only** API - the language bindings
 cannot pass an executable Rust value, so a plugin that must reach Python, .NET,
@@ -202,7 +202,7 @@ is rejected before a single byte of plugin code is loaded.
 
 | Field | Required | Meaning |
 | --- | --- | --- |
-| `name` | yes | Unique id, `[A-Za-z0-9._-]`. May **not** shadow a built-in name (e.g. `stealth`). |
+| `name` | yes | Unique id, `[A-Za-z0-9._-]`. May **not** shadow a reserved name. |
 | `version` | yes | Plugin version (semver recommended). |
 | `host_api` | yes | Host interface range the plugin targets, e.g. `">=1.0 <2.0"`. |
 | `entrypoint` | yes | Path to the program, relative to the manifest. |

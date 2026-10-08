@@ -114,11 +114,11 @@ println!("{}", page.title().await?);
 - **Automated process management** - discovers and launches Chrome or Edge, and
   manages the lifecycle of the browser process.
 - **Security-first plugins** - a default-deny plugin system with an append-only
-  audit log. Built-in plugins you opt into: `stealth` and `human`.
-- **Stealth and human plugins** - `stealth` applies binary patching and a runtime
-  JavaScript payload that reduce automation fingerprints; `human` makes input
-  behave like a person (Bezier mouse travel, paced typing, uneven scrolling).
-  Both are enabled per browser through `BrowserConfig.plugins`.
+  audit log. Xcelerate ships **no** built-in plugins; external ones are loaded by
+  path with sandboxed, capability-gated host calls.
+- **Human-like input by default** - clicks and typing drive the real mouse and
+  keyboard: the cursor travels to the element along a Bezier path and text is
+  typed at a human pace, so runs look less robotic.
 - **Async-first** - built on `tokio` in Rust and `async`/`await` in every binding.
 - **Three familiar API styles first** - write Playwright, Puppeteer, or Selenium
   code unchanged over the same engine, each generated from a declarative profile.
@@ -303,8 +303,8 @@ async fn main() -> Result<(), xcelerate::XcelerateError> {
 }
 ```
 
-`BrowserConfig` defaults to headless and detached, **without** stealth. Enable
-plugins explicitly, or opt out of the other defaults:
+`BrowserConfig` defaults to headless and detached. Opt out of those defaults, and
+load a plugin by path if you want one (there are none built in):
 
 ```rust
 use xcelerate::BrowserConfig;
@@ -312,78 +312,40 @@ use xcelerate::BrowserConfig;
 let config = BrowserConfig {
     headless: false,
     detached: false,
-    executable_path: None,                      // auto-discover Chrome/Edge/…
-    plugins: Some(vec!["stealth".to_string()]), // opt into the stealth plugin
+    executable_path: None, // auto-discover Chrome/Edge/…
+    plugins: None,         // no built-in plugins
     ..Default::default()
 };
 ```
 
 ## Plugins
 
-Xcelerate ships a **security-first plugin system**. A plugin is a named bundle of
-launch-time configuration, page hooks, and invokable operations, and it does
-nothing unless you enable it (**default-deny**). `stealth` is the built-in
-plugin built on this system.
+Xcelerate ships a **security-first plugin system** and **no built-in plugins**. A
+plugin is a named bundle of launch-time configuration, page hooks, and invokable
+operations, and it does nothing unless you enable it (**default-deny**). Add one
+as a trusted Rust library (`install_plugins`) or as a sandboxed WebAssembly
+component loaded by path (`load_plugin`).
 
-### Enabling plugins
+### Loading plugins
 
-Plugins are listed in `BrowserConfig.plugins` and enabled before the browser
-launches, so they can contribute to the launch itself (for example, patching the
-binary):
+Load a sandboxed plugin from disk (a directory or a `plugin.json`), then invoke
+its ops through the same fixed bridge in every language:
 
 ```rust
 use xcelerate::{Browser, BrowserConfig};
 
-let config = BrowserConfig {
-    plugins: Some(vec!["stealth".to_string()]),
-    ..Default::default()
-};
-let browser = Browser::launch(config).await?;
-```
-
-The same list travels through `BrowserConfig` in every language:
-
-```python
-config = BrowserConfig(plugins=["stealth"])
-```
-
-```javascript
-const browser = await Browser.launch({ plugins: ["stealth"] });
-```
-
-```csharp
-var browser = await Browser.Launch(new BrowserConfig(Plugins: new[] { "stealth" }));
-```
-
-```kotlin
-val config = BrowserConfig(plugins = listOf("stealth"))
-```
-
-```java
-var config = new BrowserConfig(false, false, true, null, List.of("stealth"));
+let browser = Browser::launch(BrowserConfig::default()).await?;
+browser.load_plugin("path/to/plugin".to_string())?; // …/plugin.json also works
+let handle = browser.plugin("acme.hello".to_string())?;
+handle.invoke("ping".into(), "{}".into()).await?;
 ```
 
 ### Built-in catalog
 
-| Plugin | What it does | Ops |
-| --- | --- | --- |
-| `stealth` | Patches the browser binary at launch and injects the anti-fingerprint payload into every document. | `info` |
-| `human` | Human-like input: Bezier mouse travel with jitter, clicks that pause and hold, per-key typing delays, uneven scroll steps. | `info`, `move`, `click`, `type`, `scroll`, `delay` |
-
-```rust
-use xcelerate::{Browser, BrowserConfig};
-
-let config = BrowserConfig {
-    plugins: Some(vec!["stealth".to_string(), "human".to_string()]),
-    ..Default::default()
-};
-let browser = Browser::launch(config).await?;
-
-// Drive the human plugin through the same cross-language bridge.
-let human = browser.plugin("human".into())?;
-human.invoke("move".into(), r#"{"x": 320, "y": 240}"#.into()).await?;
-human.invoke("type".into(), r#"{"text": "hello"}"#.into()).await?;
-```
+There is none. `available_plugins()` reports what is installed or loaded on this
+browser, which is empty until you add something. (The old `stealth` and `human`
+plugins are gone: human-like mouse and keyboard input is built into the core's
+input path, and fingerprint work belongs in your own plugin.)
 
 Each op runs under the invocation budget and is written to the audit log; a
 plugin only ever acts on pages it has been handed.
@@ -395,7 +357,7 @@ new binding code:
 
 | Method | Purpose |
 | --- | --- |
-| `available_plugins()` | Names of the compiled-in built-in catalog |
+| `available_plugins()` | Plugins installed or loaded on this browser |
 | `plugin_names()` | Plugins enabled on this browser |
 | `use_plugin(name)` | Enable a built-in plugin at runtime |
 | `install_plugins([plugin])` | Install trusted plugins compiled in as a Cargo library (Rust only) |
@@ -405,10 +367,9 @@ new binding code:
 | `plugin(name).invoke(op, args_json)` | Invoke an operation with JSON args, returning JSON |
 
 ```rust
-let enabled = browser.plugin_names();            // e.g. ["stealth", "human"]
-let catalog = browser.available_plugins();       // ["stealth", "human"]
-let stealth = browser.plugin("stealth".into())?; // error if not enabled
-let info = stealth.invoke("info".into(), "{}".into()).await?;
+let enabled = browser.plugin_names();              // e.g. ["acme.hello"]
+let handle = browser.plugin("acme.hello".into())?; // error if not enabled
+let info = handle.invoke("info".into(), "{}".into()).await?;
 ```
 
 ### Where plugins run and what they may do
@@ -508,11 +469,9 @@ import asyncio
 from xcelerate import Browser, BrowserConfig
 
 async def main():
-    # Opt into the stealth plugin - nothing runs unless it is enabled.
-    browser = await Browser.launch(BrowserConfig(plugins=["stealth"]))
+    browser = await Browser.launch(BrowserConfig())
     page = await browser.new_page("https://example.com")
     print(await page.title())
-    print(await browser.plugin_names())   # ["stealth"]
     await browser.close()
 
 asyncio.run(main())
@@ -524,7 +483,7 @@ JavaScript (Node.js):
 const { Browser } = require("xcelerate");
 
 async function main() {
-    const browser = await Browser.launch({ plugins: ["stealth"] });
+    const browser = await Browser.launch();
     const page = await browser.newPage("https://example.com");
     console.log(await page.title());
     await browser.close();
@@ -551,7 +510,7 @@ xcelerate click-index https://example.com 2     # click element [2] from the sna
 ```
 
 Global flags apply to every command: `--no-headless`, `--detached`,
-`--executable-path <path>`, `--plugins stealth,human`, `--device <name>`, and
+`--executable-path <path>`, `--plugins <path,...>`, `--device <name>`, and
 `--timeout <ms>`. `xcelerate --device <name> <command>` renders as a built-in
 mobile device, and `xcelerate list` prints every device and plugin.
 Install it with `cargo install --path crates/xcelerate-cli` (the installed
@@ -619,6 +578,7 @@ done
 | `import <id>` `run <plugin> <op> [json]` `plugins` `plugin-config <id>` | Plugins / workers. |
 | `repeat <n> …` `retry <n> …` `if-ok …` `if-fail …` `goto <label>` `label <name>` | Bounded control flow. |
 | `assert <subject> <op> <value>` | Fail-fast check (`url`, `title`, `status`, `contains`, `==`, …). |
+| `print <arg>...` | Write the resolved arguments to stdout (the explicit log channel). |
 | `done` / `quit` | End the run. |
 
 ## MCP server

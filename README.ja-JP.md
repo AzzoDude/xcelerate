@@ -71,12 +71,12 @@ println!("{}", page.title().await?);
 - **プロセスの自動管理** - Chrome または Edge を検出して起動し、ブラウザプロセスの
   ライフサイクルを管理します。
 - **セキュリティ第一のプラグイン** - 追記専用の監査ログを備えた、デフォルト拒否の
-  プラグインシステム。オプトインできる組み込みプラグイン: `stealth` と `human`。
-- **stealth プラグインと human プラグイン** - `stealth` はバイナリパッチと実行時
-  JavaScript ペイロードを適用して自動化のフィンガープリントを低減します。`human` は
-  入力を人間のように振る舞わせます（ベジェ曲線のマウス移動、間を置いたタイピング、
-  不均一なスクロール）。どちらも `BrowserConfig.plugins` を通じてブラウザごとに
-  有効化されます。
+  プラグインシステム。Xcelerate は組み込みプラグインを**一切**同梱せず、外部の
+  プラグインはパスで読み込み、サンドボックス化されたケイパビリティ制限付きのホスト
+  呼び出しを行います。
+- **既定で人間らしい入力** - クリックとタイピングは実際のマウスとキーボードを駆動
+  します。カーソルはベジェ曲線に沿って要素まで移動し、テキストは人間らしいペースで
+  入力されるため、実行が機械的に見えにくくなります。
 - **async ファースト** - Rust では `tokio`、すべてのバインディングでは
   `async`/`await` を基盤としています。
 - **なじみ深い 3 つの API スタイルを最優先** - Playwright、Puppeteer、Selenium の
@@ -268,8 +268,8 @@ async fn main() -> Result<(), xcelerate::XcelerateError> {
 }
 ```
 
-`BrowserConfig` の既定はヘッドレスかつデタッチで、stealth は**無効**です。プラグインを
-明示的に有効化するか、その他の既定をオプトアウトしてください:
+`BrowserConfig` の既定はヘッドレスかつデタッチです。これらの既定をオプトアウトし、
+必要であればプラグインをパスで読み込んでください（組み込みのプラグインはありません）:
 
 ```rust
 use xcelerate::BrowserConfig;
@@ -277,77 +277,40 @@ use xcelerate::BrowserConfig;
 let config = BrowserConfig {
     headless: false,
     detached: false,
-    executable_path: None,                      // auto-discover Chrome/Edge
-    plugins: Some(vec!["stealth".to_string()]), // opt into the stealth plugin
+    executable_path: None, // auto-discover Chrome/Edge/…
+    plugins: None,         // 組み込みプラグインなし
     ..Default::default()
 };
 ```
 
 ## プラグイン
 
-Xcelerate は**セキュリティ第一のプラグインシステム**を提供します。プラグインとは、
-起動時の設定、ページフック、呼び出し可能な操作をまとめた名前付きのバンドルであり、
-有効化しない限り何も行いません（**デフォルト拒否**）。`stealth` はこのシステム上に
-構築された組み込みプラグインです。
+Xcelerate は**セキュリティ第一のプラグインシステム**を提供し、組み込みプラグインは
+**一切**同梱しません。プラグインとは、起動時の設定、ページフック、呼び出し可能な操作を
+まとめた名前付きのバンドルであり、有効化しない限り何も行いません（**デフォルト拒否**）。
+信頼された Rust ライブラリとして（`install_plugins`）、またはパスで読み込む
+サンドボックス化された WebAssembly コンポーネントとして（`load_plugin`）追加します。
 
-### プラグインの有効化
+### プラグインの読み込み
 
-プラグインは `BrowserConfig.plugins` に列挙され、ブラウザが起動する前に有効化される
-ため、起動自体に寄与できます（たとえばバイナリのパッチ適用）:
+ディスクからサンドボックス化されたプラグイン（ディレクトリまたは `plugin.json`）を
+読み込み、すべての言語で共通の固定されたブリッジを通じてその操作を呼び出します:
 
 ```rust
 use xcelerate::{Browser, BrowserConfig};
 
-let config = BrowserConfig {
-    plugins: Some(vec!["stealth".to_string()]),
-    ..Default::default()
-};
-let browser = Browser::launch(config).await?;
-```
-
-同じリストが、すべての言語で `BrowserConfig` を通じて受け渡されます:
-
-```python
-config = BrowserConfig(plugins=["stealth"])
-```
-
-```javascript
-const browser = await Browser.launch({ plugins: ["stealth"] });
-```
-
-```csharp
-var browser = await Browser.Launch(new BrowserConfig(Plugins: new[] { "stealth" }));
-```
-
-```kotlin
-val config = BrowserConfig(plugins = listOf("stealth"))
-```
-
-```java
-var config = new BrowserConfig(false, false, true, null, List.of("stealth"));
+let browser = Browser::launch(BrowserConfig::default()).await?;
+browser.load_plugin("path/to/plugin".to_string())?; // …/plugin.json also works
+let handle = browser.plugin("acme.hello".to_string())?;
+handle.invoke("ping".into(), "{}".into()).await?;
 ```
 
 ### 組み込みカタログ
 
-| プラグイン | 機能 | 操作 |
-| --- | --- | --- |
-| `stealth` | 起動時にブラウザバイナリにパッチを適用し、すべてのドキュメントにアンチフィンガープリントペイロードを注入します。 | `info` |
-| `human` | 人間らしい入力: ジッター付きのベジェマウス移動、ためて保持するクリック、キーごとのタイピング遅延、不均一なスクロールステップ。 | `info`, `move`, `click`, `type`, `scroll`, `delay` |
-
-```rust
-use xcelerate::{Browser, BrowserConfig};
-
-let config = BrowserConfig {
-    plugins: Some(vec!["stealth".to_string(), "human".to_string()]),
-    ..Default::default()
-};
-let browser = Browser::launch(config).await?;
-
-// Drive the human plugin through the same cross-language bridge.
-let human = browser.plugin("human".into())?;
-human.invoke("move".into(), r#"{"x": 320, "y": 240}"#.into()).await?;
-human.invoke("type".into(), r#"{"text": "hello"}"#.into()).await?;
-```
+存在しません。`available_plugins()` はこのブラウザにインストールまたは読み込み済みの
+プラグインを報告し、何かを追加するまで空です。（旧 `stealth` プラグインと旧 `human`
+プラグインは削除されました。人間らしいマウスとキーボードの入力はコアの入力パスに
+組み込まれており、フィンガープリント関連の作業は自作のプラグインに属します。）
 
 各操作は呼び出し予算の下で実行され、監査ログに記録されます。プラグインは、渡された
 ページに対してのみ動作します。
@@ -359,7 +322,7 @@ human.invoke("type".into(), r#"{"text": "hello"}"#.into()).await?;
 
 | メソッド | 目的 |
 | --- | --- |
-| `available_plugins()` | コンパイル済みの組み込みカタログの名前 |
+| `available_plugins()` | このブラウザにインストール/読み込み済みのプラグイン |
 | `plugin_names()` | このブラウザで有効なプラグイン |
 | `use_plugin(name)` | 実行時に組み込みプラグインを有効化 |
 | `install_plugins([plugin])` | Cargo ライブラリとしてコンパイル済みの信頼済みプラグインをインストール（Rust のみ） |
@@ -369,10 +332,9 @@ human.invoke("type".into(), r#"{"text": "hello"}"#.into()).await?;
 | `plugin(name).invoke(op, args_json)` | JSON 引数で操作を呼び出し、JSON を返す |
 
 ```rust
-let enabled = browser.plugin_names();            // e.g. ["stealth", "human"]
-let catalog = browser.available_plugins();       // ["stealth", "human"]
-let stealth = browser.plugin("stealth".into())?; // error if not enabled
-let info = stealth.invoke("info".into(), "{}".into()).await?;
+let enabled = browser.plugin_names();              // e.g. ["acme.hello"]
+let handle = browser.plugin("acme.hello".into())?; // error if not enabled
+let info = handle.invoke("info".into(), "{}".into()).await?;
 ```
 
 ### プラグインの実行場所と実行可能な内容
@@ -476,11 +438,9 @@ import asyncio
 from xcelerate import Browser, BrowserConfig
 
 async def main():
-    # Opt into the stealth plugin - nothing runs unless it is enabled.
-    browser = await Browser.launch(BrowserConfig(plugins=["stealth"]))
+    browser = await Browser.launch(BrowserConfig())
     page = await browser.new_page("https://example.com")
     print(await page.title())
-    print(await browser.plugin_names())   # ["stealth"]
     await browser.close()
 
 asyncio.run(main())
@@ -492,7 +452,7 @@ JavaScript (Node.js):
 const { Browser } = require("xcelerate");
 
 async function main() {
-    const browser = await Browser.launch({ plugins: ["stealth"] });
+    const browser = await Browser.launch();
     const page = await browser.newPage("https://example.com");
     console.log(await page.title());
     await browser.close();
@@ -519,7 +479,7 @@ xcelerate click-index https://example.com 2     # スナップショットの要
 ```
 
 グローバルフラグはすべてのコマンドに適用されます: `--no-headless`、`--detached`、
-`--executable-path <path>`、`--plugins stealth,human`、`--device <name>`、`--timeout <ms>`。
+`--executable-path <path>`、`--plugins <path,...>`、`--device <name>`、`--timeout <ms>`。
 `xcelerate --device <name> <command>` は組み込みのモバイル デバイスとして描画し、
 `xcelerate list` はすべてのデバイスとプラグインを一覧表示します。
 インストールには `cargo install --path crates/xcelerate-cli`（インストールされる
@@ -585,6 +545,7 @@ done
 | `import <id>` `run <plugin> <op> [json]` `plugins` `plugin-config <id>` | プラグイン / ワーカー。 |
 | `repeat <n> …` `retry <n> …` `if-ok …` `if-fail …` `goto <label>` `label <name>` | 有界の制御フロー。 |
 | `assert <subject> <op> <value>` | フェイルファストチェック（`url`、`title`、`status`、`contains`、`==`、…）。 |
+| `print <arg>...` | 解決した引数を標準出力に書き出します（ログ用のチャネル）。 |
 | `done` / `quit` | 実行を終了します。 |
 
 ## MCP サーバー

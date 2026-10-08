@@ -825,7 +825,9 @@ pub async fn run_session(
         crate::cursor::set_driving(&page, false).await;
     }
 
-    let _ = tokio::time::timeout(Duration::from_secs(5), browser.close()).await;
+    // Leave room for `Browser::close`'s own graceful wait + force-kill fallback
+    // so the browser is never orphaned when the session ends.
+    let _ = tokio::time::timeout(Duration::from_secs(20), browser.close()).await;
     println!("session closed.");
 
     if let Some(lang) = args.codegen {

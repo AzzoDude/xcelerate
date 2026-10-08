@@ -273,6 +273,10 @@ pub enum Command {
         /// Override a script `param` (`key=value`).
         #[arg(long = "param", value_name = "KEY=VALUE")]
         param: Vec<String>,
+        /// Print one `ok <step>` line per step. Quiet by default; use the `print`
+        /// command to log from the script.
+        #[arg(long, short)]
+        verbose: bool,
     },
     /// Fetch a URL and print the body (JSON is pretty-printed). Requires the
     /// `http` feature.

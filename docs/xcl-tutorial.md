@@ -19,8 +19,9 @@ This is the tutorial. For the terse language reference see
 - **Default-deny.** The risky verbs (`eval`, `request`, plugin `import`/`run`)
   need an explicit flag from the human who runs the script.
 
-Every line prints `ok <result>` or `fail <reason>` as the run proceeds, and a
-failure stops the run — unless you catch it with `retry` or `if-fail`.
+By default a run is **quiet**: it prints only `print` output and stops (printing
+`fail <reason>`) when a step fails — unless you catch the failure with `retry` or
+`if-fail`. Pass `--verbose` to also see an `ok <step>` line for every step.
 
 ## 0. Install
 
@@ -288,15 +289,15 @@ assert $STATUS == 200
 
 ```text
 plugins                       # list loaded workers
-import stealth                # load a worker
-run stealth info {}           # invoke an op with JSON args
-plugin-config stealth         # show an op's JSON schema + defaults
+import example.echo           # load a worker
+run example.echo info {}      # invoke an op with JSON args
+plugin-config example.echo    # show an op's JSON schema + defaults
 ```
 
 Plugin loading is **off by default**:
 
 ```bash
-xcelerate run plugins.xcl --allow-plugin stealth --allow-plugin 'acme.*'
+xcelerate run plugins.xcl --allow-plugin example.echo --allow-plugin 'acme.*'
 ```
 
 `--allow-plugin` accepts `*` globs. A plugin op behaves like a worker; plugins

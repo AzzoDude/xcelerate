@@ -11,7 +11,7 @@
       "type": "string",
       "minLength": 1,
       "pattern": "^[A-Za-z0-9._-]+$",
-      "description": "Unique plugin id. May not shadow a built-in plugin name such as 'stealth'."
+      "description": "Unique plugin id. May not shadow a reserved plugin name."
     },
     "version": {
       "type": "string",

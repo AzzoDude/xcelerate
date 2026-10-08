@@ -59,6 +59,9 @@ pub enum Command {
     Set { name: String, value: Arg },
     /// `param <name> [default]` — declare a runtime parameter.
     Param { name: String, default: Option<Arg> },
+    /// `print <arg>...` — write the resolved arguments to stdout (the explicit
+    /// log channel; everything else is silent on success).
+    Print { args: Vec<Arg> },
     /// `func <name>(a, b, ...)` — begin a function definition (implicit `end`).
     FuncStart(FuncDef),
     /// `end` — terminates the current `func` block.

@@ -5,17 +5,41 @@
 //! tokio runtime), so there are no thread bridges — a browser/plugin call is a
 //! plain `.await`.
 
-use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 
 use xcelerate::{Browser, Page};
 
 use super::ast::Command;
 use super::runtime::{Context, Outcome};
 
-/// Shared executor state: a browser/page plus the current base URL.
+/// Shared executor state: the browser plus the tabs opened during the run.
 pub struct Executor {
     pub browser: Arc<Browser>,
-    pub page: Arc<Page>,
+    /// Tabs opened this run; index 0 is the page the run started on.
+    tabs: Mutex<Vec<Arc<Page>>>,
+    active: AtomicUsize,
+}
+
+impl Executor {
+    /// A fresh executor with a single (active) tab.
+    pub fn new(browser: Arc<Browser>, page: Arc<Page>) -> Self {
+        Self {
+            browser,
+            tabs: Mutex::new(vec![page]),
+            active: AtomicUsize::new(0),
+        }
+    }
+
+    /// The currently active page.
+    pub fn page(&self) -> Arc<Page> {
+        let tabs = self.tabs.lock().unwrap();
+        let index = self
+            .active
+            .load(Ordering::Relaxed)
+            .min(tabs.len().saturating_sub(1));
+        Arc::clone(&tabs[index])
+    }
 }
 
 /// Dispatches a single [`Command`] to the transport, returning its [`Outcome`].
@@ -49,6 +73,16 @@ pub async fn dispatch(ctx: &mut Context, cmd: &Command, exe: &Executor) -> Outco
             } else {
                 Outcome::fail(format!("missing required param `{name}`"))
             }
+        }
+        Command::Print { args } => {
+            let mut parts = Vec::with_capacity(args.len());
+            for a in args {
+                match ctx.resolve(a) {
+                    Ok(v) => parts.push(v),
+                    Err(e) => return Outcome::fail(e),
+                }
+            }
+            Outcome::ok(parts.join(" "))
         }
         Command::Import { name } => {
             if !ctx.permissions.plugin_allowed(name) {
@@ -124,11 +158,11 @@ pub async fn dispatch(ctx: &mut Context, cmd: &Command, exe: &Executor) -> Outco
                 Err(e) => return Outcome::fail(e),
             };
             let actual: String = match subject.as_str() {
-                "url" => exe.page.url().await.unwrap_or_default(),
-                "title" => exe.page.title().await.unwrap_or_default(),
-                "content" => exe.page.content().await.unwrap_or_default(),
+                "url" => exe.page().url().await.unwrap_or_default(),
+                "title" => exe.page().title().await.unwrap_or_default(),
+                "content" => exe.page().content().await.unwrap_or_default(),
                 "text" => exe
-                    .page
+                    .page()
                     .evaluate_string("document.body ? document.body.innerText : ''".to_string())
                     .await
                     .unwrap_or_default(),
@@ -189,7 +223,7 @@ async fn dispatch_raw(
             Err(e) => return Err(e),
         }
     }
-    let page = Arc::clone(&exe.page);
+    let page = exe.page();
 
     match verb {
         "open" | "goto" => {
@@ -266,7 +300,7 @@ async fn dispatch_raw(
             std::fs::write(&path, &png).map_err(|e| e.to_string())?;
             Ok(format!("wrote {path} ({} bytes)", png.len()))
         }
-        "click" => {
+        "click" | "tap" => {
             let sel = resolved.first().cloned().unwrap_or_default();
             if let Ok(index) = sel.parse::<u32>() {
                 Arc::clone(&page)
@@ -280,7 +314,10 @@ async fn dispatch_raw(
                     .wait_for_selector(sel.clone())
                     .await
                     .map_err(|e| e.to_string())?;
-                el.click().await.map_err(|e| e.to_string())?;
+                // Move the real mouse to the element and click, so the cursor
+                // travels to the target instead of firing a synthetic DOM click.
+                // (Matches `click-text` and the interactive session.)
+                el.click_mouse().await.map_err(|e| e.to_string())?;
                 Ok(format!("click {sel}"))
             }
         }
@@ -386,6 +423,48 @@ async fn dispatch_raw(
                     .await
                     .unwrap_or_default())
             }
+        }
+        "tabs" => {
+            let tabs = exe.tabs.lock().unwrap().clone();
+            let active = exe.active.load(Ordering::Relaxed);
+            for (i, tab) in tabs.iter().enumerate() {
+                let url = tab.url().await.unwrap_or_default();
+                let mark = if i == active { "*" } else { " " };
+                println!("{mark} [{i}] {url}");
+            }
+            Ok(format!("{} tab(s)", tabs.len()))
+        }
+        "new-tab" | "newtab" | "tab-new" => {
+            let url = resolved
+                .first()
+                .cloned()
+                .unwrap_or_else(|| "about:blank".to_string());
+            let opened = Arc::clone(&exe.browser)
+                .new_page(url.clone())
+                .await
+                .map_err(|e| e.to_string())?;
+            let index = {
+                let mut tabs = exe.tabs.lock().unwrap();
+                tabs.push(Arc::clone(&opened));
+                tabs.len() - 1
+            };
+            exe.active.store(index, Ordering::Relaxed);
+            Ok(format!("new-tab [{index}] {url}"))
+        }
+        "switch" | "tab" | "use" => {
+            let count = exe.tabs.lock().unwrap().len();
+            let index = match resolved.first() {
+                Some(arg) => arg
+                    .parse::<usize>()
+                    .map_err(|_| "usage: switch <index>".to_string())?,
+                None => (exe.active.load(Ordering::Relaxed) + 1) % count,
+            };
+            if index >= count {
+                return Err(format!("no tab {index}; {count} open"));
+            }
+            exe.active.store(index, Ordering::Relaxed);
+            let url = exe.page().url().await.unwrap_or_default();
+            Ok(format!("switch [{index}] {url}"))
         }
         other => Err(format!("unknown verb `{other}`")),
     }

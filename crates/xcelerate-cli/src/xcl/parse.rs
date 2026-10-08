@@ -129,6 +129,12 @@ impl Parser {
                     default: default.map(|v| parse_arg(v, line)).transpose()?,
                 }
             }
+            "print" => Command::Print {
+                args: rest
+                    .iter()
+                    .map(|v| parse_arg(v, line))
+                    .collect::<Result<Vec<_>, _>>()?,
+            },
             "func" => {
                 self.open_func(line, rest)?;
                 return Ok(());
@@ -497,6 +503,13 @@ mod tests {
         let p = parse_program("let base = https://example.com\n").unwrap();
         assert!(matches!(&p.steps[0].command, Command::Let { name, value }
                 if name == "base" && value == &Arg::Literal("https://example.com".into())));
+    }
+
+    #[test]
+    fn parses_print_command() {
+        let p = parse_program("let who \"world\"\nprint hello $who\n").unwrap();
+        assert!(matches!(&p.steps[1].command, Command::Print { args }
+                if args == &vec![Arg::Literal("hello".into()), Arg::Var("who".into())]));
     }
 
     #[test]

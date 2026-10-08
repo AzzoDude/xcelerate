@@ -68,11 +68,10 @@ println!("{}", page.title().await?);
 
 - **自动化的进程管理** —— 发现并启动 Chrome 或 Edge，并管理浏览器进程的生命周期。
 - **安全优先的插件** —— 默认拒绝（default-deny）的插件系统，并带有仅追加
-  （append-only）的审计日志。你可选择启用的内置插件有：`stealth` 和 `human`。
-- **Stealth 与 human 插件** —— `stealth` 会应用二进制补丁和运行时的
-  JavaScript 载荷，以减少自动化指纹；`human` 让输入表现得像真人（贝塞尔鼠标
-  移动、按节奏打字、不均匀滚动）。二者都通过 `BrowserConfig.plugins` 按浏览器
-  启用。
+  （append-only）的审计日志。Xcelerate **不**附带任何内置插件；外部插件通过
+  路径加载，其宿主调用经过沙箱化和按能力（capability）授权。
+- **默认使用类人输入** —— 点击和打字会驱动真实的鼠标和键盘：光标沿贝塞尔
+  路径移动到元素上，文本以人的节奏输入，因此运行过程看起来不那么机械。
 - **异步优先** —— 在 Rust 中构建于 `tokio` 之上，并在每个绑定中使用
   `async`/`await`。
 - **优先支持三种熟悉的 API 风格** —— 无需改动即可在同一引擎上运行 Playwright、
@@ -258,8 +257,8 @@ async fn main() -> Result<(), xcelerate::XcelerateError> {
 }
 ```
 
-`BrowserConfig` 默认为无头（headless）且分离（detached）模式，**不启用**
-stealth。请显式启用插件，或选择退出其他默认设置：
+`BrowserConfig` 默认为无头（headless）且分离（detached）模式。你可以选择退出
+这些默认设置，并在需要时通过路径加载插件（没有内置插件）：
 
 ```rust
 use xcelerate::BrowserConfig;
@@ -267,76 +266,38 @@ use xcelerate::BrowserConfig;
 let config = BrowserConfig {
     headless: false,
     detached: false,
-    executable_path: None,                      // auto-discover Chrome/Edge
-    plugins: Some(vec!["stealth".to_string()]), // opt into the stealth plugin
+    executable_path: None, // auto-discover Chrome/Edge
+    plugins: None,         // 没有内置插件
     ..Default::default()
 };
 ```
 
 ## 插件
 
-Xcelerate 提供了**安全优先的插件系统**。插件是启动时配置、页面钩子和可调用
-操作的命名集合，除非你启用它，否则它不会执行任何操作（**默认拒绝**）。
-`stealth` 就是基于该系统构建的内置插件。
+Xcelerate 提供了**安全优先的插件系统**，且**不附带任何内置插件**。插件是启动时
+配置、页面钩子和可调用操作的命名集合，除非你启用它，否则它不会执行任何操作
+（**默认拒绝**）。你可以将其作为受信任的 Rust 库添加（`install_plugins`），
+也可以作为通过路径加载的沙箱化 WebAssembly 组件添加（`load_plugin`）。
 
-### 启用插件
+### 加载插件
 
-插件列在 `BrowserConfig.plugins` 中，并在浏览器启动前启用，因此它们能够参与
-启动过程本身（例如修补二进制文件）：
+从磁盘加载沙箱化的插件（一个目录或一个 `plugin.json`），然后通过每种语言中
+相同的固定桥接接口调用它的操作：
 
 ```rust
 use xcelerate::{Browser, BrowserConfig};
 
-let config = BrowserConfig {
-    plugins: Some(vec!["stealth".to_string()]),
-    ..Default::default()
-};
-let browser = Browser::launch(config).await?;
-```
-
-同一份列表在每种语言中都通过 `BrowserConfig` 传递：
-
-```python
-config = BrowserConfig(plugins=["stealth"])
-```
-
-```javascript
-const browser = await Browser.launch({ plugins: ["stealth"] });
-```
-
-```csharp
-var browser = await Browser.Launch(new BrowserConfig(Plugins: new[] { "stealth" }));
-```
-
-```kotlin
-val config = BrowserConfig(plugins = listOf("stealth"))
-```
-
-```java
-var config = new BrowserConfig(false, false, true, null, List.of("stealth"));
+let browser = Browser::launch(BrowserConfig::default()).await?;
+browser.load_plugin("path/to/plugin".to_string())?; // …/plugin.json also works
+let handle = browser.plugin("acme.hello".to_string())?;
+handle.invoke("ping".into(), "{}".into()).await?;
 ```
 
 ### 内置目录
 
-| 插件 | 功能 | 操作 |
-| --- | --- | --- |
-| `stealth` | 在启动时修补浏览器二进制文件，并向每个文档注入反指纹载荷。 | `info` |
-| `human` | 类人输入：带抖动的贝塞尔鼠标移动、会停顿并保持的点击、逐键打字延迟、不均匀的滚动步进。 | `info`, `move`, `click`, `type`, `scroll`, `delay` |
-
-```rust
-use xcelerate::{Browser, BrowserConfig};
-
-let config = BrowserConfig {
-    plugins: Some(vec!["stealth".to_string(), "human".to_string()]),
-    ..Default::default()
-};
-let browser = Browser::launch(config).await?;
-
-// Drive the human plugin through the same cross-language bridge.
-let human = browser.plugin("human".into())?;
-human.invoke("move".into(), r#"{"x": 320, "y": 240}"#.into()).await?;
-human.invoke("type".into(), r#"{"text": "hello"}"#.into()).await?;
-```
+没有。`available_plugins()` 会报告此浏览器上已安装或加载的内容，在你添加之前
+它是空的。（旧的 `stealth` 和 `human` 插件已被移除：类人的鼠标和键盘输入已内置于
+核心的输入路径中，而指纹相关工作应放在你自己的插件里。）
 
 每个操作都在调用预算（invocation budget）下运行，并写入审计日志；插件只会
 作用于交给它的页面。
@@ -347,7 +308,7 @@ human.invoke("type".into(), r#"{"text": "hello"}"#.into()).await?;
 
 | 方法 | 用途 |
 | --- | --- |
-| `available_plugins()` | 已编译进程序的内置目录中的名称 |
+| `available_plugins()` | 此浏览器上已安装或加载的插件 |
 | `plugin_names()` | 该浏览器上已启用的插件 |
 | `use_plugin(name)` | 在运行时启用内置插件 |
 | `install_plugins([plugin])` | 安装作为 Cargo 库编译进来的受信任插件（仅限 Rust） |
@@ -357,10 +318,9 @@ human.invoke("type".into(), r#"{"text": "hello"}"#.into()).await?;
 | `plugin(name).invoke(op, args_json)` | 使用 JSON 参数调用操作，并返回 JSON |
 
 ```rust
-let enabled = browser.plugin_names();            // e.g. ["stealth", "human"]
-let catalog = browser.available_plugins();       // ["stealth", "human"]
-let stealth = browser.plugin("stealth".into())?; // error if not enabled
-let info = stealth.invoke("info".into(), "{}".into()).await?;
+let enabled = browser.plugin_names();              // e.g. ["acme.hello"]
+let handle = browser.plugin("acme.hello".into())?; // error if not enabled
+let info = handle.invoke("info".into(), "{}".into()).await?;
 ```
 
 ### 插件的运行位置及其可执行的操作
@@ -456,11 +416,9 @@ import asyncio
 from xcelerate import Browser, BrowserConfig
 
 async def main():
-    # Opt into the stealth plugin - nothing runs unless it is enabled.
-    browser = await Browser.launch(BrowserConfig(plugins=["stealth"]))
+    browser = await Browser.launch(BrowserConfig())
     page = await browser.new_page("https://example.com")
     print(await page.title())
-    print(await browser.plugin_names())   # ["stealth"]
     await browser.close()
 
 asyncio.run(main())
@@ -472,7 +430,7 @@ JavaScript (Node.js)：
 const { Browser } = require("xcelerate");
 
 async function main() {
-    const browser = await Browser.launch({ plugins: ["stealth"] });
+    const browser = await Browser.launch();
     const page = await browser.newPage("https://example.com");
     console.log(await page.title());
     await browser.close();
@@ -499,7 +457,7 @@ xcelerate click-index https://example.com 2     # 点击快照中的元素 [2]
 ```
 
 全局标志适用于每个命令：`--no-headless`、`--detached`、
-`--executable-path <path>`、`--plugins stealth,human`、`--device <name>` 和 `--timeout <ms>`。
+`--executable-path <path>`、`--plugins <path,...>`、`--device <name>` 和 `--timeout <ms>`。
 `xcelerate --device <name> <command>` 会以内置移动设备渲染，`xcelerate list`
 会列出所有设备和插件。
 使用 `cargo install --path crates/xcelerate-cli` 安装（安装后的可执行文件名为
@@ -563,6 +521,7 @@ done
 | `import <id>` `run <plugin> <op> [json]` `plugins` `plugin-config <id>` | 插件 / worker。 |
 | `repeat <n> …` `retry <n> …` `if-ok …` `if-fail …` `goto <label>` `label <name>` | 有界控制流。 |
 | `assert <subject> <op> <value>` | 快速失败检查（`url`、`title`、`status`、`contains`、`==` 等）。 |
+| `print <arg>...` | 将解析后的参数输出到标准输出（日志通道）。 |
 | `done` / `quit` | 结束本次运行。 |
 
 ## MCP 服务器

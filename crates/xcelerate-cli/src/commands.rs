@@ -122,6 +122,7 @@ pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             allow_plugin,
             allow_private,
             param,
+            verbose,
         } => {
             crate::xcl::run_file(
                 &cli.browser,
@@ -131,6 +132,7 @@ pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
                 allow_plugin,
                 allow_private,
                 param,
+                verbose,
             )
             .await?;
         }

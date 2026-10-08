@@ -69,13 +69,12 @@ println!("{}", page.title().await?);
 - **Quản lý tiến trình tự động** - tự phát hiện và khởi chạy Chrome hoặc Edge, đồng
   thời quản lý vòng đời của tiến trình trình duyệt.
 - **Plugin ưu tiên bảo mật** - hệ thống plugin từ chối theo mặc định (default-deny)
-  với nhật ký kiểm toán chỉ ghi thêm (append-only). Các plugin tích hợp bạn có thể
-  chọn tham gia: `stealth` và `human`.
-- **Plugin stealth và human** - `stealth` áp dụng việc vá nhị phân (binary patching)
-  và một payload JavaScript chạy lúc runtime giúp giảm dấu vết tự động hóa; `human`
-  làm cho thao tác nhập liệu hành xử như người thật (chuột di chuyển theo đường
-  Bezier, gõ theo nhịp, cuộn không đều). Cả hai đều được bật theo từng trình duyệt
-  thông qua `BrowserConfig.plugins`.
+  với nhật ký kiểm toán chỉ ghi thêm (append-only). Xcelerate **không** kèm sẵn plugin
+  tích hợp nào; các plugin bên ngoài được nạp theo đường dẫn với các lời gọi host chạy
+  trong sandbox và bị giới hạn bởi capability.
+- **Nhập liệu như người thật theo mặc định** - các cú nhấp và việc gõ điều khiển chuột
+  và bàn phím thật: con trỏ di chuyển tới phần tử theo đường Bezier và văn bản được gõ
+  theo nhịp của con người, nên các lần chạy trông bớt máy móc hơn.
 - **Ưu tiên async** - xây dựng trên `tokio` trong Rust và `async`/`await` trong mọi
   binding.
 - **Ưu tiên ba kiểu API quen thuộc** - viết mã Playwright, Puppeteer hoặc Selenium
@@ -265,8 +264,8 @@ async fn main() -> Result<(), xcelerate::XcelerateError> {
 }
 ```
 
-Theo mặc định, `BrowserConfig` dùng chế độ headless và detached, **không** có stealth.
-Hãy bật plugin một cách tường minh, hoặc tắt các mặc định khác:
+`BrowserConfig` mặc định ở chế độ headless và detached. Hãy tắt các mặc định đó, và
+nạp một plugin theo đường dẫn nếu bạn muốn (không có plugin nào được kèm sẵn):
 
 ```rust
 use xcelerate::BrowserConfig;
@@ -275,77 +274,41 @@ let config = BrowserConfig {
     headless: false,
     detached: false,
     executable_path: None,                      // auto-discover Chrome/Edge
-    plugins: Some(vec!["stealth".to_string()]), // opt into the stealth plugin
+    plugins: None,                              // không có plugin tích hợp
     ..Default::default()
 };
 ```
 
 ## Plugin
 
-Xcelerate cung cấp một **hệ thống plugin ưu tiên bảo mật**. Một plugin là một gói
-được đặt tên gồm cấu hình lúc khởi chạy, các page hook và các thao tác có thể gọi,
-và nó không làm gì cả trừ khi bạn bật nó (**từ chối theo mặc định**). `stealth` là
-plugin tích hợp được xây dựng trên hệ thống này.
+Xcelerate cung cấp một **hệ thống plugin ưu tiên bảo mật** và **không có plugin tích
+hợp nào**. Một plugin là một gói được đặt tên gồm cấu hình lúc khởi chạy, các page hook
+và các thao tác có thể gọi, và nó không làm gì cả trừ khi bạn bật nó (**từ chối theo
+mặc định**). Hãy thêm một plugin dưới dạng thư viện Rust đáng tin cậy
+(`install_plugins`) hoặc dưới dạng component WebAssembly chạy trong sandbox được nạp
+theo đường dẫn (`load_plugin`).
 
-### Bật plugin
+### Nạp plugin
 
-Các plugin được liệt kê trong `BrowserConfig.plugins` và được bật trước khi trình
-duyệt khởi chạy, nên chúng có thể đóng góp vào chính quá trình khởi chạy (ví dụ:
-vá nhị phân):
+Nạp một plugin chạy trong sandbox từ đĩa (một thư mục hoặc một `plugin.json`), rồi gọi
+các op của nó thông qua cùng một cầu nối cố định trong mọi ngôn ngữ:
 
 ```rust
 use xcelerate::{Browser, BrowserConfig};
 
-let config = BrowserConfig {
-    plugins: Some(vec!["stealth".to_string()]),
-    ..Default::default()
-};
-let browser = Browser::launch(config).await?;
-```
-
-Danh sách tương tự cũng đi qua `BrowserConfig` trong mọi ngôn ngữ:
-
-```python
-config = BrowserConfig(plugins=["stealth"])
-```
-
-```javascript
-const browser = await Browser.launch({ plugins: ["stealth"] });
-```
-
-```csharp
-var browser = await Browser.Launch(new BrowserConfig(Plugins: new[] { "stealth" }));
-```
-
-```kotlin
-val config = BrowserConfig(plugins = listOf("stealth"))
-```
-
-```java
-var config = new BrowserConfig(false, false, true, null, List.of("stealth"));
+let browser = Browser::launch(BrowserConfig::default()).await?;
+browser.load_plugin("path/to/plugin".to_string())?; // …/plugin.json cũng hoạt động
+let handle = browser.plugin("acme.hello".to_string())?;
+handle.invoke("ping".into(), "{}".into()).await?;
 ```
 
 ### Danh mục tích hợp
 
-| Plugin | Chức năng | Thao tác |
-| --- | --- | --- |
-| `stealth` | Vá nhị phân trình duyệt lúc khởi chạy và chèn payload chống dấu vết (anti-fingerprint) vào mọi document. | `info` |
-| `human` | Nhập liệu như người thật: chuột di chuyển theo đường Bezier kèm dao động nhỏ, các cú nhấp dừng và giữ, độ trễ gõ theo từng phím, các bước cuộn không đều. | `info`, `move`, `click`, `type`, `scroll`, `delay` |
-
-```rust
-use xcelerate::{Browser, BrowserConfig};
-
-let config = BrowserConfig {
-    plugins: Some(vec!["stealth".to_string(), "human".to_string()]),
-    ..Default::default()
-};
-let browser = Browser::launch(config).await?;
-
-// Drive the human plugin through the same cross-language bridge.
-let human = browser.plugin("human".into())?;
-human.invoke("move".into(), r#"{"x": 320, "y": 240}"#.into()).await?;
-human.invoke("type".into(), r#"{"text": "hello"}"#.into()).await?;
-```
+Không có. `available_plugins()` báo cáo những gì đã được cài đặt hoặc nạp trên trình
+duyệt này, danh sách này rỗng cho tới khi bạn thêm thứ gì đó. (Các plugin `stealth` và
+`human` cũ đã bị gỡ bỏ: nhập liệu chuột và bàn phím như người thật được tích hợp sẵn
+trong đường nhập liệu của lõi, còn công việc chống dấu vết thuộc về plugin của chính
+bạn.)
 
 Mỗi op chạy trong hạn mức (budget) của lần gọi và được ghi vào nhật ký kiểm toán;
 một plugin chỉ tác động lên những page mà nó được giao.
@@ -357,7 +320,7 @@ bao giờ cần mã binding mới:
 
 | Phương thức | Mục đích |
 | --- | --- |
-| `available_plugins()` | Tên của các plugin trong danh mục tích hợp đã được biên dịch sẵn |
+| `available_plugins()` | Các plugin đã cài hoặc nạp trên trình duyệt này |
 | `plugin_names()` | Các plugin được bật trên trình duyệt này |
 | `use_plugin(name)` | Bật một plugin tích hợp lúc runtime |
 | `install_plugins([plugin])` | Cài đặt các plugin tin cậy được biên dịch sẵn dưới dạng thư viện Cargo (chỉ Rust) |
@@ -367,10 +330,9 @@ bao giờ cần mã binding mới:
 | `plugin(name).invoke(op, args_json)` | Gọi một thao tác với các đối số JSON, trả về JSON |
 
 ```rust
-let enabled = browser.plugin_names();            // e.g. ["stealth", "human"]
-let catalog = browser.available_plugins();       // ["stealth", "human"]
-let stealth = browser.plugin("stealth".into())?; // error if not enabled
-let info = stealth.invoke("info".into(), "{}".into()).await?;
+let enabled = browser.plugin_names();              // e.g. ["acme.hello"]
+let handle = browser.plugin("acme.hello".into())?; // error if not enabled
+let info = handle.invoke("info".into(), "{}".into()).await?;
 ```
 
 ### Plugin chạy ở đâu và chúng được phép làm gì
@@ -473,11 +435,9 @@ import asyncio
 from xcelerate import Browser, BrowserConfig
 
 async def main():
-    # Opt into the stealth plugin - nothing runs unless it is enabled.
-    browser = await Browser.launch(BrowserConfig(plugins=["stealth"]))
+    browser = await Browser.launch(BrowserConfig())
     page = await browser.new_page("https://example.com")
     print(await page.title())
-    print(await browser.plugin_names())   # ["stealth"]
     await browser.close()
 
 asyncio.run(main())
@@ -489,7 +449,7 @@ JavaScript (Node.js):
 const { Browser } = require("xcelerate");
 
 async function main() {
-    const browser = await Browser.launch({ plugins: ["stealth"] });
+    const browser = await Browser.launch();
     const page = await browser.newPage("https://example.com");
     console.log(await page.title());
     await browser.close();
@@ -516,7 +476,7 @@ xcelerate click-index https://example.com 2     # nhấp phần tử [2] từ �
 ```
 
 Các cờ toàn cục áp dụng cho mọi lệnh: `--no-headless`, `--detached`,
-`--executable-path <path>`, `--plugins stealth,human`, `--device <name>`, và `--timeout <ms>`.
+`--executable-path <path>`, `--plugins <path,...>`, `--device <name>`, và `--timeout <ms>`.
 `xcelerate --device <name> <command>` hiển thị như một thiết bị di động có sẵn, và
 `xcelerate list` liệt kê mọi thiết bị và plugin. Cài đặt
 nó bằng `cargo install --path crates/xcelerate-cli` (binary được cài đặt tên là
@@ -582,6 +542,7 @@ done
 | `import <id>` `run <plugin> <op> [json]` `plugins` `plugin-config <id>` | Plugin / worker. |
 | `repeat <n> …` `retry <n> …` `if-ok …` `if-fail …` `goto <label>` `label <name>` | Luồng điều khiển có giới hạn. |
 | `assert <subject> <op> <value>` | Kiểm tra fail-fast (`url`, `title`, `status`, `contains`, `==`, …). |
+| `print <arg>...` | Ghi các tham số đã phân giải ra stdout (kênh log). |
 | `done` / `quit` | Kết thúc lượt chạy. |
 
 ## Máy chủ MCP

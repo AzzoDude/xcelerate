@@ -43,10 +43,14 @@ done
 | `click` `click-text` `tap` `fill` `type` `press` `submit` `hover` `scroll` | Interact. |
 | `wait` `wait-idle` `wait-stable` | Wait (a selector, seconds, or `500ms`). |
 | `assert <subject> <op> <value>` | Fail-fast check (`url`, `title`, `status`, `contains`, `==`, …). |
+| `print <arg>...` | Write the resolved arguments to stdout (the explicit log channel). |
 | `repeat` / `retry` / `if-ok` / `if-fail` / `label` / `goto` | Bounded control flow. |
 | `eval` / `request` | Opt-in: JavaScript (`--allow-unsafe`), browserless HTTP (`--allow-http`). |
 | `import` / `run` / `plugins` / `plugin-config` | Plugins / workers (`--allow-plugin`). |
 | `done` / `quit` | End the run. |
+
+Runs are **quiet by default**: a script prints only `print` output and failures
+(`fail <reason>`). Pass `--verbose` to also see an `ok <step>` line for every step.
 
 ## Design contract
 
@@ -165,13 +169,13 @@ Operators: `==` `!=` `contains` `matches` `>` `<` `>=` `<=`.
 ## Browser commands
 
 A script and the interactive session share one verb set: `open`, `goto`, `back`,
-`reload`, `title`, `url`, `text`, `markdown`, `content`, `snapshot`, `click`,
-`click-text`, `fill`, `type`, `press`, `submit`, `hover`, `scroll`, `find`,
+`reload`, `title`, `url`, `text`, `markdown`, `content`, `snapshot`, `click`/`tap`,
+`click-text`, `fill`, `type`, `press`/`submit`, `hover`, `scroll`, `find`,
 `wait`, `wait-stable`, `wait-idle`, `challenge`, `eval`, `shot`, `shot-full`,
-`done`, `quit`.
+`tabs`, `new-tab`, `switch`, `done`, `quit`.
 
-The interactive session adds a few verbs a script does not need: `tap`,
-`tap-text`, `click-xy`, `upload`, `await-human`, `guard`, and `new-tab`.
+The interactive session adds a few verbs a script does not need: `tap-text`,
+`click-xy`, `upload`, `await-human`, and `guard`.
 
 `wait` takes a duration — `2s`, `500ms`, or a bare millisecond count — or, when
 the argument is not a duration, a selector (`#id`, `.class`, `//xpath`, `input`, …).

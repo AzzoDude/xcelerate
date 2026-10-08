@@ -387,6 +387,11 @@ fn substitute(command: &mut Command, map: &HashMap<String, Arg>) {
             }
         }
         Command::Assert { value, .. } => *value = repl(value),
+        Command::Print { args } => {
+            for a in args.iter_mut() {
+                *a = repl(a);
+            }
+        }
         Command::Raw { args, .. } => {
             for a in args.iter_mut() {
                 *a = repl(a);

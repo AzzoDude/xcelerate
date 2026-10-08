@@ -20,6 +20,7 @@ pub async fn run_file(
     allow_plugin: Vec<String>,
     allow_private: bool,
     params: Vec<String>,
+    verbose: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let source = std::fs::read_to_string(path)
         .map_err(|e| format!("cannot read {}: {e}", path.display()))?;
@@ -38,10 +39,7 @@ pub async fn run_file(
     // Launch the browser (browserless scripts would skip this; for now every
     // script gets a browser, with `request` still going over HTTP).
     let (browser, page) = launch(args, "about:blank").await?;
-    let exe = Executor {
-        browser: Arc::clone(&browser),
-        page,
-    };
+    let exe = Executor::new(Arc::clone(&browser), page);
 
     // Build context + apply `--param key=value` overrides.
     let base_url = std::env::var("XCELERATE_BASE_URL").unwrap_or_default();
@@ -70,11 +68,16 @@ pub async fn run_file(
 
         let outcome = dispatch(&mut ctx, &cmd, &exe).await;
         engine.observe(outcome.ok);
-        println!(
-            "{} {}",
-            if outcome.ok { "ok" } else { "fail" },
-            outcome.message
-        );
+        // Quiet by default: a run reads as its own log, so only failures and
+        // explicit `print` output are shown. `--verbose` restores the per-step
+        // `ok <step>` transcript.
+        if !outcome.ok {
+            println!("fail {}", outcome.message);
+        } else if matches!(cmd, super::ast::Command::Print { .. }) {
+            println!("{}", outcome.message);
+        } else if verbose {
+            println!("ok {}", outcome.message);
+        }
         if outcome.should_quit {
             terminated = true;
         }
@@ -85,6 +88,9 @@ pub async fn run_file(
         }
     }
 
-    let _ = tokio::time::timeout(std::time::Duration::from_secs(5), browser.close()).await;
+    // Give `Browser::close` room to finish its own graceful wait and force-kill
+    // fallback. Wrapping it in the same 5s window would cancel the kill and
+    // orphan the browser window (it would outlive the run).
+    let _ = tokio::time::timeout(std::time::Duration::from_secs(20), browser.close()).await;
     Ok(())
 }
