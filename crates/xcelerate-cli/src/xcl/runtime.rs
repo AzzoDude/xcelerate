@@ -9,7 +9,7 @@ use std::collections::HashMap;
 
 use super::security::{Permissions, Source};
 
-/// Hard runtime limits (defense against hangs; MITRE T1499).
+/// Hard runtime limits (defense against hangs).
 #[derive(Debug, Clone)]
 pub struct RuntimeLimits {
     pub max_steps: u32,
@@ -114,11 +114,7 @@ impl Builtins {
                 self.uuid_counter += 1;
                 Some(format!(
                     "{:08x}-{:04x}-4{:03x}-{:04x}-{:012x}",
-                    self.uuid_counter,
-                    0u32,
-                    0u32 & 0x0fff,
-                    0u32,
-                    self.uuid_counter
+                    self.uuid_counter, 0u32, 0u32, 0u32, self.uuid_counter
                 ))
             }
             _ => None,

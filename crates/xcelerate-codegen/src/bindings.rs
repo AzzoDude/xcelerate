@@ -303,11 +303,9 @@ fn python(model: &Model) -> String {
             snake(&field.name),
         ));
     }
-    out.push_str("\n");
-    out.push_str(&format!(
-        "    async def call(self, client):\n\
-         \x20       args = {{\n"
-    ));
+    out.push('\n');
+    out.push_str("    async def call(self, client):\n\
+         \x20       args = {\n");
     for field in &model.fields {
         out.push_str(&format!(
             "            {:?}: self.{},\n",
@@ -317,8 +315,8 @@ fn python(model: &Model) -> String {
     }
     out.push_str(&format!(
         "        }}\n\
-         \x20       return await client.invoke({opq}, args)\n",
-        opq = format!("{op:?}", op = model.op),
+         \x20       return await client.invoke({op:?}, args)\n",
+        op = model.op,
     ));
     out
 }
@@ -420,7 +418,7 @@ fn kotlin(model: &Model) -> String {
          \x20       val args = mapOf(\n\
          \x20           {args}\n\
          \x20       )\n\
-         \x20       return client.invoke({opq}, args)\n\
+         \x20       return client.invoke({op:?}, args)\n\
          \x20   }}\n}}\n",
         op = model.op,
         ty = ty,
@@ -431,7 +429,6 @@ fn kotlin(model: &Model) -> String {
             .map(|f| format!("\"{}\" to {}", f.name, camel(&f.name)))
             .collect::<Vec<_>>()
             .join(",\n           "),
-        opq = format!("{:?}", model.op),
     )
 }
 
@@ -464,13 +461,12 @@ fn java(model: &Model) -> String {
          {fields}\n\
          \x20   public java.util.Map<String, Object> call(PluginHandle handle) throws Exception {{\n\
          \x20       var args = new java.util.LinkedHashMap<String, Object>();\n\
-         \x20       var out = handle.invoke({opq}, serialize(args));\n\
+         \x20       var out = handle.invoke({op:?}, serialize(args));\n\
          \x20       return out;\n\
          \x20   }}\n}}\n",
         op = model.op,
         ty = ty,
         fields = fields,
-        opq = format!("{:?}", model.op),
     )
 }
 
@@ -498,7 +494,7 @@ fn swift(model: &Model) -> String {
          \x20       let args: [String: Any] = [\n\
          {args}\n\
          \x20       ]\n\
-         \x20       return try await client.invoke({opq}, args: args)\n\
+         \x20       return try await client.invoke({op:?}, args: args)\n\
          \x20   }}\n}}\n",
         op = model.op,
         ty = ty,
@@ -525,7 +521,6 @@ fn swift(model: &Model) -> String {
             ))
             .collect::<Vec<_>>()
             .join(",\n"),
-        opq = format!("{:?}", model.op),
     )
 }
 
@@ -560,8 +555,8 @@ fn ruby(model: &Model) -> String {
         ));
     }
     out.push_str(&format!(
-        "    }}\n    client.invoke({opq}, args)\n  end\nend\n",
-        opq = format!("{:?}", model.op),
+        "    }}\n    client.invoke({op:?}, args)\n  end\nend\n",
+        op = model.op,
     ));
     out
 }
@@ -589,7 +584,7 @@ fn dart(model: &Model) -> String {
          \x20       final args = {{\n\
          {args}\n\
          \x20       }};\n\
-         \x20       return client.invoke({opq}, args);\n\
+         \x20       return client.invoke({op:?}, args);\n\
          \x20   }}\n}}\n",
         op = model.op,
         ty = ty,
@@ -612,7 +607,6 @@ fn dart(model: &Model) -> String {
             .map(|f| format!("        '{}': {f_camel},", f.name, f_camel = camel(&f.name)))
             .collect::<Vec<_>>()
             .join("\n"),
-        opq = format!("{:?}", model.op),
     )
 }
 
@@ -643,12 +637,11 @@ fn go(model: &Model) -> String {
          }}\n\n\
          func (t {ty}) Call(client PluginHandle) (map[string]any, error) {{\n\
          \x20   args, _ := json.Marshal(t)\n\
-         \x20   return client.Invoke({opq}, string(args))\n}}\n",
+         \x20   return client.Invoke({op:?}, string(args))\n}}\n",
         op = model.op,
         ty = ty,
         pkg = snake(&model.op).replace('_', ""),
         fields = fields,
-        opq = format!("{:?}", model.op),
     )
 }
 
@@ -674,12 +667,11 @@ fn powershell(model: &Model) -> String {
     }
     format!(
         "// Typed client for the `{op}` op.\n\
-         function Invoke-{ty} {{\n    param(\n        {params}\n    )\n\n    {body}    $client.Invoke({opq}, $args)\n}}\n",
+         function Invoke-{ty} {{\n    param(\n        {params}\n    )\n\n    {body}    $client.Invoke({op:?}, $args)\n}}\n",
         op = model.op,
         ty = ty,
         params = params.join(",\n        "),
         body = body,
-        opq = format!("{:?}", model.op),
     )
 }
 

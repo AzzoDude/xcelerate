@@ -332,12 +332,13 @@ async fn request(
         Ok(u) => u,
         Err(e) => return Outcome::fail(e),
     };
-    if let Some(host) = host_of(&url) {
-        if crate::xcl::security::is_private_host(&host) && !ctx.permissions.allow_private {
-            return Outcome::fail(format!(
-                "blocked: `{host}` is a private/metadata host (pass --allow-private)"
-            ));
-        }
+    if let Some(host) = host_of(&url)
+        && crate::xcl::security::is_private_host(&host)
+        && !ctx.permissions.allow_private
+    {
+        return Outcome::fail(format!(
+            "blocked: `{host}` is a private/metadata host (pass --allow-private)"
+        ));
     }
 
     #[cfg(not(feature = "http"))]

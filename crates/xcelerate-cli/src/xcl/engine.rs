@@ -411,7 +411,7 @@ mod tests {
         );
         let mut out = Vec::new();
         while let Some(o) = engine.step(&mut ctx, &mut |_ctx, cmd| match cmd {
-            Command::Raw { verb, .. } => Outcome::ok(format!("{verb}")),
+            Command::Raw { verb, .. } => Outcome::ok(verb.to_string()),
             Command::Let { name, .. } | Command::Set { name, .. } => {
                 Outcome::ok(format!("set {name}"))
             }

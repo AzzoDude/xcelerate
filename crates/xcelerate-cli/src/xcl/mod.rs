@@ -9,18 +9,22 @@
 //! deliberately free of the browser/transport so the same command table can back
 //! both the interactive session REPL and a `.xcl` file runner.
 
+// The language is integrated ahead of the surfaces that consume it (the
+// interactive session REPL and the AI/CLI provenance tiers), so a few helpers and
+// enum variants are defined but not yet wired up. Keep them rather than deleting a
+// deliberate API; silence the dead-code lint for those modules only.
+#[allow(dead_code)]
 pub mod ast;
+#[allow(dead_code)]
 pub mod engine;
 pub mod exec;
 pub mod lex;
 pub mod parse;
 pub mod run;
+#[allow(dead_code)]
 pub mod runtime;
+#[allow(dead_code)]
 pub mod security;
 
-pub use ast::{Arg, Command, FuncDef, Step};
 pub use engine::Engine;
-pub use parse::{ParseError, parse_program};
-pub use runtime::{Context, Outcome, RuntimeLimits};
-
 pub use run::run_file;

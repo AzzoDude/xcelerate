@@ -101,7 +101,7 @@ println!("{}", page.title().await?);
   `xcelerate-mcp` バイナリ）。
 - **XCL スクリプト** - 人間と AI の両方が読み書きできる、行指向の `.xcl` スクリプト
   言語。変数、有界の関数、制御フロー、HTTP `request`、プラグイン `run`、`assert`
-  を備え、MITRE ATT&CK に対応付けたデフォルト拒否のセキュリティに支えられています。
+  を備え、デフォルト拒否のセキュリティに支えられています。
 
 ## インストール
 
@@ -409,18 +409,23 @@ println!("{}", browser.audit_log());
 エンジンの役割は、それらが*できる*ことを明示的で監査可能にし、既定では不可能に
 することです。
 
-### MOD の作成
+### プラグインの作成
 
-スターター MOD をスキャフォールドし、1 ステップでビルドします -
-[ガイド](docs/plugins/MAKING_A_MOD.md) を参照してください:
+プラグインは外部の WebAssembly コンポーネント（または信頼されたインプロセスの
+crate）です。スターターをスキャフォールドし、`.wasm` をビルドしてからロードします:
 
 ```bash
-xcelerate plugin new acme.hello
-cd hello && ./build.sh          # Windows:  .\build.ps1
+xcelerate plugin new acme.hello      # テンプレートからスキャフォールド
+cd hello && ./build.sh               # Windows:  .\build.ps1
 ```
 
 プレーンな Rust の操作ハンドラーを書くだけで、xcelerate が WebAssembly の配線を
-処理します。
+処理します。ビルドしたコンポーネントは `Browser::load_plugin(path)`（ディレクトリ
+または `plugin.json`）でロードします。詳細は
+[プラグイン作成ガイド](docs/plugins/README.md)、
+[WASM リファレンス](docs/plugins/WASM.md)、JSON
+[schema](docs/plugins/plugin.schema.json)、
+[サンプル](docs/plugins/examples) を参照してください。
 
 ## API スタイルのアダプター
 
@@ -579,18 +584,6 @@ done
 | `repeat <n> …` `retry <n> …` `if-ok …` `if-fail …` `goto <label>` `label <name>` | 有界の制御フロー。 |
 | `assert <subject> <op> <value>` | フェイルファストチェック（`url`、`title`、`status`、`contains`、`==`、…）。 |
 | `done` / `quit` | 実行を終了します。 |
-
-### セキュリティ（MITRE ATT&CK 準拠）
-
-XCL は実行可能な入力であるため、リスクのある機能はすべて **デフォルト拒否** であり、
-AI が自ら許可を得ることはできません - フラグは呼び出した人間が指定する必要があります:
-
-| 対象 | フラグ | 備考 |
-| --- | --- | --- |
-| `eval <js>` (T1059.007) | `--allow-unsafe` | 最高リスク。既定では決して有効になりません。 |
-| `request` (T1071.001 / T1210 SSRF) | `--allow-http` | プライベート/ループバック/メタデータホストは `--allow-private` がない限り拒否されます。 |
-| `import`/`run` plugin | `--allow-plugin <id>` | wasm サンドボックス + ケイパビリティモデルを再利用します。 |
-| Unbounded work (T1499) | — | 厳格な `max_steps` / `max_iterations` / 呼び出しごとの予算。 |
 
 ## MCP サーバー
 

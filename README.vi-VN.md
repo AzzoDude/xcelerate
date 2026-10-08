@@ -100,7 +100,7 @@ println!("{}", page.title().await?);
 - **Kịch bản XCL** - một ngôn ngữ kịch bản `.xcl` theo hướng dòng mà cả con
   người lẫn AI đều có thể đọc và viết, với các biến, hàm có giới hạn, luồng
   điều khiển, HTTP `request`, plugin `run` và `assert`, được hỗ trợ bởi bảo mật
-  default-deny ánh xạ theo MITRE ATT&CK.
+  default-deny.
 
 ## Cài đặt
 
@@ -407,17 +407,22 @@ Các plugin tải từ đĩa vẫn thuộc trách nhiệm tin cậy của ngư�
 engine là làm cho những gì chúng *có thể* làm trở nên tường minh, có thể kiểm toán và
 bất khả thi theo mặc định.
 
-### Tạo một mod
+### Tạo một plugin
 
-Tạo bộ khung cho một mod khởi đầu và build nó trong một bước - xem
-[hướng dẫn](docs/plugins/MAKING_A_MOD.md):
+Plugin là một thành phần WebAssembly bên ngoài (hoặc một crate trong tiến trình đáng
+tin cậy). Tạo bộ khung, build `.wasm`, rồi nạp nó:
 
 ```bash
-xcelerate plugin new acme.hello
-cd hello && ./build.sh          # Windows:  .\build.ps1
+xcelerate plugin new acme.hello      # tạo khung từ template
+cd hello && ./build.sh               # Windows:  .\build.ps1
 ```
 
 Bạn viết các op handler bằng Rust thuần; xcelerate lo phần kết nối WebAssembly.
+Nạp thành phần đã build bằng `Browser::load_plugin(path)` (một thư mục hoặc
+`plugin.json`). Xem [hướng dẫn viết plugin](docs/plugins/README.md),
+[tham chiếu WASM](docs/plugins/WASM.md), JSON
+[schema](docs/plugins/plugin.schema.json), và
+[ví dụ](docs/plugins/examples).
 
 ## Adapter kiểu API
 
@@ -577,19 +582,6 @@ done
 | `repeat <n> …` `retry <n> …` `if-ok …` `if-fail …` `goto <label>` `label <name>` | Luồng điều khiển có giới hạn. |
 | `assert <subject> <op> <value>` | Kiểm tra fail-fast (`url`, `title`, `status`, `contains`, `==`, …). |
 | `done` / `quit` | Kết thúc lượt chạy. |
-
-### Bảo mật (căn chỉnh theo MITRE ATT&CK)
-
-XCL là đầu vào có thể thực thi, nên mọi khả năng rủi ro đều **từ chối theo mặc
-định (default-deny)** và AI không bao giờ có thể tự cấp quyền — các cờ phải đến
-từ con người gọi lệnh:
-
-| Surface | Flag | Ghi chú |
-| --- | --- | --- |
-| `eval <js>` (T1059.007) | `--allow-unsafe` | Rủi ro cao nhất; không bao giờ mặc định. |
-| `request` (T1071.001 / T1210 SSRF) | `--allow-http` | Máy chủ private/loopback/metadata bị từ chối trừ khi có `--allow-private`. |
-| `import`/`run` plugin | `--allow-plugin <id>` | Tái sử dụng sandbox wasm + mô hình capability. |
-| Unbounded work (T1499) | — | Giới hạn cứng `max_steps` / `max_iterations` / hạn mức mỗi lần gọi. |
 
 ## Máy chủ MCP
 

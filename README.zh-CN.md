@@ -95,8 +95,8 @@ println!("{}", page.title().await?);
 - **CLI 与 MCP 服务器** —— `xcelerate` 命令用于一次性操作，`xcelerate mcp`
   （或 `xcelerate-mcp` 二进制文件）用于从 MCP 客户端驱动浏览器。
 - **XCL 脚本** —— 一种面向行的 `.xcl` 脚本语言，人类和 AI 都能读写，具有
-  变量、有界函数、控制流、HTTP `request`、插件 `run` 和 `assert`，并由映射至
-  MITRE ATT&CK 的默认拒绝（default-deny）安全机制支撑。
+  变量、有界函数、控制流、HTTP `request`、插件 `run` 和 `assert`，并由默认拒绝
+  （default-deny）安全机制支撑。
 
 ## 安装
 
@@ -392,17 +392,21 @@ println!("{}", browser.audit_log());
 从磁盘加载的插件是否可信仍然由用户负责：引擎的职责是让它们*能够*做什么变得
 明确、可审计，并在默认情况下不可行。
 
-### 制作 mod
+### 创建插件
 
-一步搭建一个入门 mod 并构建它——参见
-[指南](docs/plugins/MAKING_A_MOD.md)：
+插件是外部的 WebAssembly 组件（或可信的进程内 crate）。搭建一个入门插件、构建
+`.wasm`，然后加载它：
 
 ```bash
-xcelerate plugin new acme.hello
-cd hello && ./build.sh          # Windows:  .\build.ps1
+xcelerate plugin new acme.hello      # 从模板搭建
+cd hello && ./build.sh               # Windows:  .\build.ps1
 ```
 
 你只需编写普通的 Rust 操作处理器；xcelerate 负责处理 WebAssembly 的底层管道。
+用 `Browser::load_plugin(path)`（一个目录或 `plugin.json`）加载构建好的组件。
+参见[插件编写指南](docs/plugins/README.md)、[WASM 参考](docs/plugins/WASM.md)、
+JSON [schema](docs/plugins/plugin.schema.json) 以及
+[示例](docs/plugins/examples)。
 
 ## API 风格适配器
 
@@ -559,18 +563,6 @@ done
 | `repeat <n> …` `retry <n> …` `if-ok …` `if-fail …` `goto <label>` `label <name>` | 有界控制流。 |
 | `assert <subject> <op> <value>` | 快速失败检查（`url`、`title`、`status`、`contains`、`==` 等）。 |
 | `done` / `quit` | 结束本次运行。 |
-
-### 安全（对齐 MITRE ATT&CK）
-
-XCL 是可执行的输入，因此每一项有风险的能力都是 **默认拒绝（default-deny）**
-的，且 AI 永远无法自行授予 —— 标志必须由调用它的人类提供：
-
-| 攻击面 | 标志 | 说明 |
-| --- | --- | --- |
-| `eval <js>` (T1059.007) | `--allow-unsafe` | 风险最高；绝不默认启用。 |
-| `request` (T1071.001 / T1210 SSRF) | `--allow-http` | 除非提供 `--allow-private`，否则拒绝私有/环回/元数据主机。 |
-| `import`/`run` plugin | `--allow-plugin <id>` | 复用 wasm 沙箱与能力（capability）模型。 |
-| Unbounded work (T1499) | — | 硬性的 `max_steps` / `max_iterations` / 每次调用预算。 |
 
 ## MCP 服务器
 

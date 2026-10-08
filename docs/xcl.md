@@ -6,7 +6,7 @@ to read and an AI agent to emit**: one line = one action, no nesting, no
 expression sublanguage, and bounded control flow.
 
 > Run a script with `xcelerate run script.xcl`. See the [README](../README.md)
-> for the installation and the security (MITRE ATT&CK) flags.
+> for the installation and the security (default-deny) flags.
 
 ## Design contract
 

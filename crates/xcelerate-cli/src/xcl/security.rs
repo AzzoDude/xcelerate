@@ -1,4 +1,4 @@
-//! XCL security: boundedness constants and the MITRE ATT&CK-mapped guardrails.
+//! XCL security: boundedness constants and the default-deny guardrails.
 //!
 //! XCL is *executable input* from an untrusted source (an AI agent or a
 //! downloaded `.xcl` file). This module centralises the hard limits and the
@@ -23,7 +23,7 @@ pub const MAX_FUNCS: usize = 256;
 pub const MAX_OUTPUT_CHARS: usize = 64 * 1024;
 
 /// Provenance tag recorded on every audit event so the source of an executed
-/// step is always attributable (MITRE T1070 — indicator-removal resistance).
+/// step is always attributable (indicator-removal resistance).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Source {
     /// An interactive human driving the session REPL.
@@ -51,9 +51,9 @@ impl Source {
 /// process must explicitly grant each capability. The AI can never self-grant.
 #[derive(Debug, Clone, Default)]
 pub struct Permissions {
-    /// Allow `eval <js>` (MITRE T1059.007 — JavaScript). Highest risk.
+    /// Allow `eval <js>` (JavaScript). Highest risk.
     pub allow_eval: bool,
-    /// Allow `request` / browserless HTTP (MITRE T1071.001 / T1210 SSRF vector).
+    /// Allow `request` / browserless HTTP (SSRF vector).
     pub allow_http: bool,
     /// Plugins that may be `import`ed/`run`. Empty = deny all plugin loading.
     pub allow_plugins: Vec<String>,
@@ -125,7 +125,7 @@ fn glob_allows(pattern: &str, name: &str) -> bool {
 }
 
 /// The private/loopback/link-local/metadata ranges that browserless HTTP denies
-/// by default (the SSRF guard — MITRE T1210). Returns `true` when `host` is such
+/// by default (the SSRF guard). Returns `true` when `host` is such
 /// a range and should be blocked unless `allow_private`.
 pub fn is_private_host(host: &str) -> bool {
     let host = host.to_ascii_lowercase();

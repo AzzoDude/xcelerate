@@ -107,15 +107,15 @@ impl Parser {
             "let" => {
                 let (name, value) = two(rest, line, "let <name> <value>")?;
                 Command::Let {
-                    name: bare_name(&name, line)?,
-                    value: parse_arg(&value, line)?,
+                    name: bare_name(name, line)?,
+                    value: parse_arg(value, line)?,
                 }
             }
             "set" => {
                 let (name, value) = two(rest, line, "set <name> <value>")?;
                 Command::Set {
-                    name: bare_name(&name, line)?,
-                    value: parse_arg(&value, line)?,
+                    name: bare_name(name, line)?,
+                    value: parse_arg(value, line)?,
                 }
             }
             "param" => {

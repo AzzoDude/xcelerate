@@ -34,6 +34,46 @@ you can switch styles (or languages) without rewriting a script. A native
 `xcelerate` style exists too, but it is a **later option**: start with the style
 you already know.
 
+## Contents
+
+- [Supported engines](#supported-engines)
+- [Bindings](#bindings)
+- [Features](#features)
+- [Installation](#installation)
+  - [Rust](#rust)
+  - [Python](#python)
+  - [JavaScript (Node.js)](#javascript-nodejs)
+  - [.NET / C#](#net--c)
+  - [Kotlin / Java](#kotlin--java)
+  - [Swift / Ruby / Dart / Go](#swift--ruby--dart--go)
+  - [PowerShell](#powershell)
+- [Quick start](#quick-start)
+  - [Playwright style](#playwright-style)
+  - [Puppeteer style](#puppeteer-style)
+  - [Selenium style](#selenium-style)
+  - [Native API (advanced)](#native-api-advanced)
+- [Plugins](#plugins)
+  - [Enabling plugins](#enabling-plugins)
+  - [Built-in catalog](#built-in-catalog)
+  - [Inspecting and invoking plugins](#inspecting-and-invoking-plugins)
+  - [Where plugins run and what they may do](#where-plugins-run-and-what-they-may-do)
+  - [Audit log](#audit-log)
+  - [Creating a plugin](#creating-a-plugin)
+- [API-style adapters](#api-style-adapters)
+- [Native bindings](#native-bindings)
+- [Command-line interface](#command-line-interface)
+- [Scripting (XCL)](#scripting-xcl)
+- [MCP server](#mcp-server)
+- [Video recording](#video-recording)
+- [Proxy](#proxy)
+- [Persistent profiles](#persistent-profiles)
+- [Accessibility snapshots](#accessibility-snapshots)
+- [Agent snapshots](#agent-snapshots)
+- [Workspace layout](#workspace-layout)
+- [Development](#development)
+- [Security](#security)
+- [License](#license)
+
 ## Supported engines
 
 One core, two engines: Chromium over CDP, Firefox over WebDriver BiDi.
@@ -102,8 +142,7 @@ println!("{}", page.title().await?);
   MCP client.
 - **XCL scripting** - a line-oriented `.xcl` scripting language that both a human
   and an AI can read and write, with variables, bounded functions, control flow,
-  HTTP `request`, plugin `run`, and `assert`, backed by MITRE ATT&CK-mapped
-  default-deny security.
+  HTTP `request`, plugin `run`, and `assert`, backed by default-deny security.
 
 ## Installation
 
@@ -404,17 +443,22 @@ println!("{}", browser.audit_log());
 Plugins loaded from disk remain the user's responsibility to trust: the engine's
 job is to make what they *can* do explicit, auditable, and impossible by default.
 
-### Making a mod
+### Creating a plugin
 
-Scaffold a starter mod and build it in one step - see the
-[guide](docs/plugins/MAKING_A_MOD.md):
+A plugin is an external WebAssembly component (or a trusted in-process crate).
+Scaffold a starter, build the `.wasm`, then load it:
 
 ```bash
-xcelerate plugin new acme.hello
-cd hello && ./build.sh          # Windows:  .\build.ps1
+xcelerate plugin new acme.hello      # scaffold from the template
+cd hello && ./build.sh               # Windows:  .\build.ps1
 ```
 
 You write plain Rust op handlers; xcelerate handles the WebAssembly plumbing.
+Load the built component with `Browser::load_plugin(path)` (a directory or a
+`plugin.json`). See the [plugin authoring guide](docs/plugins/README.md), the
+[WASM reference](docs/plugins/WASM.md), the JSON
+[schema](docs/plugins/plugin.schema.json), and the
+[examples](docs/plugins/examples).
 
 ## API-style adapters
 
@@ -573,18 +617,6 @@ done
 | `repeat <n> …` `retry <n> …` `if-ok …` `if-fail …` `goto <label>` `label <name>` | Bounded control flow. |
 | `assert <subject> <op> <value>` | Fail-fast check (`url`, `title`, `status`, `contains`, `==`, …). |
 | `done` / `quit` | End the run. |
-
-### Security (MITRE ATT&CK–aligned)
-
-XCL is executable input, so every risky capability is **default-deny** and the
-AI can never self-grant — flags must come from the invoking human:
-
-| Surface | Flag | Notes |
-| --- | --- | --- |
-| `eval <js>` (T1059.007) | `--allow-unsafe` | Highest risk; never default. |
-| `request` (T1071.001 / T1210 SSRF) | `--allow-http` | Private/loopback/metadata hosts denied unless `--allow-private`. |
-| `import`/`run` plugin | `--allow-plugin <id>` | Reuses the wasm sandbox + capability model. |
-| Unbounded work (T1499) | — | Hard `max_steps` / `max_iterations` / per-call budgets. |
 
 ## MCP server
 
