@@ -8,6 +8,45 @@ expression sublanguage, and bounded control flow.
 > Run a script with `xcelerate run script.xcl`. See the [README](../README.md)
 > for the installation and the security (default-deny) flags.
 
+## Quick example
+
+A script is just a list of lines, and each line is one action:
+
+```text
+# login.xcl
+param base "https://www.practicesoftwaretesting.com"
+
+func fill_field(id, value)
+  fill $id $value
+end
+
+open $base/auth/register
+wait 2s
+fill_field "#email" "ada@example.com"
+fill_field "#password" "correct-horse-battery"
+click-text "Register"
+wait 6s
+assert url contains "/login"
+done
+```
+
+## Commands at a glance
+
+| Keyword | Meaning |
+| --- | --- |
+| `# comment` | Full-line comment (blank lines ignored). |
+| `let` / `set` / `param` | Define, reassign, or declare a variable (`$name`, `--param k=v`). |
+| `func` … `end` / `<name> …` | Define and call a bounded, non-recursive function. |
+| `open` / `goto` / `back` / `reload` | Navigate. |
+| `title` `url` `text` `markdown` `content` `snapshot` | Read the page. |
+| `click` `click-text` `tap` `fill` `type` `press` `submit` `hover` `scroll` | Interact. |
+| `wait` `wait-idle` `wait-stable` | Wait (a selector, seconds, or `500ms`). |
+| `assert <subject> <op> <value>` | Fail-fast check (`url`, `title`, `status`, `contains`, `==`, …). |
+| `repeat` / `retry` / `if-ok` / `if-fail` / `label` / `goto` | Bounded control flow. |
+| `eval` / `request` | Opt-in: JavaScript (`--allow-unsafe`), browserless HTTP (`--allow-http`). |
+| `import` / `run` / `plugins` / `plugin-config` | Plugins / workers (`--allow-plugin`). |
+| `done` / `quit` | End the run. |
+
 ## Design contract
 
 - **One line, one action.** Sequencing is the line order of the file.
