@@ -105,27 +105,28 @@ impl Parser {
 
         let command = match verb.as_str() {
             "let" => {
-                let (name, value) = two(rest, line, "let <name> <value>")?;
+                let (name, value) = assignment(rest, line, "let <name> <value>")?;
+                let value =
+                    value.ok_or_else(|| ParseError::new(line, "usage: let <name> <value>"))?;
                 Command::Let {
                     name: bare_name(name, line)?,
                     value: parse_arg(value, line)?,
                 }
             }
             "set" => {
-                let (name, value) = two(rest, line, "set <name> <value>")?;
+                let (name, value) = assignment(rest, line, "set <name> <value>")?;
+                let value =
+                    value.ok_or_else(|| ParseError::new(line, "usage: set <name> <value>"))?;
                 Command::Set {
                     name: bare_name(name, line)?,
                     value: parse_arg(value, line)?,
                 }
             }
             "param" => {
-                let name = rest
-                    .first()
-                    .ok_or_else(|| ParseError::new(line, "usage: param <name> [default]"))?;
-                let default = rest.get(1).map(|v| parse_arg(v, line)).transpose()?;
+                let (name, default) = assignment(rest, line, "param <name> [default]")?;
                 Command::Param {
                     name: bare_name(name, line)?,
-                    default,
+                    default: default.map(|v| parse_arg(v, line)).transpose()?,
                 }
             }
             "func" => {
@@ -441,10 +442,18 @@ fn bare_name(token: &str, line: usize) -> Result<String, ParseError> {
     Ok(token.to_string())
 }
 
-fn two<'a>(rest: &'a [String], line: usize, usage: &str) -> Result<(&'a str, &'a str), ParseError> {
-    let a = rest.first().ok_or_else(|| ParseError::new(line, usage))?;
-    let b = rest.get(1).ok_or_else(|| ParseError::new(line, usage))?;
-    Ok((a, b))
+/// Splits `<name> [=] [value]` for `let` / `set` / `param`, tolerating an
+/// optional `=` between the name and the value so `let base = https://…` reads
+/// the same as `let base https://…`.
+fn assignment<'a>(
+    rest: &'a [String],
+    line: usize,
+    usage: &str,
+) -> Result<(&'a str, Option<&'a str>), ParseError> {
+    let name = rest.first().ok_or_else(|| ParseError::new(line, usage))?;
+    let skip = usize::from(rest.get(1).is_some_and(|t| t == "="));
+    let value = rest.get(1 + skip).map(String::as_str);
+    Ok((name.as_str(), value))
 }
 
 /// Parses and bounds a loop count: a positive integer ≤ the security cap.
@@ -480,6 +489,14 @@ mod tests {
         assert!(
             matches!(&p.steps[1].command, Command::Raw { verb, args } if verb == "open" && args[0] == Arg::Var("base".into()))
         );
+    }
+
+    #[test]
+    fn parses_let_with_optional_equals() {
+        // `let x = value` is accepted as `let x value`.
+        let p = parse_program("let base = https://example.com\n").unwrap();
+        assert!(matches!(&p.steps[0].command, Command::Let { name, value }
+                if name == "base" && value == &Arg::Literal("https://example.com".into())));
     }
 
     #[test]

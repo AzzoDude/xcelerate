@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.14
+
+- Regenerated from the 1.0.14 core. No public API changes.
+
 ## 1.0.12
 
 - The package now bundles prebuilt native libraries for macOS (arm64/x64),

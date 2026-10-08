@@ -1,15 +1,19 @@
 # Distributing the `xcelerate` CLI on Linux
 
-Winget does not cover Linux. Ship the same CLI (`crates/xcelerate-cli`, binary
-`xcelerate`) through the channels below. At runtime it needs Chrome or Edge on
+Winget does not cover Linux. Ship the same CLI (`crates/xcelerate-cli`, bin
+target `xcelerate-cli`, shipped as `xcelerate`) through the channels below. At runtime it needs Chrome or Edge on
 the machine, or an explicit `--executable-path`, exactly like the Windows build.
 
 ## Build
 
 ```bash
 cargo build --release -p xcelerate-cli -p xcelerate-mcp
-./target/release/xcelerate --version
+./target/release/xcelerate-cli --version   # the bin target is `xcelerate-cli`
 ```
+
+The Cargo bin target is `xcelerate-cli` (naming it `xcelerate` collides with the
+core crate's `xcelerate` lib target on Windows). The release archives and the
+Linux tarball below ship that binary under the `xcelerate` name.
 
 ## Tarball (works on every distro)
 

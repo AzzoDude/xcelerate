@@ -502,7 +502,8 @@ xcelerate click-index https://example.com 2     # 点击快照中的元素 [2]
 `--executable-path <path>`、`--plugins stealth,human`、`--device <name>` 和 `--timeout <ms>`。
 `xcelerate --device <name> <command>` 会以内置移动设备渲染，`xcelerate list`
 会列出所有设备和插件。
-使用 `cargo install --path crates/xcelerate-cli` 安装，或在 Windows 上使用
+使用 `cargo install --path crates/xcelerate-cli` 安装（安装后的可执行文件名为
+`xcelerate-cli`；发布归档和 winget 会将其命名为 `xcelerate`），或在 Windows 上使用
 `winget install Chaosware.Xcelerate`；从代码检出运行时，请在任何命令前加上
 `cargo run -p xcelerate-cli --`。
 
@@ -548,7 +549,7 @@ done
 | 关键字 | 含义 |
 | --- | --- |
 | `# comment` | 整行注释（空行会被忽略）。 |
-| `let <name> <value>` | 定义变量；以 `$name` 进行插值。 |
+| `let <name> <value>` | 定义变量；以 `$name` 进行插值。名称后的 `=` 可选。 |
 | `set <name> <value>` | 重新赋值变量。 |
 | `param <name> [default]` | 声明运行时参数（可用 `--param k=v` 覆盖）。 |
 | `func <name>(a, b)` … `end` | 具名、无返回值的可调用单元（深度 1，不递归）。 |

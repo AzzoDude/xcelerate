@@ -97,7 +97,7 @@ println!("{}", page.title().await?);
   nơi mọi phần tử tương tác đều có thể được thao tác bằng `[index]`.
 - **CLI và máy chủ MCP** - lệnh `xcelerate` cho các tác vụ một lần, và `xcelerate mcp`
   (hoặc binary `xcelerate-mcp`) để điều khiển trình duyệt từ một client MCP.
-- **Kịch bản XCL** - một ngôn ngữ kịch bản `.xcl` theo hướng dòng mà cả con
+- **XCL** - một ngôn ngữ kịch bản `.xcl` theo hướng dòng mà cả con
   người lẫn AI đều có thể đọc và viết, với các biến, hàm có giới hạn, luồng
   điều khiển, HTTP `request`, plugin `run` và `assert`, được hỗ trợ bởi bảo mật
   default-deny.
@@ -519,11 +519,12 @@ Các cờ toàn cục áp dụng cho mọi lệnh: `--no-headless`, `--detached`
 `--executable-path <path>`, `--plugins stealth,human`, `--device <name>`, và `--timeout <ms>`.
 `xcelerate --device <name> <command>` hiển thị như một thiết bị di động có sẵn, và
 `xcelerate list` liệt kê mọi thiết bị và plugin. Cài đặt
-nó bằng `cargo install --path crates/xcelerate-cli`, hoặc
+nó bằng `cargo install --path crates/xcelerate-cli` (binary được cài đặt tên là
+`xcelerate-cli`; các bản phát hành và winget phân phối nó với tên `xcelerate`), hoặc
 `winget install Chaosware.Xcelerate` trên Windows; khi làm việc từ bản checkout, thêm
 tiền tố `cargo run -p xcelerate-cli --` trước mọi lệnh.
 
-## Kịch bản (XCL)
+## XCL
 
 XCL (`.xcl`) là một ngôn ngữ kịch bản nhỏ, theo hướng dòng, ghi lại một lượt tự
 động hóa nhiều bước trong một tệp mà cả **con người** lẫn **AI agent** đều
@@ -567,7 +568,7 @@ done
 | Keyword | Ý nghĩa |
 | --- | --- |
 | `# comment` | Chú thích toàn dòng (bỏ qua dòng trống). |
-| `let <name> <value>` | Định nghĩa một biến; nội suy thành `$name`. |
+| `let <name> <value>` | Định nghĩa một biến; nội suy thành `$name`. Dấu `=` sau tên là tùy chọn. |
 | `set <name> <value>` | Gán lại một biến. |
 | `param <name> [default]` | Khai báo một tham số runtime (ghi đè bằng `--param k=v`). |
 | `func <name>(a, b)` … `end` | Một hàm có tên, không trả về, có thể gọi (độ sâu 1, không đệ quy). |

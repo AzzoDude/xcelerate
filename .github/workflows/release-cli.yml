@@ -62,7 +62,9 @@ jobs:
           version=$(grep -m1 '^version = ' Cargo.toml | cut -d '"' -f2)
           name="xcelerate-${version}-${{ matrix.target }}"
           mkdir -p "dist/$name"
-          cp "target/${{ matrix.target }}/release/xcelerate" "dist/$name/"
+          # The bin target is `xcelerate-cli` (see crates/xcelerate-cli/Cargo.toml);
+          # ship it under the `xcelerate` name.
+          cp "target/${{ matrix.target }}/release/xcelerate-cli" "dist/$name/xcelerate"
           cp "target/${{ matrix.target }}/release/xcelerate-mcp" "dist/$name/"
           cp LICENSE-MIT LICENSE-APACHE "dist/$name/"
           tar -C dist -czf "dist/$name.tar.gz" "$name"
@@ -75,7 +77,9 @@ jobs:
             Select-Object -First 1).Matches.Groups[1].Value
           $name = "xcelerate-$version-${{ matrix.target }}"
           New-Item -ItemType Directory -Force "dist/$name" | Out-Null
-          Copy-Item "target/${{ matrix.target }}/release/xcelerate.exe" "dist/$name/"
+          # The bin target is `xcelerate-cli` (see crates/xcelerate-cli/Cargo.toml);
+          # ship it as `xcelerate.exe`.
+          Copy-Item "target/${{ matrix.target }}/release/xcelerate-cli.exe" "dist/$name/xcelerate.exe"
           Copy-Item "target/${{ matrix.target }}/release/xcelerate-mcp.exe" "dist/$name/"
           Copy-Item LICENSE-MIT,LICENSE-APACHE "dist/$name/"
           Compress-Archive -Path "dist/$name/*" -DestinationPath "dist/$name.zip"

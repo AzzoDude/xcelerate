@@ -36,7 +36,7 @@ done
 | Keyword | Meaning |
 | --- | --- |
 | `# comment` | Full-line comment (blank lines ignored). |
-| `let` / `set` / `param` | Define, reassign, or declare a variable (`$name`, `--param k=v`). |
+| `let` / `set` / `param` | Define, reassign, or declare a variable (`$name`, `--param k=v`). An `=` after the name is optional (`let base = https://example.com`). |
 | `func` … `end` / `<name> …` | Define and call a bounded, non-recursive function. |
 | `open` / `goto` / `back` / `reload` | Navigate. |
 | `title` `url` `text` `markdown` `content` `snapshot` | Read the page. |

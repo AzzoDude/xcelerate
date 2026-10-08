@@ -522,9 +522,11 @@ xcelerate click-index https://example.com 2     # スナップショットの要
 `--executable-path <path>`、`--plugins stealth,human`、`--device <name>`、`--timeout <ms>`。
 `xcelerate --device <name> <command>` は組み込みのモバイル デバイスとして描画し、
 `xcelerate list` はすべてのデバイスとプラグインを一覧表示します。
-インストールには `cargo install --path crates/xcelerate-cli`、Windows では
-`winget install Chaosware.Xcelerate` を使用します。チェックアウトから実行する場合は、
-任意のコマンドの前に `cargo run -p xcelerate-cli --` を付けます。
+インストールには `cargo install --path crates/xcelerate-cli`（インストールされる
+バイナリ名は `xcelerate-cli`。リリースアーカイブと winget では `xcelerate` として
+配布されます）、Windows では `winget install Chaosware.Xcelerate` を使用します。
+チェックアウトから実行する場合は、任意のコマンドの前に
+`cargo run -p xcelerate-cli --` を付けます。
 
 ## スクリプト（XCL）
 
@@ -569,7 +571,7 @@ done
 | キーワード | 意味 |
 | --- | --- |
 | `# comment` | 行全体のコメント（空行は無視されます）。 |
-| `let <name> <value>` | 変数を定義します。`$name` として展開します。 |
+| `let <name> <value>` | 変数を定義します。`$name` として展開します。名前の後の `=` は省略可能です。 |
 | `set <name> <value>` | 変数を再代入します。 |
 | `param <name> [default]` | 実行時パラメーターを宣言します（`--param k=v` で上書き）。 |
 | `func <name>(a, b)` … `end` | 名前付きの、戻り値のない呼び出し可能関数（深さ 1、再帰なし）。 |

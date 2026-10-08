@@ -25,7 +25,9 @@ stage="dist/${name}"
 
 rm -rf "$stage"
 mkdir -p "$stage"
-cp "target/${target}/release/xcelerate" "$stage/"
+# The bin target is `xcelerate-cli` (see crates/xcelerate-cli/Cargo.toml);
+# ship it as `xcelerate`.
+cp "target/${target}/release/xcelerate-cli" "$stage/xcelerate"
 cp "target/${target}/release/xcelerate-mcp" "$stage/"
 cp LICENSE-MIT LICENSE-APACHE "$stage/" 2>/dev/null || true
 

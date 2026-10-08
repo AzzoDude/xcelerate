@@ -22,3 +22,10 @@ tokio-tungstenite = { workspace = true }
 
 [lints]
 workspace = true
+
+# `rustls` is not `use`d directly: it is pulled in so its `ring` crypto
+# provider is enabled workspace-wide for the rare user-supplied `wss://`
+# endpoint (feature unification with `tokio-tungstenite`). cargo-machete can't
+# see that, so keep it explicitly.
+[package.metadata.cargo-machete]
+ignored = ["rustls"]

@@ -419,7 +419,7 @@ async fn request(
     #[cfg(not(feature = "http"))]
     {
         let _ = (method, url, headers, body);
-        return Outcome::fail("`request` requires a build with the `http` feature");
+        Outcome::fail("`request` requires a build with the `http` feature")
     }
 
     #[cfg(feature = "http")]

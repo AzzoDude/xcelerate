@@ -25,9 +25,13 @@ failure stops the run — unless you catch it with `retry` or `if-fail`.
 ## 0. Install
 
 ```bash
-cargo install --path crates/xcelerate-cli   # from a checkout
-winget install Chaosware.Xcelerate          # Windows
+cargo install --path crates/xcelerate-cli   # from a checkout (binary: xcelerate-cli)
+winget install Chaosware.Xcelerate          # Windows (command: xcelerate)
 ```
+
+> The release archives and winget install the command as `xcelerate`; a local
+> `cargo install` produces the same program named `xcelerate-cli` (the Cargo bin
+> target avoids an output-filename collision with the core `xcelerate` library).
 
 You need Chrome or Edge installed; Xcelerate finds it automatically. Confirm it
 works:
@@ -165,7 +169,9 @@ submit
 ```
 
 - `let` defines a variable, `set` reassigns it, and `param` declares a runtime
-  parameter. Interpolate with `$name`.
+  parameter. Interpolate with `$name`. An `=` after the name is optional, so
+  `let base = https://example.com` and `let base https://example.com` are the
+  same.
 - An **undefined** `$name` is a hard error — never a silent empty string.
 - Builtins: `{BASE_URL}` (from the `XCELERATE_BASE_URL` environment variable),
   `{TIMESTAMP}` (frozen once per run), and `{UUID}` (unique per mention).

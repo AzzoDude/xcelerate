@@ -18,7 +18,9 @@ cargo build --release -p xcelerate-cli -p xcelerate-mcp
 $v = (Select-String -Path Cargo.toml -Pattern '^version = "([^"]+)"' |
       Select-Object -First 1).Matches.Groups[1].Value
 New-Item -ItemType Directory -Force staging | Out-Null
-Copy-Item target\release\xcelerate.exe staging\
+# The bin target is `xcelerate-cli` (see crates/xcelerate-cli/Cargo.toml);
+# ship it as `xcelerate.exe`.
+Copy-Item target\release\xcelerate-cli.exe staging\xcelerate.exe
 Copy-Item target\release\xcelerate-mcp.exe staging\
 Copy-Item LICENSE-MIT,LICENSE-APACHE staging\
 Compress-Archive -Path staging\* -DestinationPath "xcelerate-$v-x86_64-pc-windows-msvc.zip" -Force
@@ -109,10 +111,11 @@ text fields.
   shorten that to `winget install xcelerate`.
 - Bump `PackageVersion` every release; winget tracks versions, so publishing the
   same version twice is rejected.
-- `xcelerate.exe` vs the `xcelerate` Rust library: both are named `xcelerate`, so
-  Cargo warns about a `.pdb` output collision. It is harmless (the outputs are
-  `.exe` and `.dll`), but see the note in `crates/xcelerate-cli/Cargo.toml` if you
-  later want the warning gone.
+- `xcelerate.exe` vs the `xcelerate` Rust library: the CLI's Cargo bin target is
+  named `xcelerate-cli` (see `crates/xcelerate-cli/Cargo.toml`) precisely so it
+  no longer collides with the core crate's `xcelerate` lib target (`xcelerate.pdb`
+  on Windows). Packaging renames `xcelerate-cli.exe` back to `xcelerate.exe` for
+  the zip, so the manifest above and the `xcelerate` command are unchanged.
 
 [wc]: https://github.com/microsoft/winget-create
 [pkgs]: https://github.com/microsoft/winget-pkgs

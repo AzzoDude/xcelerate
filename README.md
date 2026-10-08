@@ -554,9 +554,10 @@ Global flags apply to every command: `--no-headless`, `--detached`,
 `--executable-path <path>`, `--plugins stealth,human`, `--device <name>`, and
 `--timeout <ms>`. `xcelerate --device <name> <command>` renders as a built-in
 mobile device, and `xcelerate list` prints every device and plugin.
-Install it with `cargo install --path crates/xcelerate-cli`, or
-`winget install Chaosware.Xcelerate` on Windows; from a checkout, prefix any
-command with `cargo run -p xcelerate-cli --`.
+Install it with `cargo install --path crates/xcelerate-cli` (the installed
+binary is `xcelerate-cli`; the release archives and winget ship it as
+`xcelerate`), or `winget install Chaosware.Xcelerate` on Windows; from a
+checkout, prefix any command with `cargo run -p xcelerate-cli --`.
 
 ## Scripting (XCL)
 
@@ -604,7 +605,7 @@ done
 | Keyword | Meaning |
 | --- | --- |
 | `# comment` | Full-line comment (blank lines ignored). |
-| `let <name> <value>` | Define a variable; interpolate as `$name`. |
+| `let <name> <value>` | Define a variable; interpolate as `$name`. An `=` after the name is optional. |
 | `set <name> <value>` | Reassign a variable. |
 | `param <name> [default]` | Declare a runtime parameter (override with `--param k=v`). |
 | `func <name>(a, b)` … `end` | A named, no-return callable (depth 1, no recursion). |
