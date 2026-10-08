@@ -244,6 +244,8 @@ pub enum Command {
     Plugins,
     /// List the pages/windows of a running browser or app (requires `--connect`).
     Targets,
+    /// List open application windows: name, class, pid (Windows only).
+    Apps,
     /// Create a new mod (plugin) from the starter template.
     Plugin {
         #[command(subcommand)]

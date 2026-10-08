@@ -15,6 +15,9 @@ pub enum Arg {
     Var(String),
     /// A builtin such as `{BASE_URL}`, `{TIMESTAMP}`, `{UUID}`.
     Builtin(String),
+    /// A token mixing literals and references, e.g. `$base/account` or
+    /// `{HOST}:8080`. Resolved by concatenating each piece in order.
+    Template(Vec<Arg>),
 }
 
 impl Arg {
@@ -26,6 +29,15 @@ impl Arg {
             Arg::Literal(s) => quote_if_needed(s),
             Arg::Var(name) => format!("${name}"),
             Arg::Builtin(name) => format!("{{{name}}}"),
+            // A template is a single token: its literal pieces are echoed raw, so
+            // the whole thing round-trips as the source the user wrote.
+            Arg::Template(pieces) => pieces
+                .iter()
+                .map(|piece| match piece {
+                    Arg::Literal(s) => s.clone(),
+                    other => other.source(),
+                })
+                .collect(),
         }
     }
 }

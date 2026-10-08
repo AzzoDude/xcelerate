@@ -25,5 +25,9 @@ base64 = { workspace = true }
 # Used by the `xcelerate-mcp` binary's global allocator (see src/main.rs).
 mimalloc = { workspace = true }
 
+[target.'cfg(windows)'.dependencies]
+# Native-app tools (UIA). Windows only.
+xcelerate-uia = { path = "../xcelerate-uia", version = "1.0.14" }
+
 [lints]
 workspace = true

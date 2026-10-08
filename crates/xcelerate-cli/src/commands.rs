@@ -63,6 +63,21 @@ pub fn list_plugins() {
     println!("  `xcelerate plugin new <id>`.");
 }
 
+/// `apps`: list open native windows, fastest path (one UIA `FindAll`).
+fn list_apps() {
+    #[cfg(windows)]
+    match xcelerate_uia::Uia::new().and_then(|uia| uia.windows()) {
+        Ok(windows) => {
+            for window in windows {
+                println!("{}", xcelerate_uia::format_window(&window));
+            }
+        }
+        Err(error) => println!("apps: {error}"),
+    }
+    #[cfg(not(windows))]
+    println!("`apps` (native window listing) is Windows only.");
+}
+
 /// Formats `Target.getTargets` output as printable lines (page targets only), so
 /// the ids can be fed straight to `--attach <id>`.
 fn format_targets(json: &str) -> Vec<String> {
@@ -117,6 +132,7 @@ pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             }
         },
         Command::Plugins => list_plugins(),
+        Command::Apps => list_apps(),
         Command::Targets => {
             let ws_url = cli
                 .browser

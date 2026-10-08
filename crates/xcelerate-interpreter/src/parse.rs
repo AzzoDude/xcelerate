@@ -478,17 +478,107 @@ fn parse_signature(header: &str, line: usize) -> Result<(String, Vec<ParamDef>),
 }
 
 /// Classifies a token into an [`Arg`].
+///
+/// A token may embed more than one reference and literal text around them, so
+/// `$base/account` and `${base}/account` both build a URL, not a lookup of a
+/// variable literally named `base/account`. References are:
+///
+/// * `$name` — a variable, ending at the first character that is not a name
+///   character (`[A-Za-z0-9_-]`);
+/// * `${name}` — a variable, explicitly delimited (so `$`-adjacent text works);
+/// * `{NAME}` — a builtin, when the body is upper-case/digits/underscore; a
+///   brace group that is not a builtin (e.g. a JSON fragment) stays literal.
 fn parse_arg(token: &str, line: usize) -> Result<Arg, ParseError> {
-    if let Some(rest) = token.strip_prefix('$') {
-        if rest.is_empty() {
-            return Err(ParseError::new(line, "empty variable reference `$`"));
+    let chars: Vec<char> = token.chars().collect();
+    let mut pieces: Vec<Arg> = Vec::new();
+    let mut literal = String::new();
+    let mut i = 0;
+    while i < chars.len() {
+        match chars[i] {
+            '$' if chars.get(i + 1) == Some(&'{') => {
+                let close = chars[i + 2..].iter().position(|&c| c == '}');
+                let Some(offset) = close else {
+                    return Err(ParseError::new(
+                        line,
+                        "unterminated variable reference `${`",
+                    ));
+                };
+                let name: String = chars[i + 2..i + 2 + offset].iter().collect();
+                if name.is_empty() {
+                    return Err(ParseError::new(line, "empty variable reference `${}`"));
+                }
+                flush(&mut pieces, &mut literal, Arg::Var(name));
+                i += 2 + offset + 1;
+            }
+            '$' => {
+                let start = i + 1;
+                let end = chars[start..]
+                    .iter()
+                    .position(|&c| !is_name_char(c))
+                    .map_or(chars.len(), |offset| start + offset);
+                if end == start {
+                    return Err(ParseError::new(line, "empty variable reference `$`"));
+                }
+                let name: String = chars[start..end].iter().collect();
+                flush(&mut pieces, &mut literal, Arg::Var(name));
+                i = end;
+            }
+            '{' => {
+                let close = chars[i + 1..].iter().position(|&c| c == '}');
+                let inner = close.map(|offset| {
+                    (
+                        offset,
+                        chars[i + 1..i + 1 + offset].iter().collect::<String>(),
+                    )
+                });
+                match inner {
+                    Some((offset, name)) if is_builtin_name(&name) => {
+                        flush(&mut pieces, &mut literal, Arg::Builtin(name));
+                        i += 1 + offset + 1;
+                    }
+                    // Not a builtin (or no closing brace): a plain literal `{`.
+                    _ => {
+                        literal.push('{');
+                        i += 1;
+                    }
+                }
+            }
+            c => {
+                literal.push(c);
+                i += 1;
+            }
         }
-        return Ok(Arg::Var(rest.to_string()));
     }
-    if let Some(inner) = token.strip_prefix('{').and_then(|s| s.strip_suffix('}')) {
-        return Ok(Arg::Builtin(inner.to_string()));
+    if !literal.is_empty() {
+        pieces.push(Arg::Literal(literal));
     }
-    Ok(Arg::Literal(token.to_string()))
+    Ok(match pieces.len() {
+        0 => Arg::Literal(String::new()),
+        1 => pieces.pop().expect("one piece"),
+        _ => Arg::Template(pieces),
+    })
+}
+
+/// Characters allowed in a bare `$name` reference.
+fn is_name_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || c == '_' || c == '-'
+}
+
+/// A `{NAME}` builtin body: upper-case letters, digits and underscores only, so
+/// a lower-case or punctuated brace group (a JSON fragment, a regex) is literal.
+fn is_builtin_name(name: &str) -> bool {
+    !name.is_empty()
+        && name
+            .chars()
+            .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_')
+}
+
+/// Pushes accumulated literal text (if any) then the reference, keeping order.
+fn flush(pieces: &mut Vec<Arg>, literal: &mut String, arg: Arg) {
+    if !literal.is_empty() {
+        pieces.push(Arg::Literal(std::mem::take(literal)));
+    }
+    pieces.push(arg);
 }
 
 /// Require a name token (no `$` prefix in the declaration position).
@@ -555,6 +645,50 @@ mod tests {
         assert!(matches!(&p.steps[0].command, Command::Let { name, .. } if name == "base"));
         assert!(
             matches!(&p.steps[1].command, Command::Raw { verb, args } if verb == "open" && args[0] == Arg::Var("base".into()))
+        );
+    }
+
+    #[test]
+    fn interpolates_suffix_and_braces() {
+        // A reference next to literal text builds a template, so `$base/account`
+        // is a URL, not a lookup of a variable literally named `base/account`.
+        assert_eq!(
+            parse_arg("$base/account", 1).unwrap(),
+            Arg::Template(vec![
+                Arg::Var("base".into()),
+                Arg::Literal("/account".into())
+            ])
+        );
+        assert_eq!(
+            parse_arg("${base}/account", 1).unwrap(),
+            Arg::Template(vec![
+                Arg::Var("base".into()),
+                Arg::Literal("/account".into())
+            ])
+        );
+        assert_eq!(
+            parse_arg("{BASE_URL}/signup", 1).unwrap(),
+            Arg::Template(vec![
+                Arg::Builtin("BASE_URL".into()),
+                Arg::Literal("/signup".into())
+            ])
+        );
+        // A whole-token reference stays the plain variant, so existing scripts
+        // and equality tests are unaffected.
+        assert_eq!(parse_arg("$base", 1).unwrap(), Arg::Var("base".into()));
+        assert_eq!(parse_arg("{UUID}", 1).unwrap(), Arg::Builtin("UUID".into()));
+    }
+
+    #[test]
+    fn non_builtin_braces_stay_literal() {
+        // Lower-case/punctuated brace groups are data (JSON, regex), not builtins.
+        assert_eq!(
+            parse_arg("{\"a\":1}", 1).unwrap(),
+            Arg::Literal("{\"a\":1}".into())
+        );
+        assert_eq!(
+            parse_arg("{name}", 1).unwrap(),
+            Arg::Literal("{name}".into())
         );
     }
 

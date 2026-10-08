@@ -8,6 +8,7 @@ members = [
     "crates/xcelerate-interpreter",
     "crates/xcelerate-mcp",
     "crates/xcelerate-codegen",
+    "crates/xcelerate-uia",
 ]
 exclude = ["bindings", "tools", "adapters", "scripts", "docs"]
 resolver = "3"

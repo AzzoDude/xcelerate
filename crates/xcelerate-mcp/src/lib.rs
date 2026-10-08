@@ -104,6 +104,8 @@ enum Outcome {
 struct Server {
     browser: Option<std::sync::Arc<Browser>>,
     page: Option<std::sync::Arc<Page>>,
+    #[cfg(windows)]
+    uia: Option<xcelerate_uia::Uia>,
 }
 
 impl Server {
@@ -111,7 +113,20 @@ impl Server {
         Self {
             browser: None,
             page: None,
+            #[cfg(windows)]
+            uia: None,
         }
+    }
+
+    /// The lazily-created UIA automation handle for the native-app tools.
+    #[cfg(windows)]
+    fn uia(&mut self) -> Result<&mut xcelerate_uia::Uia, String> {
+        if self.uia.is_none() {
+            self.uia = Some(xcelerate_uia::Uia::new().map_err(|e| e.to_string())?);
+        }
+        self.uia
+            .as_mut()
+            .ok_or_else(|| "uia init failed".to_string())
     }
 
     async fn handle(&mut self, method: &str, params: &Value) -> Result<Value, String> {
@@ -600,6 +615,92 @@ impl Server {
                 }
                 Ok(Outcome::Text("Browser closed.".to_string()))
             }
+            #[cfg(windows)]
+            "app_windows" => {
+                let uia = self.uia()?;
+                let mut out = String::new();
+                for window in uia.windows().map_err(|e| e.to_string())? {
+                    out.push_str(&xcelerate_uia::format_window(&window));
+                    out.push('\n');
+                }
+                Ok(Outcome::Text(out))
+            }
+            #[cfg(windows)]
+            "app_find" => {
+                let window = str_arg(args, "window")?;
+                let needle = args
+                    .get("text")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_ascii_lowercase();
+                let uia = self.uia()?;
+                let infos = uia.snapshot(window, 400).map_err(|e| e.to_string())?;
+                let mut out = String::new();
+                for el in infos
+                    .iter()
+                    .filter(|e| e.name.to_ascii_lowercase().contains(&needle))
+                {
+                    out.push_str(&xcelerate_uia::format_element(el));
+                    out.push('\n');
+                }
+                if out.is_empty() {
+                    out.push_str("(no match)");
+                }
+                Ok(Outcome::Text(out))
+            }
+            #[cfg(windows)]
+            "app_click" => {
+                let window = str_arg(args, "window")?;
+                let uia = self.uia()?;
+                let (index, method) = match (
+                    args.get("name").and_then(Value::as_str),
+                    args.get("index").and_then(Value::as_u64),
+                ) {
+                    (Some(name), _) => uia
+                        .click_name(window, name, 400)
+                        .map_err(|e| e.to_string())?,
+                    (None, Some(index)) => {
+                        uia.snapshot(window, 400).map_err(|e| e.to_string())?;
+                        let method = uia.click(index as usize).map_err(|e| e.to_string())?;
+                        (index as usize, method)
+                    }
+                    (None, None) => return Err("app_click needs `name` or `index`".to_string()),
+                };
+                Ok(Outcome::Text(format!("clicked [{index}] via {method}")))
+            }
+            #[cfg(windows)]
+            "app_set_value" => {
+                let window = str_arg(args, "window")?;
+                let index = args
+                    .get("index")
+                    .and_then(Value::as_u64)
+                    .ok_or("app_set_value needs `index`")? as usize;
+                let text = str_arg(args, "text")?;
+                let uia = self.uia()?;
+                uia.snapshot(window, 400).map_err(|e| e.to_string())?;
+                uia.set_value(index, text).map_err(|e| e.to_string())?;
+                Ok(Outcome::Text(format!("set [{index}]")))
+            }
+            #[cfg(windows)]
+            "app_wait" => {
+                let window = str_arg(args, "window")?;
+                let text = str_arg(args, "text")?;
+                let ms = args
+                    .get("timeout_ms")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(10_000);
+                let uia = self.uia()?;
+                let hit = uia.wait_for(window, text, ms).map_err(|e| e.to_string())?;
+                Ok(Outcome::Text(format!("found {hit:?}")))
+            }
+            #[cfg(windows)]
+            "app_key" => {
+                let window = str_arg(args, "window")?;
+                let key = str_arg(args, "key")?;
+                let uia = self.uia()?;
+                uia.key_name(window, key).map_err(|e| e.to_string())?;
+                Ok(Outcome::Text(format!("key {key:?}")))
+            }
             other => Err(format!("Unknown tool: {other}")),
         }
     }
@@ -744,6 +845,71 @@ fn tool_definitions() -> Value {
                 "type": "object",
                 "properties": { "url": { "type": "string", "description": "Absolute URL to open." } },
                 "required": ["url"]
+            }
+        },
+        {
+            "name": "app_windows",
+            "description": "List open native application windows (Windows): name, class, pid. Discover a target for the other app_* tools.",
+            "inputSchema": { "type": "object", "properties": {} }
+        },
+        {
+            "name": "app_find",
+            "description": "List elements of a native window whose name contains `text` (one line each). Cheaper and more precise than dumping the whole tree.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "window": { "type": "string", "description": "Window title substring." },
+                    "text": { "type": "string", "description": "Element-name substring (empty = all)." }
+                },
+                "required": ["window"]
+            }
+        },
+        {
+            "name": "app_click",
+            "description": "Click an element of a native window by `name` (preferred) or `index`. Pattern-first: no cursor movement when a UI Automation pattern exists.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "window": { "type": "string" },
+                    "name": { "type": "string", "description": "Element-name substring." },
+                    "index": { "type": "integer", "description": "Element index from app_find." }
+                },
+                "required": ["window"]
+            }
+        },
+        {
+            "name": "app_set_value",
+            "description": "Set a native window element's value via ValuePattern (types into a field with no cursor).",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "window": { "type": "string" },
+                    "index": { "type": "integer" },
+                    "text": { "type": "string" }
+                },
+                "required": ["window", "index", "text"]
+            }
+        },
+        {
+            "name": "app_wait",
+            "description": "Wait until a native window has an element whose name contains `text` (polls internally, up to timeout_ms).",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "window": { "type": "string" },
+                    "text": { "type": "string" },
+                    "timeout_ms": { "type": "integer" }
+                },
+                "required": ["window", "text"]
+            }
+        },
+        {
+            "name": "app_key",
+            "description": "Send a key to a native window: next, prior, down, up, space, enter.",
+            "inputSchema": {
+                "type": "object",
+                "properties": { "window": { "type": "string" }, "key": { "type": "string" } },
+                "required": ["window", "key"]
             }
         },
         {

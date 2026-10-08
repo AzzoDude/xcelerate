@@ -364,12 +364,16 @@ fn substitute_args(command: &mut Command, params: &[ParamDef], args: &[Arg]) {
 }
 
 fn substitute(command: &mut Command, map: &HashMap<String, Arg>) {
-    let repl = |a: &Arg| -> Arg {
+    fn repl(a: &Arg, map: &HashMap<String, Arg>) -> Arg {
         match a {
             Arg::Var(name) => map.get(name).cloned().unwrap_or_else(|| a.clone()),
+            // Substitute inside a template's pieces, so `$base/account` picks up a
+            // `base` function parameter instead of resolving it at run time.
+            Arg::Template(pieces) => Arg::Template(pieces.iter().map(|p| repl(p, map)).collect()),
             other => other.clone(),
         }
-    };
+    }
+    let repl = |a: &Arg| repl(a, map);
     match command {
         Command::Let { value, .. }
         | Command::Set { value, .. }

@@ -302,6 +302,13 @@ impl Context {
                 .builtins
                 .resolve(name)
                 .ok_or_else(|| format!("unknown builtin `{{{name}}}`")),
+            super::ast::Arg::Template(pieces) => {
+                let mut out = String::new();
+                for piece in pieces {
+                    out.push_str(&self.resolve(piece)?);
+                }
+                Ok(out)
+            }
         }
     }
 }
