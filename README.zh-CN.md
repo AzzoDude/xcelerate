@@ -309,35 +309,48 @@ handle.invoke("ping".into(), "{}".into()).await?;
 
 ### 浏览器与应用插件（共享插件主目录）
 
-[`plugins/`](plugins) 目录包含两个现成的 WebAssembly 插件，完整展示了整个模型：
+浏览器与原生应用控制都是**插件**。[`plugins/browser`](plugins/browser)
+（`xcelerate.browser`）与 [`plugins/app`](plugins/app)（`xcelerate.app`）是现成的
+WebAssembly 组件，把整套操作面暴露为 ops：
 
 | 插件 | 暴露的能力 | Capability |
 | --- | --- | --- |
 | [`plugins/browser`](plugins/browser)（`xcelerate.browser`） | 浏览器操作面—— `open`、`click`、`fill`、`text`、`snapshot` 等 | `browser` |
-| [`plugins/app`](plugins/app)（`xcelerate.app`） | 原生窗口控制—— `launch`、`tree`、`click`、`set_value` 等 | `app` |
+| [`plugins/app`](plugins/app)（`xcelerate.app`） | 原生窗口控制—— `launch`、`window`、`tree`、`find`、`click`、`set_value` 等 | `app` |
 
 两者都不直接使用 CDP、BiDi 或操作系统，而是调用**受能力门控的宿主桥接**
 （`host.browser` / `host.app`）：插件向宿主请求一个语义动词，由宿主执行。如此，
 浏览器与应用控制便与解释器解耦，核心保持精简。
 
-一次构建，处处共享。裸插件 *名* 会依次在用户全局目录
-（`$XCELERATE_HOME/plugins`，否则 `~/.xcl/plugins`）、`./plugins`、`.` 中解析——
-因此一次构建可被任何项目导入：
+**构建由 CLI 负责。** `xcelerate build --wasm-only` 会写入 `wit/plugin.wit`
+（规范宿主 ABI）并把 `.wasm` 放到 `plugin.json` 旁边，因此插件无需手动复制或
+维护接口：
 
 ```bash
-cd plugins/browser && ./build.sh           # Windows:  .\build.ps1
-mkdir -p ~/.xcl/plugins && cp -r . ~/.xcl/plugins/browser
+cd plugins/browser && xcelerate build --wasm-only   # -> browser.wasm
+```
 
-# 可在任何位置；`browser` 能力是危险的，需显式授予
-XCELERATE_PLUGIN_ALLOW=browser \
-  xcelerate --plugins browser run --allow-plugin browser job.xcl
+**一次安装，按名使用。** 把构建好的插件放入用户全局目录
+（`$XCELERATE_HOME/plugins`，否则 `~/.xcl/plugins`）或 `./plugins`，`xcelerate run`
+会**自动加载**标准的 `browser` 与 `app` 插件。脚本随即使用**普通动词**，永不提及
+插件名：
+
+```bash
+# 原生应用：`app` 插件会被自动加载；授予其能力以及窗口
+XCELERATE_PLUGIN_ALLOW=app \
+  xcelerate run --native --allow-app "Calculator" app.xcl
 ```
 
 ```xcl
-# job.xcl
-run browser open {"url":"https://example.com"}
-run browser find {"text":"Example"}
+# app.xcl - 插件只是这些动词背后的库
+launch "calc" "Calculator"     # 启动（或附着）并选中它
+window "Calculator"            # ……或选中一个已在运行的窗口
+find "Equals"
+click "Equals"
 ```
+
+同样的工作也可直接通过插件的 ops 完成
+（`run xcelerate.browser open {"url":"…"}`）；普通动词是更可取、与插件无关的操作面。
 
 ### 检查与调用插件
 
@@ -395,11 +408,12 @@ println!("{}", browser.audit_log());
 `.wasm`，然后加载它：
 
 ```bash
-xcelerate plugin new acme.hello      # 从模板搭建
-cd hello && ./build.sh               # Windows:  .\build.ps1
+xcelerate plugin new acme.hello          # 从模板搭建
+cd hello && xcelerate build --wasm-only  # 写入 wit/plugin.wit 并构建 .wasm
 ```
 
-你只需编写普通的 Rust 操作处理器；xcelerate 负责处理 WebAssembly 的底层管道。
+你只需编写普通的 Rust 操作处理器；xcelerate 负责处理 WebAssembly 的底层管道，
+并为你写入 `wit/plugin.wit`。
 用 `Browser::load_plugin(path)`（一个目录或 `plugin.json`）加载构建好的组件，
 或将其放入 `~/.xcl/plugins/` 并按名称加载。
 参见[插件编写指南](docs/plugins/README.md)、[WASM 参考](docs/plugins/WASM.md)、

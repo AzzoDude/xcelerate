@@ -1,0 +1,15 @@
+# browser.xcl - drive a Chromium browser with the plain XCL browser verbs.
+#
+# No plugin needed for these verbs - they are built into the language and the
+# run's browser is launched for you:
+#
+#   xcelerate --browser brave run browser.xcl
+#
+# (The `xcelerate.browser` library is the plugin-shaped equivalent: it exposes
+# the same work as ops, e.g. `run xcelerate.browser open {"url":"..."}`.)
+
+import browser
+open "https://example.com"
+assert url contains example.com
+
+done

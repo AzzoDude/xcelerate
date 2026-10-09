@@ -172,7 +172,7 @@ pub(crate) fn resolve_plugin_names(names: &[String]) -> Vec<String> {
 /// anywhere as `--plugins browser` - one build, imported by every project. An
 /// unresolved name is returned unchanged, so the loader reports the miss with
 /// the name the user typed.
-fn resolve_plugin_name(name: &str) -> String {
+pub(crate) fn resolve_plugin_name(name: &str) -> String {
     if std::path::Path::new(name).exists() {
         return name.to_string();
     }

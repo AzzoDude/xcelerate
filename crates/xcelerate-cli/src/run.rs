@@ -84,6 +84,16 @@ pub async fn run_file(
                 format!("cannot load plugin `{path}`: {error}").into()
             })?;
     }
+    // Auto-load the standard `browser` / `app` plugins when they are installed
+    // (a plugin home, or ./plugins), so a script uses the plain verbs without
+    // naming them. Capabilities stay default-deny, so this only makes the ops
+    // *available*; the grant is still required. A missing/duplicate load is fine.
+    for name in ["browser", "app"] {
+        let path = crate::launch::resolve_plugin_name(name);
+        if std::path::Path::new(&path).exists() {
+            let _ = exe.load_plugin(&path);
+        }
+    }
 
     // Build context + apply `--param key=value` overrides.
     let base_url = std::env::var("XCELERATE_BASE_URL").unwrap_or_default();

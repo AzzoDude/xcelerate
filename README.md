@@ -120,8 +120,12 @@ println!("{}", page.title().await?);
 - **Automated process management** - discovers and launches Chrome or Edge, and
   manages the lifecycle of the browser process.
 - **Security-first plugins** - a default-deny plugin system with an append-only
-  audit log. Xcelerate ships **no** built-in plugins; external ones are loaded by
-  path with sandboxed, capability-gated host calls.
+  audit log. **No plugin is compiled into the core**: external ones are sandboxed
+  WebAssembly components, capability-gated, and loaded from a shared plugin home.
+- **Browser & app control as plugins** - [`plugins/browser`](plugins/browser) and
+  [`plugins/app`](plugins/app) are ready-made WebAssembly plugins that expose the
+  browser and native-app surfaces as capability-gated ops, so the core stays small
+  and both surfaces evolve independently.
 - **Human-like input by default** - clicks and typing drive the real mouse and
   keyboard: the cursor travels to the element along a Bezier path and text is
   typed at a human pace, so runs look less robotic. Pass `--linear` for a
@@ -359,37 +363,51 @@ plugin only ever acts on pages it has been handed.
 
 ### Browser and app plugins (the shared plugin home)
 
-The [`plugins/`](plugins) directory holds two ready-made WebAssembly plugins that
-show the whole model end to end:
+Browser and native-app control are **plugins**.
+[`plugins/browser`](plugins/browser) (`xcelerate.browser`) and
+[`plugins/app`](plugins/app) (`xcelerate.app`) are ready-made WebAssembly
+components that expose the whole surface as ops:
 
 | Plugin | Exposes | Capability |
 | --- | --- | --- |
 | [`plugins/browser`](plugins/browser) (`xcelerate.browser`) | the browser surface - `open`, `click`, `fill`, `text`, `snapshot`, … | `browser` |
-| [`plugins/app`](plugins/app) (`xcelerate.app`) | native-window control - `launch`, `tree`, `click`, `set_value`, … | `app` |
+| [`plugins/app`](plugins/app) (`xcelerate.app`) | native-window control - `launch`, `window`, `tree`, `find`, `click`, `set_value`, … | `app` |
 
 Both call a **capability-gated host bridge** (`host.browser` / `host.app`)
 instead of speaking CDP, BiDi, or the OS directly: a plugin asks the host for a
 semantic verb and the host performs it. That is how browser and app control stay
 decoupled from the interpreter while the core stays small.
 
-Build one once and share it. A bare plugin *name* is resolved from the
-user-global home (`$XCELERATE_HOME/plugins`, else `~/.xcl/plugins`), then
-`./plugins`, then `.` - so one build is importable from every project:
+**The CLI owns the build.** `xcelerate build --wasm-only` writes `wit/plugin.wit`
+(the canonical host ABI) and stages the `.wasm` beside `plugin.json`, so a plugin
+never hand-copies or maintains the interface:
 
 ```bash
-cd plugins/browser && ./build.sh           # Windows:  .\build.ps1
-mkdir -p ~/.xcl/plugins && cp -r . ~/.xcl/plugins/browser
+cd plugins/browser && xcelerate build --wasm-only   # -> browser.wasm
+```
 
-# from anywhere; the `browser` capability is dangerous, so grant it explicitly
-XCELERATE_PLUGIN_ALLOW=browser \
-  xcelerate --plugins browser run --allow-plugin browser job.xcl
+**Install once, use by name.** Drop a built plugin in the user-global home
+(`$XCELERATE_HOME/plugins`, else `~/.xcl/plugins`) or `./plugins`, and
+`xcelerate run` auto-loads the standard `browser` and `app` plugins. A script then
+uses the **plain verbs** and never names the plugin:
+
+```bash
+# native app: the `app` plugin is auto-loaded; grant its capability and the window
+XCELERATE_PLUGIN_ALLOW=app \
+  xcelerate run --native --allow-app "Calculator" app.xcl
 ```
 
 ```xcl
-# job.xcl
-run browser open {"url":"https://example.com"}
-run browser find {"text":"Example"}
+# app.xcl - the plugin is just the library behind these verbs
+launch "calc" "Calculator"     # start (or attach), and select it
+window "Calculator"            # ...or select an already-running window
+find "Equals"
+click "Equals"
 ```
+
+The same work is reachable through the plugin's ops directly
+(`run xcelerate.browser open {"url":"…"}`); the plain verbs are the preferred,
+plugin-agnostic surface.
 
 ### Inspecting and invoking plugins
 
@@ -452,13 +470,14 @@ A plugin is an external WebAssembly component (or a trusted in-process crate).
 Scaffold a starter, build the `.wasm`, then load it:
 
 ```bash
-xcelerate plugin new acme.hello      # scaffold from the template
-cd hello && ./build.sh               # Windows:  .\build.ps1
+xcelerate plugin new acme.hello          # scaffold from the template
+cd hello && xcelerate build --wasm-only  # writes wit/plugin.wit, builds the .wasm
 ```
 
-You write plain Rust op handlers; xcelerate handles the WebAssembly plumbing.
-Load the built component with `Browser::load_plugin(path)` (a directory or a
-`plugin.json`), or drop it in `~/.xcl/plugins/` and load it by name. See the
+You write plain Rust op handlers; xcelerate handles the WebAssembly plumbing and
+writes `wit/plugin.wit` for you. Load the built component with
+`Browser::load_plugin(path)` (a directory or a `plugin.json`), or drop it in
+`~/.xcl/plugins/` and load it by name. See the
 [plugin authoring guide](docs/plugins/README.md), the
 [WASM reference](docs/plugins/WASM.md), the JSON
 [schema](docs/plugins/plugin.schema.json), and the
@@ -574,6 +593,12 @@ by default), `--detached`, `--executable-path <path>`, `--plugins <path,...>`,
 default human-like input), `--output-dir <dir>` (the workspace root every file
 verb is confined to), and `--timeout <ms>`. `xcelerate --device <name> <command>` renders as a built-in
 mobile device, and `xcelerate list` prints every device and plugin.
+
+Native application control is a plugin too: the auto-loaded `xcelerate.app`
+backs the XCL `launch`/`window`/`tree`/`find`/`click` verbs. There is no
+`xcelerate app` subcommand - drive a desktop app with `xcelerate run --native`
+(see [Plugins](#plugins)).
+
 Install it with `cargo install --path crates/xcelerate-cli` (the installed
 binary is `xcelerate-cli`; the release archives and winget ship it as
 `xcelerate`), or `winget install Chaosware.Xcelerate` on Windows; from a
