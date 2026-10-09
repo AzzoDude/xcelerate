@@ -1,0 +1,39 @@
+# news-to-notepad.xcl - read a headline from a news site in the browser, then
+# type it into Notepad on the desktop. Two drivers, two plugins.
+#
+#   xcelerate run --allow-app "*Notepad" news-to-notepad.xcl
+#
+# Make it slow enough to watch every step with `XCELERATE_STEP_DELAY_MS` (ms):
+#
+#   XCELERATE_STEP_DELAY_MS=1200 \
+#     xcelerate run --allow-app "*Notepad" news-to-notepad.xcl
+#
+# The two drivers are declared once, at the top. `open` makes the browser
+# active; `launch`/`fill` make the desktop active.
+
+import browser, desktop
+
+param site "https://news.ycombinator.com"
+
+# 1) Browser: open the news page and read the top headline. `text` leaves the
+#    whole page text in `$RESULT`; `regex` pulls the first numbered headline out
+#    of it (first capture group). `await` holds the page on screen for a beat.
+open $site
+wait-stable
+text
+regex $RESULT '1\.\s+([^\n]+)'
+let headline $RESULT
+print "headline:" $headline
+await 1
+
+# 2) Desktop: open Notepad and put the headline into its text area. `find`
+#    returns the document element line; `regex` keeps just its `[index]`; `fill`
+#    sets that element's value. Notepad's title tracks the first line, so we
+#    grant the window by its stable "…- Notepad" suffix.
+import desktop
+launch "notepad" "Notepad"
+find "Text editor"
+regex $RESULT '\[([0-9]+)\]'
+fill $RESULT $headline
+
+done

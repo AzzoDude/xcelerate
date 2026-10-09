@@ -42,9 +42,18 @@ rmp-serde = { workspace = true, optional = true }
 libc = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
-# Backs the `host.app` bridge: a sandboxed plugin drives native windows through
+# Backs the `host.desktop` bridge: a sandboxed plugin drives native windows through
 # UI Automation by asking the host for a verb, never by touching the OS itself.
-xcelerate-desktop = { workspace = true }
+# (This was the `xcelerate-desktop` crate; it is now the `desktop` module here,
+# since UI Automation is host-only OS code a wasm plugin cannot run.)
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_System_Com",
+    "Win32_System_Variant",
+    "Win32_UI_Accessibility",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging",
+] }
 
 [lints]
 workspace = true

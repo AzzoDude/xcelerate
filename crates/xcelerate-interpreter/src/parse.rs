@@ -211,6 +211,33 @@ impl Parser {
             return self.parse_func_body(line, &verb, rest);
         }
 
+        // `import browser[,] desktop` - one statement binding one or more drivers.
+        // Tokens are split on commas and spaces, so `import browser, desktop` and
+        // `import browser desktop` both work.
+        if verb == "import" {
+            let names: Vec<&str> = rest
+                .iter()
+                .flat_map(|token| token.split(','))
+                .map(str::trim)
+                .filter(|name| !name.is_empty())
+                .collect();
+            if !names.is_empty()
+                && names
+                    .iter()
+                    .all(|name| *name == "browser" || *name == "desktop")
+            {
+                for name in names {
+                    self.push_top(
+                        Command::Import {
+                            name: name.to_string(),
+                        },
+                        line,
+                    );
+                }
+                return Ok(());
+            }
+        }
+
         let command = match verb.as_str() {
             "let" => {
                 let (name, value) = assignment(rest, line, "let <name> <value>")?;
@@ -237,12 +264,6 @@ impl Parser {
                     default: default.map(|v| parse_arg(v, line)).transpose()?,
                 }
             }
-            "print" => Command::Print {
-                args: rest
-                    .iter()
-                    .map(|v| parse_arg(v, line))
-                    .collect::<Result<Vec<_>, _>>()?,
-            },
             "func" => {
                 self.open_func(line, rest)?;
                 return Ok(());
@@ -603,6 +624,12 @@ fn parse_arg(token: &str, line: usize) -> Result<Arg, ParseError> {
     let mut i = 0;
     while i < chars.len() {
         match chars[i] {
+            // `$$` is a literal `$` (so a value or regex can contain one, e.g. a
+            // currency sign).
+            '$' if chars.get(i + 1) == Some(&'$') => {
+                literal.push('$');
+                i += 2;
+            }
             '$' if chars.get(i + 1) == Some(&'{') => {
                 let close = chars[i + 2..].iter().position(|&c| c == '}');
                 let Some(offset) = close else {
@@ -828,10 +855,12 @@ mod tests {
     }
 
     #[test]
-    fn parses_print_command() {
+    fn print_is_an_ordinary_verb() {
+        // `print` is a `core` std function, not a language keyword: it parses as a
+        // pass-through verb (with its arguments resolved verbatim).
         let p = parse_program("let who \"world\"\nprint hello $who\n").unwrap();
-        assert!(matches!(&p.steps[1].command, Command::Print { args }
-                if args == &vec![Arg::Literal("hello".into()), Arg::Var("who".into())]));
+        assert!(matches!(&p.steps[1].command, Command::Raw { verb, args }
+                if verb == "print" && args == &vec![Arg::Literal("hello".into()), Arg::Var("who".into())]));
     }
 
     #[test]

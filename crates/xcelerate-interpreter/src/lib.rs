@@ -23,7 +23,6 @@
 pub mod ast;
 pub mod engine;
 pub mod exec;
-pub mod interact;
 pub mod lex;
 #[cfg(feature = "http")]
 pub mod net;

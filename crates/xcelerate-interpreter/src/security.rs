@@ -186,13 +186,16 @@ fn glob_allows(pattern: &str, name: &str) -> bool {
     let (mut pi, mut ni) = (0usize, 0usize);
     let (mut star, mut star_ni) = (None, 0usize);
     while ni < n.len() {
-        if pi < p.len() && (p[pi] == '?' || p[pi] == n[ni]) {
-            pi += 1;
-            ni += 1;
-        } else if pi < p.len() && p[pi] == '*' {
+        // A `*` in the pattern is *always* a wildcard - check it before the
+        // literal comparison, so a `*` in the name (e.g. a modified window
+        // title like `*Untitled - Notepad`) is not consumed by it.
+        if pi < p.len() && p[pi] == '*' {
             star = Some(pi);
             star_ni = ni;
             pi += 1;
+        } else if pi < p.len() && (p[pi] == '?' || p[pi] == n[ni]) {
+            pi += 1;
+            ni += 1;
         } else if let Some(sp) = star {
             pi = sp + 1;
             star_ni += 1;
@@ -346,6 +349,15 @@ mod tests {
         assert!(glob_allows("*", "any.plugin"));
         assert!(glob_allows("acme.*", "acme.kv"));
         assert!(!glob_allows("acme.*", "other.kv"));
+    }
+
+    #[test]
+    fn glob_star_wildcard_matches_a_literal_star_in_the_name() {
+        // A window title can begin with `*` (a modified document); the pattern's
+        // `*` is a wildcard and must not be consumed by that literal `*`.
+        assert!(glob_allows("*Notepad*", "*Untitled - Notepad"));
+        assert!(glob_allows("*Notepad", "*Untitled - Notepad"));
+        assert!(!glob_allows("Notepad*", "*Untitled - Notepad"));
     }
 
     #[test]

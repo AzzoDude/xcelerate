@@ -29,6 +29,11 @@ mod xcelerate {
                 // Echo the op name back so the test can assert dispatch.
                 Ok(op.as_bytes().to_vec())
             }
+
+            pub fn app(op: &str, args: &[u8]) -> Result<Vec<u8>, String> {
+                let _ = args;
+                Ok(op.as_bytes().to_vec())
+            }
         }
     }
 }
@@ -44,6 +49,30 @@ plugin! {
     ops = {
         open => "goto",
         click,
+    },
+}
+
+/// A plugin mixing forwarded ops with locally-implemented ones.
+struct App;
+
+/// A `local` op: named by its op, it composes host primitives itself.
+fn tree(args: &[u8]) -> Result<Vec<u8>, String> {
+    let _ = args;
+    xcelerate::plugin::host::app("snapshot", &[])
+}
+
+fn click(args: &[u8]) -> Result<Vec<u8>, String> {
+    let _ = args;
+    Ok(b"local-click".to_vec())
+}
+
+plugin! {
+    guest = App,
+    name = "app",
+    bridge = app,
+    local = { tree, click },
+    ops = {
+        launch,
     },
 }
 
@@ -70,6 +99,26 @@ fn invoke_dispatches_to_the_host_bridge() {
     assert_eq!(out, b"click");
 
     assert!(Browser::invoke("missing".to_string(), Vec::new()).is_err());
+}
+
+#[test]
+fn local_ops_are_described_and_dispatched_here() {
+    use exports::xcelerate::plugin::plugin::Guest;
+
+    let described: Describe = rmp_serde::from_slice(&App::describe()).unwrap();
+    assert_eq!(described.name, "app");
+    // Forwarded and local ops both appear.
+    assert_eq!(described.ops, vec!["launch", "tree", "click"]);
+
+    // A local op runs the plugin's own function (not the host bridge)...
+    let out = App::invoke("click".to_string(), Vec::new()).unwrap();
+    assert_eq!(out, b"local-click");
+    // ...which may itself call host primitives (`tree` echoes `snapshot`).
+    let out = App::invoke("tree".to_string(), Vec::new()).unwrap();
+    assert_eq!(out, b"snapshot");
+    // A forwarded op still goes to the bridge.
+    let out = App::invoke("launch".to_string(), Vec::new()).unwrap();
+    assert_eq!(out, b"launch");
 }
 
 #[derive(serde::Deserialize)]

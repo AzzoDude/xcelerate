@@ -17,6 +17,7 @@ path = "src/lib.rs"
 xcelerate.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
+regex.workspace = true
 # The `request` verb's in-process HTTP client and the CLI `fetch` helpers.
 futures = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }

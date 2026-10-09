@@ -662,13 +662,14 @@ done
 | `cookie [get] [name]` `cookie set <name> <value> [domain] [path]` `cookie add <json>` `cookie delete <name>` `cookie clear` | Read, set (including `HttpOnly` session cookies), or clear cookies. |
 | `capture <url> <path> [secs]` | Record an MSE page's own segments (YouTube/Facebook). |
 | `shot [path]` `shot-full [path]` | Save a viewport or full-page screenshot. |
-| `wait <ms\|selector>` `wait-sec` `wait-min` `wait-hr` `wait-idle` `wait-stable` | Wait. |
+| `wait <ms\|selector>` `wait-idle` `wait-stable` | Wait for a selector, or sleep a number. |
+| `sleep` `await` `wait-ms` / `wait-sec` / `wait-min` / `wait-hr` `wait-random` | `core` std sleeps (ms, seconds, the named unit, or a random delay). |
 | `eval <js>` | Run JavaScript (requires `--allow-unsafe`). |
 | `request <METHOD> <url> [headers] [body]` | HTTP without a browser (requires `--allow-http`). |
 | `import <id> [op]…` `run <plugin> <op> [json]` `plugins` `plugin-config <id>` | Plugins / workers; each imported `op` becomes a bare callable. |
 | `repeat <n> …` `retry <n> …` `if-ok …` `if-fail …` `goto <label>` `label <name>` | Bounded control flow. |
 | `assert <subject> <op> <value>` | Fail-fast check (`url`, `title`, `status`, `contains`, `==`, …). |
-| `print <arg>...` | Write the resolved arguments to stdout (the explicit log channel). |
+| `print <arg>...` | A `core` std function: write the resolved arguments to stdout. |
 | `done` / `quit` | End the run. |
 
 ### Files and paths
@@ -854,8 +855,7 @@ xcelerate/
     xcelerate-cli/          # CLI (binary `xcelerate`), incl. the XCL runner
     xcelerate-mcp/          # `xcelerate-mcp` Model Context Protocol server
     xcelerate-codegen/      # script + typed-binding code generation (11 languages)
-    xcelerate-desktop/      # Windows UI Automation backend (native windows)
-  adapters/                 # adapter profiles, runtime, and generator inputs
+    adapters/                 # adapter profiles, runtime, and generator inputs
   bindings/                 # generated Python/JS/C#/Kotlin/Java/Swift/Ruby/Dart/Go packages (+ PowerShell)
   docs/plugins/             # plugin authoring guide, JSON schema, examples
   docs/xcl.md               # the XCL scripting language reference

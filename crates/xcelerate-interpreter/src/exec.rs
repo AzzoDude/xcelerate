@@ -242,6 +242,41 @@ impl Executor {
         self.plugins.names()
     }
 
+    /// One line per loaded plugin: its declared capabilities and whether it is
+    /// **trusted by default** (a standard-library plugin) or needs an explicit
+    /// `XCELERATE_PLUGIN_ALLOW` grant. This is the run's trust surface, so a
+    /// script (or a human) can verify exactly what is allowed to act.
+    pub fn plugin_report(&self) -> String {
+        let names = self.plugins.names();
+        if names.is_empty() {
+            return "no plugins loaded".to_string();
+        }
+        names
+            .iter()
+            .map(|name| {
+                let caps = self
+                    .plugins
+                    .manifest(name)
+                    .map(|manifest| {
+                        manifest
+                            .capabilities
+                            .iter()
+                            .map(|capability| capability.as_str())
+                            .collect::<Vec<_>>()
+                            .join(",")
+                    })
+                    .unwrap_or_default();
+                let trust = if xcelerate::plugin::is_standard_plugin(name) {
+                    "trusted (stdlib)"
+                } else {
+                    "grant required (XCELERATE_PLUGIN_ALLOW)"
+                };
+                format!("{name}  caps=[{caps}]  {trust}")
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
     /// The run's plugin host (for listing ops and reading a plugin's config).
     pub fn plugins(&self) -> &Arc<PluginManager> {
         &self.plugins
@@ -300,16 +335,6 @@ pub async fn dispatch(ctx: &mut Context, cmd: &Command, exe: &Executor) -> Outco
                 Outcome::fail(format!("missing required param `{name}`"))
             }
         }
-        Command::Print { args } => {
-            let mut parts = Vec::with_capacity(args.len());
-            for a in args {
-                match ctx.resolve(a) {
-                    Ok(v) => parts.push(v),
-                    Err(e) => return Outcome::fail(e),
-                }
-            }
-            Outcome::ok(parts.join(" "))
-        }
         Command::Import { name } => match name.as_str() {
             // Driver imports: bring in an application interface. `browser` launches
             // the CDP-driven browser on demand; `desktop` selects UI Automation.
@@ -343,15 +368,7 @@ pub async fn dispatch(ctx: &mut Context, cmd: &Command, exe: &Executor) -> Outco
                 Outcome::ok(format!("import {name}"))
             }
         },
-        Command::Plugins => {
-            let names = exe.plugin_names();
-            let text = if names.is_empty() {
-                "none".into()
-            } else {
-                names.join(", ")
-            };
-            Outcome::ok(format!("loaded: {text}"))
-        }
+        Command::Plugins => Outcome::ok(exe.plugin_report()),
         Command::PluginConfig { name, op } => {
             // Reading a plugin's config/schema is still a plugin capability: it
             // must be allowlisted, exactly like `import`/`run`.
@@ -486,7 +503,10 @@ enum Route {
 
 /// Verbs that always drive the desktop driver (no browser equivalent exists).
 fn is_native_only(verb: &str) -> bool {
-    matches!(verb, "launch" | "window" | "tree" | "key" | "wheel")
+    matches!(
+        verb,
+        "launch" | "window" | "tree" | "close" | "key" | "wheel"
+    )
 }
 
 /// Verbs that exist on **both** drivers; the active [`Driver`] chooses one.
@@ -543,7 +563,7 @@ async fn dispatch_native(
         if let Some(title) = &title {
             payload["title"] = serde_json::json!(title);
         }
-        let result = invoke_app(exe, "launch", payload).await?;
+        let result = invoke_desktop(exe, "launch", payload).await?;
         let window = result
             .get("window")
             .and_then(|v| v.as_str())
@@ -576,7 +596,10 @@ async fn dispatch_native(
     };
 
     // Acting verbs re-check the grant (defense in depth).
-    let acting = matches!(verb, "click" | "fill" | "key" | "wheel" | "scroll");
+    let acting = matches!(
+        verb,
+        "click" | "fill" | "key" | "wheel" | "scroll" | "close"
+    );
     if acting && !ctx.permissions.app_allowed(&window) {
         return Err(format!(
             "driving `{window}` is not allowed (pass --allow-app \"{window}\")"
@@ -587,8 +610,18 @@ async fn dispatch_native(
     // the native-app code lives in the plugin, not here.
     match verb {
         "tree" => {
-            let result = invoke_app(exe, "tree", serde_json::json!({ "window": window })).await?;
+            let result =
+                invoke_desktop(exe, "tree", serde_json::json!({ "window": window })).await?;
             Ok(native_lines(&result))
+        }
+        "close" => {
+            let result =
+                invoke_desktop(exe, "close", serde_json::json!({ "window": window })).await?;
+            let closed = result
+                .get("closed")
+                .and_then(|v| v.as_str())
+                .unwrap_or(window.as_str());
+            Ok(format!("closed {closed:?}"))
         }
         "find" => {
             let needle = args
@@ -596,7 +629,7 @@ async fn dispatch_native(
                 .cloned()
                 .unwrap_or_default()
                 .to_ascii_lowercase();
-            let result = invoke_app(
+            let result = invoke_desktop(
                 exe,
                 "find",
                 serde_json::json!({ "window": window, "text": needle }),
@@ -612,7 +645,7 @@ async fn dispatch_native(
         "wait" => {
             let text = args.first().cloned().ok_or("usage: wait <text> [ms]")?;
             let ms = args.get(1).and_then(|m| m.parse().ok()).unwrap_or(10_000);
-            let result = invoke_app(
+            let result = invoke_desktop(
                 exe,
                 "wait",
                 serde_json::json!({ "window": window, "text": text, "timeout_ms": ms }),
@@ -636,7 +669,7 @@ async fn dispatch_native(
                 Ok(index) => serde_json::json!({ "window": window, "index": index }),
                 Err(_) => serde_json::json!({ "window": window, "name": arg }),
             };
-            let result = invoke_app(exe, "click", payload).await?;
+            let result = invoke_desktop(exe, "click", payload).await?;
             Ok(format!(
                 "clicked via {}",
                 result
@@ -652,7 +685,7 @@ async fn dispatch_native(
                 .parse()
                 .map_err(|_| "fill <index> <text>: index must be a number".to_string())?;
             let text = args.get(1).cloned().unwrap_or_default();
-            invoke_app(
+            invoke_desktop(
                 exe,
                 "set_value",
                 serde_json::json!({ "window": window, "index": index, "text": text }),
@@ -665,7 +698,7 @@ async fn dispatch_native(
             if crate::security::is_dangerous_key(&key) {
                 return Err(format!("`{key}` escapes the app; refused"));
             }
-            invoke_app(
+            invoke_desktop(
                 exe,
                 "key",
                 serde_json::json!({ "window": window, "key": key }),
@@ -679,7 +712,7 @@ async fn dispatch_native(
                 .ok_or("usage: wheel <notches>")?
                 .parse()
                 .map_err(|_| "wheel <notches>: notches must be a number".to_string())?;
-            invoke_app(
+            invoke_desktop(
                 exe,
                 "wheel",
                 serde_json::json!({ "window": window, "notches": notches }),
@@ -693,7 +726,7 @@ async fn dispatch_native(
                 .ok_or("usage: scroll <notches>")?
                 .parse()
                 .map_err(|_| "scroll <notches>: notches must be a number".to_string())?;
-            let result = invoke_app(
+            let result = invoke_desktop(
                 exe,
                 "scroll",
                 serde_json::json!({ "window": window, "notches": notches }),
@@ -711,19 +744,19 @@ async fn dispatch_native(
     }
 }
 
-/// Invokes the `app` plugin and decodes its JSON result, mapping a
+/// Invokes the `desktop` plugin and decodes its JSON result, mapping a
 /// missing plugin (not loaded) to a clear, actionable error.
 #[cfg(windows)]
-async fn invoke_app(
+async fn invoke_desktop(
     exe: &Executor,
     op: &str,
     payload: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
     let result = exe
-        .invoke_plugin("app", op, payload.to_string(), None)
+        .invoke_plugin("desktop", op, payload.to_string(), None)
         .await?;
     serde_json::from_str(&result)
-        .map_err(|error| format!("app.{op} returned invalid JSON: {error}"))
+        .map_err(|error| format!("desktop.{op} returned invalid JSON: {error}"))
 }
 
 /// The `lines` array of an app-plugin result, joined for display.
@@ -769,6 +802,10 @@ async fn dispatch_raw(
             Err(e) => return Err(e),
         }
     }
+
+    // The `--allow-unsafe` decision is a host policy the plugin's `eval` verb
+    // needs, so the interpreter passes it along rather than the plugin guessing.
+    let allow_eval = ctx.permissions.allow_eval;
     // `drivers` is driver-agnostic: report which drivers this run exposes and
     // which is active. (The counterpart of `plugins`.)
     if verb == "drivers" {
@@ -793,10 +830,53 @@ async fn dispatch_raw(
         ));
     }
 
+    // `regex <source> <pattern> [group]`: apply a regular expression to `source`
+    // and keep the match - a capture group if the pattern has one (or when `group`
+    // gives an index), else the whole match. A captured value is often a whole
+    // formatted line, so this reduces it to the part you want - e.g.
+    // `regex $RESULT "Display is ([0-9]+)"` turns `..."Display is 42"...` into
+    // `42`. No driver or page is needed; the result lands in `$RESULT`.
+    if verb == "regex" {
+        let source = resolved.first().cloned().unwrap_or_default();
+        let pattern = resolved
+            .get(1)
+            .cloned()
+            .ok_or("usage: regex <source> <pattern> [group]")?;
+        let re =
+            regex::Regex::new(&pattern).map_err(|error| format!("regex: bad pattern: {error}"))?;
+        let captures = re
+            .captures(&source)
+            .ok_or_else(|| format!("regex: /{pattern}/ did not match"))?;
+        let group = match resolved.get(2) {
+            Some(index) => index
+                .parse::<usize>()
+                .map_err(|_| "regex: group must be a number".to_string())?,
+            None if captures.len() > 1 => 1,
+            None => 0,
+        };
+        let matched = captures
+            .get(group)
+            .ok_or_else(|| format!("regex: no group {group} in /{pattern}/"))?
+            .as_str()
+            .to_string();
+        return Ok(matched);
+    }
+
+    // Standard-library verbs live in the `core` plugin (the language's `std`): a
+    // raw verb the core plugin declares (`print`, `now`, `env`, …) runs there and
+    // needs no browser, so the interpreter stays language-only.
+    if is_core_verb(exe, verb) {
+        return core_verb(exe, verb, &resolved).await;
+    }
+
     // Context selection: `open`/`goto` are browser verbs, so they make the browser
     // the active driver too (you would not navigate then keep clicking a window).
-    // Switch drivers explicitly with `import browser` / `import desktop`.
+    // Switch drivers explicitly with `import browser` / `import desktop`. The URL
+    // is normalized here (input handling); the verb itself runs in the plugin.
     if matches!(verb, "open" | "goto") {
+        if let Some(first) = resolved.first_mut() {
+            *first = super::runtime::normalize_url(first);
+        }
         exe.set_driver(Driver::Browser);
     }
     // Native-only verbs, and shared verbs while the desktop driver is active, go
@@ -811,140 +891,6 @@ async fn dispatch_raw(
     let page = exe.page()?;
 
     match verb {
-        "open" | "goto" => {
-            let url = super::runtime::normalize_url(&resolved.first().cloned().unwrap_or_default());
-            page.navigate(url.clone())
-                .await
-                .map_err(|e| e.to_string())?;
-            let _ = page.wait_for_navigation().await;
-            Ok(format!("open {url}"))
-        }
-        "title" => Ok(page.title().await.unwrap_or_default()),
-        "url" => Ok(page.url().await.unwrap_or_default()),
-        "text" => Ok(page
-            .evaluate_string("document.body ? document.body.innerText : ''".to_string())
-            .await
-            .unwrap_or_default()),
-        "markdown" | "md" => Ok(page.markdown().await.unwrap_or_default()),
-        "content" | "html" => Ok(page.content().await.unwrap_or_default()),
-        "hover" => {
-            let sel = resolved.first().cloned().unwrap_or_default();
-            let el = Arc::clone(&page)
-                .wait_for_selector(sel.clone())
-                .await
-                .map_err(|e| e.to_string())?;
-            el.hover_mouse().await.map_err(|e| e.to_string())?;
-            Ok(format!("hover {sel}"))
-        }
-        "mouse" => {
-            // `mouse [click|move] <x> <y>|<index>|<selector>|<text>`. A leading
-            // `click` moves the cursor to the target and clicks it.
-            let mut args: &[String] = &resolved;
-            let mut click = false;
-            if let Some(first) = args.first() {
-                if first.eq_ignore_ascii_case("click") {
-                    click = true;
-                    args = &args[1..];
-                } else if first.eq_ignore_ascii_case("move") {
-                    args = &args[1..];
-                }
-            }
-            if args.len() == 2
-                && let (Ok(x), Ok(y)) = (args[0].parse::<f64>(), args[1].parse::<f64>())
-            {
-                if click {
-                    Arc::clone(&page)
-                        .click_mouse(x, y)
-                        .await
-                        .map_err(|e| e.to_string())?;
-                    return Ok(format!("click {x} {y}"));
-                }
-                Arc::clone(&page)
-                    .move_mouse(x, y)
-                    .await
-                    .map_err(|e| e.to_string())?;
-                return Ok(format!("mouse {x} {y}"));
-            }
-            let target = args.first().cloned().unwrap_or_default();
-            if target.is_empty() {
-                return Err(
-                    "usage: mouse [click] <index|selector|text> | mouse <x> <y>".to_string()
-                );
-            }
-            if let Ok(index) = target.parse::<u32>() {
-                if click {
-                    Arc::clone(&page)
-                        .click_index(index)
-                        .await
-                        .map_err(|e| e.to_string())?;
-                    Ok(format!("click {index}"))
-                } else {
-                    Arc::clone(&page)
-                        .move_to_index(index)
-                        .await
-                        .map_err(|e| e.to_string())?;
-                    Ok(format!("mouse {index}"))
-                }
-            } else if crate::interact::looks_like_a_selector(&target) {
-                let el = Arc::clone(&page)
-                    .wait_for_selector(target.clone())
-                    .await
-                    .map_err(|e| e.to_string())?;
-                if click {
-                    el.click_mouse().await.map_err(|e| e.to_string())?;
-                    Ok(format!("click {target}"))
-                } else {
-                    el.hover_mouse().await.map_err(|e| e.to_string())?;
-                    Ok(format!("mouse {target}"))
-                }
-            } else {
-                match crate::interact::control_by_text(&page, &target)
-                    .await
-                    .map_err(|e| e.to_string())?
-                {
-                    Some(el) => {
-                        if click {
-                            el.click_mouse().await.map_err(|e| e.to_string())?;
-                            Ok(format!("click {target:?}"))
-                        } else {
-                            el.hover_mouse().await.map_err(|e| e.to_string())?;
-                            Ok(format!("mouse {target:?}"))
-                        }
-                    }
-                    None => Err(format!("no visible element contains {target:?}")),
-                }
-            }
-        }
-        "scroll" => {
-            let arg = resolved.first().cloned().unwrap_or_default();
-            let js = match arg.as_str() {
-                "" | "down" => "window.scrollBy(0, window.innerHeight * 0.9)".to_string(),
-                "up" => "window.scrollBy(0, -window.innerHeight * 0.9)".to_string(),
-                "top" => "window.scrollTo(0, 0)".to_string(),
-                "bottom" => "window.scrollTo(0, document.body.scrollHeight)".to_string(),
-                other => match other.parse::<i64>() {
-                    Ok(pixels) => format!("window.scrollBy(0, {pixels})"),
-                    Err(_) => return Err("usage: scroll <pixels|up|down|top|bottom>".to_string()),
-                },
-            };
-            let _ = page.evaluate_string(js).await;
-            Ok(format!(
-                "scroll {}",
-                if arg.is_empty() { "down" } else { arg.as_str() }
-            ))
-        }
-        "find" => {
-            let text = resolved.first().cloned().unwrap_or_default();
-            let count = page
-                .find_text(text.clone())
-                .await
-                .map_err(|e| e.to_string())?;
-            Ok(format!("{count} match(es) for {text:?}"))
-        }
-        "challenge" | "detect" => {
-            let report = page.detect_challenge().await.map_err(|e| e.to_string())?;
-            Ok(report.to_json().to_string())
-        }
         "shot" | "screenshot" => {
             let raw = resolved
                 .first()
@@ -971,7 +917,7 @@ async fn dispatch_raw(
             std::fs::write(&path, &png).map_err(|e| e.to_string())?;
             Ok(format!("wrote {} ({} bytes)", path.display(), png.len()))
         }
-        "media" => page.media_json().await.map_err(|e| e.to_string()),
+
         "download" => {
             // `download <url> <path>`: fetch through the browser. A direct file is
             // streamed; an HLS (`.m3u8`) stream is assembled from its segments.
@@ -1039,192 +985,29 @@ async fn dispatch_raw(
                 .map_err(|e| e.to_string())?;
             Ok(format!("upload {selector} <- {}", path.display()))
         }
-        "cookie" | "cookies" => {
-            // `cookie [get [name]]` / `cookie set <name> <value> [domain] [path]`
-            // / `cookie add <json>` / `cookie delete <name>` / `cookie clear`.
-            // Cookies are set through CDP (`Network.setCookie`) so `HttpOnly`
-            // session cookies - which page JS cannot write - can be restored.
-            let sub = resolved
-                .first()
-                .map(|s| s.to_ascii_lowercase())
-                .unwrap_or_default();
-            match sub.as_str() {
-                // No subcommand, or `get`/`list`: dump cookies as JSON. A name
-                // argument narrows it to that one cookie.
-                "" | "get" | "list" => match resolved.get(1) {
-                    Some(name) if !name.is_empty() => {
-                        page.cookie(name.clone()).await.map_err(|e| e.to_string())
-                    }
-                    _ => page.cookies().await.map_err(|e| e.to_string()),
-                },
-                "set" => {
-                    let name = resolved.get(1).cloned().unwrap_or_default();
-                    let value = resolved.get(2).cloned().unwrap_or_default();
-                    if name.is_empty() {
-                        return Err("usage: cookie set <name> <value> [domain] [path]".to_string());
-                    }
-                    let mut cookie =
-                        serde_json::json!({ "name": name, "value": value, "path": "/" });
-                    match resolved.get(3).filter(|d| !d.is_empty()) {
-                        Some(domain) => {
-                            cookie["domain"] = serde_json::Value::String(domain.clone());
-                            if let Some(path) = resolved.get(4).filter(|p| !p.is_empty()) {
-                                cookie["path"] = serde_json::Value::String(path.clone());
-                            }
-                        }
-                        // `Network.setCookie` needs a `url` or a `domain`; fall
-                        // back to the page's own URL so `cookie set` works on the
-                        // page that is open right now.
-                        None => {
-                            cookie["url"] =
-                                serde_json::Value::String(page.url().await.unwrap_or_default());
-                        }
-                    }
-                    page.execute_cdp_cmd("Network.setCookie".to_string(), cookie.to_string())
-                        .await
-                        .map_err(|e| e.to_string())?;
-                    Ok(format!("cookie set {name}"))
-                }
-                // `cookie add <json>` - full control (object or array) so
-                // `httpOnly`/`secure`/`sameSite`/expiry survive a round-trip.
-                "add" | "import" => {
-                    let json = resolved.get(1).cloned().unwrap_or_default();
-                    if json.is_empty() {
-                        return Err("usage: cookie add <json>".to_string());
-                    }
-                    let parsed: serde_json::Value = serde_json::from_str(&json)
-                        .map_err(|e| format!("cookie add: invalid JSON: {e}"))?;
-                    let list = match parsed {
-                        serde_json::Value::Array(list) => list,
-                        other => vec![other],
-                    };
-                    for cookie in &list {
-                        page.execute_cdp_cmd("Network.setCookie".to_string(), cookie.to_string())
-                            .await
-                            .map_err(|e| e.to_string())?;
-                    }
-                    Ok(format!("added {} cookie(s)", list.len()))
-                }
-                "delete" | "remove" | "rm" => {
-                    let name = resolved.get(1).cloned().unwrap_or_default();
-                    if name.is_empty() {
-                        return Err("usage: cookie delete <name>".to_string());
-                    }
-                    page.execute_cdp_cmd(
-                        "Network.deleteCookies".to_string(),
-                        serde_json::json!({ "name": name }).to_string(),
-                    )
-                    .await
-                    .map_err(|e| e.to_string())?;
-                    Ok(format!("cookie delete {name}"))
-                }
-                "clear" | "clear-all" => {
-                    page.execute_cdp_cmd(
-                        "Network.clearBrowserCookies".to_string(),
-                        "{}".to_string(),
-                    )
-                    .await
-                    .map_err(|e| e.to_string())?;
-                    Ok("cookies cleared".to_string())
-                }
-                other => Err(format!(
-                    "usage: cookie [get [name]|set <name> <value> [domain] [path]|add <json>|delete <name>|clear] (got `{other}`)"
-                )),
-            }
-        }
+
+        // `route har <path>` loads a HAR file (a filesystem read, confined by the
+        // interpreter); every other `route` subcommand is a browser verb.
         "route" => {
-            // `route <pattern>` intercepts and lets through (recorded);
-            // `route abort <pattern>` blocks; `route fulfill <pattern> <status>
-            // <body> [content-type]` serves a response; `route har <path>` loads
-            // fulfill rules from a HAR file.
             let sub = resolved
                 .first()
                 .map(|s| s.to_ascii_lowercase())
                 .unwrap_or_default();
-            match sub.as_str() {
-                "" => Err("usage: route <pattern> | route abort <pattern> | \
-                     route fulfill <pattern> <status> <body> [content-type] | route har <path>"
-                    .to_string()),
-                "abort" => {
-                    let pattern = resolved.get(1).cloned().unwrap_or_default();
-                    if pattern.is_empty() {
-                        return Err("usage: route abort <pattern>".to_string());
-                    }
-                    page.route_abort(pattern.clone())
-                        .await
-                        .map_err(|e| e.to_string())?;
-                    Ok(format!("route abort {pattern}"))
-                }
-                "fulfill" => {
-                    let pattern = resolved.get(1).cloned().unwrap_or_default();
-                    let Some(body) = resolved.get(3).cloned() else {
-                        return Err(
-                            "usage: route fulfill <pattern> <status> <body> [content-type]"
-                                .to_string(),
-                        );
-                    };
-                    if pattern.is_empty() {
-                        return Err(
-                            "usage: route fulfill <pattern> <status> <body> [content-type]"
-                                .to_string(),
-                        );
-                    }
-                    let status = resolved
-                        .get(2)
-                        .and_then(|s| s.parse::<u16>().ok())
-                        .unwrap_or(200);
-                    // The core interception pump answers every fulfill with 200.
-                    if status != 200 {
-                        println!("note: fulfill is served with 200 regardless of {status}");
-                    }
-                    let content_type = resolved.get(4).cloned();
-                    page.route_fulfill(pattern.clone(), body, content_type)
-                        .await
-                        .map_err(|e| e.to_string())?;
-                    Ok(format!("route fulfill {pattern}"))
-                }
-                "har" => {
-                    let raw = resolved.get(1).cloned().unwrap_or_default();
-                    if raw.is_empty() {
-                        return Err("usage: route har <path>".to_string());
-                    }
-                    let path = ctx.resolve_path(&raw)?;
-                    page.route_from_har(path.to_string_lossy().into_owned())
-                        .await
-                        .map_err(|e| e.to_string())?;
-                    Ok(format!("route har {}", path.display()))
-                }
-                pattern => {
-                    page.route(pattern.to_string(), "continue".to_string(), None, None)
-                        .await
-                        .map_err(|e| e.to_string())?;
-                    Ok(format!("route {pattern}"))
-                }
+            if sub != "har" {
+                return browser_verb(exe, "route", &resolved, allow_eval).await;
             }
-        }
-        "unroute" => match resolved.first().filter(|p| !p.is_empty()) {
-            Some(pattern) => {
-                page.unroute(pattern.clone())
-                    .await
-                    .map_err(|e| e.to_string())?;
-                Ok(format!("route removed for {pattern}"))
+            let raw = resolved.get(1).cloned().unwrap_or_default();
+            if raw.is_empty() {
+                return Err("usage: route har <path>".to_string());
             }
-            None => {
-                page.unroute_all().await.map_err(|e| e.to_string())?;
-                Ok("routes cleared".to_string())
-            }
-        },
-        "auth" => {
-            let username = resolved.first().cloned().unwrap_or_default();
-            let password = resolved.get(1).cloned().unwrap_or_default();
-            if username.is_empty() {
-                return Err("usage: auth <username> <password>".to_string());
-            }
-            page.authenticate(username.clone(), password)
+            let path = ctx.resolve_path(&raw)?;
+            page.route_from_har(path.to_string_lossy().into_owned())
                 .await
                 .map_err(|e| e.to_string())?;
-            Ok(format!("http auth credentials set for {username}"))
+            Ok(format!("route har {}", path.display()))
         }
+        "unroute" => return browser_verb(exe, "unroute", &resolved, allow_eval).await,
+
         "permissions" => {
             let origin = resolved.first().cloned().unwrap_or_default();
             let permissions: Vec<String> = resolved.iter().skip(1).cloned().collect();
@@ -1241,109 +1024,16 @@ async fn dispatch_raw(
                 permissions.len()
             ))
         }
-        "geolocation" => {
-            // The core exposes no `Page` geolocation helper; use the CDP
-            // `Emulation.setGeolocationOverride` command through the page.
-            let first = resolved
-                .first()
-                .map(|s| s.to_ascii_lowercase())
-                .unwrap_or_default();
-            if first == "clear" {
-                page.execute_cdp_cmd(
-                    "Emulation.clearGeolocationOverride".to_string(),
-                    "{}".to_string(),
-                )
-                .await
-                .map_err(|e| e.to_string())?;
-                return Ok("geolocation cleared".to_string());
-            }
-            let latitude = resolved.first().and_then(|s| s.parse::<f64>().ok());
-            let longitude = resolved.get(1).and_then(|s| s.parse::<f64>().ok());
-            match (latitude, longitude) {
-                (Some(latitude), Some(longitude)) => {
-                    let accuracy = resolved
-                        .get(2)
-                        .and_then(|s| s.parse::<f64>().ok())
-                        .unwrap_or(0.0);
-                    page.execute_cdp_cmd(
-                        "Emulation.setGeolocationOverride".to_string(),
-                        serde_json::json!({
-                            "latitude": latitude,
-                            "longitude": longitude,
-                            "accuracy": accuracy
-                        })
-                        .to_string(),
-                    )
-                    .await
-                    .map_err(|e| e.to_string())?;
-                    Ok(format!(
-                        "geolocation {latitude},{longitude} (+/-{accuracy}m)"
-                    ))
-                }
-                _ => Err(
-                    "usage: geolocation <latitude> <longitude> [accuracy] | geolocation clear"
-                        .to_string(),
-                ),
-            }
-        }
+
         "storage" => {
+            // `storage save <path>` / `storage restore <path>` touch the
+            // filesystem (confined by the interpreter); `storage local|session …`
+            // are browser verbs.
             let sub = resolved
                 .first()
                 .map(|s| s.to_ascii_lowercase())
                 .unwrap_or_default();
             match sub.as_str() {
-                "local" | "session" => {
-                    let store = if sub == "local" {
-                        "localStorage"
-                    } else {
-                        "sessionStorage"
-                    };
-                    let action = resolved
-                        .get(1)
-                        .map(|s| s.to_ascii_lowercase())
-                        .unwrap_or_default();
-                    match action.as_str() {
-                        "" | "get" | "list" => match resolved.get(2) {
-                            Some(key) if !key.is_empty() => {
-                                let raw = page
-                                    .evaluate_json(format!("{store}.getItem({})", js_literal(key)))
-                                    .await
-                                    .map_err(|e| e.to_string())?;
-                                Ok(unwrap_json_string(raw))
-                            }
-                            _ => page
-                                .evaluate_json(format!(
-                                    "Object.fromEntries(Object.entries({store}))"
-                                ))
-                                .await
-                                .map_err(|e| e.to_string()),
-                        },
-                        "set" => {
-                            let key = resolved.get(2).cloned().unwrap_or_default();
-                            let value = resolved.get(3).cloned().unwrap_or_default();
-                            if key.is_empty() {
-                                return Err(format!("usage: storage {sub} set <key> <value>"));
-                            }
-                            page.evaluate_json(format!(
-                                "{store}.setItem({}, {})",
-                                js_literal(&key),
-                                js_literal(&value)
-                            ))
-                            .await
-                            .map_err(|e| e.to_string())?;
-                            Ok(format!("storage {sub} set {key}"))
-                        }
-                        "clear" => {
-                            page.evaluate_json(format!("{store}.clear()"))
-                                .await
-                                .map_err(|e| e.to_string())?;
-                            Ok(format!("storage {sub} cleared"))
-                        }
-                        other => Err(format!(
-                            "usage: storage {sub} [get [key]|set <key> <value>|clear] (got `{other}`)"
-                        )),
-                    }
-                }
                 "save" => {
                     let raw = resolved.get(1).cloned().unwrap_or_default();
                     if raw.is_empty() {
@@ -1373,198 +1063,25 @@ async fn dispatch_raw(
                         .map_err(|e| e.to_string())?;
                     Ok(format!("restored storage state from {}", path.display()))
                 }
-                _ => Err(
-                    "usage: storage <local|session> [get [key]|set <key> <value>|clear] | \
-                     storage save <path> | storage restore <path>"
-                        .to_string(),
-                ),
+                _ => browser_verb(exe, "storage", &resolved, allow_eval).await,
             }
         }
-        "click" | "tap" => {
-            let target = resolved.first().cloned().unwrap_or_default();
-            if target.is_empty() {
-                return Err("usage: click <index|selector|text>".to_string());
-            }
-            // A bare integer is a snapshot index, a selector-looking string is a
-            // CSS selector, anything else is matched against visible text - the
-            // same rule the interactive session uses.
-            if let Ok(index) = target.parse::<u32>() {
-                Arc::clone(&page)
-                    .click_index(index)
-                    .await
-                    .map_err(|e| e.to_string())?;
-                tokio::time::sleep(std::time::Duration::from_millis(600)).await;
-                Ok(format!("click {index}"))
-            } else if crate::interact::looks_like_a_selector(&target) {
-                let el = Arc::clone(&page)
-                    .wait_for_selector(target.clone())
-                    .await
-                    .map_err(|e| e.to_string())?;
-                // Move the real mouse to the element and click, so the cursor
-                // travels to the target instead of firing a synthetic DOM click.
-                el.click_mouse().await.map_err(|e| e.to_string())?;
-                Ok(format!("click {target}"))
-            } else {
-                match crate::interact::control_by_text(&page, &target)
-                    .await
-                    .map_err(|e| e.to_string())?
-                {
-                    Some(el) => {
-                        el.click_mouse().await.map_err(|e| e.to_string())?;
-                        Ok(format!("click {target:?}"))
-                    }
-                    None => Err(format!("no visible element contains {target:?}")),
-                }
-            }
-        }
-        "fill" => {
-            let sel = resolved.first().cloned().unwrap_or_default();
-            let text = resolved.get(1).cloned().unwrap_or_default();
-            // A bare integer is a snapshot index (framework-rendered fields often
-            // expose no stable selector) - the same rule `click` already uses.
-            let el = if let Ok(index) = sel.parse::<u32>() {
-                if Arc::clone(&page).click_index(index).await.is_err() {
-                    let _ = page.agent_snapshot().await;
-                    Arc::clone(&page)
-                        .click_index(index)
-                        .await
-                        .map_err(|e| e.to_string())?;
-                }
-                page.evaluate_handle("document.activeElement".to_string())
-                    .await
-                    .map_err(|e| e.to_string())?
-            } else {
-                Arc::clone(&page)
-                    .wait_for_selector(sel.clone())
-                    .await
-                    .map_err(|e| e.to_string())?
-            };
-            el.type_text(text.clone())
-                .await
-                .map_err(|e| e.to_string())?;
-            Ok(format!("fill {sel}"))
-        }
-        "select" => {
-            let selector = resolved.first().cloned().unwrap_or_default();
-            let value = resolved.get(1).cloned().unwrap_or_default();
-            if selector.is_empty() || value.is_empty() {
-                return Err("usage: select <selector> <value>".to_string());
-            }
-            // Native `<select>` only (matches by value or label). A custom
-            // listbox is driven with `click` (open it, then click the option).
-            let values = serde_json::json!([value]).to_string();
-            Arc::clone(&page)
-                .select_option(selector.clone(), values)
-                .await
-                .map_err(|e| e.to_string())?;
-            Ok(format!("select {selector} = {value}"))
-        }
-        "type" => {
-            let text = resolved.first().cloned().unwrap_or_default();
-            let el = page
-                .evaluate_handle("document.activeElement".to_string())
-                .await
-                .map_err(|e| e.to_string())?;
-            el.type_text(text.clone())
-                .await
-                .map_err(|e| e.to_string())?;
-            Ok(format!("type {text}"))
-        }
-        "press" | "submit" | "send" => {
-            let key = if verb == "press" {
-                resolved.first().cloned().unwrap_or_default()
-            } else {
-                "Enter".to_string()
-            };
-            let el = page
-                .evaluate_handle("document.activeElement".to_string())
-                .await
-                .map_err(|e| e.to_string())?;
-            el.press(key.clone()).await.map_err(|e| e.to_string())?;
-            Ok(format!("press {key}"))
-        }
-        // Unit-suffixed sleeps: the unit lives in the verb, the value is a plain
-        // number (there is no `2s`/`500ms` literal in the language).
-        "wait-ms" => {
-            super::runtime::wait_scaled(&resolved.first().cloned().unwrap_or_default(), 1).await
-        }
-        "wait-sec" => {
-            super::runtime::wait_scaled(&resolved.first().cloned().unwrap_or_default(), 1_000).await
-        }
-        "wait-min" => {
-            super::runtime::wait_scaled(&resolved.first().cloned().unwrap_or_default(), 60_000)
-                .await
-        }
-        "wait-hr" => {
-            super::runtime::wait_scaled(&resolved.first().cloned().unwrap_or_default(), 3_600_000)
-                .await
-        }
-        // Randomized sleep: two millisecond bounds (inclusive).
-        "wait-random" => {
-            let min = super::runtime::parse_ms(&resolved.first().cloned().unwrap_or_default())?;
-            let max = super::runtime::parse_ms(&resolved.get(1).cloned().unwrap_or_default())?;
-            let ms = super::runtime::random_ms(min, max);
-            tokio::time::sleep(std::time::Duration::from_millis(ms as u64)).await;
-            Ok(format!("wait-random {ms}ms"))
-        }
-        "wait" | "sleep" => {
+
+        // The time verbs (`sleep`, `await`, `wait-ms/sec/min/hr`, `wait-random`)
+        // are std: they run in the `core` plugin (see `is_core_verb`). Only `wait`
+        // stays here, because it is overloaded - a duration sleeps (std), a
+        // selector waits on the page (browser).
+        "wait" => {
             let arg = resolved.first().cloned().unwrap_or_default();
             if let Some(ms) = super::runtime::parse_duration_ms(&arg) {
-                tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
-                Ok(format!("wait {ms}ms"))
-            } else if !arg.is_empty() {
-                Arc::clone(&page)
-                    .wait_for_selector(arg.clone())
-                    .await
-                    .map_err(|e| e.to_string())?;
-                Ok(format!("wait for {arg}"))
-            } else {
+                core_verb(exe, "sleep", &[ms.to_string()]).await
+            } else if arg.is_empty() {
                 Ok("wait".to_string())
-            }
-        }
-        "wait-idle" | "idle" => {
-            page.wait_for_network_idle(500, 30_000)
-                .await
-                .map_err(|e| e.to_string())?;
-            Ok("network idle".to_string())
-        }
-        "wait-stable" | "stable" => {
-            page.wait_for_dom_stable(500, 30_000)
-                .await
-                .map_err(|e| e.to_string())?;
-            Ok("dom stable".to_string())
-        }
-        "back" => {
-            page.go_back().await.map_err(|e| e.to_string())?;
-            Ok("back".to_string())
-        }
-        "reload" => {
-            page.reload().await.map_err(|e| e.to_string())?;
-            Ok("reload".to_string())
-        }
-        "eval" | "js" => {
-            if !ctx.permissions.allow_eval {
-                Err("`eval` is disabled (pass --allow-unsafe)".to_string())
             } else {
-                Ok(page
-                    .evaluate_json(resolved.first().cloned().unwrap_or_default())
-                    .await
-                    .unwrap_or_default())
+                browser_verb(exe, "wait", &resolved, allow_eval).await
             }
         }
-        "await" => {
-            // Seconds, decimal allowed: `await 20`, `await 0.5`. One verb instead
-            // of the `wait-sec/min/hr/ms` zoo. Capped so a script cannot park for
-            // a nonsense duration.
-            let seconds: f64 = resolved
-                .first()
-                .ok_or("usage: await <seconds>")?
-                .parse()
-                .map_err(|_| "await <seconds>: seconds must be a number".to_string())?;
-            let seconds = seconds.clamp(0.0, 3600.0);
-            tokio::time::sleep(std::time::Duration::from_secs_f64(seconds)).await;
-            Ok(format!("awaited {seconds}s"))
-        }
+
         "tabs" => {
             let tabs = exe.tabs.lock().unwrap().clone();
             let active = exe.active.load(Ordering::Relaxed);
@@ -1671,56 +1188,49 @@ async fn dispatch_raw(
             exe.active.store(active, Ordering::Relaxed);
             Ok(format!("closed tab {target_id}; {remaining} left"))
         }
-        "dialog" => {
-            let arg = resolved.first().map(String::as_str).unwrap_or("");
-            let policy = match arg.to_ascii_lowercase().as_str() {
-                "" | "dismiss" => xcelerate::page::DialogPolicy::Dismiss,
-                "accept" => xcelerate::page::DialogPolicy::Accept,
-                other => {
-                    return Err(format!("usage: dialog <dismiss|accept> (got {other:?})"));
-                }
-            };
-            page.set_dialog_policy(policy)
-                .await
-                .map_err(|e| e.to_string())?;
-            Ok(format!(
-                "dialogs: {}",
-                if arg.is_empty() { "dismiss" } else { arg }
-            ))
-        }
-        "drag" => {
-            let from = resolved
-                .first()
-                .cloned()
-                .ok_or_else(|| "usage: drag <from> <to>".to_string())?;
-            let to = resolved
-                .get(1)
-                .cloned()
-                .ok_or_else(|| "usage: drag <from> <to>".to_string())?;
-            Arc::clone(&page)
-                .drag(&from, &to)
-                .await
-                .map_err(|e| e.to_string())?;
-            Ok(format!("dragged {from} -> {to}"))
-        }
-        other => Err(format!("unknown verb `{other}`")),
+
+        // Every other browser verb runs in the `browser` plugin; the interpreter
+        // only relays the resolved arguments (see `browser_verb`).
+        other => browser_verb(exe, other, &resolved, allow_eval).await,
     }
 }
 
-/// Renders a Rust string as a JavaScript string literal, so a storage key or
-/// value containing quotes, backslashes or newlines cannot break out of the
-/// evaluated expression.
-fn js_literal(value: &str) -> String {
-    serde_json::to_string(value).unwrap_or_else(|_| "\"\"".to_string())
+/// Whether `verb` is a standard-library op declared by the `core` plugin.
+fn is_core_verb(exe: &Executor, verb: &str) -> bool {
+    exe.plugins().has("core") && exe.plugins().ops("core").iter().any(|op| op == verb)
 }
 
-/// Unwraps a top-level JSON string result (as `evaluate_json` returns for a JS
-/// string) so `storage local get` prints the raw value, not a quoted one.
-fn unwrap_json_string(raw: String) -> String {
-    match serde_json::from_str::<serde_json::Value>(&raw) {
-        Ok(serde_json::Value::String(text)) => text,
-        _ => raw,
-    }
+/// Relays a standard-library verb to the `core` plugin with its resolved
+/// positional arguments. The plugin owns the verb logic; the host keeps the
+/// primitive (`stdout`, `now`, `env`, …).
+async fn core_verb(exe: &Executor, verb: &str, resolved: &[String]) -> Result<String, String> {
+    let payload = serde_json::json!({ "args": resolved }).to_string();
+    let result = exe
+        .invoke_plugin("core", verb, payload, None)
+        .await
+        .map_err(|error| format!("core plugin: {error}"))?;
+    // The plugin returns the verb's result as a JSON string.
+    Ok(serde_json::from_str::<String>(&result).unwrap_or(result))
+}
+
+/// Relays a browser verb to the `browser` plugin with its resolved positional
+/// arguments. The plugin owns the verb logic; the interpreter only resolves
+/// values and passes the `--allow-unsafe` decision.
+async fn browser_verb(
+    exe: &Executor,
+    verb: &str,
+    resolved: &[String],
+    allow_eval: bool,
+) -> Result<String, String> {
+    exe.ensure_browser().await?;
+    let page = exe.page()?;
+    let payload = serde_json::json!({ "args": resolved, "allow_eval": allow_eval }).to_string();
+    let result = exe
+        .invoke_plugin("browser", verb, payload, Some(page))
+        .await
+        .map_err(|error| format!("browser plugin: {error}"))?;
+    // The plugin returns the verb's result as a JSON string.
+    Ok(serde_json::from_str::<String>(&result).unwrap_or(result))
 }
 
 /// Executes a `request` command: enforces HTTP permission + SSRF private-range

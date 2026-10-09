@@ -8,7 +8,6 @@ members = [
     "crates/xcelerate-interpreter",
     "crates/xcelerate-mcp",
     "crates/xcelerate-codegen",
-    "crates/xcelerate-desktop",
 ]
 exclude = ["bindings", "tools", "adapters", "scripts", "docs"]
 resolver = "3"
@@ -36,8 +35,6 @@ xcelerate-mcp = { path = "crates/xcelerate-mcp", version = "1.0.14" }
 xcelerate-codegen = { path = "crates/xcelerate-codegen", version = "1.0.14" }
 xcelerate-interpreter = { path = "crates/xcelerate-interpreter", version = "1.0.14" }
 xcelerate-plugin = { path = "crates/xcelerate-plugin", version = "1.0.14" }
-# Windows-only desktop (native window) backend; consumers depend on it per-target.
-xcelerate-desktop = { path = "crates/xcelerate-desktop", version = "1.0.14" }
 
 # External crates.
 mimalloc = "0.1.52"
@@ -62,6 +59,8 @@ futures = "0.3.34"
 rustls = { version = "0.23.45", default-features = false, features = ["ring", "std", "tls12"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
+# Used by the XCL `regex` verb (a captured value is often a whole formatted line).
+regex = "1"
 # Not `full`. Everything listed is needed by the CDP client, the CLIs, or
 # wasmtime-wasi. `signal` is used by the CLI to close a browser it owns on
 # Ctrl+C so the window is never orphaned.

@@ -21,6 +21,11 @@ pub mod devices;
 pub mod element;
 pub mod error;
 pub mod page;
+// Windows UI Automation backend for the `app` plugin bridge (and the MCP
+// native-app tools). Windows-only: the underlying `windows` crate is a
+// target-gated dependency.
+#[cfg(windows)]
+pub mod desktop;
 pub mod plugin;
 pub mod policy;
 pub mod process;

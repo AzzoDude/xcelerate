@@ -7,7 +7,14 @@
   "ops": [
     "print",
     "now",
-    "env"
+    "env",
+    "sleep",
+    "await",
+    "wait-ms",
+    "wait-sec",
+    "wait-min",
+    "wait-hr",
+    "wait-random"
   ],
   "capabilities": ["core"],
   "limits": { "max_invoke_millis": 30000, "max_response_bytes": 1048576 }

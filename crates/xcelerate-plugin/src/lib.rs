@@ -5,8 +5,9 @@
 //! trust model, the append-only [`audit`] log, and the [`PageHost`]
 //! interface a plugin uses to touch a page.
 //!
-//! It deliberately depends only on `serde`/`serde_json` - never on the engine
-//! facade - so plugin crates can implement plugins without a dependency cycle.
+//! It deliberately depends only on `serde`/`serde_json`/`rmp-serde` - never on
+//! the engine facade - so plugin crates can implement plugins without a
+//! dependency cycle.
 //!
 //! # Security posture
 //!
@@ -26,6 +27,45 @@ use std::sync::{Arc, Mutex, OnceLock, RwLock};
 // plugin author depends on a single crate (`xcelerate-plugin`) for both the
 // plugin API and the macro.
 mod macros;
+
+// ---------------------------------------------------------------------------
+// Guest helpers
+// ---------------------------------------------------------------------------
+
+/// Codec helpers for a WebAssembly **plugin guest** (the wasm side).
+///
+/// A guest's op arguments and results cross the ABI as a raw `payload`
+/// (MessagePack). These wrap the codec so handlers written under [`plugin!`]'s
+/// `local` table never hand-roll it, and so both sides use the same
+/// named-field encoding (`rmp_serde::to_vec_named`) and round-trip cleanly.
+///
+/// ```ignore
+/// use xcelerate_plugin::guest::{decode, encode};
+///
+/// #[derive(serde::Deserialize)] struct Args { window: String }
+/// #[derive(serde::Serialize)] struct Reply { lines: Vec<String> }
+///
+/// fn tree(args: &[u8]) -> Result<Vec<u8>, String> {
+///     let args: Args = decode(args)?;
+///     // ... call a host primitive, build the lines ...
+///     encode(&Reply { lines })
+/// }
+/// ```
+pub mod guest {
+    use serde::Serialize;
+    use serde::de::DeserializeOwned;
+
+    /// Decode a plugin `payload` into a typed value.
+    pub fn decode<T: DeserializeOwned>(payload: &[u8]) -> Result<T, String> {
+        rmp_serde::from_slice(payload).map_err(|error| error.to_string())
+    }
+
+    /// Encode a value as a plugin `payload`. Uses the same field-named framing
+    /// the host uses, so host and guest agree on the wire form.
+    pub fn encode<T: Serialize>(value: &T) -> Result<Vec<u8>, String> {
+        rmp_serde::to_vec_named(value).map_err(|error| error.to_string())
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Result type
@@ -124,16 +164,19 @@ pub enum Capability {
     Screenshot,
     NetworkCapture,
     /// Drive the run's active browser page through the host action bridge
-    /// (`host.browser`). Dangerous: it acts on the outside world, so it is off by
-    /// default and grant-audited. This is the decoupled browser API - a plugin
-    /// never speaks CDP/BiDi directly, it asks the host for semantic verbs.
+    /// (`host.browser`). Dangerous: it acts on the outside world, so for a
+    /// third-party plugin it is off by default and grant-audited. The standard
+    /// `browser` plugin is trusted by default. This is the decoupled browser API
+    /// - a plugin never speaks CDP/BiDi directly, it asks the host for primitives.
     Browser,
-    /// Drive a native window through the host action bridge (`host.app`).
-    /// Dangerous and Windows-only; off by default and grant-audited.
-    App,
+    /// Drive a native window through the host action bridge (`host.desktop`).
+    /// Dangerous and Windows-only; off by default for third-party plugins, but
+    /// the standard `desktop` plugin is trusted by default.
+    Desktop,
     /// Perform a host primitive (stdout, time, environment, HTTP, filesystem)
     /// through the host action bridge (`host.core`). Dangerous: it reads and
-    /// writes outside the sandbox, so it is off by default and grant-audited.
+    /// writes outside the sandbox, so for a third-party plugin it is off by
+    /// default; the standard `core` plugin (the language's stdlib) is trusted.
     Core,
     /// Call another enabled plugin's op through the host (`host.invoke-plugin`).
     /// Dangerous + opt-in: lets one plugin drive another, so it is audited and
@@ -159,7 +202,7 @@ impl Capability {
                 | Capability::Screenshot
                 | Capability::NetworkCapture
                 | Capability::Browser
-                | Capability::App
+                | Capability::Desktop
                 | Capability::Core
                 | Capability::InvokePlugin
         )
@@ -194,7 +237,7 @@ impl Capability {
             Capability::Screenshot => "screenshot",
             Capability::NetworkCapture => "network_capture",
             Capability::Browser => "browser",
-            Capability::App => "app",
+            Capability::Desktop => "desktop",
             Capability::Core => "core",
             Capability::InvokePlugin => "invoke_plugin",
             Capability::LaunchControl => "launch_control",
@@ -591,13 +634,15 @@ pub trait PageHost: Send + Sync + 'static {
     /// The current mouse position.
     fn mouse_position(&self) -> (f64, f64);
 
-    /// Perform a semantic **browser action** on this page through the host
-    /// bridge: `op` names a verb (`goto`, `click`, `fill`, `text`, `snapshot`, …),
-    /// `args_json` carries its JSON arguments, and the result is JSON.
+    /// Perform a low-level **browser primitive** on this page through the host
+    /// bridge: `op` names a primitive (`goto`, `click-selector`, `type-index`,
+    /// `evaluate`, `cdp`, …), `args_json` carries its JSON arguments, and the
+    /// result is JSON.
     ///
-    /// This is deliberately *not* raw CDP/BiDi - a plugin asks for a verb, never
-    /// a protocol message - so the host keeps control of what a sandboxed plugin
-    /// can do. The default refuses every op, so a host that has not opted into the
+    /// This is deliberately *not* raw CDP/BiDi - the host keeps the protocol, so
+    /// the `browser` plugin composes primitives into verbs and a guest never sees
+    /// a protocol message. The default refuses every op, so a host that has not
+    /// opted into the
     /// bridge denies it.
     fn browser_op(&self, op: &str, args_json: &str) -> BoxFut<PluginResult<String>> {
         let op = op.to_string();
@@ -1064,15 +1109,15 @@ mod tests {
     }
 
     #[test]
-    fn browser_and_app_capabilities_are_dangerous_and_parse() {
-        // `browser`/`app` drive the host action bridge, so both are dangerous
+    fn browser_and_desktop_capabilities_are_dangerous_and_parse() {
+        // `browser`/`desktop` drive the host action bridge, so both are dangerous
         // (off by default) and neither is host-only.
-        for capability in [Capability::Browser, Capability::App] {
+        for capability in [Capability::Browser, Capability::Desktop] {
             assert!(capability.is_dangerous());
             assert!(!capability.is_builtin_only());
         }
         assert_eq!(Capability::Browser.as_str(), "browser");
-        assert_eq!(Capability::App.as_str(), "app");
+        assert_eq!(Capability::Desktop.as_str(), "desktop");
         // They round-trip through a manifest's capability list.
         let manifest = Manifest::from_json(
             r#"{
@@ -1080,12 +1125,12 @@ mod tests {
                 "version": "0.1.0",
                 "entrypoint": "bridge.wasm",
                 "ops": ["open"],
-                "capabilities": ["browser", "app"]
+                "capabilities": ["browser", "desktop"]
             }"#,
         )
         .expect("a manifest requesting the bridge capabilities validates");
         assert!(manifest.capabilities.contains(&Capability::Browser));
-        assert!(manifest.capabilities.contains(&Capability::App));
+        assert!(manifest.capabilities.contains(&Capability::Desktop));
     }
 
     /// A minimal in-process plugin, standing in for a library a user adds as a

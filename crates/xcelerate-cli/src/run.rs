@@ -91,6 +91,13 @@ pub async fn run_file(
         },
     );
 
+    // Optional pacing so a human can watch: `XCELERATE_STEP_DELAY_MS` sleeps this
+    // many milliseconds after every step. Zero (the default) runs flat out.
+    let step_delay_ms: u64 = std::env::var("XCELERATE_STEP_DELAY_MS")
+        .ok()
+        .and_then(|value| value.trim().parse().ok())
+        .unwrap_or(0);
+
     // Execute: pull the next action, await its dispatch, feed the outcome back.
     loop {
         let cmd = match engine.next_action(&mut ctx) {
@@ -103,7 +110,6 @@ pub async fn run_file(
         };
         // Read anything we need off the borrowed command before dispatching it
         // (the borrow ends once `dispatch` returns).
-        let is_print = matches!(cmd, Command::Print { .. });
         // A browser/app verb or a plugin op leaves its result in `$RESULT`; control
         // steps (`import`, `let`, …) do not clobber it.
         let captures_result = matches!(cmd, Command::Raw { .. } | Command::Run { .. });
@@ -120,17 +126,19 @@ pub async fn run_file(
             ctx.vars.insert("RESULT".to_string(), result);
         }
         // Quiet by default: a run reads as its own log, so only failures and
-        // explicit `print` output are shown. `--verbose` restores the per-step
-        // `ok <step>` transcript.
+        // explicit `stdout` output (from the `core` plugin) are shown. `--verbose`
+        // restores the per-step `ok <step>` transcript.
         if !outcome.ok {
             println!("fail {}", outcome.message);
-        } else if is_print {
-            println!("{}", outcome.message);
         } else if verbose {
             println!("ok {}", outcome.message);
         }
         if outcome.should_quit {
             break;
+        }
+        // Watchable pacing: pause after each step when asked.
+        if step_delay_ms > 0 {
+            tokio::time::sleep(std::time::Duration::from_millis(step_delay_ms)).await;
         }
         // Guard against a command that never advances (defensive, not expected).
         if ctx.steps_executed > limits.max_steps * 2 {

@@ -41,9 +41,9 @@ pub fn resolve_plugin_names(names: &[String]) -> Vec<String> {
 }
 
 /// The plugin names auto-loaded when installed (`core`, `browser`, `app`), so a
-/// script uses the plain verbs without naming the plugin. Capabilities stay
-/// default-deny, so this only makes the ops *available*.
-pub const STANDARD_PLUGINS: &[&str] = &["core", "browser", "app"];
+/// script uses the plain verbs without naming the plugin. These are the
+/// standard-library plugins, which the host trusts by default.
+pub use xcelerate::plugin::STANDARD_PLUGINS;
 
 /// The user-global plugin directory: `$XCELERATE_HOME/plugins` when set,
 /// otherwise `~/.xcl/plugins`. One shared home means a plugin built once is

@@ -45,10 +45,10 @@ done
 | `import browser` / `import desktop` | Load/select a driver: CDP browser or UI Automation desktop. Same verbs, no `app-` prefix. |
 | `drivers` | List the drivers this run exposes and mark the active one. |
 | `media` `download <url> <path>` `upload <sel> <path>` | Media: discover, fetch, or send files. |
-| `wait` `wait-idle` `wait-stable` | Wait for a selector, or sleep a number (`wait` = ms; `wait-sec`/`wait-min`/`wait-hr` for other units). |
-| `wait-random` | Sleep a random number of milliseconds between two bounds (`wait-random <min> <max>`, inclusive). |
+| `wait` `wait-idle` `wait-stable` | Wait for a selector, or sleep a number (`wait` = ms). |
+| `sleep` `await` `wait-ms` / `wait-sec` / `wait-min` / `wait-hr` `wait-random` | `core` std sleeps: milliseconds, seconds, the named unit, or a random delay. |
 | `assert <subject> <op> <value>` | Fail-fast check (`url`, `title`, `status`, `contains`, `==`, …). |
-| `print <arg>...` | Write the resolved arguments to stdout (the explicit log channel). |
+| `print <arg>...` | A `core` std function: write the resolved arguments to stdout. |
 | `repeat` / `retry` / `if-ok` / `if-fail` / `label` / `goto` | Bounded control flow. |
 | `eval` / `request` | Opt-in: JavaScript (`--allow-unsafe`), browserless HTTP (`--allow-http`). |
 | `import <id> [op]…` / `run` / `plugins` / `plugin-config` | Plugins / workers (`--allow-plugin`); each imported `op` becomes a bare callable. |
@@ -97,6 +97,23 @@ param email "user@example.com"     # runtime param with default
 * Builtins: `{BASE_URL}`, `{TIMESTAMP}` (frozen per run), `{UUID}` (unique per
   reference).
 * An undefined `$name` is a hard error, never an empty string.
+
+### Results and extraction
+
+A browser/app verb or a plugin op leaves its result in `$RESULT`, so the next
+steps can reuse it (the same convention `request` uses for `$STATUS` and
+`$RESPONSE_BODY`). Results are often a whole formatted line, so `regex` reduces
+one to the part you want:
+
+```text
+find "Display is"                      # $RESULT = [13] <text> "Display is 42"  704x119@7,118
+regex $RESULT "Display is ([0-9]+)"    # $RESULT = 42
+fill "#message" $RESULT
+```
+
+`regex <source> <pattern> [group]` applies the pattern to `source` and keeps the
+match - a capture group if the pattern has one (or when `group` gives an index),
+else the whole match; a pattern that does not match fails the step.
 
 ## Functions
 
@@ -314,6 +331,7 @@ windows — an app that is not running has no window, so use `launch` first).
 | `wait "<text>" [ms]` | Wait until an element whose name contains `text` appears. |
 | `click <index>` / `click "<text>"` | Click an element by `tree` index, or by name (pattern-first; stable across animated frames). |
 | `fill <index> "<text>"` | Set an element's value (no cursor, no keystrokes). |
+| `close` | Close the selected native window. |
 | `key <key>` | Send a key: `next` `prior` `down` `up` `space` `enter`. |
 | `wheel <notches>` / `scroll <notches>` | Scroll (negative scrolls down). |
 
@@ -363,6 +381,25 @@ A plain `run` exposes both drivers - the browser launches lazily, on the first
 `import browser` or browser verb - so a native-only script never starts one.
 `run --native` or `run --app "<title>"` start browserless, with the desktop
 driver already active.
+
+### Plugins back the verbs
+
+The browser, desktop, and std verbs are implemented by the standard `core`,
+`browser`, and `app` plugins - the language core holds no verb logic. They are
+auto-loaded from the plugin home when installed and are **trusted by default**
+(their capabilities are granted without ceremony). The `plugins` verb shows the
+trust surface:
+
+```text
+core     caps=[core]     trusted (stdlib)
+browser  caps=[browser]  trusted (stdlib)
+app      caps=[app]      trusted (stdlib)
+```
+
+A **third-party** plugin is default-deny: its dangerous capabilities need an
+explicit `XCELERATE_PLUGIN_ALLOW` grant. The interpreter's own gates
+(`--allow-app`, `--allow-http`, `--allow-unsafe`, path confinement) still apply
+to every run.
 
 ## Media and files
 

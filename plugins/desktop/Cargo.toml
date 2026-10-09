@@ -1,5 +1,5 @@
 [package]
-name = "xcelerate-plugin-app"
+name = "xcelerate-plugin-desktop"
 version = "0.1.0"
 edition = "2021"
 publish = false

@@ -16,9 +16,10 @@ use windows::Win32::System::Com::{
 use windows::Win32::UI::Accessibility::{
     CUIAutomation8, IUIAutomation, IUIAutomationElement, IUIAutomationInvokePattern,
     IUIAutomationScrollPattern, IUIAutomationSelectionItemPattern, IUIAutomationValuePattern,
-    ScrollAmount_LargeDecrement, ScrollAmount_LargeIncrement, ScrollAmount_NoAmount,
-    TreeScope_Children, TreeScope_Descendants, UIA_ControlTypePropertyId, UIA_InvokePatternId,
-    UIA_ScrollPatternId, UIA_SelectionItemPatternId, UIA_ValuePatternId, UIA_WindowControlTypeId,
+    IUIAutomationWindowPattern, ScrollAmount_LargeDecrement, ScrollAmount_LargeIncrement,
+    ScrollAmount_NoAmount, TreeScope_Children, TreeScope_Descendants, UIA_ControlTypePropertyId,
+    UIA_InvokePatternId, UIA_ScrollPatternId, UIA_SelectionItemPatternId, UIA_ValuePatternId,
+    UIA_WindowControlTypeId, UIA_WindowPatternId,
 };
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_KEYUP,
@@ -319,6 +320,16 @@ impl Uia {
         let pattern: IUIAutomationValuePattern =
             unsafe { el.GetCurrentPatternAs(UIA_ValuePatternId)? };
         unsafe { pattern.SetValue(&BSTR::from(text))? };
+        Ok(())
+    }
+
+    /// Close the first window whose title contains `window` via its
+    /// `WindowPattern` - the graceful, cursor-free equivalent of clicking the ✕.
+    pub fn close(&self, window: &str) -> Result<()> {
+        let element = self.find_window(window)?;
+        let pattern: IUIAutomationWindowPattern =
+            unsafe { element.GetCurrentPatternAs(UIA_WindowPatternId)? };
+        unsafe { pattern.Close()? };
         Ok(())
     }
 

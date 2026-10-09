@@ -102,12 +102,12 @@ impl HostState {
         }
     }
 
-    /// Run a native-window verb through UI Automation (Windows only). The verbs
-    /// mirror the CLI's `app` subcommand and the XCL native verbs, so the two
+    /// Run a native-window primitive through UI Automation (Windows only). The
+    /// primitives mirror the XCL native verbs and the `desktop` plugin, so the two
     /// surfaces cannot drift apart. The `Uia` handle is created per call (it is
     /// not `Send`, so it may not live in the guest store).
     #[cfg(windows)]
-    fn app_action(&mut self, op: &str, args_json: &str) -> Result<String, String> {
+    fn desktop_action(&mut self, op: &str, args_json: &str) -> Result<String, String> {
         use serde_json::{Value, json};
 
         let args: Value = if args_json.trim().is_empty() {
@@ -119,14 +119,14 @@ impl HostState {
         let number = |key: &str| args.get(key).and_then(Value::as_i64);
 
         // Launching spawns a process and waits for its window; it needs no UIA
-        // handle of its own (`xcelerate_desktop::launch` makes one).
+        // handle of its own (`crate::desktop::launch` makes one).
         if op == "launch" {
             let target = text("target").ok_or_else(|| "launch needs a 'target'".to_string())?;
             let title = text("title");
             let wait = number("wait_ms").unwrap_or(15_000).max(0) as u64;
-            let outcome = xcelerate_desktop::launch(&target, title.as_deref(), wait)
+            let outcome = crate::desktop::launch(&target, title.as_deref(), wait)
                 .map_err(|error| error.to_string())?;
-            let formatted = xcelerate_desktop::format_window(&outcome.window);
+            let formatted = crate::desktop::format_window(&outcome.window);
             let message = if outcome.attached {
                 format!("already running: {formatted}")
             } else {
@@ -140,7 +140,7 @@ impl HostState {
             .to_string());
         }
 
-        let mut uia = xcelerate_desktop::Uia::new().map_err(|error| error.to_string())?;
+        let mut uia = crate::desktop::Uia::new().map_err(|error| error.to_string())?;
 
         if op == "windows" {
             let windows: Vec<Value> = uia
@@ -155,65 +155,57 @@ impl HostState {
         }
 
         let window = text("window").ok_or_else(|| "a 'window' title is required".to_string())?;
+        let limit = number("limit").unwrap_or(400).max(1) as usize;
 
         match op {
-            "tree" => {
+            "snapshot" => {
                 let infos = uia
-                    .snapshot(&window, 400)
+                    .snapshot(&window, limit)
                     .map_err(|error| error.to_string())?;
-                let lines: Vec<String> = infos
+                let elements: Vec<Value> = infos
                     .iter()
-                    .map(xcelerate_desktop::format_element)
+                    .map(|element| {
+                        json!({
+                            "index": element.index,
+                            "role": element.role,
+                            "name": element.name,
+                            "value": element.value,
+                            "rect": [element.rect.0, element.rect.1, element.rect.2, element.rect.3],
+                        })
+                    })
                     .collect();
-                Ok(json!({ "lines": lines }).to_string())
+                Ok(json!({ "elements": elements }).to_string())
             }
-            "find" => {
-                let needle = text("text").unwrap_or_default().to_ascii_lowercase();
-                let infos = uia
-                    .snapshot(&window, 400)
+            "click-index" => {
+                uia.snapshot(&window, limit)
                     .map_err(|error| error.to_string())?;
-                let lines: Vec<String> = infos
-                    .iter()
-                    .filter(|element| element.name.to_ascii_lowercase().contains(&needle))
-                    .map(xcelerate_desktop::format_element)
-                    .collect();
-                Ok(json!({ "lines": lines }).to_string())
-            }
-            "wait" => {
-                let needle = text("text").ok_or_else(|| "wait needs 'text'".to_string())?;
-                let ms = number("timeout_ms").unwrap_or(10_000).max(0) as u64;
-                let hit = uia
-                    .wait_for(&window, &needle, ms)
-                    .map_err(|error| error.to_string())?;
-                Ok(json!({ "found": hit }).to_string())
-            }
-            "click" => {
-                uia.snapshot(&window, 400)
-                    .map_err(|error| error.to_string())?;
-                let method = match number("index") {
-                    Some(index) => uia
-                        .click(index.max(0) as usize)
-                        .map_err(|error| error.to_string())?,
-                    None => {
-                        let name = text("name")
-                            .ok_or_else(|| "click needs an 'index' or 'name'".to_string())?;
-                        uia.click_name(&window, &name, 400)
-                            .map_err(|error| error.to_string())?
-                            .1
-                    }
-                };
+                let index = number("index").unwrap_or(0).max(0) as usize;
+                let method = uia.click(index).map_err(|error| error.to_string())?;
                 Ok(json!({ "method": method }).to_string())
             }
-            "set-value" | "set_value" | "fill" => {
+            "click-name" => {
+                uia.snapshot(&window, limit)
+                    .map_err(|error| error.to_string())?;
+                let name = text("name").ok_or_else(|| "click-name needs a 'name'".to_string())?;
+                let (index, method) = uia
+                    .click_name(&window, &name, limit)
+                    .map_err(|error| error.to_string())?;
+                Ok(json!({ "index": index, "method": method }).to_string())
+            }
+            "set-value" => {
                 let index = number("index")
                     .ok_or_else(|| "set-value needs an 'index'".to_string())?
                     .max(0) as usize;
                 let value = text("text").unwrap_or_default();
-                uia.snapshot(&window, 400)
+                uia.snapshot(&window, limit)
                     .map_err(|error| error.to_string())?;
                 uia.set_value(index, &value)
                     .map_err(|error| error.to_string())?;
                 Ok(json!({ "set": index }).to_string())
+            }
+            "close" => {
+                uia.close(&window).map_err(|error| error.to_string())?;
+                Ok(json!({ "closed": window }).to_string())
             }
             "key" => {
                 let key = text("key").ok_or_else(|| "key needs a 'key'".to_string())?;
@@ -237,19 +229,20 @@ impl HostState {
                     .map_err(|error| error.to_string())?;
                 Ok(json!({ "scrolled": notches, "method": method }).to_string())
             }
-            other => Err(format!("unknown app action '{other}'")),
+            other => Err(format!("unknown app primitive '{other}'")),
         }
     }
 
     /// Native window control is Windows only.
     #[cfg(not(windows))]
-    fn app_action(&mut self, _op: &str, _args_json: &str) -> Result<String, String> {
-        Err("native app control is Windows only".to_string())
+    fn desktop_action(&mut self, _op: &str, _args_json: &str) -> Result<String, String> {
+        Err("native desktop control is Windows only".to_string())
     }
 
-    /// Host primitives for the `core` plugin: stdout, time, and environment.
-    /// These are the general-purpose actions that belong to neither driver, so
-    /// they live here rather than in the browser or app bridge.
+    /// Host primitives for the `core` plugin (the language's **stdlib**): stdout,
+    /// time, and environment. These are the general-purpose acts that belong to
+    /// neither driver, so they live here rather than in the browser or app
+    /// bridge. The `core` plugin composes the user-facing verbs (`print`, …).
     fn core_action(&mut self, op: &str, args_json: &str) -> Result<String, String> {
         use serde_json::{Value, json};
 
@@ -261,7 +254,7 @@ impl HostState {
         let text = |key: &str| args.get(key).and_then(Value::as_str).map(str::to_string);
 
         match op {
-            "print" => {
+            "stdout" => {
                 let message = text("message").or_else(|| text("text")).unwrap_or_default();
                 println!("{message}");
                 Ok(json!({ "printed": message }).to_string())
@@ -278,6 +271,23 @@ impl HostState {
                     .or_else(|| text("var"))
                     .ok_or_else(|| "env needs a 'name'".to_string())?;
                 Ok(json!({ "name": name, "value": std::env::var(&name).ok() }).to_string())
+            }
+            // Blocks the guest thread; the `core` plugin's std time verbs
+            // (`sleep`, `await`, `wait-*`) compose it.
+            "sleep" => {
+                let ms = args
+                    .get("ms")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(0)
+                    .min(3_600_000);
+                std::thread::sleep(std::time::Duration::from_millis(ms));
+                Ok(json!({ "slept": ms }).to_string())
+            }
+            // A bounded pseudo-random millisecond delay for `wait-random`.
+            "random" => {
+                let min = args.get("min").and_then(Value::as_i64).unwrap_or(0);
+                let max = args.get("max").and_then(Value::as_i64).unwrap_or(min);
+                Ok(json!({ "ms": pseudo_random(min, max) }).to_string())
             }
             other => Err(format!("unknown core action '{other}'")),
         }
@@ -341,12 +351,12 @@ impl self::xcelerate::plugin::host::Host for HostState {
         rmp_serde::to_vec_named(&value).map_err(|error| error.to_string())
     }
 
-    fn app(&mut self, op: String, args: Vec<u8>) -> Result<Vec<u8>, String> {
-        self.require(Capability::App)?;
+    fn desktop(&mut self, op: String, args: Vec<u8>) -> Result<Vec<u8>, String> {
+        self.require(Capability::Desktop)?;
         let args_json = msgpack_to_json(&args).map_err(|error| error.to_string())?;
-        let result_json = self.app_action(&op, &args_json)?;
+        let result_json = self.desktop_action(&op, &args_json)?;
         let value: serde_json::Value = serde_json::from_str(&result_json)
-            .map_err(|error| format!("app action '{op}' did not return JSON: {error}"))?;
+            .map_err(|error| format!("desktop action '{op}' did not return JSON: {error}"))?;
         rmp_serde::to_vec_named(&value).map_err(|error| error.to_string())
     }
 
@@ -630,6 +640,25 @@ fn run_blocking(future: xcelerate_plugin::BoxFut<PluginResult<String>>) -> Resul
     tokio::task::block_in_place(|| handle.block_on(future)).map_err(|error| error.to_string())
 }
 
+/// A bounded pseudo-random millisecond delay for the `core` `random` primitive.
+/// Not cryptographic - `wait-random` only needs to look jittery.
+fn pseudo_random(min: i64, max: i64) -> i64 {
+    if max <= min {
+        return min.max(0);
+    }
+    let seed = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.subsec_nanos() as i64)
+        .unwrap_or(0)
+        ^ (std::process::id() as i64).rotate_left(17);
+    let mut x = seed.wrapping_add(0x9E37_79B9_7F4A_7C15u64 as i64);
+    x ^= x << 13;
+    x ^= (x as u64 >> 7) as i64;
+    x ^= x << 17;
+    let span = (max - min).saturating_add(1);
+    min + (x.abs() % span)
+}
+
 /// Key chords whose effect escapes the app into the desktop/session (open a
 /// shell, lock the screen, force-quit). Mirrors the interpreter's list so a
 /// plugin cannot smuggle one through the bridge.
@@ -700,15 +729,19 @@ fn resolve_entrypoint(
 }
 
 /// The capabilities granted to a plugin: host-only ones are never granted, and
-/// dangerous ones require an explicit opt-in via `XCELERATE_PLUGIN_ALLOW`.
+/// dangerous ones require an explicit opt-in via `XCELERATE_PLUGIN_ALLOW` -
+/// except for the standard-library plugins (`core`/`browser`/`app`), which are
+/// shipped with the project and trusted by default.
 fn granted_capabilities(manifest: &Manifest, allow: &HashSet<String>) -> HashSet<Capability> {
+    let trusted = crate::plugin::is_standard_plugin(&manifest.name);
     manifest
         .capabilities
         .iter()
         .copied()
         .filter(|capability| !capability.is_builtin_only())
         .filter(|capability| {
-            !capability.is_dangerous()
+            trusted
+                || !capability.is_dangerous()
                 || allow.contains(capability.as_str())
                 || allow.contains(&format!("{}:{}", manifest.name, capability.as_str()))
         })

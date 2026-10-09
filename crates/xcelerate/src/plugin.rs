@@ -10,7 +10,6 @@
 
 use std::sync::Arc;
 
-use crate::element::Element;
 use crate::error::{XcelerateError, XcelerateResult};
 use crate::page::Page;
 use xcelerate_plugin::{ArcPageHost, BoxFut, PageHost, PluginError, PluginResult};
@@ -40,6 +39,17 @@ pub(crate) fn resolve_manifest_path(path: &str) -> XcelerateResult<std::path::Pa
 /// [`crate::Browser::load_plugin`] (sandboxed components).
 pub(crate) fn catalog() -> Catalog {
     Arc::new(|_: &str| None)
+}
+
+/// The language's **standard-library plugins**, shipped with the project and
+/// **trusted by default**: their declared capabilities are granted without the
+/// `XCELERATE_PLUGIN_ALLOW` opt-in. This is the single source of truth - the CLI
+/// auto-loads exactly these names. Any other plugin stays default-deny.
+pub const STANDARD_PLUGINS: &[&str] = &["core", "browser", "desktop"];
+
+/// Whether `name` is a standard-library plugin (trusted by default).
+pub fn is_standard_plugin(name: &str) -> bool {
+    STANDARD_PLUGINS.contains(&name)
 }
 
 /// A [`PageHost`] backed by the engine's [`Page`], exposed to plugins so they
@@ -108,40 +118,13 @@ impl PageHost for PageHostImpl {
     }
 }
 
-/// Whether `value` reads as a selector rather than visible text (the same rule
-/// the interactive session and the XCL interpreter use).
-fn looks_like_selector(value: &str) -> bool {
-    let value = value.trim();
-    value.starts_with(['#', '.', '['])
-        || value.starts_with("//")
-        || value.starts_with("xpath=")
-        || value.starts_with("role=")
-        || value.starts_with("label=")
-        || value.starts_with("text=")
-        || (value.contains('[') && value.contains(']'))
-}
-
-/// Resolve a click/fill target: a CSS selector, or visible text.
-async fn resolve_target(page: &Arc<Page>, target: &str) -> PluginResult<Arc<Element>> {
-    if looks_like_selector(target) {
-        Arc::clone(page)
-            .wait_for_selector(target.to_string())
-            .await
-            .map_err(PluginError::from)
-    } else {
-        Arc::clone(page)
-            .find_clickable_by_text(target.to_string())
-            .await
-            .map_err(PluginError::from)?
-            .ok_or_else(|| PluginError::NotFound(format!("no visible element contains {target:?}")))
-    }
-}
-
-/// The semantic browser verbs the host bridge exposes to sandboxed plugins.
+/// The **browser primitives** the host bridge exposes to sandboxed plugins.
 ///
-/// This is the decoupled browser API: a plugin names an act (`goto`, `click`,
-/// `fill`, `snapshot`, …) and the host maps it onto the engine. A plugin never
-/// speaks CDP/BiDi itself.
+/// These are deliberately low-level *acts* (`goto`, `click-selector`,
+/// `evaluate`, `route`, …). The host owns the CDP/BiDi protocol and the page;
+/// all verb *logic* - target classification, JavaScript construction, output
+/// formatting, multi-step sequences - lives in the `browser` plugin. A plugin
+/// asks for a primitive; it never speaks the protocol itself.
 async fn browser_action(page: Arc<Page>, op: &str, args_json: &str) -> PluginResult<String> {
     use serde_json::{Value, json};
 
@@ -152,111 +135,291 @@ async fn browser_action(page: Arc<Page>, op: &str, args_json: &str) -> PluginRes
             .map_err(|error| PluginError::Message(format!("args are not JSON: {error}")))?
     };
     let text = |key: &str| args.get(key).and_then(Value::as_str).map(str::to_string);
+    let flag = |key: &str| args.get(key).and_then(Value::as_bool).unwrap_or(false);
+    let number = |key: &str| args.get(key).and_then(Value::as_u64);
+    let need = |key: &str| {
+        text(key).ok_or_else(|| PluginError::Unsupported(format!("{op} needs '{key}'")))
+    };
+    let missing = |key: &str| PluginError::Unsupported(format!("{op} needs '{key}'"));
+
+    // Fetch an element by selector (waiting for it), or by its visible text.
+    let by_selector = |selector: String| {
+        let page = Arc::clone(&page);
+        async move {
+            page.wait_for_selector(selector)
+                .await
+                .map_err(PluginError::from)
+        }
+    };
+    let by_text = |needle: String| {
+        let page = Arc::clone(&page);
+        async move {
+            page.find_clickable_by_text(needle.clone())
+                .await
+                .map_err(PluginError::from)?
+                .ok_or_else(|| {
+                    PluginError::NotFound(format!("no visible element contains {needle:?}"))
+                })
+        }
+    };
 
     match op {
-        "goto" | "open" | "navigate" => {
-            let url = text("url")
-                .ok_or_else(|| PluginError::Unsupported("goto needs a 'url'".to_string()))?;
+        // Navigation and reading.
+        "goto" | "navigate" => {
+            let url = need("url")?;
             page.navigate(url.clone())
                 .await
                 .map_err(PluginError::from)?;
             let _ = page.wait_for_navigation().await;
             Ok(json!({ "url": page.url().await.unwrap_or(url) }).to_string())
         }
-        "url" => Ok(json!(page.url().await.map_err(PluginError::from)?).to_string()),
-        "title" => Ok(json!(page.title().await.map_err(PluginError::from)?).to_string()),
-        "html" | "content" => {
-            Ok(json!(page.content().await.map_err(PluginError::from)?).to_string())
+        "url" => Ok(json!({ "value": page.url().await.map_err(PluginError::from)? }).to_string()),
+        "title" => {
+            Ok(json!({ "value": page.title().await.map_err(PluginError::from)? }).to_string())
         }
-        "markdown" | "md" => {
-            Ok(json!(page.markdown().await.map_err(PluginError::from)?).to_string())
+        "html" => {
+            Ok(json!({ "value": page.content().await.map_err(PluginError::from)? }).to_string())
         }
-        "text" => Ok(json!(
-            page.evaluate_string("document.body ? document.body.innerText : ''".to_string())
-                .await
-                .map_err(PluginError::from)?
-        )
-        .to_string()),
-        "snapshot" => {
-            Ok(json!(page.agent_snapshot().await.map_err(PluginError::from)?).to_string())
+        "markdown" => {
+            Ok(json!({ "value": page.markdown().await.map_err(PluginError::from)? }).to_string())
         }
-        "snapshot-json" => {
-            Ok(json!(page.snapshot_json().await.map_err(PluginError::from)?).to_string())
-        }
-        "click" => {
-            let target = text("target")
-                .ok_or_else(|| PluginError::Unsupported("click needs a 'target'".to_string()))?;
-            let element = resolve_target(&page, &target).await?;
-            element.click_mouse().await.map_err(PluginError::from)?;
-            Ok(json!({ "clicked": target }).to_string())
-        }
-        "hover" => {
-            let target = text("target")
-                .ok_or_else(|| PluginError::Unsupported("hover needs a 'target'".to_string()))?;
-            let element = resolve_target(&page, &target).await?;
-            element.hover_mouse().await.map_err(PluginError::from)?;
-            Ok(json!({ "hovered": target }).to_string())
-        }
-        "fill" => {
-            let target = text("target")
-                .ok_or_else(|| PluginError::Unsupported("fill needs a 'target'".to_string()))?;
-            let value = text("text").unwrap_or_default();
-            let element = resolve_target(&page, &target).await?;
-            element.type_text(value).await.map_err(PluginError::from)?;
-            Ok(json!({ "filled": target }).to_string())
-        }
-        "press" => {
-            let key = text("key")
-                .ok_or_else(|| PluginError::Unsupported("press needs a 'key'".to_string()))?;
-            page.keyboard_press(key.clone())
+        "text" => {
+            let value = page
+                .evaluate_string("document.body ? document.body.innerText : ''".to_string())
                 .await
                 .map_err(PluginError::from)?;
-            Ok(json!({ "pressed": key }).to_string())
+            Ok(json!({ "value": value }).to_string())
         }
-        "scroll" => {
-            let to = text("to").unwrap_or_else(|| "down".to_string());
-            let js = match to.as_str() {
-                "" | "down" => "window.scrollBy(0, window.innerHeight * 0.9)".to_string(),
-                "up" => "window.scrollBy(0, -window.innerHeight * 0.9)".to_string(),
-                "top" => "window.scrollTo(0, 0)".to_string(),
-                "bottom" => "window.scrollTo(0, document.body.scrollHeight)".to_string(),
-                other => match other.parse::<i64>() {
-                    Ok(pixels) => format!("window.scrollBy(0, {pixels})"),
-                    Err(_) => {
-                        return Err(PluginError::Unsupported(
-                            "scroll 'to' must be a pixel count or up|down|top|bottom".to_string(),
-                        ));
-                    }
-                },
-            };
-            let _ = page.evaluate_string(js).await;
-            Ok(json!({ "scrolled": to }).to_string())
-        }
+        "snapshot" => Ok(
+            json!({ "value": page.agent_snapshot().await.map_err(PluginError::from)? }).to_string(),
+        ),
+        "snapshot-json" => Ok(
+            json!({ "value": page.snapshot_json().await.map_err(PluginError::from)? }).to_string(),
+        ),
+
+        // Evaluate arbitrary JavaScript. `as = "json"` decodes the result as JSON
+        // (`evaluate_json`); otherwise the result is a string.
         "evaluate" => {
-            let js = text("js")
-                .ok_or_else(|| PluginError::Unsupported("evaluate needs 'js'".to_string()))?;
-            Ok(page.evaluate_string(js).await.map_err(PluginError::from)?)
+            let js = need("js")?;
+            let value = if text("as").as_deref() == Some("json") {
+                page.evaluate_json(js).await.map_err(PluginError::from)?
+            } else {
+                page.evaluate_string(js).await.map_err(PluginError::from)?
+            };
+            Ok(json!({ "value": value }).to_string())
         }
-        "wait" => {
-            let selector = text("selector")
-                .ok_or_else(|| PluginError::Unsupported("wait needs a 'selector'".to_string()))?;
+
+        // Waiting.
+        "wait-selector" => {
+            let selector = need("selector")?;
             Arc::clone(&page)
-                .wait_for_selector(selector.clone())
+                .wait_for_selector(selector)
                 .await
                 .map_err(PluginError::from)?;
-            Ok(json!({ "waited": selector }).to_string())
+            Ok("{}".to_string())
         }
-        "find" => {
+        "wait-navigation" => {
+            let _ = page.wait_for_navigation().await;
+            Ok("{}".to_string())
+        }
+        "wait-network-idle" => {
+            let idle = number("idle_ms").unwrap_or(500);
+            let timeout = number("timeout_ms").unwrap_or(30_000);
+            page.wait_for_network_idle(idle, timeout)
+                .await
+                .map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+        "wait-dom-stable" => {
+            let quiet = number("quiet_ms").unwrap_or(500);
+            let timeout = number("timeout_ms").unwrap_or(30_000);
+            page.wait_for_dom_stable(quiet, timeout)
+                .await
+                .map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+
+        // Queries.
+        "find-text" => {
             let needle = text("text").unwrap_or_default();
             let count = page
                 .find_text(needle.clone())
                 .await
                 .map_err(PluginError::from)?;
-            Ok(json!({ "count": count, "text": needle }).to_string())
+            Ok(json!({ "count": count }).to_string())
+        }
+
+        // History.
+        "back" => {
+            page.go_back().await.map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+        "reload" => {
+            page.reload().await.map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+
+        // Pointer acts.
+        "click-index" => {
+            let index = number("index").ok_or_else(|| missing("index"))? as u32;
+            Arc::clone(&page)
+                .click_index(index)
+                .await
+                .map_err(PluginError::from)?;
+            if let Some(ms) = number("settle_ms") {
+                tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
+            }
+            Ok(json!({ "clicked": index }).to_string())
+        }
+        "move-index" => {
+            let index = number("index").ok_or_else(|| missing("index"))? as u32;
+            Arc::clone(&page)
+                .move_to_index(index)
+                .await
+                .map_err(PluginError::from)?;
+            Ok(json!({ "moved": index }).to_string())
+        }
+        "click-mouse" => {
+            let x = args
+                .get("x")
+                .and_then(Value::as_f64)
+                .ok_or_else(|| missing("x"))?;
+            let y = args
+                .get("y")
+                .and_then(Value::as_f64)
+                .ok_or_else(|| missing("y"))?;
+            Arc::clone(&page)
+                .click_mouse(x, y)
+                .await
+                .map_err(PluginError::from)?;
+            Ok(json!({ "clicked": [x, y] }).to_string())
+        }
+        "move-mouse" => {
+            let x = args
+                .get("x")
+                .and_then(Value::as_f64)
+                .ok_or_else(|| missing("x"))?;
+            let y = args
+                .get("y")
+                .and_then(Value::as_f64)
+                .ok_or_else(|| missing("y"))?;
+            Arc::clone(&page)
+                .move_mouse(x, y)
+                .await
+                .map_err(PluginError::from)?;
+            Ok(json!({ "moved": [x, y] }).to_string())
+        }
+        "click-selector" => {
+            let element = by_selector(need("selector")?).await?;
+            element.click_mouse().await.map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+        "hover-selector" => {
+            let element = by_selector(need("selector")?).await?;
+            element.hover_mouse().await.map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+        "click-text" => {
+            let element = by_text(need("text")?).await?;
+            element.click_mouse().await.map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+        "hover-text" => {
+            let element = by_text(need("text")?).await?;
+            element.hover_mouse().await.map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+
+        // Typing / keys.
+        "type-selector" => {
+            let element = by_selector(need("selector")?).await?;
+            element
+                .type_text(text("text").unwrap_or_default())
+                .await
+                .map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+        "type-index" => {
+            let index = number("index").ok_or_else(|| missing("index"))? as u32;
+            if Arc::clone(&page).click_index(index).await.is_err() {
+                let _ = page.agent_snapshot().await;
+                Arc::clone(&page)
+                    .click_index(index)
+                    .await
+                    .map_err(PluginError::from)?;
+            }
+            let element = page
+                .evaluate_handle("document.activeElement".to_string())
+                .await
+                .map_err(PluginError::from)?;
+            element
+                .type_text(text("text").unwrap_or_default())
+                .await
+                .map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+        "type-active" => {
+            let element = page
+                .evaluate_handle("document.activeElement".to_string())
+                .await
+                .map_err(PluginError::from)?;
+            element
+                .type_text(text("text").unwrap_or_default())
+                .await
+                .map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+        "press-active" => {
+            let key = need("key")?;
+            let element = page
+                .evaluate_handle("document.activeElement".to_string())
+                .await
+                .map_err(PluginError::from)?;
+            element.press(key).await.map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+        "press-selector" => {
+            let selector = need("selector")?;
+            let key = need("key")?;
+            let element = by_selector(selector).await?;
+            element.press(key).await.map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+        "press-key" => {
+            let key = need("key")?;
+            page.keyboard_press(key).await.map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+
+        // Form controls.
+        "select-option" => {
+            let selector = need("selector")?;
+            let value = need("value")?;
+            let values = json!([value]).to_string();
+            Arc::clone(&page)
+                .select_option(selector, values)
+                .await
+                .map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+        "set-input-files" => {
+            let selector = need("selector")?;
+            let files = args.get("files").cloned().ok_or_else(|| missing("files"))?;
+            Arc::clone(&page)
+                .set_input_files(selector, files.to_string())
+                .await
+                .map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+
+        // Scrolling (the plugin builds the script) and screenshots.
+        "scroll" => {
+            let js = need("js")?;
+            let _ = page.evaluate_string(js).await;
+            Ok("{}".to_string())
         }
         "screenshot" => {
-            let full = args.get("full").and_then(Value::as_bool).unwrap_or(false);
-            let png = if full {
+            let png = if flag("full") {
                 page.screenshot_full().await.map_err(PluginError::from)?
             } else {
                 page.screenshot().await.map_err(PluginError::from)?
@@ -265,8 +428,117 @@ async fn browser_action(page: Arc<Page>, op: &str, args_json: &str) -> PluginRes
             let encoded = base64::engine::general_purpose::STANDARD.encode(&png);
             Ok(json!({ "png_base64": encoded, "bytes": png.len() }).to_string())
         }
+
+        // Misc page acts.
+        "drag" => {
+            let from = need("from")?;
+            let to = need("to")?;
+            Arc::clone(&page)
+                .drag(&from, &to)
+                .await
+                .map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+        "dialog-policy" => {
+            let policy = match text("policy").unwrap_or_default().as_str() {
+                "accept" => crate::page::DialogPolicy::Accept,
+                _ => crate::page::DialogPolicy::Dismiss,
+            };
+            page.set_dialog_policy(policy)
+                .await
+                .map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+        "detect-challenge" => {
+            let report = page.detect_challenge().await.map_err(PluginError::from)?;
+            Ok(json!({ "report": report.to_json() }).to_string())
+        }
+        "media-json" => {
+            Ok(json!({ "value": page.media_json().await.map_err(PluginError::from)? }).to_string())
+        }
+
+        // Cookies and arbitrary CDP. Cookie writes/deletes/clears and the
+        // geolocation override are CDP calls, so they ride `cdp`.
+        "cookies" => {
+            Ok(json!({ "value": page.cookies().await.map_err(PluginError::from)? }).to_string())
+        }
+        "cookie" => {
+            let name = need("name")?;
+            Ok(json!({ "value": page.cookie(name).await.map_err(PluginError::from)? }).to_string())
+        }
+        "cdp" => {
+            let method = need("method")?;
+            let params = args
+                .get("params")
+                .map(|value| value.to_string())
+                .unwrap_or_else(|| "{}".to_string());
+            Ok(json!({ "value": page.execute_cdp_cmd(method, params).await.map_err(PluginError::from)? })
+                .to_string())
+        }
+
+        // Network interception and auth.
+        "route" => {
+            let pattern = need("pattern")?;
+            let action = text("action").unwrap_or_else(|| "continue".to_string());
+            let body = text("body");
+            let content_type = text("content_type");
+            page.route(pattern, action, body, content_type)
+                .await
+                .map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+        "unroute" => {
+            match text("pattern").filter(|p| !p.is_empty()) {
+                Some(pattern) => page.unroute(pattern).await.map_err(PluginError::from)?,
+                None => page.unroute_all().await.map_err(PluginError::from)?,
+            }
+            Ok("{}".to_string())
+        }
+        "route-har" => {
+            let path = need("path")?;
+            page.route_from_har(path).await.map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+        "auth" => {
+            let username = need("username")?;
+            let password = text("password").unwrap_or_default();
+            page.authenticate(username, password)
+                .await
+                .map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+
+        // Storage state and media capture (file paths are resolved by the host).
+        "storage-state" => Ok(
+            json!({ "value": page.storage_state().await.map_err(PluginError::from)? }).to_string(),
+        ),
+        "set-storage-state" => {
+            let json = need("json")?;
+            page.set_storage_state(json)
+                .await
+                .map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+        "grab" => {
+            let url = need("url")?;
+            let path = need("path")?;
+            let message = page.grab(url, path).await.map_err(PluginError::from)?;
+            Ok(json!({ "message": message }).to_string())
+        }
+        "capture-start" => {
+            page.start_media_capture()
+                .await
+                .map_err(PluginError::from)?;
+            Ok("{}".to_string())
+        }
+        "capture-save" => {
+            let path = need("path")?;
+            let message = page.save_capture(path).await.map_err(PluginError::from)?;
+            Ok(json!({ "message": message }).to_string())
+        }
+
         other => Err(PluginError::Unsupported(format!(
-            "unknown browser action '{other}'"
+            "unknown browser primitive '{other}'"
         ))),
     }
 }

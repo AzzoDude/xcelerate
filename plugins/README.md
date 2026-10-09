@@ -1,22 +1,21 @@
 # Plugins
 
-Two ready-made xcelerate plugins that package the **browser** and **native-app**
-control surfaces as portable WebAssembly components - plus **core**, the
-host primitives that are neither. They show the whole plugin model end to end and
-are the decoupled home for browser/app/core control: the interpreter and CLI stay
-small, and the surfaces evolve here.
+Three ready-made xcelerate plugins: **core** (the language's standard library),
+**browser**, and **desktop** (native-window control). They are the decoupled home
+for std/browser/desktop behavior: the interpreter understands only the language,
+and each plugin owns its verbs while the host keeps the protocol.
 
-| Plugin | Name | Ops | Capability |
+| Plugin | Name | Ops | Capabilities |
 | --- | --- | --- | --- |
-| [`core/`](core) | `core` | `print`, `now`, `env` | `core` |
-| [`browser/`](browser) | `browser` | `open`, `title`, `url`, `text`, `html`, `markdown`, `snapshot`, `click`, `hover`, `fill`, `press`, `scroll`, `wait`, `find`, `evaluate`, `screenshot` | `browser` |
-| [`app/`](app) | `app` | `windows`, `launch`, `tree`, `find`, `wait`, `click`, `set_value`, `key`, `wheel`, `scroll` | `app` |
+| [`core/`](core) | `core` | `print`, `now`, `env`, `sleep`, `await`, `wait-ms`/`wait-sec`/`wait-min`/`wait-hr`, `wait-random` | `core` |
+| [`browser/`](browser) | `browser` | `open`, `title`, `url`, `text`, `html`, `markdown`, `snapshot`, `click`, `hover`, `fill`, `press`, `scroll`, `wait`, `find`, `evaluate`, `screenshot`, … | `browser` |
+| [`desktop/`](desktop) | `desktop` | `windows`, `launch`, `tree`, `find`, `wait`, `click`, `set_value`, `close`, `key`, `wheel`, `scroll` | `desktop`, `core` |
 
-None of the plugins speaks CDP, BiDi, or the OS directly. Each forwards its ops to
-a **capability-gated host bridge** - `host.core` for host primitives,
-`host.browser` for the browser, and `host.app` for native windows - so a sandboxed
-guest asks the host for a *semantic verb* (`print`, `goto`, `click`, `fill`,
-`tree`, …) and the host performs it, audits it, and enforces the grant. See
+`core` is the language's `std`; `browser` and `desktop` are the drivers. None
+speaks CDP, BiDi, or the OS directly: each calls a **capability-gated host
+bridge** (`host.browser` / `host.desktop` / `host.core`) that exposes only raw
+primitives (`goto`, `click-selector`, `snapshot`, `stdout`, `sleep`, …). The
+plugin composes those into user-facing verbs - the host owns the protocol. See
 `crates/xcelerate/wit/plugin.wit`.
 
 ## Build
@@ -29,45 +28,41 @@ host ABI, so you never hand-write WIT) and stages the `.wasm` beside
 ```bash
 (cd core    && xcelerate build --wasm-only)   # -> core.wasm
 (cd browser && xcelerate build --wasm-only)   # -> browser.wasm
-(cd app     && xcelerate build --wasm-only)   # -> app.wasm
+(cd desktop && xcelerate build --wasm-only)   # -> desktop.wasm
 ```
 
 ## Install into the shared plugin home
 
 Plugin *names* are resolved from the user-global home (`$XCELERATE_HOME/plugins`,
-else `~/.xcl/plugins`), then `./plugins`, then `.`. Install once and import from
+else `~/.xcl/plugins`), then `./plugins`, then `.`. Install once and use from
 anywhere:
 
 ```bash
 mkdir -p ~/.xcl/plugins
 cp -r core    ~/.xcl/plugins/core
 cp -r browser ~/.xcl/plugins/browser
-cp -r app     ~/.xcl/plugins/app
+cp -r desktop ~/.xcl/plugins/desktop
 ```
 
 ## Use
 
-The `browser`, `app`, and `core` capabilities are **dangerous**, so they are
-denied unless granted via `XCELERATE_PLUGIN_ALLOW`; the XCL `run` verb is *also*
-gated by `--allow-plugin`.
+The `core`, `browser`, and `app` plugins are the language's **standard library**
+and are **trusted by default**, so a script uses the plain verbs with no ceremony
+(`XCELERATE_PLUGIN_ALLOW` is not needed for them). A **third-party** plugin is
+default-deny: its dangerous capabilities need `XCELERATE_PLUGIN_ALLOW`, and the
+XCL `run` verb is *also* gated by `--allow-plugin`. Run `plugins` in a script to
+see the trust surface.
 
 ```bash
-# browser plugin
-XCELERATE_PLUGIN_ALLOW=browser xcelerate --plugins browser run --allow-plugin browser job.xcl
-
-# app plugin (Windows only)
-XCELERATE_PLUGIN_ALLOW=app xcelerate --plugins app run --allow-plugin app job.xcl
-
-# core plugin
-XCELERATE_PLUGIN_ALLOW=core xcelerate --plugins core run --allow-plugin core job.xcl
+xcelerate run job.xcl
 ```
 
 ```xcl
 # job.xcl
-run core print {"message":"starting"}
+print "starting"
 run browser open {"url":"https://example.com"}
 run browser find {"text":"Example"}
-run app launch {"target":"notepad","title":"Notepad"}
+run desktop launch {"target":"notepad","title":"Notepad"}
 ```
 
 From Rust, bind the browser plugin to a live page with `PluginHandle::invoke_on`:

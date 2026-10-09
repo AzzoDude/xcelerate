@@ -422,11 +422,6 @@ fn substitute(command: &mut Command, map: &HashMap<String, Arg>) {
             }
         }
         Command::Assert { value, .. } => *value = repl(value),
-        Command::Print { args } => {
-            for a in args.iter_mut() {
-                *a = repl(a);
-            }
-        }
         Command::Raw { args, .. } => {
             for a in args.iter_mut() {
                 *a = repl(a);
@@ -456,7 +451,7 @@ mod tests {
             let mut printed = Vec::new();
             while let Some(outcome) = engine.step(&mut ctx, &mut |_ctx, cmd| match cmd {
                 Command::Assert { .. } if fail_assert => Outcome::fail("no"),
-                Command::Print { args } => {
+                Command::Raw { verb, args } if verb == "print" => {
                     printed.push(
                         args.iter()
                             .map(|a| a.source())
