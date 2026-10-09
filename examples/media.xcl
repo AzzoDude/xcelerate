@@ -9,12 +9,12 @@
 #                            it fetches itself (MSE: YouTube, Facebook)
 #
 # To *look* at a page (the indexed snapshot with images/video and hover
-# previews), use the session instead - `snapshot` is a session/AI command, not
-# part of the XCL language:
+# previews), run an XCL script that calls the plugin's `snapshot` op (the
+# interactive session that used to expose `snapshot` has been removed - the CLI
+# is now just a script runner):
 #
-#   xcelerate session --ai
-#   xcelerate> open https://example.com
-#   xcelerate> snapshot
+#   import browser
+#   run browser snapshot
 #
 # Run this script:
 #   xcelerate run media.xcl --verbose

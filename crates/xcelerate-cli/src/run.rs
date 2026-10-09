@@ -1,32 +1,34 @@
-//! The `.xcl` file runner entry point: load, parse, and execute a script against
-//! a live browser.
+//! The `.xcl` file runner entry point: load, parse, and execute a script.
+//!
+//! The runner is browser- and app-agnostic. It constructs a generic
+//! [`Executor`] (which boots the browser lazily from the environment and keeps
+//! the desktop driver available), loads the run's plugins, and drives the script.
+//! Every browser/app action is a plugin op.
 
-use std::path::Path;
-use std::sync::Arc;
+use std::path::{Path, PathBuf};
 
 use xcelerate_interpreter::Engine;
 use xcelerate_interpreter::ast::Command;
 use xcelerate_interpreter::engine::Next;
-use xcelerate_interpreter::exec::{BrowserFactory, BrowserFuture, Executor, dispatch};
+use xcelerate_interpreter::exec::{Executor, dispatch};
 use xcelerate_interpreter::parse::parse_program_file;
 use xcelerate_interpreter::runtime::{Context, RuntimeLimits};
 use xcelerate_interpreter::security::{Limits, Permissions, Source};
 
-use crate::cli::BrowserArgs;
-
-/// Executes an `.xcl` file, launching a browser as needed.
+/// Executes an `.xcl` file, booting the browser (or desktop) driver only as the
+/// script's plugins require.
 pub async fn run_file(
-    args: &BrowserArgs,
     path: &Path,
+    plugins: Vec<String>,
     allow_unsafe: bool,
     allow_http: bool,
     allow_plugin: Vec<String>,
     allow_private: bool,
+    allow_app: Vec<String>,
+    output_dir: Option<PathBuf>,
     params: Vec<String>,
     verbose: bool,
     limits: Limits,
-    app: Option<String>,
-    native: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let source = std::fs::read_to_string(path)
         .map_err(|e| format!("cannot read {}: {e}", path.display()))?;
@@ -35,61 +37,35 @@ pub async fn run_file(
     // `import "*.xcl"` paths resolve against the script's own directory.
     let program = parse_program_file(&source, limits, path.parent().map(|dir| dir.to_path_buf()))?;
 
-    // Resolve permissions.
-    let mut allow_apps = args.allow_app.clone();
-    // The window the run is explicitly attached to is granted, so acting verbs
-    // pass the gate without a redundant `--allow-app` for the same window. A
-    // *script* can never add to this: only the human's `--app`/`--allow-app` do.
-    if let Some(window) = &app
-        && !allow_apps.iter().any(|entry| entry == window)
-    {
-        allow_apps.push(window.clone());
-    }
     let permissions = Permissions {
         allow_eval: allow_unsafe,
         allow_http: allow_http || allow_unsafe,
         allow_plugins: allow_plugin,
         allow_private,
-        // Native-app control is default-deny: a script may only drive windows the
-        // invoking human explicitly allowlisted with `--allow-app`.
-        allow_apps,
+        // Native-window control is default-deny: a script may only drive windows
+        // the invoking human explicitly allowlisted with `--allow-app`.
+        allow_apps: allow_app,
     };
 
-    // The drivers a run exposes. `--app`/`--native` are browserless (desktop
-    // only); otherwise the browser driver is available but is launched **lazily**,
-    // on the first `import browser` (or browser verb), so a native-only script
-    // never pays for a browser it does not use.
-    #[cfg(windows)]
-    let exe = if let Some(window) = app {
-        Executor::native(window)
-    } else if native {
-        Executor::desktop()
-    } else {
-        Executor::lazy(browser_factory(args))
-    };
-    #[cfg(not(windows))]
-    let exe = {
-        if app.is_some() || native {
-            return Err("--app/--native (native window control) is Windows only".into());
-        }
-        Executor::lazy(browser_factory(args))
-    };
+    // A generic executor: the browser is launched lazily on first use (configured
+    // by the environment - see `xcelerate::session`), and the desktop driver is
+    // available through the `window`/`launch` verbs. The runner picks no driver.
+    let exe = Executor::from_env();
 
     // Load the run's plugins into the executor's **own** host, so `run` and the
-    // native verbs work even with no browser (a `--native` run): the plugin host
-    // is no longer the browser.
-    for path in crate::launch::resolve_plugin_names(&args.plugins) {
+    // native verbs work even with no browser: the plugin host is not the browser.
+    for path in crate::plugins::resolve_plugin_names(&plugins) {
         exe.load_plugin(&path)
             .map_err(|error| -> Box<dyn std::error::Error> {
                 format!("cannot load plugin `{path}`: {error}").into()
             })?;
     }
-    // Auto-load the standard `browser` / `app` plugins when they are installed
-    // (a plugin home, or ./plugins), so a script uses the plain verbs without
-    // naming them. Capabilities stay default-deny, so this only makes the ops
-    // *available*; the grant is still required. A missing/duplicate load is fine.
-    for name in ["core", "browser", "app"] {
-        let path = crate::launch::resolve_plugin_name(name);
+    // Auto-load the standard `core` / `browser` / `app` plugins when they are
+    // installed (a plugin home, or ./plugins), so a script uses the plain verbs
+    // without naming them. Capabilities stay default-deny, so this only makes the
+    // ops *available*; the grant is still required. A missing/duplicate load is fine.
+    for name in crate::plugins::STANDARD_PLUGINS {
+        let path = crate::plugins::resolve_plugin_name(name);
         if std::path::Path::new(&path).exists() {
             let _ = exe.load_plugin(&path);
         }
@@ -98,7 +74,7 @@ pub async fn run_file(
     // Build context + apply `--param key=value` overrides.
     let base_url = std::env::var("XCELERATE_BASE_URL").unwrap_or_default();
     let mut ctx = Context::new(permissions, Source::File, base_url);
-    if let Some(dir) = &args.output_dir {
+    if let Some(dir) = &output_dir {
         ctx = ctx.with_root(dir);
     }
     for entry in params {
@@ -128,9 +104,21 @@ pub async fn run_file(
         // Read anything we need off the borrowed command before dispatching it
         // (the borrow ends once `dispatch` returns).
         let is_print = matches!(cmd, Command::Print { .. });
+        // A browser/app verb or a plugin op leaves its result in `$RESULT`; control
+        // steps (`import`, `let`, …) do not clobber it.
+        let captures_result = matches!(cmd, Command::Raw { .. } | Command::Run { .. });
 
         let outcome = dispatch(&mut ctx, cmd, &exe).await;
         engine.observe(outcome.ok);
+        // Carry this step's result forward - the same convention `request` uses
+        // for `$STATUS` / `$RESPONSE_BODY`.
+        if outcome.ok && captures_result {
+            let result = outcome
+                .value
+                .clone()
+                .unwrap_or_else(|| outcome.message.clone());
+            ctx.vars.insert("RESULT".to_string(), result);
+        }
         // Quiet by default: a run reads as its own log, so only failures and
         // explicit `print` output are shown. `--verbose` restores the per-step
         // `ok <step>` transcript.
@@ -151,29 +139,7 @@ pub async fn run_file(
         }
     }
 
-    // Give `Browser::close` room to finish its own graceful wait and force-kill
-    // fallback. Wrapping it in the same 5s window would cancel the kill and
-    // orphan the browser window (it would outlive the run). A run that never
-    // imported the browser (or a native run) has none to close.
-    if let Some(browser) = exe.take_browser() {
-        let _ = tokio::time::timeout(std::time::Duration::from_secs(20), browser.close()).await;
-    }
+    // Close the browser this run launched, if any, before returning.
+    exe.shutdown().await;
     Ok(())
-}
-
-/// A one-shot launcher for the browser driver: the first `import browser` (or
-/// browser verb) calls it. The CLI owns the launch configuration, so the closure
-/// captures a clone of the parsed `BrowserArgs`.
-fn browser_factory(args: &BrowserArgs) -> BrowserFactory {
-    let args = args.clone();
-    Arc::new(move || {
-        let args = args.clone();
-        let launched: BrowserFuture = Box::pin(async move {
-            let (browser, page) = crate::launch::launch(&args, "about:blank")
-                .await
-                .map_err(|e| e.to_string())?;
-            Ok((browser, page))
-        });
-        launched
-    })
 }

@@ -1,24 +1,20 @@
-//! Command-line interface for the xcelerate CDP engine.
+//! Command-line interface for the xcelerate XCL engine.
 //!
-//! Most commands launch a fresh browser, perform one action, and exit. Two
-//! exceptions keep state: `xcelerate session` reads commands from stdin against
-//! one persistent browser (`session`), and `xcelerate mcp` serves the Model
-//! Context Protocol on stdio.
+//! Bare-bones by design: it runs XCL scripts and hosts plugins. Browser and app
+//! actions are plugin ops, not subcommands; the CLI never implements them.
 //!
-//! The modules: `cli` holds the clap surface, `commands` the one-shot
-//! subcommands and the dispatcher, `launch` the shared browser setup, `session`
-//! the REPL, and `scaffold` the plugin template.
+//! The modules: `cli` holds the clap surface, `commands` the top-level
+//! dispatcher, `run` the `.xcl` runner, `plugins` the plugin path resolution,
+//! `build` the plugin build, and `scaffold` the plugin template.
 
 use mimalloc::MiMalloc;
 
 mod build;
 mod cli;
 mod commands;
-mod cursor;
-mod launch;
+mod plugins;
 mod run;
 mod scaffold;
-mod session;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;

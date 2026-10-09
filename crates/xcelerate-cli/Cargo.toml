@@ -31,9 +31,9 @@ mimalloc.workspace = true
 serde_json.workspace = true
 
 [features]
-# Opt in to an in-process HTTPS client for `fetch` / `fetch-to`. Off by default
-# so default builds stay dependency-light; the core crate is never affected.
-# The client itself lives in `xcelerate-interpreter` (it also backs `request`).
+# Opt in to the interpreter's in-process HTTPS client (the XCL `request` op).
+# Off by default so default builds stay dependency-light. The client lives in
+# `xcelerate-interpreter`; the CLI only forwards this feature.
 http = ["xcelerate-interpreter/http"]
 
 [lints]

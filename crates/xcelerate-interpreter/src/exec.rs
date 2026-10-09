@@ -96,6 +96,23 @@ impl Executor {
         }
     }
 
+    /// A browser-capable executor configured from the environment: the browser is
+    /// launched lazily on first use (see [`xcelerate::session`]), and the desktop
+    /// driver stays available through the `window`/`launch` verbs. This is the
+    /// generic entry point a runner uses, so the runner carries no browser flags
+    /// and no driver-selection logic.
+    pub fn from_env() -> Self {
+        let factory: BrowserFactory = Arc::new(|| {
+            let launched: BrowserFuture = Box::pin(async move {
+                xcelerate::session::launch("about:blank")
+                    .await
+                    .map_err(|error| error.to_string())
+            });
+            launched
+        });
+        Self::lazy(factory)
+    }
+
     /// A browserless executor attached to a native window (Windows only).
     #[cfg(windows)]
     pub fn native(window: String) -> Self {
@@ -173,6 +190,15 @@ impl Executor {
     /// Takes the browser handle out (for closing), if it was launched.
     pub fn take_browser(&self) -> Option<Arc<Browser>> {
         self.browser.lock().unwrap().take()
+    }
+
+    /// Closes the browser driver, if it was launched. Gives [`Browser::close`]
+    /// room for its own graceful wait and force-kill fallback, so the window is
+    /// never orphaned. Safe to call when no browser was ever launched.
+    pub async fn shutdown(&self) {
+        if let Some(browser) = self.take_browser() {
+            let _ = tokio::time::timeout(std::time::Duration::from_secs(20), browser.close()).await;
+        }
     }
 
     /// The currently active page (browser driver only).
