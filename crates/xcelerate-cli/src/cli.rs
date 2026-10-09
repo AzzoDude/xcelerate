@@ -78,6 +78,7 @@ pub enum Command {
         /// exactly one toolchain is detected.
         lang: Option<CodegenLang>,
         /// Compile only the `.wasm` core; skip binding generation/package.
+        /// This is the default when no target language is given.
         #[arg(long)]
         wasm_only: bool,
         /// Generate + package bindings only against an existing `.wasm`.

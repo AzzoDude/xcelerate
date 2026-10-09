@@ -1,0 +1,14 @@
+# browser.xcl - drive a Chromium browser with the plain XCL browser verbs.
+#
+# The `browser` plugin backs these verbs (it owns the verb logic; the host owns
+# CDP/BiDi). The browser is launched for you when a browser verb is first used
+# (configure the launch with the environment):
+#
+#   XCELERATE_PLUGIN_ALLOW=browser XCELERATE_BROWSER=brave \
+#     xcelerate run browser.xcl
+
+import browser
+open "https://example.com"
+assert url contains example.com
+
+done

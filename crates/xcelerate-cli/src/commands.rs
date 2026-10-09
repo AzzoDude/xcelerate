@@ -79,7 +79,7 @@ pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
                 let path = crate::scaffold::new_mod(&name, dir, force)?;
                 println!("created mod '{name}' in {}", path.display());
                 println!(
-                    "next: cd {} && xcelerate build --wasm-only   # builds the .wasm",
+                    "next: cd {} && xcelerate build   # builds the .wasm",
                     path.display()
                 );
             }

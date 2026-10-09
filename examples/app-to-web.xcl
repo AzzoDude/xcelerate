@@ -1,0 +1,45 @@
+# app-to-web.xcl - take a value computed in a native app and paste it into a web
+# form.
+#
+#   XCELERATE_PLUGIN_ALLOW=core,browser,app \
+#     xcelerate run --allow-plugin '*' --allow-app "Calculator" app-to-web.xcl
+#
+# To watch it happen, pace every step with `XCELERATE_STEP_DELAY_MS` (ms):
+#
+#   XCELERATE_STEP_DELAY_MS=800 XCELERATE_PLUGIN_ALLOW=core,browser,app \
+#     xcelerate run --allow-plugin '*' --allow-app "Calculator" app-to-web.xcl
+#
+# The drivers are declared once, at the top. The active driver follows the verbs:
+# `launch`/`window` target the desktop, `open`/`goto` target the browser.
+
+import browser, desktop
+
+# 1) Desktop: compute 7 x 6 in Calculator. `launch` starts it (or attaches if its
+#    window is already open) and selects it, which makes the desktop active.
+launch "calc" "Calculator"
+click "Seven"
+click "Multiply"
+click "Six"
+click "Equals"
+
+# 2) Read the display and keep just the value. `find` leaves the whole formatted
+#    element line in `$RESULT`; `regex` pulls the number out of it (first capture
+#    group, else the whole match). A browser/app verb lands its result in
+#    `$RESULT` (the same convention `request` uses for `$STATUS`).
+#
+#      after find:   $RESULT = [13] <text> "Display is 42"  704x119@7,118
+#      after regex:  $RESULT = 42
+#
+#    (XCL has no inline comments - a `#` mid-line is part of the token, as in
+#    `fill "#message"` - so the annotations above are on their own lines.)
+find "Display is"
+regex $RESULT "Display is ([0-9]+)"
+
+# 3) Browser: type the value the app produced into a form.
+open "https://www.practicesoftwaretesting.com/contact"
+fill "#message" $RESULT
+
+# 4) Done with it: close the Calculator window we launched.
+close
+
+done

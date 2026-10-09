@@ -273,6 +273,11 @@ pub fn run(
         return Ok(());
     }
 
+    // A bare `xcelerate build` - no target language and no stage flag - means
+    // "build the plugin": just the wasm core. Bindings need a language, so this
+    // makes `--wasm-only` the default instead of an error.
+    let wasm_only = wasm_only || (lang.is_none() && !bindings_only);
+
     // Resolve the target language: explicit > none (wasm-only needs none).
     let wasm_stage_wanted = !bindings_only;
     let bindings_stage_wanted = !wasm_only;

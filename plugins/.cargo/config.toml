@@ -1,0 +1,8 @@
+# Plugins are WebAssembly components. Default a plugin directory's builds to the
+# wasm target so a bare `cargo build` (and rust-analyzer on that code) works,
+# since `wit_bindgen::generate!` / `export!` only compile for wasm32-wasip2.
+# `xcelerate build --wasm-only` still passes --target explicitly, so this only
+# helps editors and manual builds. Scoped to plugins/ on purpose: at the repo
+# root it would force the whole host workspace onto wasm.
+[build]
+target = "wasm32-wasip2"

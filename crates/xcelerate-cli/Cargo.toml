@@ -6,18 +6,11 @@ rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Command-line interface for the xcelerate CDP engine."
+description = "Command-line interface for the xcelerate engine."
 publish = false
 
-# The shipped command is `xcelerate` (see `#[command(name = "xcelerate")]` in
-# `src/cli.rs`), but the Cargo *target* is `xcelerate-cli`. Naming the target
-# `xcelerate` collides with the core crate's `xcelerate` lib target: on Windows
-# both plan a `xcelerate.pdb` in `target/<profile>/deps`, and Cargo warns about
-# the output filename collision. Release packaging renames the artifact back to
-# `xcelerate` (see `.github/workflows/release-cli.yml` and
-# `packaging/linux/build-tarball.sh`).
 [[bin]]
-name = "xcelerate-cli"
+name = "xcelerate"
 path = "src/main.rs"
 
 [dependencies]

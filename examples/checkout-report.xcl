@@ -1,0 +1,53 @@
+# checkout-report.xcl - a real end-to-end run against a store: sign in, add
+# items to the cart, verify the cart, and print a short report.
+#
+#   XCELERATE_PLUGIN_ALLOW=browser xcelerate run checkout-report.xcl
+#
+# The browser verbs are backed by the `browser` plugin, so its `browser`
+# capability must be granted. (Add `--verbose` to see every step.)
+#
+# Note: control flow (`retry`/`repeat`/`if-ok`) is not allowed *inside* a `func`
+# body (functions are flat, depth-1), so the retries live at the call sites.
+
+param base "https://www.saucedemo.com"
+param user "standard_user"
+param pass "secret_sauce"
+
+# The actions of a sign-in; the caller retries the follow-up check.
+func sign_in(name, secret)
+  open $base
+  fill "#user-name" $name
+  fill "#password" $secret
+  click "#login-button"
+end
+
+# Add one product to the cart, by its `data-test` slug.
+func add(slug)
+  click "button[data-test=\"add-to-cart-$slug\"]"
+end
+
+# 1) Sign in, then retry the check so a slow redirect is not a failure.
+sign_in $user $pass
+retry 10 assert url contains "/inventory"
+assert title contains "Swag Labs"
+
+# 2) Add two products.
+add "sauce-labs-backpack"
+add "sauce-labs-bike-light"
+
+# 3) Go to the cart and confirm we landed there.
+click ".shopping_cart_link"
+retry 10 assert url contains "/cart"
+
+# 4) Verify both items are present (fail fast if not).
+assert content contains "Sauce Labs Backpack"
+assert content contains "Sauce Labs Bike Light"
+
+# 5) Report the first price on the page, pulled out of the page text. (A `$` in a
+#    pattern would be a regex anchor, so match the number itself; `$$` is XCL's
+#    escape for a literal `$` if you need one in a value.)
+text
+regex $RESULT '[0-9]+\.[0-9]+'
+print "cart holds both items; first price on page:" $RESULT
+
+done
