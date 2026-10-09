@@ -3,9 +3,9 @@
 //!
 //! The pipeline is `READ -> SCHEMA -> BINDINGS -> WASM -> PACKAGE`. The wasm
 //! compile stage is language-agnostic and identical for every target; only the
-//! binding + package stages differ. The scaffolded `build.sh` / `build.ps1` are
-//! superseded: we compile in-process with controlled arguments rather than
-//! shelling out to arbitrary scripts.
+//! binding + package stages differ. The plugin directory needs no build script:
+//! the CLI compiles in-process with controlled arguments rather than shelling out
+//! to arbitrary scripts.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;

@@ -1,4 +1,4 @@
-# xcelerate.app
+# app
 
 The **native application control surface as a plugin**. It implements the
 `plugin` interface (`wit/plugin.wit`) and forwards every op to the host's
@@ -7,7 +7,7 @@ Automation. The plugin never touches the OS itself.
 
 | | |
 | --- | --- |
-| Name | `xcelerate.app` |
+| Name | `app` |
 | Capability | `app` (dangerous: off by default, grant-audited) |
 | Bridge | `host.app(op, args)` |
 | Platform | Windows only (the bridge is UI Automation) |
@@ -30,14 +30,13 @@ Automation. The plugin never touches the OS itself.
 
 ## Build
 
-The CLI owns the build: it writes `wit/plugin.wit` (the canonical host ABI) and
-stages `app.wasm` beside `plugin.json`.
+The CLI owns the build. There is **no local build script**: run it in this
+directory and it writes `wit/plugin.wit` (the canonical host ABI, so you never
+hand-write WIT) and stages `app.wasm` beside `plugin.json`.
 
 ```bash
 xcelerate build --wasm-only
 ```
-
-`build.sh` / `build.ps1` are wrappers around that.
 
 ## Install and use
 
@@ -68,9 +67,8 @@ run app tree {"window":"Notepad"}
 
 ```
 app/
-  Cargo.toml      # cdylib + wit-bindgen
+  Cargo.toml      # cdylib + wit-bindgen + xcelerate-plugin
   plugin.json     # name, ops, capabilities (app), limits
-  build.sh/.ps1   # wrappers around `xcelerate build --wasm-only`
-  src/lib.rs      # the op -> host-verb table
+  src/lib.rs      # the `plugin!` op table
   wit/plugin.wit  # the interface contract (written by `xcelerate build`)
 ```

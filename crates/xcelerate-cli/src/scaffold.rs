@@ -21,14 +21,6 @@ const TEMPLATE: &[(&str, &str)] = &[
         include_str!("../../../docs/plugins/template/README.md"),
     ),
     (
-        "build.ps1",
-        include_str!("../../../docs/plugins/template/build.ps1"),
-    ),
-    (
-        "build.sh",
-        include_str!("../../../docs/plugins/template/build.sh"),
-    ),
-    (
         ".gitignore",
         include_str!("../../../docs/plugins/template/.gitignore"),
     ),

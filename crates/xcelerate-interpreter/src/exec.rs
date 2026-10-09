@@ -51,7 +51,7 @@ pub struct Executor {
     /// The driver the shared verbs currently act on.
     driver: Mutex<Driver>,
     /// The run's plugin host. It is independent of the browser, so a native-only
-    /// run can load and drive the `xcelerate.app` plugin with no browser at all.
+    /// run can load and drive the `app` plugin with no browser at all.
     plugins: Arc<PluginManager>,
     /// The native window selected by `window`/`launch`; Windows only.
     #[cfg(windows)]
@@ -557,7 +557,7 @@ async fn dispatch_native(
         ));
     }
 
-    // Every verb now runs in the `xcelerate.app` plugin over the host bridge, so
+    // Every verb now runs in the `app` plugin over the host bridge, so
     // the native-app code lives in the plugin, not here.
     match verb {
         "tree" => {
@@ -685,7 +685,7 @@ async fn dispatch_native(
     }
 }
 
-/// Invokes the `xcelerate.app` plugin and decodes its JSON result, mapping a
+/// Invokes the `app` plugin and decodes its JSON result, mapping a
 /// missing plugin (not loaded) to a clear, actionable error.
 #[cfg(windows)]
 async fn invoke_app(
@@ -694,10 +694,10 @@ async fn invoke_app(
     payload: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
     let result = exe
-        .invoke_plugin("xcelerate.app", op, payload.to_string(), None)
+        .invoke_plugin("app", op, payload.to_string(), None)
         .await?;
     serde_json::from_str(&result)
-        .map_err(|error| format!("xcelerate.app.{op} returned invalid JSON: {error}"))
+        .map_err(|error| format!("app.{op} returned invalid JSON: {error}"))
 }
 
 /// The `lines` array of an app-plugin result, joined for display.

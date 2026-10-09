@@ -327,8 +327,8 @@ handle.invoke("ping".into(), "{}".into()).await?;
 
 | プラグイン | 公開するもの | ケイパビリティ |
 | --- | --- | --- |
-| [`plugins/browser`](plugins/browser)（`xcelerate.browser`） | ブラウザ操作面 — `open`, `click`, `fill`, `text`, `snapshot` など | `browser` |
-| [`plugins/app`](plugins/app)（`xcelerate.app`） | ネイティブウィンドウ操作 — `launch`, `tree`, `click`, `set_value` など | `app` |
+| [`plugins/browser`](plugins/browser)（`browser`） | ブラウザ操作面 — `open`, `click`, `fill`, `text`, `snapshot` など | `browser` |
+| [`plugins/app`](plugins/app)（`app`） | ネイティブウィンドウ操作 — `launch`, `tree`, `click`, `set_value` など | `app` |
 
 どちらも CDP・BiDi・OS を直接扱わず、**ケイパビリティで制限されたホストブリッジ**
 （`host.browser` / `host.app`）を呼び出します。プラグインは意味のある動詞をホストに
@@ -340,7 +340,7 @@ handle.invoke("ping".into(), "{}".into()).await?;
 `.` の順に解決されるため、1 回のビルドをどのプロジェクトからでも読み込めます:
 
 ```bash
-cd plugins/browser && ./build.sh           # Windows:  .\build.ps1
+cd plugins/browser && xcelerate build --wasm-only
 mkdir -p ~/.xcl/plugins && cp -r . ~/.xcl/plugins/browser
 
 # どこからでも。`browser` ケイパビリティは危険なので明示的に付与します
@@ -418,7 +418,7 @@ crate）です。スターターをスキャフォールドし、`.wasm` をビ�
 
 ```bash
 xcelerate plugin new acme.hello      # テンプレートからスキャフォールド
-cd hello && ./build.sh               # Windows:  .\build.ps1
+cd hello && xcelerate build --wasm-only
 ```
 
 プレーンな Rust の操作ハンドラーを書くだけで、xcelerate が WebAssembly の配線を

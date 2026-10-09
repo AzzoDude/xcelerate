@@ -1,0 +1,14 @@
+{
+  "name": "core",
+  "version": "0.1.0",
+  "host_api": ">=1.0 <2.0",
+  "entrypoint": "core.wasm",
+  "abi": "wasm32-wasip2/1",
+  "ops": [
+    "print",
+    "now",
+    "env"
+  ],
+  "capabilities": ["core"],
+  "limits": { "max_invoke_millis": 30000, "max_response_bytes": 1048576 }
+}

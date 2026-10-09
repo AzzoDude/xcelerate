@@ -281,7 +281,7 @@ Capabilities are grouped by risk. The host grants only what the user consents to
 | Group | Capabilities |
 | --- | --- |
 | Safe (allow-list per origin/context) | `navigate`, `query`, `click`, `fill`, `type_keys`, `wait_for`, `wait_for_navigation`, `get_text`, `get_attribute` |
-| Dangerous (explicit consent + audit) | `evaluate`, `cdp_proxy`, `read_cookies`, `write_cookies`, `init_script`, `screenshot`, `network_capture`, `browser`, `app`, `invoke_plugin` |
+| Dangerous (explicit consent + audit) | `evaluate`, `cdp_proxy`, `read_cookies`, `write_cookies`, `init_script`, `screenshot`, `network_capture`, `browser`, `app`, `core`, `invoke_plugin` |
 | Built-in only (never grantable) | `launch_control`, `binary_patch`, `detached_spawn` |
 
 `evaluate` and `cdp_proxy` give a plugin the same power as running arbitrary
@@ -309,15 +309,16 @@ granted capability first):
 | `set-cookie(cookie)` | `write_cookies` (dangerous) |
 | `browser(op, args)` | `browser` (dangerous): a semantic browser action on the run's active page |
 | `app(op, args)` | `app` (dangerous, Windows only): a native-window action |
+| `core(op, args)` | `core` (dangerous): a host primitive - stdout, time, environment (HTTP/filesystem to follow) |
 | `invoke-plugin(plugin, op, args)` | `invoke_plugin` (dangerous) |
 
-`browser` and `app` are the **host action bridge**: a plugin names a *verb*
-(`goto`, `click`, `fill`, `snapshot`, `tree`, …) and the host maps it onto the
-engine and the desktop backend. It is deliberately not raw CDP/BiDi or a raw OS
-handle, so the host keeps control of what a sandboxed guest may do. The host
-binds a page to the invocation first - `PluginHandle::invoke_on(op, args, page)`
-from Rust, or the `run` verb in XCL - and refuses `browser` when no page is
-bound.
+`browser`, `app`, and `core` are the **host action bridges**: a plugin names a
+*verb* (`goto`, `click`, `fill`, `snapshot`, `tree`, `print`, …) and the host maps
+it onto the engine, the desktop backend, or the host itself. They are deliberately
+not raw CDP/BiDi, a raw OS handle, or raw socket/file access, so the host keeps
+control of what a sandboxed guest may do. The host binds a page to the invocation
+first - `PluginHandle::invoke_on(op, args, page)` from Rust, or the `run` verb in
+XCL - and refuses `browser` when no page is bound.
 
 `invoke-plugin` is how a plugin declares a *dependency* on another plugin's
 behaviour: instead of importing the dependency's wasm interface directly, it

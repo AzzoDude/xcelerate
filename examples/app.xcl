@@ -1,6 +1,6 @@
 # app.xcl - drive a native Windows app with the plain native verbs.
 #
-# The `xcelerate.app` library backs these verbs (it talks to Windows UI
+# The `app` library backs these verbs (it talks to Windows UI
 # Automation); you never name it in a script. It is loaded automatically when
 # installed, and its capability is granted at invocation:
 #

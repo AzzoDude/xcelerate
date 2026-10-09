@@ -1,5 +1,5 @@
 {
-  "name": "xcelerate.app",
+  "name": "app",
   "version": "0.1.0",
   "host_api": ">=1.0 <2.0",
   "entrypoint": "app.wasm",

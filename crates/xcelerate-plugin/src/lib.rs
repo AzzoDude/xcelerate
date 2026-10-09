@@ -22,6 +22,11 @@ use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, RwLock};
 
+// The `plugin!` authoring macro, exported at the crate root. Defined here so a
+// plugin author depends on a single crate (`xcelerate-plugin`) for both the
+// plugin API and the macro.
+mod macros;
+
 // ---------------------------------------------------------------------------
 // Result type
 // ---------------------------------------------------------------------------
@@ -126,6 +131,10 @@ pub enum Capability {
     /// Drive a native window through the host action bridge (`host.app`).
     /// Dangerous and Windows-only; off by default and grant-audited.
     App,
+    /// Perform a host primitive (stdout, time, environment, HTTP, filesystem)
+    /// through the host action bridge (`host.core`). Dangerous: it reads and
+    /// writes outside the sandbox, so it is off by default and grant-audited.
+    Core,
     /// Call another enabled plugin's op through the host (`host.invoke-plugin`).
     /// Dangerous + opt-in: lets one plugin drive another, so it is audited and
     /// never granted by default. This is how a plugin declares a *dependency* on
@@ -151,6 +160,7 @@ impl Capability {
                 | Capability::NetworkCapture
                 | Capability::Browser
                 | Capability::App
+                | Capability::Core
                 | Capability::InvokePlugin
         )
     }
@@ -185,6 +195,7 @@ impl Capability {
             Capability::NetworkCapture => "network_capture",
             Capability::Browser => "browser",
             Capability::App => "app",
+            Capability::Core => "core",
             Capability::InvokePlugin => "invoke_plugin",
             Capability::LaunchControl => "launch_control",
             Capability::BinaryPatch => "binary_patch",

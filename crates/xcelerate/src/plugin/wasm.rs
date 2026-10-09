@@ -246,6 +246,42 @@ impl HostState {
     fn app_action(&mut self, _op: &str, _args_json: &str) -> Result<String, String> {
         Err("native app control is Windows only".to_string())
     }
+
+    /// Host primitives for the `core` plugin: stdout, time, and environment.
+    /// These are the general-purpose actions that belong to neither driver, so
+    /// they live here rather than in the browser or app bridge.
+    fn core_action(&mut self, op: &str, args_json: &str) -> Result<String, String> {
+        use serde_json::{Value, json};
+
+        let args: Value = if args_json.trim().is_empty() {
+            Value::Null
+        } else {
+            serde_json::from_str(args_json).map_err(|error| error.to_string())?
+        };
+        let text = |key: &str| args.get(key).and_then(Value::as_str).map(str::to_string);
+
+        match op {
+            "print" => {
+                let message = text("message").or_else(|| text("text")).unwrap_or_default();
+                println!("{message}");
+                Ok(json!({ "printed": message }).to_string())
+            }
+            "now" => {
+                let seconds = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|duration| duration.as_secs())
+                    .unwrap_or(0);
+                Ok(json!({ "seconds": seconds }).to_string())
+            }
+            "env" => {
+                let name = text("name")
+                    .or_else(|| text("var"))
+                    .ok_or_else(|| "env needs a 'name'".to_string())?;
+                Ok(json!({ "name": name, "value": std::env::var(&name).ok() }).to_string())
+            }
+            other => Err(format!("unknown core action '{other}'")),
+        }
+    }
 }
 
 impl self::xcelerate::plugin::types::Host for HostState {}
@@ -311,6 +347,15 @@ impl self::xcelerate::plugin::host::Host for HostState {
         let result_json = self.app_action(&op, &args_json)?;
         let value: serde_json::Value = serde_json::from_str(&result_json)
             .map_err(|error| format!("app action '{op}' did not return JSON: {error}"))?;
+        rmp_serde::to_vec_named(&value).map_err(|error| error.to_string())
+    }
+
+    fn core(&mut self, op: String, args: Vec<u8>) -> Result<Vec<u8>, String> {
+        self.require(Capability::Core)?;
+        let args_json = msgpack_to_json(&args).map_err(|error| error.to_string())?;
+        let result_json = self.core_action(&op, &args_json)?;
+        let value: serde_json::Value = serde_json::from_str(&result_json)
+            .map_err(|error| format!("core action '{op}' did not return JSON: {error}"))?;
         rmp_serde::to_vec_named(&value).map_err(|error| error.to_string())
     }
 }

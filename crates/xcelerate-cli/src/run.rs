@@ -88,7 +88,7 @@ pub async fn run_file(
     // (a plugin home, or ./plugins), so a script uses the plain verbs without
     // naming them. Capabilities stay default-deny, so this only makes the ops
     // *available*; the grant is still required. A missing/duplicate load is fine.
-    for name in ["browser", "app"] {
+    for name in ["core", "browser", "app"] {
         let path = crate::launch::resolve_plugin_name(name);
         if std::path::Path::new(&path).exists() {
             let _ = exe.load_plugin(&path);

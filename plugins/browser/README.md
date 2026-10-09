@@ -1,4 +1,4 @@
-# xcelerate.browser
+# browser
 
 The **browser control surface as a plugin**. It implements the `plugin` interface
 (`wit/plugin.wit`) and forwards every op to the host's semantic browser bridge,
@@ -6,7 +6,7 @@ The **browser control surface as a plugin**. It implements the `plugin` interfac
 
 | | |
 | --- | --- |
-| Name | `xcelerate.browser` |
+| Name | `browser` |
 | Capability | `browser` (dangerous: off by default, grant-audited) |
 | Bridge | `host.browser(op, args)` |
 | Artifact | `browser.wasm` |
@@ -34,14 +34,13 @@ The **browser control surface as a plugin**. It implements the `plugin` interfac
 
 ## Build
 
-The CLI owns the build: it writes `wit/plugin.wit` (the canonical host ABI) and
-stages `browser.wasm` beside `plugin.json`.
+The CLI owns the build. There is **no local build script**: run it in this
+directory and it writes `wit/plugin.wit` (the canonical host ABI, so you never
+hand-write WIT) and stages `browser.wasm` beside `plugin.json`.
 
 ```bash
 xcelerate build --wasm-only
 ```
-
-`build.sh` / `build.ps1` are wrappers around that.
 
 ## Install and use
 
@@ -75,7 +74,7 @@ let dir = format!("{}/.xcl/plugins/browser", std::env::var("HOME").unwrap());
 browser.load_plugin(dir)?;
 let page = browser.new_page().await?;
 let out = browser
-    .plugin("xcelerate.browser".to_string())?
+    .plugin("browser".to_string())?
     .invoke_on("open".into(), r#"{"url":"https://example.com"}"#.into(), page)
     .await?;
 ```
@@ -84,9 +83,8 @@ let out = browser
 
 ```
 browser/
-  Cargo.toml      # cdylib + wit-bindgen
+  Cargo.toml      # cdylib + wit-bindgen + xcelerate-plugin
   plugin.json     # name, ops, capabilities (browser), limits
-  build.sh/.ps1   # wrappers around `xcelerate build --wasm-only`
-  src/lib.rs      # the op -> host-verb table
+  src/lib.rs      # the `plugin!` op table
   wit/plugin.wit  # the interface contract (written by `xcelerate build`)
 ```

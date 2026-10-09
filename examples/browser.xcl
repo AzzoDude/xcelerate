@@ -5,8 +5,8 @@
 #
 #   xcelerate --browser brave run browser.xcl
 #
-# (The `xcelerate.browser` library is the plugin-shaped equivalent: it exposes
-# the same work as ops, e.g. `run xcelerate.browser open {"url":"..."}`.)
+# (The `browser` library is the plugin-shaped equivalent: it exposes
+# the same work as ops, e.g. `run browser open {"url":"..."}`.)
 
 import browser
 open "https://example.com"

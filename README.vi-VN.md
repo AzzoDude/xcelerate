@@ -324,8 +324,8 @@ mô hình từ đầu đến cuối:
 
 | Plugin | Cung cấp | Capability |
 | --- | --- | --- |
-| [`plugins/browser`](plugins/browser) (`xcelerate.browser`) | bề mặt trình duyệt — `open`, `click`, `fill`, `text`, `snapshot`, … | `browser` |
-| [`plugins/app`](plugins/app) (`xcelerate.app`) | điều khiển cửa sổ gốc — `launch`, `tree`, `click`, `set_value`, … | `app` |
+| [`plugins/browser`](plugins/browser) (`browser`) | bề mặt trình duyệt — `open`, `click`, `fill`, `text`, `snapshot`, … | `browser` |
+| [`plugins/app`](plugins/app) (`app`) | điều khiển cửa sổ gốc — `launch`, `tree`, `click`, `set_value`, … | `app` |
 
 Cả hai đều không nói trực tiếp CDP, BiDi hay hệ điều hành: chúng gọi một **cầu nối host
 được giới hạn bởi capability** (`host.browser` / `host.app`). Plugin yêu cầu host thực
@@ -337,7 +337,7 @@ người dùng toàn cục (`$XCELERATE_HOME/plugins`, nếu không thì `~/.xcl
 `./plugins`, rồi `.` — nên một bản build có thể được nạp từ mọi dự án:
 
 ```bash
-cd plugins/browser && ./build.sh           # Windows:  .\build.ps1
+cd plugins/browser && xcelerate build --wasm-only
 mkdir -p ~/.xcl/plugins && cp -r . ~/.xcl/plugins/browser
 
 # từ bất kỳ đâu; capability `browser` là nguy hiểm nên phải cấp rõ ràng
@@ -414,7 +414,7 @@ tin cậy). Tạo bộ khung, build `.wasm`, rồi nạp nó:
 
 ```bash
 xcelerate plugin new acme.hello      # tạo khung từ template
-cd hello && ./build.sh               # Windows:  .\build.ps1
+cd hello && xcelerate build --wasm-only
 ```
 
 Bạn viết các op handler bằng Rust thuần; xcelerate lo phần kết nối WebAssembly.

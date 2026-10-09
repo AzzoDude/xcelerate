@@ -310,13 +310,13 @@ handle.invoke("ping".into(), "{}".into()).await?;
 ### 浏览器与应用插件（共享插件主目录）
 
 浏览器与原生应用控制都是**插件**。[`plugins/browser`](plugins/browser)
-（`xcelerate.browser`）与 [`plugins/app`](plugins/app)（`xcelerate.app`）是现成的
+（`browser`）与 [`plugins/app`](plugins/app)（`app`）是现成的
 WebAssembly 组件，把整套操作面暴露为 ops：
 
 | 插件 | 暴露的能力 | Capability |
 | --- | --- | --- |
-| [`plugins/browser`](plugins/browser)（`xcelerate.browser`） | 浏览器操作面—— `open`、`click`、`fill`、`text`、`snapshot` 等 | `browser` |
-| [`plugins/app`](plugins/app)（`xcelerate.app`） | 原生窗口控制—— `launch`、`window`、`tree`、`find`、`click`、`set_value` 等 | `app` |
+| [`plugins/browser`](plugins/browser)（`browser`） | 浏览器操作面—— `open`、`click`、`fill`、`text`、`snapshot` 等 | `browser` |
+| [`plugins/app`](plugins/app)（`app`） | 原生窗口控制—— `launch`、`window`、`tree`、`find`、`click`、`set_value` 等 | `app` |
 
 两者都不直接使用 CDP、BiDi 或操作系统，而是调用**受能力门控的宿主桥接**
 （`host.browser` / `host.app`）：插件向宿主请求一个语义动词，由宿主执行。如此，
@@ -350,7 +350,7 @@ click "Equals"
 ```
 
 同样的工作也可直接通过插件的 ops 完成
-（`run xcelerate.browser open {"url":"…"}`）；普通动词是更可取、与插件无关的操作面。
+（`run browser open {"url":"…"}`）；普通动词是更可取、与插件无关的操作面。
 
 ### 检查与调用插件
 

@@ -299,7 +299,7 @@ one word, routed by context.
 
 ### Desktop verbs
 
-Desktop verbs run in the **`xcelerate.app` plugin**, so a run must load it and
+Desktop verbs run in the **`app` plugin**, so a run must load it and
 grant its capability: `--plugins app` and `XCELERATE_PLUGIN_ALLOW=app`. The
 plugin's `windows` op lists the windows that are *currently open* (UIA can only
 enumerate live

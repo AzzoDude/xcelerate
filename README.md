@@ -364,14 +364,14 @@ plugin only ever acts on pages it has been handed.
 ### Browser and app plugins (the shared plugin home)
 
 Browser and native-app control are **plugins**.
-[`plugins/browser`](plugins/browser) (`xcelerate.browser`) and
-[`plugins/app`](plugins/app) (`xcelerate.app`) are ready-made WebAssembly
+[`plugins/browser`](plugins/browser) (`browser`) and
+[`plugins/app`](plugins/app) (`app`) are ready-made WebAssembly
 components that expose the whole surface as ops:
 
 | Plugin | Exposes | Capability |
 | --- | --- | --- |
-| [`plugins/browser`](plugins/browser) (`xcelerate.browser`) | the browser surface - `open`, `click`, `fill`, `text`, `snapshot`, … | `browser` |
-| [`plugins/app`](plugins/app) (`xcelerate.app`) | native-window control - `launch`, `window`, `tree`, `find`, `click`, `set_value`, … | `app` |
+| [`plugins/browser`](plugins/browser) (`browser`) | the browser surface - `open`, `click`, `fill`, `text`, `snapshot`, … | `browser` |
+| [`plugins/app`](plugins/app) (`app`) | native-window control - `launch`, `window`, `tree`, `find`, `click`, `set_value`, … | `app` |
 
 Both call a **capability-gated host bridge** (`host.browser` / `host.app`)
 instead of speaking CDP, BiDi, or the OS directly: a plugin asks the host for a
@@ -406,7 +406,7 @@ click "Equals"
 ```
 
 The same work is reachable through the plugin's ops directly
-(`run xcelerate.browser open {"url":"…"}`); the plain verbs are the preferred,
+(`run browser open {"url":"…"}`); the plain verbs are the preferred,
 plugin-agnostic surface.
 
 ### Inspecting and invoking plugins
@@ -594,7 +594,7 @@ default human-like input), `--output-dir <dir>` (the workspace root every file
 verb is confined to), and `--timeout <ms>`. `xcelerate --device <name> <command>` renders as a built-in
 mobile device, and `xcelerate list` prints every device and plugin.
 
-Native application control is a plugin too: the auto-loaded `xcelerate.app`
+Native application control is a plugin too: the auto-loaded `app`
 backs the XCL `launch`/`window`/`tree`/`find`/`click` verbs. There is no
 `xcelerate app` subcommand - drive a desktop app with `xcelerate run --native`
 (see [Plugins](#plugins)).

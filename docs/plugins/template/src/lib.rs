@@ -2,7 +2,7 @@
 //!
 //! Args and results travel as MessagePack through the typed `plugin` interface in
 //! `wit/plugin.wit`; the host converts to/from each language's own types. Build
-//! with `build.sh` / `build.ps1`, then import the `.wasm` and `plugin.json`.
+//! with `xcelerate build --wasm-only`, then import the `.wasm` and `plugin.json`.
 
 use serde::{Deserialize, Serialize};
 

@@ -13,6 +13,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 wit-bindgen = "0.62"
+xcelerate-plugin = { path = "../../crates/xcelerate-plugin" }
 serde = { version = "1", features = ["derive"] }
 rmp-serde = "1"
 
