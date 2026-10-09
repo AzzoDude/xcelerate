@@ -18,7 +18,9 @@ use wasmtime::component::{Component, HasSelf, Linker, ResourceTable};
 use wasmtime::{Config, Engine, Store, StoreLimits, StoreLimitsBuilder, Trap};
 use wasmtime_wasi::{WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView};
 
-use xcelerate_plugin::{Capability, Manifest, OpCall, Plugin, PluginError, PluginResult, Registry};
+use xcelerate_plugin::{
+    ArcPageHost, Capability, Manifest, OpCall, Plugin, PluginError, PluginResult, Registry,
+};
 
 use crate::{CdpClient, XcelerateError, XcelerateResult};
 
@@ -64,6 +66,9 @@ struct HostState {
     /// on a dedicated thread so an async cross-plugin call never deadlocks the
     /// tokio worker that is driving this guest.
     cross_plugin: Option<CrossPlugin>,
+    /// The page this invocation is bound to, so `host.browser` can act on it.
+    /// Set from `OpCall.page` before each guest call; `None` otherwise.
+    page: Option<ArcPageHost>,
 }
 
 /// A synchronous, thread-safe call into another enabled plugin: `(plugin, op,
@@ -95,6 +100,151 @@ impl HostState {
                 self.plugin
             ))
         }
+    }
+
+    /// Run a native-window verb through UI Automation (Windows only). The verbs
+    /// mirror the CLI's `app` subcommand and the XCL native verbs, so the two
+    /// surfaces cannot drift apart. The `Uia` handle is created per call (it is
+    /// not `Send`, so it may not live in the guest store).
+    #[cfg(windows)]
+    fn app_action(&mut self, op: &str, args_json: &str) -> Result<String, String> {
+        use serde_json::{Value, json};
+
+        let args: Value = if args_json.trim().is_empty() {
+            Value::Null
+        } else {
+            serde_json::from_str(args_json).map_err(|error| error.to_string())?
+        };
+        let text = |key: &str| args.get(key).and_then(Value::as_str).map(str::to_string);
+        let number = |key: &str| args.get(key).and_then(Value::as_i64);
+
+        // Launching spawns a process and waits for its window; it needs no UIA
+        // handle of its own (`xcelerate_desktop::launch` makes one).
+        if op == "launch" {
+            let target = text("target").ok_or_else(|| "launch needs a 'target'".to_string())?;
+            let title = text("title");
+            let wait = number("wait_ms").unwrap_or(15_000).max(0) as u64;
+            let outcome = xcelerate_desktop::launch(&target, title.as_deref(), wait)
+                .map_err(|error| error.to_string())?;
+            let formatted = xcelerate_desktop::format_window(&outcome.window);
+            let message = if outcome.attached {
+                format!("already running: {formatted}")
+            } else {
+                format!("started {target} -> {formatted}")
+            };
+            return Ok(json!({
+                "window": outcome.window.name,
+                "attached": outcome.attached,
+                "message": message,
+            })
+            .to_string());
+        }
+
+        let mut uia = xcelerate_desktop::Uia::new().map_err(|error| error.to_string())?;
+
+        if op == "windows" {
+            let windows: Vec<Value> = uia
+                .windows()
+                .map_err(|error| error.to_string())?
+                .iter()
+                .map(|window| {
+                    json!({ "name": window.name, "class": window.class, "pid": window.pid })
+                })
+                .collect();
+            return Ok(json!({ "windows": windows }).to_string());
+        }
+
+        let window = text("window").ok_or_else(|| "a 'window' title is required".to_string())?;
+
+        match op {
+            "tree" => {
+                let infos = uia
+                    .snapshot(&window, 400)
+                    .map_err(|error| error.to_string())?;
+                let lines: Vec<String> = infos
+                    .iter()
+                    .map(xcelerate_desktop::format_element)
+                    .collect();
+                Ok(json!({ "lines": lines }).to_string())
+            }
+            "find" => {
+                let needle = text("text").unwrap_or_default().to_ascii_lowercase();
+                let infos = uia
+                    .snapshot(&window, 400)
+                    .map_err(|error| error.to_string())?;
+                let lines: Vec<String> = infos
+                    .iter()
+                    .filter(|element| element.name.to_ascii_lowercase().contains(&needle))
+                    .map(xcelerate_desktop::format_element)
+                    .collect();
+                Ok(json!({ "lines": lines }).to_string())
+            }
+            "wait" => {
+                let needle = text("text").ok_or_else(|| "wait needs 'text'".to_string())?;
+                let ms = number("timeout_ms").unwrap_or(10_000).max(0) as u64;
+                let hit = uia
+                    .wait_for(&window, &needle, ms)
+                    .map_err(|error| error.to_string())?;
+                Ok(json!({ "found": hit }).to_string())
+            }
+            "click" => {
+                uia.snapshot(&window, 400)
+                    .map_err(|error| error.to_string())?;
+                let method = match number("index") {
+                    Some(index) => uia
+                        .click(index.max(0) as usize)
+                        .map_err(|error| error.to_string())?,
+                    None => {
+                        let name = text("name")
+                            .ok_or_else(|| "click needs an 'index' or 'name'".to_string())?;
+                        uia.click_name(&window, &name, 400)
+                            .map_err(|error| error.to_string())?
+                            .1
+                    }
+                };
+                Ok(json!({ "method": method }).to_string())
+            }
+            "set-value" | "set_value" | "fill" => {
+                let index = number("index")
+                    .ok_or_else(|| "set-value needs an 'index'".to_string())?
+                    .max(0) as usize;
+                let value = text("text").unwrap_or_default();
+                uia.snapshot(&window, 400)
+                    .map_err(|error| error.to_string())?;
+                uia.set_value(index, &value)
+                    .map_err(|error| error.to_string())?;
+                Ok(json!({ "set": index }).to_string())
+            }
+            "key" => {
+                let key = text("key").ok_or_else(|| "key needs a 'key'".to_string())?;
+                if is_dangerous_key(&key) {
+                    return Err(format!("`{key}` escapes the app; refused"));
+                }
+                uia.key_name(&window, &key)
+                    .map_err(|error| error.to_string())?;
+                Ok(json!({ "key": key }).to_string())
+            }
+            "wheel" => {
+                let notches = number("notches").unwrap_or(1) as i32;
+                uia.wheel(&window, notches)
+                    .map_err(|error| error.to_string())?;
+                Ok(json!({ "wheeled": notches }).to_string())
+            }
+            "scroll" => {
+                let notches = number("notches").unwrap_or(-1) as i32;
+                let method = uia
+                    .scroll(&window, notches)
+                    .map_err(|error| error.to_string())?;
+                Ok(json!({ "scrolled": notches, "method": method }).to_string())
+            }
+            other => Err(format!("unknown app action '{other}'")),
+        }
+    }
+
+    /// Native window control is Windows only.
+    #[cfg(not(windows))]
+    fn app_action(&mut self, _op: &str, _args_json: &str) -> Result<String, String> {
+        Err("native app control is Windows only".to_string())
     }
 }
 
@@ -137,6 +287,30 @@ impl self::xcelerate::plugin::host::Host for HostState {
         // The result comes back as JSON; re-encode to MessagePack for the guest.
         let value: serde_json::Value = serde_json::from_str(&result_json)
             .map_err(|error| format!("cross-plugin result is not JSON: {error}"))?;
+        rmp_serde::to_vec_named(&value).map_err(|error| error.to_string())
+    }
+
+    fn browser(&mut self, op: String, args: Vec<u8>) -> Result<Vec<u8>, String> {
+        self.require(Capability::Browser)?;
+        let page = self
+            .page
+            .clone()
+            .ok_or_else(|| "no browser page is bound to this plugin invocation".to_string())?;
+        let args_json = msgpack_to_json(&args).map_err(|error| error.to_string())?;
+        // The guest is synchronous, so run the page future to completion on the
+        // tokio runtime that is already driving it (see `run_blocking`).
+        let result_json = run_blocking(page.browser_op(&op, &args_json))?;
+        let value: serde_json::Value = serde_json::from_str(&result_json)
+            .map_err(|error| format!("browser action '{op}' did not return JSON: {error}"))?;
+        rmp_serde::to_vec_named(&value).map_err(|error| error.to_string())
+    }
+
+    fn app(&mut self, op: String, args: Vec<u8>) -> Result<Vec<u8>, String> {
+        self.require(Capability::App)?;
+        let args_json = msgpack_to_json(&args).map_err(|error| error.to_string())?;
+        let result_json = self.app_action(&op, &args_json)?;
+        let value: serde_json::Value = serde_json::from_str(&result_json)
+            .map_err(|error| format!("app action '{op}' did not return JSON: {error}"))?;
         rmp_serde::to_vec_named(&value).map_err(|error| error.to_string())
     }
 }
@@ -184,7 +358,7 @@ struct WasmInstance {
 }
 
 impl WasmInstance {
-    fn invoke(&self, op: &str, args_json: &str) -> PluginResult<String> {
+    fn invoke(&self, op: &str, args_json: &str, page: Option<ArcPageHost>) -> PluginResult<String> {
         let args = json_to_msgpack(args_json)?;
         let mut store = self
             .store
@@ -193,6 +367,8 @@ impl WasmInstance {
         // Re-arm the deadline: it is relative to the engine's current epoch,
         // which has been advancing on the ticker thread since the last call.
         store.set_epoch_deadline(self.epoch_deadline_ticks);
+        // Bind this invocation's page so `host.browser` can act on it.
+        store.data_mut().page = page;
         let guest = self.bindings.xcelerate_plugin_plugin();
         let outcome = guest
             .call_invoke(&mut *store, op, &args)
@@ -226,7 +402,7 @@ impl Plugin for WasmPlugin {
             let op = op.clone();
             reg.op(&op, move |call: OpCall| {
                 let instance = Arc::clone(&instance);
-                Box::pin(async move { instance.invoke(&call.op, &call.args_json) })
+                Box::pin(async move { instance.invoke(&call.op, &call.args_json, call.page) })
             });
         }
     }
@@ -283,6 +459,7 @@ pub(crate) fn load(
             .build(),
         client,
         cross_plugin,
+        page: None,
     };
     let mut store = Store::new(&engine, state);
     // Cap the guest's memory, and arm the epoch deadline so instantiation and
@@ -393,6 +570,41 @@ fn start_epoch_ticker(engine: Engine) {
 /// Translate a per-invocation wall-clock budget into an epoch deadline (ticks).
 fn budget_ticks(max_invoke_millis: u64) -> u64 {
     max_invoke_millis.div_ceil(EPOCH_TICK_MILLIS).max(1)
+}
+
+/// Drive an async page future from a synchronous guest call without deadlocking
+/// the worker already running it: `block_in_place` hands that worker's other
+/// tasks to a sibling thread, then we run the future to completion on the same
+/// runtime (so the page's sockets stay on their original reactor).
+fn run_blocking(future: xcelerate_plugin::BoxFut<PluginResult<String>>) -> Result<String, String> {
+    let handle = tokio::runtime::Handle::try_current()
+        .map_err(|_| "browser actions need a running tokio runtime".to_string())?;
+    if handle.runtime_flavor() != tokio::runtime::RuntimeFlavor::MultiThread {
+        return Err("browser actions need a multi-thread tokio runtime".to_string());
+    }
+    tokio::task::block_in_place(|| handle.block_on(future)).map_err(|error| error.to_string())
+}
+
+/// Key chords whose effect escapes the app into the desktop/session (open a
+/// shell, lock the screen, force-quit). Mirrors the interpreter's list so a
+/// plugin cannot smuggle one through the bridge.
+#[cfg(windows)]
+fn is_dangerous_key(name: &str) -> bool {
+    let normalized: String = name.to_ascii_lowercase().replace(' ', "");
+    matches!(
+        normalized.as_str(),
+        "win+r"
+            | "meta+r"
+            | "win+x"
+            | "meta+x"
+            | "win+l"
+            | "meta+l"
+            | "win+e"
+            | "meta+e"
+            | "alt+f4"
+            | "ctrl+shift+esc"
+            | "ctrl+alt+delete"
+    )
 }
 
 /// Map a guest error, naming the invocation budget when the epoch deadline was

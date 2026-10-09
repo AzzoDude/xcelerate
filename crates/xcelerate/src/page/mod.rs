@@ -27,7 +27,9 @@ mod snapshot;
 mod capture;
 mod challenge;
 mod dash;
+mod dialog;
 mod downloads;
+mod drag;
 mod find;
 mod frames;
 mod har;
@@ -37,10 +39,13 @@ mod markdown;
 mod media;
 mod popups;
 mod response;
+mod selector;
+mod text_match;
 mod timeout;
 mod wait;
 
 pub use challenge::ChallengeReport;
+pub use dialog::DialogPolicy;
 
 use intercept::run_interception;
 pub(crate) use rng::Lcg;
@@ -223,6 +228,100 @@ pub(crate) struct RouteRule {
     content_type: Option<String>,
 }
 
+/// Navigation readiness helpers.
+///
+/// Kept out of the UniFFI-exported block: they back [`Page::navigate`] and are
+/// private to the crate.
+impl Page {
+    /// The main frame's current `loaderId`, if the frame tree is available.
+    async fn main_frame_loader_id(&self) -> XcelerateResult<Option<String>> {
+        let res = self
+            .client
+            .execute_raw_with_session(
+                Some(&self.session_id),
+                "Page.getFrameTree",
+                serde_json::json!({}),
+            )
+            .await?;
+        Ok(res
+            .pointer("/frameTree/frame/loaderId")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()))
+    }
+
+    /// Waits for the document to reach `interactive` (or `complete`).
+    ///
+    /// When `expected_loader` is set, the new document is awaited first (via
+    /// `Page.frameNavigated`) so the readiness probe cannot read the previous
+    /// document's `readyState`. Both phases are bounded by the page's default
+    /// timeout.
+    async fn wait_for_document_ready(
+        &self,
+        expected_loader: Option<&str>,
+        receiver: &mut tokio::sync::broadcast::Receiver<serde_json::Value>,
+    ) -> XcelerateResult<()> {
+        let start = std::time::Instant::now();
+        let budget = std::time::Duration::from_millis(self.default_timeout().max(1));
+
+        if let Some(loader) = expected_loader {
+            // Give a real commit a generous but finite head start; if it does not
+            // arrive we fall through and probe readiness anyway rather than
+            // hanging on a navigation Chrome treated as same-document.
+            let commit_budget = budget.min(std::time::Duration::from_secs(5));
+            loop {
+                let remaining = commit_budget.saturating_sub(start.elapsed());
+                if remaining.is_zero() {
+                    break;
+                }
+                let slice = remaining.min(std::time::Duration::from_millis(250));
+                match tokio::time::timeout(slice, receiver.recv()).await {
+                    Ok(Ok(value)) => {
+                        if value.get("method").and_then(|m| m.as_str())
+                            != Some("Page.frameNavigated")
+                        {
+                            continue;
+                        }
+                        let frame = value.get("params").and_then(|p| p.get("frame"));
+                        let is_main = frame.and_then(|f| f.get("parentId")).is_none();
+                        let got = frame
+                            .and_then(|f| f.get("loaderId"))
+                            .and_then(|l| l.as_str());
+                        if is_main && got == Some(loader) {
+                            break;
+                        }
+                    }
+                    Ok(Err(_)) => continue,
+                    Err(_) => continue,
+                }
+            }
+        }
+
+        loop {
+            let state = self
+                .client
+                .execute_with_session(
+                    Some(&self.session_id),
+                    js_protocol::runtime::EvaluateParams {
+                        expression: "document.readyState".into(),
+                        return_by_value: Some(true),
+                        ..Default::default()
+                    },
+                )
+                .await
+                .ok()
+                .and_then(|res| res.result.value)
+                .and_then(|value| value.as_str().map(str::to_string));
+            if matches!(state.as_deref(), Some("interactive" | "complete")) {
+                return Ok(());
+            }
+            if start.elapsed() >= budget {
+                return Err(XcelerateError::NotFound("navigation timeout".into()));
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        }
+    }
+}
+
 #[uniffi::export(async_runtime = "tokio")]
 impl Page {
     /// Wraps the page's `document` as an [`Element`] so the shadow-piercing
@@ -250,12 +349,11 @@ impl Page {
 
     /// Finds an element matching the CSS selector.
     ///
-    /// The search pierces open shadow roots, so web components are reachable.
+    /// The selector may also carry an `xpath=`/`role=`/`text=`/`label=` prefix
+    /// (see [`Page::resolve_selector`]). The search pierces open shadow roots, so
+    /// web components are reachable.
     pub async fn find_element(self: Arc<Self>, selector: String) -> XcelerateResult<Arc<Element>> {
-        self.document_element()
-            .await?
-            .query_selector(selector)
-            .await
+        self.resolve_selector(selector).await
     }
 
     /// Waits for an element matching the selector to appear in the DOM.
@@ -284,6 +382,7 @@ impl Page {
 
     /// Waits for the page to finish loading.
     pub async fn wait_for_navigation(&self) -> XcelerateResult<()> {
+        self.ensure_dialog_watcher().await;
         let start = std::time::Instant::now();
         let timeout = std::time::Duration::from_millis(self.default_timeout());
 
@@ -315,6 +414,7 @@ impl Page {
 
     /// Reloads the page.
     pub async fn reload(&self) -> XcelerateResult<()> {
+        self.ensure_dialog_watcher().await;
         self.client
             .execute_with_session(
                 Some(&self.session_id),
@@ -328,9 +428,24 @@ impl Page {
     }
 
     /// Navigates to a URL.
+    ///
+    /// Resolves once the new document has committed and reached at least
+    /// `interactive` (`DOMContentLoaded`), so an immediate snapshot/eval never
+    /// observes the previous, empty document. Bounded by the page's default
+    /// timeout; a navigation that never commits fails with
+    /// [`XcelerateError::NotFound`].
     pub async fn navigate(&self, url: String) -> XcelerateResult<()> {
         crate::policy::ensure_allowed(&url)?;
-        self.client
+        // Start the dialog watcher first: a page that alerts on load must not be
+        // able to wedge navigation.
+        self.ensure_dialog_watcher().await;
+        // The main frame's current loader, so a same-document navigation (which
+        // does not create a new document) is not mistaken for a pending one.
+        let previous_loader = self.main_frame_loader_id().await.ok().flatten();
+        // Subscribe before navigating so the commit event cannot be missed.
+        let mut receiver = self.client.subscribe_session(&self.session_id);
+        let result = self
+            .client
             .execute_with_session(
                 Some(&self.session_id),
                 NavigateParams {
@@ -339,8 +454,18 @@ impl Page {
                 },
             )
             .await
-            .map(|_| ())
-            .map_err(XcelerateError::from)
+            .map_err(XcelerateError::from)?;
+        // A navigation that resolves to a download never commits a document.
+        if result.is_download == Some(true) {
+            return Ok(());
+        }
+        let expected = match (result.loader_id.as_deref(), previous_loader.as_deref()) {
+            (Some(after), Some(before)) if after == before => None,
+            (Some(after), _) => Some(after.to_string()),
+            (None, _) => None,
+        };
+        self.wait_for_document_ready(expected.as_deref(), &mut receiver)
+            .await
     }
 
     /// Returns the page title.
@@ -500,6 +625,7 @@ impl Page {
     }
 
     pub async fn go_back(&self) -> XcelerateResult<()> {
+        self.ensure_dialog_watcher().await;
         let _ = self
             .client
             .execute_with_session(
@@ -636,6 +762,7 @@ impl Page {
 
     /// Evaluates JavaScript in the page and returns the result as a JSON string.
     pub async fn evaluate_json(&self, expression: String) -> XcelerateResult<String> {
+        self.ensure_dialog_watcher().await;
         let res = self
             .client
             .execute_with_session(
@@ -658,6 +785,7 @@ impl Page {
 
     /// Evaluates JavaScript and coerces the result to a string.
     pub async fn evaluate_string(&self, expression: String) -> XcelerateResult<String> {
+        self.ensure_dialog_watcher().await;
         let res = self
             .client
             .execute_with_session(
@@ -684,6 +812,7 @@ impl Page {
 
     /// Evaluates JavaScript and coerces the result to a bool.
     pub async fn evaluate_bool(&self, expression: String) -> XcelerateResult<bool> {
+        self.ensure_dialog_watcher().await;
         let res = self
             .client
             .execute_with_session(
@@ -705,6 +834,7 @@ impl Page {
         self: Arc<Self>,
         expression: String,
     ) -> XcelerateResult<Arc<Element>> {
+        self.ensure_dialog_watcher().await;
         let res = self
             .client
             .execute_with_session(

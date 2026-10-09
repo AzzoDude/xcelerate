@@ -8,15 +8,19 @@ through `serde` - no JSON on the wire.
 
 ## Build
 
+The CLI owns the build: it writes `wit/plugin.wit` (the canonical host ABI) and
+stages the `.wasm` next to `plugin.json`.
+
+```bash
+xcelerate build --wasm-only
+```
+
+`build.sh` / `build.ps1` are thin wrappers around that. Building by hand needs the
+WIT present, so run the CLI first (or keep a copy of `wit/plugin.wit`):
+
 ```bash
 rustup target add wasm32-wasip2
 cargo build --release --target wasm32-wasip2
-```
-
-Or run the wrapper, which also stages the `.wasm` next to `plugin.json`:
-
-```bash
-./build.sh          # Windows:  .\build.ps1
 ```
 
 ## Run
@@ -40,10 +44,10 @@ capability. `log` is always allowed and written to the audit log.
 {{title}}/
   Cargo.toml      # cdylib + wit-bindgen
   plugin.json     # manifest: name, ops, capabilities, limits
-  build.sh/.ps1   # build the component
+  build.sh/.ps1   # wrappers around `xcelerate build --wasm-only`
   src/lib.rs      # your ops
   src/support.rs  # MessagePack helpers + the mod_ops! macro
-  wit/plugin.wit  # the interface contract
+  wit/plugin.wit  # the interface contract (written by `xcelerate build`)
 ```
 
 See [`docs/plugins/README.md`](../../README.md) for the manifest, capability, and

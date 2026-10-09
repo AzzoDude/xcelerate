@@ -1,5 +1,5 @@
 [package]
-name = "xcelerate-uia"
+name = "xcelerate-desktop"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,10 +8,6 @@ license.workspace = true
 repository.workspace = true
 description = "Windows UI Automation backend for xcelerate: snapshot/click any native window."
 publish = false
-
-[[bin]]
-name = "xcelerate-uia"
-path = "src/main.rs"
 
 [dependencies]
 windows = { version = "0.58", features = [

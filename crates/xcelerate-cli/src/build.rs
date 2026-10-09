@@ -151,8 +151,76 @@ fn find_plugin_dir() -> Option<PathBuf> {
     None
 }
 
+/// The canonical plugin ABI: the single source of truth for `wit/plugin.wit`.
+/// Embedded so `xcelerate plugin new` and `xcelerate build` can write it into a
+/// plugin, and so a plugin's copy can never drift from the host interface.
+pub(crate) const PLUGIN_WIT: &str = include_str!("../../../crates/xcelerate/wit/plugin.wit");
+
+/// Ensure `dir/wit/plugin.wit` exists and matches the canonical ABI, writing or
+/// refreshing it. This is what lets a plugin author delete the `wit/` directory -
+/// `xcelerate build` regenerates it.
+fn ensure_wit(dir: &Path) -> Result<(), String> {
+    let wit = dir.join("wit").join("plugin.wit");
+    let current = std::fs::read_to_string(&wit).ok();
+    if current.as_deref() == Some(PLUGIN_WIT) {
+        return Ok(());
+    }
+    std::fs::create_dir_all(dir.join("wit")).map_err(|e| format!("cannot create wit/: {e}"))?;
+    std::fs::write(&wit, PLUGIN_WIT).map_err(|e| format!("cannot write wit/plugin.wit: {e}"))?;
+    println!(
+        "{} wit/plugin.wit (canonical host ABI)",
+        if current.is_some() {
+            "refreshed"
+        } else {
+            "wrote"
+        }
+    );
+    Ok(())
+}
+
+/// The Cargo package name of the plugin in `dir`, normalized to the `.wasm`
+/// artifact's base name (hyphens and dots become underscores).
+fn package_name(dir: &Path) -> Option<String> {
+    let text = std::fs::read_to_string(dir.join("Cargo.toml")).ok()?;
+    let mut in_package = false;
+    for line in text.lines() {
+        let line = line.trim();
+        if line.starts_with('[') {
+            in_package = line == "[package]";
+            continue;
+        }
+        if in_package
+            && let Some(rest) = line.strip_prefix("name")
+            && let Some(value) = rest.split('=').nth(1)
+        {
+            let name = value.trim().trim_matches('"').trim();
+            if !name.is_empty() {
+                return Some(name.replace(['-', '.'], "_"));
+            }
+        }
+    }
+    None
+}
+
+/// The name to stage the built component under: the manifest's declared
+/// `entrypoint`, else `<package>.wasm`.
+fn entrypoint_name(dir: &Path, package: &str) -> String {
+    if let Ok(text) = std::fs::read_to_string(dir.join("plugin.json"))
+        && let Ok(value) = serde_json::from_str::<serde_json::Value>(&text)
+        && let Some(entry) = value.get("entrypoint").and_then(|v| v.as_str())
+        && !entry.trim().is_empty()
+    {
+        return entry.to_string();
+    }
+    format!("{package}.wasm")
+}
+
 /// Build the `.wasm` core of the plugin in `dir`, staging it next to `plugin.json`.
 fn build_wasm(dir: &Path, offline: bool) -> Result<PathBuf, String> {
+    // The WIT is the host ABI, so make sure the plugin's copy is current before
+    // compiling (a plugin may gitignore `wit/`).
+    ensure_wit(dir)?;
+
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let mut cmd = Command::new(&cargo);
     cmd.current_dir(dir)
@@ -167,22 +235,24 @@ fn build_wasm(dir: &Path, offline: bool) -> Result<PathBuf, String> {
     if !status.success() {
         return Err("cargo build failed".to_string());
     }
-    // The crate name (last manifest segment or the directory name).
-    let crate_name = dir
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("plugin")
-        .replace(['-', '.'], "_");
+    // Cargo names the artifact after the package, not the directory.
+    let package = package_name(dir).unwrap_or_else(|| {
+        dir.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("plugin")
+            .replace(['-', '.'], "_")
+    });
     let wasm = dir
         .join("target")
         .join("wasm32-wasip2")
         .join("release")
-        .join(format!("{crate_name}.wasm"));
+        .join(format!("{package}.wasm"));
     if !wasm.is_file() {
         return Err(format!("expected built artifact at {}", wasm.display()));
     }
-    // Stage next to plugin.json (the transport resolves relative to it).
-    let entrypoint = dir.join(format!("{crate_name}.wasm"));
+    // Stage next to plugin.json (the transport resolves relative to it), under
+    // the name the manifest declares.
+    let entrypoint = dir.join(entrypoint_name(dir, &package));
     std::fs::copy(&wasm, &entrypoint).map_err(|e| format!("copy failed: {e}"))?;
     Ok(entrypoint)
 }

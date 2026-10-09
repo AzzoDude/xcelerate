@@ -26,6 +26,8 @@ pub(crate) fn print_session_help() {
          \x20 submit                         press Enter on the focused element (send)\n\
          \x20 hover <selector>               move the mouse over an element\n\
          \x20 mouse [click] <index|selector|text>  move the cursor there (or `mouse <x> <y>`); `click` also clicks\n\
+         \x20 dialog <dismiss|accept>       how JS dialogs are auto-answered (default: dismiss)\n\
+         \x20 drag <from> <to>              native pointer drag between two elements\n\
          \x20 media                          list the page's images/video/audio as JSON\n\
          \x20 download <url> <path>          fetch a URL (file or HLS) through the browser and save it\n\
          \x20 scroll <px|up|down|top|bottom> scroll the page\n\
@@ -40,8 +42,18 @@ pub(crate) fn print_session_help() {
          \x20 guard <path.js>               block popups/ads on this page and every new one\n\
          \x20 tabs                          list targets (id, type, url)\n\
          \x20 new-tab [url]                 open a new tab and make it active\n\
-         \x20 switch <n|targetId>            make a tab active (index from `tabs`; no arg cycles)\n\
-         \x20 close-tab <index|targetId>     close a tab (index or id from `tabs`)\n\
+         \x20 switch <index|targetId>       make a tab active (exact id wins; no arg cycles)\n\
+         \x20 close-tab <index|targetId>     close a tab (exact id wins over an index)\n\
+         \x20 route <pattern>               intercept matching requests (let through)\n\
+         \x20 route abort <pattern>         abort matching requests\n\
+         \x20 route fulfill <pattern> <status> <body> [content-type]  serve a response\n\
+         \x20 route har <path>              register fulfill routes from a HAR file\n\
+         \x20 unroute [pattern]             drop rules for a pattern (or all)\n\
+         \x20 auth <username> <password>    credentials for HTTP basic auth\n\
+         \x20 permissions <origin> <permission...>  grant browser permissions\n\
+         \x20 geolocation <lat> <lon> [accuracy] | clear  override geolocation\n\
+         \x20 storage <local|session> [get [key]|set <key> <value>|clear]\n\
+         \x20 storage save <path> | storage restore <path>  full storage state\n\
          \x20 shot [path]                    viewport screenshot (default screenshot.png)\n\
          \x20 shot-full [path]               full-page screenshot\n\
          \x20 record [path]                   start a video (only with --codegen)\n\

@@ -118,6 +118,14 @@ pub enum Capability {
     InitScript,
     Screenshot,
     NetworkCapture,
+    /// Drive the run's active browser page through the host action bridge
+    /// (`host.browser`). Dangerous: it acts on the outside world, so it is off by
+    /// default and grant-audited. This is the decoupled browser API - a plugin
+    /// never speaks CDP/BiDi directly, it asks the host for semantic verbs.
+    Browser,
+    /// Drive a native window through the host action bridge (`host.app`).
+    /// Dangerous and Windows-only; off by default and grant-audited.
+    App,
     /// Call another enabled plugin's op through the host (`host.invoke-plugin`).
     /// Dangerous + opt-in: lets one plugin drive another, so it is audited and
     /// never granted by default. This is how a plugin declares a *dependency* on
@@ -141,6 +149,8 @@ impl Capability {
                 | Capability::InitScript
                 | Capability::Screenshot
                 | Capability::NetworkCapture
+                | Capability::Browser
+                | Capability::App
                 | Capability::InvokePlugin
         )
     }
@@ -173,6 +183,8 @@ impl Capability {
             Capability::InitScript => "init_script",
             Capability::Screenshot => "screenshot",
             Capability::NetworkCapture => "network_capture",
+            Capability::Browser => "browser",
+            Capability::App => "app",
             Capability::InvokePlugin => "invoke_plugin",
             Capability::LaunchControl => "launch_control",
             Capability::BinaryPatch => "binary_patch",
@@ -567,6 +579,24 @@ pub trait PageHost: Send + Sync + 'static {
     fn keyboard_type(&self, text: String) -> BoxFut<PluginResult<()>>;
     /// The current mouse position.
     fn mouse_position(&self) -> (f64, f64);
+
+    /// Perform a semantic **browser action** on this page through the host
+    /// bridge: `op` names a verb (`goto`, `click`, `fill`, `text`, `snapshot`, …),
+    /// `args_json` carries its JSON arguments, and the result is JSON.
+    ///
+    /// This is deliberately *not* raw CDP/BiDi - a plugin asks for a verb, never
+    /// a protocol message - so the host keeps control of what a sandboxed plugin
+    /// can do. The default refuses every op, so a host that has not opted into the
+    /// bridge denies it.
+    fn browser_op(&self, op: &str, args_json: &str) -> BoxFut<PluginResult<String>> {
+        let op = op.to_string();
+        let _ = args_json;
+        Box::pin(async move {
+            Err(PluginError::Unsupported(format!(
+                "browser action '{op}' is not available on this host"
+            )))
+        })
+    }
 }
 
 /// A shared page host handle.
@@ -1020,6 +1050,31 @@ mod tests {
         audit("test", "action", "never-a-secret");
         assert!(audit_verify());
         assert!(audit_entries().iter().any(|e| e.plugin == "test"));
+    }
+
+    #[test]
+    fn browser_and_app_capabilities_are_dangerous_and_parse() {
+        // `browser`/`app` drive the host action bridge, so both are dangerous
+        // (off by default) and neither is host-only.
+        for capability in [Capability::Browser, Capability::App] {
+            assert!(capability.is_dangerous());
+            assert!(!capability.is_builtin_only());
+        }
+        assert_eq!(Capability::Browser.as_str(), "browser");
+        assert_eq!(Capability::App.as_str(), "app");
+        // They round-trip through a manifest's capability list.
+        let manifest = Manifest::from_json(
+            r#"{
+                "name": "example.bridge",
+                "version": "0.1.0",
+                "entrypoint": "bridge.wasm",
+                "ops": ["open"],
+                "capabilities": ["browser", "app"]
+            }"#,
+        )
+        .expect("a manifest requesting the bridge capabilities validates");
+        assert!(manifest.capabilities.contains(&Capability::Browser));
+        assert!(manifest.capabilities.contains(&Capability::App));
     }
 
     /// A minimal in-process plugin, standing in for a library a user adds as a

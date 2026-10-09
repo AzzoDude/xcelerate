@@ -17,7 +17,7 @@ pub struct Cli {
     #[command(flatten)]
     pub browser: BrowserArgs,
     #[command(subcommand)]
-    pub command: Command,
+    pub command: Option<Command>,
 }
 
 #[derive(Args, Clone)]
@@ -68,6 +68,11 @@ pub struct BrowserArgs {
     /// Prohibited navigation domains (repeatable). Overrides the allow list.
     #[arg(long = "deny-domain", global = true, value_name = "DOMAIN")]
     pub deny_domain: Vec<String>,
+    /// Native windows (by title/process glob) an XCL script may drive. Empty
+    /// denies all native actions (listing windows is still allowed); repeat for
+    /// more, e.g. `--allow-app "Steam*"`.
+    #[arg(long = "allow-app", global = true, value_name = "PATTERN")]
+    pub allow_app: Vec<String>,
     /// Attach to an existing browser's CDP websocket instead of launching one.
     #[arg(long, global = true, value_name = "WS_URL")]
     pub connect: Option<String>,
@@ -244,8 +249,6 @@ pub enum Command {
     Plugins,
     /// List the pages/windows of a running browser or app (requires `--connect`).
     Targets,
-    /// List open application windows: name, class, pid (Windows only).
-    Apps,
     /// Create a new mod (plugin) from the starter template.
     Plugin {
         #[command(subcommand)]
@@ -289,6 +292,28 @@ pub enum Command {
         /// command to log from the script.
         #[arg(long, short)]
         verbose: bool,
+        /// Raise the total-step cap (default 10000). A safety floor, not a
+        /// ceiling: raise it for a long, trusted script.
+        #[arg(long, value_name = "N")]
+        max_steps: Option<u32>,
+        /// Raise the `repeat`/`retry` iteration cap (default 10000).
+        #[arg(long, value_name = "N")]
+        max_iterations: Option<u32>,
+        /// Raise the maximum `func` parameters (default 64).
+        #[arg(long, value_name = "N")]
+        max_func_params: Option<u32>,
+        /// Raise the maximum number of `func`s / imports (default 4096).
+        #[arg(long, value_name = "N")]
+        max_funcs: Option<usize>,
+        /// Attach to a native window (Windows) instead of exposing the browser
+        /// driver; the run drives it through the desktop driver (`launch`,
+        /// `window`, `click`, `fill`, ...) and the browser is unavailable.
+        #[arg(long, value_name = "TITLE")]
+        app: Option<String>,
+        /// Run with no browser driver at all (Windows): the desktop driver is
+        /// active and the window is chosen in-script by `window`/`launch`.
+        #[arg(long)]
+        native: bool,
     },
     /// Fetch a URL and print the body (JSON is pretty-printed). Requires the
     /// `http` feature.

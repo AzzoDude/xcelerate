@@ -105,7 +105,7 @@ struct Server {
     browser: Option<std::sync::Arc<Browser>>,
     page: Option<std::sync::Arc<Page>>,
     #[cfg(windows)]
-    uia: Option<xcelerate_uia::Uia>,
+    uia: Option<xcelerate_desktop::Uia>,
 }
 
 impl Server {
@@ -120,9 +120,9 @@ impl Server {
 
     /// The lazily-created UIA automation handle for the native-app tools.
     #[cfg(windows)]
-    fn uia(&mut self) -> Result<&mut xcelerate_uia::Uia, String> {
+    fn uia(&mut self) -> Result<&mut xcelerate_desktop::Uia, String> {
         if self.uia.is_none() {
-            self.uia = Some(xcelerate_uia::Uia::new().map_err(|e| e.to_string())?);
+            self.uia = Some(xcelerate_desktop::Uia::new().map_err(|e| e.to_string())?);
         }
         self.uia
             .as_mut()
@@ -620,7 +620,7 @@ impl Server {
                 let uia = self.uia()?;
                 let mut out = String::new();
                 for window in uia.windows().map_err(|e| e.to_string())? {
-                    out.push_str(&xcelerate_uia::format_window(&window));
+                    out.push_str(&xcelerate_desktop::format_window(&window));
                     out.push('\n');
                 }
                 Ok(Outcome::Text(out))
@@ -640,7 +640,7 @@ impl Server {
                     .iter()
                     .filter(|e| e.name.to_ascii_lowercase().contains(&needle))
                 {
-                    out.push_str(&xcelerate_uia::format_element(el));
+                    out.push_str(&xcelerate_desktop::format_element(el));
                     out.push('\n');
                 }
                 if out.is_empty() {

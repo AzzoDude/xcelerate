@@ -40,10 +40,6 @@ const TEMPLATE: &[(&str, &str)] = &[
         "src/support.rs",
         include_str!("../../../docs/plugins/template/src/support.rs"),
     ),
-    (
-        "wit/plugin.wit",
-        include_str!("../../../docs/plugins/template/wit/plugin.wit"),
-    ),
 ];
 
 /// Create a new mod named `name`, returning the directory it was written to.
@@ -92,6 +88,14 @@ pub fn new_mod(name: &str, dir: Option<PathBuf>, force: bool) -> std::io::Result
             .replace("{{title}}", title);
         fs::write(&path, rendered)?;
     }
+
+    // The WIT is the host ABI, not the author's to maintain: write the canonical
+    // copy. `xcelerate build` refreshes it, so a plugin can gitignore `wit/`.
+    let wit = dir.join("wit").join("plugin.wit");
+    if let Some(parent) = wit.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(&wit, crate::build::PLUGIN_WIT)?;
 
     Ok(dir)
 }

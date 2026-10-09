@@ -43,6 +43,18 @@ interface host {
     /// the host routes the call (honouring overrides and budgets) and records it
     /// in the audit log.
     invoke-plugin: func(plugin: string, op: string, args: payload) -> result<payload, string>;
+
+    /// Requires the `browser` capability. Perform a semantic **browser action**
+    /// on this run's active page. `op` names a verb (`goto`, `click`, `fill`,
+    /// `text`, `snapshot`, …) and `args` is a MessagePack argument object; the
+    /// result is a MessagePack value. Deliberately not raw CDP/BiDi: a plugin asks
+    /// for a verb, never a protocol message.
+    browser: func(op: string, args: payload) -> result<payload, string>;
+
+    /// Requires the `app` capability (Windows only). Drive a native window
+    /// through UI Automation. `op` names a verb (`launch`, `tree`, `click`,
+    /// `set-value`, …) and `args` is a MessagePack argument object.
+    app: func(op: string, args: payload) -> result<payload, string>;
 }
 
 /// What every plugin exports.

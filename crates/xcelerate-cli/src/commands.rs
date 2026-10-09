@@ -59,23 +59,9 @@ pub fn list_browsers(all: bool) {
 
 pub fn list_plugins() {
     println!("Plugins: none built in (external by design).");
-    println!("  Load one with --plugins <PATH>, or scaffold a new one with");
-    println!("  `xcelerate plugin new <id>`.");
-}
-
-/// `apps`: list open native windows, fastest path (one UIA `FindAll`).
-fn list_apps() {
-    #[cfg(windows)]
-    match xcelerate_uia::Uia::new().and_then(|uia| uia.windows()) {
-        Ok(windows) => {
-            for window in windows {
-                println!("{}", xcelerate_uia::format_window(&window));
-            }
-        }
-        Err(error) => println!("apps: {error}"),
-    }
-    #[cfg(not(windows))]
-    println!("`apps` (native window listing) is Windows only.");
+    println!("  Load one with --plugins <PATH|NAME>, or scaffold a new one with");
+    println!("  `xcelerate plugin new <id>`. A bare name resolves from");
+    println!("  $XCELERATE_PLUGIN_DIR, then ~/.xcl/plugins, then ./plugins, then .");
 }
 
 /// Formats `Target.getTargets` output as printable lines (page targets only), so
@@ -118,7 +104,12 @@ fn format_targets(json: &str) -> Vec<String> {
 }
 
 pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
-    match cli.command {
+    // No subcommand: drop straight into the interactive session, so `xcelerate`
+    // on its own is a REPL rather than a usage error.
+    let Some(command) = cli.command else {
+        return run_session(&cli.browser, None).await;
+    };
+    match command {
         Command::List { kind, all } => match kind {
             Some(ListKind::Device) => list_devices(),
             Some(ListKind::Browser) => list_browsers(all),
@@ -132,7 +123,6 @@ pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             }
         },
         Command::Plugins => list_plugins(),
-        Command::Apps => list_apps(),
         Command::Targets => {
             let ws_url = cli
                 .browser
@@ -188,7 +178,27 @@ pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             allow_private,
             param,
             verbose,
+            max_steps,
+            max_iterations,
+            max_func_params,
+            max_funcs,
+            app,
+            native,
         } => {
+            // Start from the safe defaults, then honour any `--max-*` override.
+            let mut limits = xcelerate_interpreter::security::Limits::default();
+            if let Some(value) = max_steps {
+                limits.max_steps = value;
+            }
+            if let Some(value) = max_iterations {
+                limits.max_iterations = value;
+            }
+            if let Some(value) = max_func_params {
+                limits.max_func_params = value;
+            }
+            if let Some(value) = max_funcs {
+                limits.max_funcs = value;
+            }
             crate::run::run_file(
                 &cli.browser,
                 &path,
@@ -198,11 +208,21 @@ pub async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
                 allow_private,
                 param,
                 verbose,
+                limits,
+                app,
+                native,
             )
             .await?;
         }
         Command::Open { url } => {
             let (browser, page) = launch(&cli.browser, &url).await?;
+            // `launch` does not navigate an attached target (it keeps whatever the
+            // window is showing), but `open <url>` is explicitly a navigation, so
+            // honour the url here instead of silently ignoring it.
+            if cli.browser.attach.is_some() && !url.is_empty() {
+                page.navigate(url.clone()).await?;
+                let _ = page.wait_for_navigation().await;
+            }
             println!("title: {}", page.title().await?);
             println!("url:   {}", page.url().await?);
             browser.close().await?;

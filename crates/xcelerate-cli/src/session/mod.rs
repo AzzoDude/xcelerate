@@ -10,8 +10,9 @@
 //! script in that language - written to `--codegen-out <PATH>` or printed.
 //!
 //! The loop itself lives here; the verbs it dispatches to are grouped by concern
-//! across the sibling modules (`nav`, `interact`, `media`, `tabs`, `codegen`,
-//! `cookies`, `misc`), with the small helpers in `input`, `help` and `record`.
+//! across the sibling modules (`nav`, `interact`, `media`, `tabs`, `net`,
+//! `storage`, `codegen`, `cookies`, `misc`), with the small helpers in `input`,
+//! `help` and `record`.
 
 mod codegen;
 mod cookies;
@@ -22,8 +23,10 @@ mod interact;
 mod media;
 mod misc;
 mod nav;
+mod net;
 mod record;
 mod state;
+mod storage;
 mod tabs;
 
 use std::sync::Arc;
@@ -162,7 +165,17 @@ pub async fn run_session(
                                 println!(
                                     "session detached; re-attached the page and retrying the step"
                                 );
-                                session.page = fresh;
+                                // Replace the active slot too, or a later
+                                // `switch` would restore the dead page.
+                                let active = session.active_tab;
+                                session.page = Arc::clone(&fresh);
+                                match session.tabs.get_mut(active) {
+                                    Some(slot) => *slot = fresh,
+                                    None => {
+                                        session.tabs.push(fresh);
+                                        session.active_tab = session.tabs.len() - 1;
+                                    }
+                                }
                                 continue;
                             }
                             Err(_) => break Err(error),

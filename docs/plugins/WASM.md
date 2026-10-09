@@ -23,7 +23,9 @@ component ABI:
 
 ```wit
 world plugin-world {
-    import host;   // capability-gated: log, get-cookies, set-cookie
+    // capability-gated: log, get-cookies, set-cookie,
+    // invoke-plugin, browser, app
+    import host;
     export plugin; // describe() -> payload, invoke(op, args) -> result<payload, string>
 }
 ```
@@ -37,6 +39,11 @@ world plugin-world {
   and back.)
 - Host callbacks keep the same **default-deny capability gate**: a `get-cookies`
   call is refused unless `read_cookies` was granted, and is audited.
+- The `browser` and `app` callbacks are the **host action bridge**: a plugin asks
+  for a semantic verb (`goto`, `click`, `fill`, `snapshot`, `tree`, …) and the
+  host performs it against the run's active page or a native window - never a raw
+  protocol message. See [`plugins/browser`](../../plugins/browser/README.md) and
+  [`plugins/app`](../../plugins/app/README.md).
 
 ## Building a guest
 
@@ -48,6 +55,10 @@ Component Model component directly - no adapter or componentizer needed:
 rustup target add wasm32-wasip2
 cargo build --release --target wasm32-wasip2
 ```
+
+Inside a plugin directory, prefer `xcelerate build --wasm-only`: the CLI writes
+`wit/plugin.wit` (the canonical host ABI) and stages the `.wasm` next to
+`plugin.json`, so a plugin never has to hand-copy or maintain the interface.
 
 See the runnable [Rust guest example](examples/wasm-echo/README.md), and the
 [provider/consumer pair](examples/kv-store/README.md) for a plugin that depends

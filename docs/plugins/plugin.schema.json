@@ -90,6 +90,9 @@
         "init_script",
         "screenshot",
         "network_capture",
+        "browser",
+        "app",
+        "invoke_plugin",
         "launch_control",
         "binary_patch",
         "detached_spawn"

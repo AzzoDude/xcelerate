@@ -32,12 +32,20 @@ impl Session {
         Ok(())
     }
 
-    /// `switch <n|targetId>` / `tab` / `use`: make a tab active.
+    /// `switch <index|targetId>`: make a tab active.
+    ///
+    /// An exact target-id match wins over index parsing, so an all-numeric id is
+    /// never mistaken for an index. A bare number that matches no open tab is
+    /// read as an index.
     pub(crate) async fn switch(&mut self, rest: &str) -> Result<(), Box<dyn std::error::Error>> {
         if rest.is_empty() {
             // No argument cycles to the next tab.
             self.active_tab = (self.active_tab + 1) % self.tabs.len();
             self.page = self.tabs[self.active_tab].clone();
+        } else if let Some(position) = self.tabs.iter().position(|tab| tab.target_id() == rest) {
+            // A target id this session already knows about: exact match first.
+            self.active_tab = position;
+            self.page = self.tabs[position].clone();
         } else if let Ok(index) = rest.parse::<usize>() {
             if index < self.tabs.len() {
                 self.active_tab = index;
@@ -46,9 +54,6 @@ impl Session {
                 println!("no tab {index} (have {} open)", self.tabs.len());
                 return Ok(());
             }
-        } else if let Some(position) = self.tabs.iter().position(|tab| tab.target_id() == rest) {
-            self.active_tab = position;
-            self.page = self.tabs[position].clone();
         } else {
             // A target this session did not open (for example a popup).
             match Arc::clone(&self.browser)
@@ -132,24 +137,32 @@ impl Session {
         Ok(())
     }
 
-    /// `close-tab <index|targetId>` / `closetab`.
+    /// `close-tab <index|targetId>`.
+    ///
+    /// An exact target-id match wins over index parsing, so an all-numeric id is
+    /// never mistaken for an index. A bare number that matches no open tab is
+    /// read as an index.
     pub(crate) async fn close_tab(&mut self, rest: &str) -> Result<(), Box<dyn std::error::Error>> {
         if rest.is_empty() {
             println!("usage: close-tab <index|targetId>   (indices/ids come from `tabs`)");
             return Ok(());
         }
-        // Accept the same session index `switch` uses, or a raw id.
-        let target_id = if let Ok(index) = rest.parse::<usize>() {
-            match self.tabs.get(index) {
-                Some(tab) => tab.target_id(),
-                None => {
-                    println!("no tab {index} (have {} open)", self.tabs.len());
-                    return Ok(());
+        // Accept a raw id (exact match first), or the same session index
+        // `switch` uses.
+        let target_id =
+            if let Some(position) = self.tabs.iter().position(|tab| tab.target_id() == rest) {
+                self.tabs[position].target_id()
+            } else if let Ok(index) = rest.parse::<usize>() {
+                match self.tabs.get(index) {
+                    Some(tab) => tab.target_id(),
+                    None => {
+                        println!("no tab {index} (have {} open)", self.tabs.len());
+                        return Ok(());
+                    }
                 }
-            }
-        } else {
-            rest.to_string()
-        };
+            } else {
+                rest.to_string()
+            };
         // Never close the session's last tab: that would leave the
         // session with nothing to drive.
         if self.tabs.len() <= 1

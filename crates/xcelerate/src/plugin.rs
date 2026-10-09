@@ -10,12 +10,14 @@
 
 use std::sync::Arc;
 
+use crate::element::Element;
 use crate::error::{XcelerateError, XcelerateResult};
 use crate::page::Page;
-use xcelerate_plugin::{ArcPageHost, BoxFut, Catalog, PageHost, PluginError, PluginResult};
+use xcelerate_plugin::{ArcPageHost, BoxFut, PageHost, PluginError, PluginResult};
 
 pub use xcelerate_plugin::{
-    AuditEvent, Capability, Manifest, OpSchema, Plugin, PluginManager, audit_entries, audit_verify,
+    AuditEvent, Capability, Catalog, Manifest, OpSchema, Plugin, PluginManager, audit_entries,
+    audit_verify,
 };
 
 #[cfg(feature = "wasm")]
@@ -97,11 +99,211 @@ impl PageHost for PageHostImpl {
             *self.page.mouse_y.lock().unwrap(),
         )
     }
+
+    fn browser_op(&self, op: &str, args_json: &str) -> BoxFut<PluginResult<String>> {
+        let page = Arc::clone(&self.page);
+        let op = op.to_string();
+        let args_json = args_json.to_string();
+        Box::pin(async move { browser_action(page, &op, &args_json).await })
+    }
+}
+
+/// Whether `value` reads as a selector rather than visible text (the same rule
+/// the interactive session and the XCL interpreter use).
+fn looks_like_selector(value: &str) -> bool {
+    let value = value.trim();
+    value.starts_with(['#', '.', '['])
+        || value.starts_with("//")
+        || value.starts_with("xpath=")
+        || value.starts_with("role=")
+        || value.starts_with("label=")
+        || value.starts_with("text=")
+        || (value.contains('[') && value.contains(']'))
+}
+
+/// Resolve a click/fill target: a CSS selector, or visible text.
+async fn resolve_target(page: &Arc<Page>, target: &str) -> PluginResult<Arc<Element>> {
+    if looks_like_selector(target) {
+        Arc::clone(page)
+            .wait_for_selector(target.to_string())
+            .await
+            .map_err(PluginError::from)
+    } else {
+        Arc::clone(page)
+            .find_clickable_by_text(target.to_string())
+            .await
+            .map_err(PluginError::from)?
+            .ok_or_else(|| PluginError::NotFound(format!("no visible element contains {target:?}")))
+    }
+}
+
+/// The semantic browser verbs the host bridge exposes to sandboxed plugins.
+///
+/// This is the decoupled browser API: a plugin names an act (`goto`, `click`,
+/// `fill`, `snapshot`, …) and the host maps it onto the engine. A plugin never
+/// speaks CDP/BiDi itself.
+async fn browser_action(page: Arc<Page>, op: &str, args_json: &str) -> PluginResult<String> {
+    use serde_json::{Value, json};
+
+    let args: Value = if args_json.trim().is_empty() {
+        Value::Null
+    } else {
+        serde_json::from_str(args_json)
+            .map_err(|error| PluginError::Message(format!("args are not JSON: {error}")))?
+    };
+    let text = |key: &str| args.get(key).and_then(Value::as_str).map(str::to_string);
+
+    match op {
+        "goto" | "open" | "navigate" => {
+            let url = text("url")
+                .ok_or_else(|| PluginError::Unsupported("goto needs a 'url'".to_string()))?;
+            page.navigate(url.clone())
+                .await
+                .map_err(PluginError::from)?;
+            let _ = page.wait_for_navigation().await;
+            Ok(json!({ "url": page.url().await.unwrap_or(url) }).to_string())
+        }
+        "url" => Ok(json!(page.url().await.map_err(PluginError::from)?).to_string()),
+        "title" => Ok(json!(page.title().await.map_err(PluginError::from)?).to_string()),
+        "html" | "content" => {
+            Ok(json!(page.content().await.map_err(PluginError::from)?).to_string())
+        }
+        "markdown" | "md" => {
+            Ok(json!(page.markdown().await.map_err(PluginError::from)?).to_string())
+        }
+        "text" => Ok(json!(
+            page.evaluate_string("document.body ? document.body.innerText : ''".to_string())
+                .await
+                .map_err(PluginError::from)?
+        )
+        .to_string()),
+        "snapshot" => {
+            Ok(json!(page.agent_snapshot().await.map_err(PluginError::from)?).to_string())
+        }
+        "snapshot-json" => {
+            Ok(json!(page.snapshot_json().await.map_err(PluginError::from)?).to_string())
+        }
+        "click" => {
+            let target = text("target")
+                .ok_or_else(|| PluginError::Unsupported("click needs a 'target'".to_string()))?;
+            let element = resolve_target(&page, &target).await?;
+            element.click_mouse().await.map_err(PluginError::from)?;
+            Ok(json!({ "clicked": target }).to_string())
+        }
+        "hover" => {
+            let target = text("target")
+                .ok_or_else(|| PluginError::Unsupported("hover needs a 'target'".to_string()))?;
+            let element = resolve_target(&page, &target).await?;
+            element.hover_mouse().await.map_err(PluginError::from)?;
+            Ok(json!({ "hovered": target }).to_string())
+        }
+        "fill" => {
+            let target = text("target")
+                .ok_or_else(|| PluginError::Unsupported("fill needs a 'target'".to_string()))?;
+            let value = text("text").unwrap_or_default();
+            let element = resolve_target(&page, &target).await?;
+            element.type_text(value).await.map_err(PluginError::from)?;
+            Ok(json!({ "filled": target }).to_string())
+        }
+        "press" => {
+            let key = text("key")
+                .ok_or_else(|| PluginError::Unsupported("press needs a 'key'".to_string()))?;
+            page.keyboard_press(key.clone())
+                .await
+                .map_err(PluginError::from)?;
+            Ok(json!({ "pressed": key }).to_string())
+        }
+        "scroll" => {
+            let to = text("to").unwrap_or_else(|| "down".to_string());
+            let js = match to.as_str() {
+                "" | "down" => "window.scrollBy(0, window.innerHeight * 0.9)".to_string(),
+                "up" => "window.scrollBy(0, -window.innerHeight * 0.9)".to_string(),
+                "top" => "window.scrollTo(0, 0)".to_string(),
+                "bottom" => "window.scrollTo(0, document.body.scrollHeight)".to_string(),
+                other => match other.parse::<i64>() {
+                    Ok(pixels) => format!("window.scrollBy(0, {pixels})"),
+                    Err(_) => {
+                        return Err(PluginError::Unsupported(
+                            "scroll 'to' must be a pixel count or up|down|top|bottom".to_string(),
+                        ));
+                    }
+                },
+            };
+            let _ = page.evaluate_string(js).await;
+            Ok(json!({ "scrolled": to }).to_string())
+        }
+        "evaluate" => {
+            let js = text("js")
+                .ok_or_else(|| PluginError::Unsupported("evaluate needs 'js'".to_string()))?;
+            Ok(page.evaluate_string(js).await.map_err(PluginError::from)?)
+        }
+        "wait" => {
+            let selector = text("selector")
+                .ok_or_else(|| PluginError::Unsupported("wait needs a 'selector'".to_string()))?;
+            Arc::clone(&page)
+                .wait_for_selector(selector.clone())
+                .await
+                .map_err(PluginError::from)?;
+            Ok(json!({ "waited": selector }).to_string())
+        }
+        "find" => {
+            let needle = text("text").unwrap_or_default();
+            let count = page
+                .find_text(needle.clone())
+                .await
+                .map_err(PluginError::from)?;
+            Ok(json!({ "count": count, "text": needle }).to_string())
+        }
+        "screenshot" => {
+            let full = args.get("full").and_then(Value::as_bool).unwrap_or(false);
+            let png = if full {
+                page.screenshot_full().await.map_err(PluginError::from)?
+            } else {
+                page.screenshot().await.map_err(PluginError::from)?
+            };
+            use base64::Engine as _;
+            let encoded = base64::engine::general_purpose::STANDARD.encode(&png);
+            Ok(json!({ "png_base64": encoded, "bytes": png.len() }).to_string())
+        }
+        other => Err(PluginError::Unsupported(format!(
+            "unknown browser action '{other}'"
+        ))),
+    }
 }
 
 /// Wrap a page so plugins can act on it through the capability-scoped host.
-pub(crate) fn page_host(page: Arc<Page>) -> ArcPageHost {
+pub fn page_host(page: Arc<Page>) -> ArcPageHost {
     Arc::new(PageHostImpl { page })
+}
+
+/// Load a sandboxed WebAssembly plugin from `path` (a directory or a
+/// `plugin.json`) into a handle that does **not** belong to any browser.
+///
+/// This is how a host that is not a `Browser` - a native-only run, say - can
+/// still load and drive plugins: it owns a [`PluginManager`] and installs the
+/// result. Cross-plugin calls are unavailable on such a host, and the plugin's
+/// `browser` bridge is closed (no page is bound), but `app` and pure ops work.
+pub fn load_plugin(path: &str) -> XcelerateResult<Arc<dyn Plugin>> {
+    let manifest_path = resolve_manifest_path(path)?;
+    let manifest = Manifest::load(&manifest_path.to_string_lossy())?;
+    manifest
+        .validate_reserved(&[])
+        .map_err(|error| XcelerateError::Unsupported(error.to_string()))?;
+    #[cfg(feature = "wasm")]
+    {
+        let plugin_dir = manifest_path
+            .parent()
+            .unwrap_or_else(|| std::path::Path::new("."));
+        let plugin = wasm::load(&manifest, plugin_dir, None, None)?;
+        Ok(Arc::new(plugin) as Arc<dyn Plugin>)
+    }
+    #[cfg(not(feature = "wasm"))]
+    {
+        let _ = manifest;
+        Err(XcelerateError::Unsupported(
+            "plugin loading requires the `wasm` feature".to_string(),
+        ))
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -187,6 +389,24 @@ impl PluginHandle {
             .unwrap_or_default();
         serde_json::to_string(&config)
             .map_err(|error| XcelerateError::SerdeError(error.to_string()))
+    }
+
+    /// Invoke an op **bound to a live page**, so a plugin granted the `browser`
+    /// capability can act on it through `host.browser`.
+    ///
+    /// Rust-only: the language bindings call [`PluginHandle::invoke`], which
+    /// carries no page and therefore leaves the browser bridge closed.
+    pub async fn invoke_on(
+        &self,
+        op: String,
+        args_json: String,
+        page: Arc<Page>,
+    ) -> XcelerateResult<String> {
+        xcelerate_plugin::audit(&self.name, &op, "invoke");
+        self.manager
+            .invoke(&self.name, &op, args_json, Some(page_host(page)))
+            .await
+            .map_err(XcelerateError::from)
     }
 }
 

@@ -317,6 +317,40 @@ chống dấu vết thuộc về plugin của chính bạn.
 Mỗi op chạy trong hạn mức (budget) của lần gọi và được ghi vào nhật ký kiểm toán;
 một plugin chỉ tác động lên những page mà nó được giao.
 
+### Plugin trình duyệt và ứng dụng (nhà plugin dùng chung)
+
+Thư mục [`plugins/`](plugins) chứa hai plugin WebAssembly dựng sẵn, thể hiện toàn bộ
+mô hình từ đầu đến cuối:
+
+| Plugin | Cung cấp | Capability |
+| --- | --- | --- |
+| [`plugins/browser`](plugins/browser) (`xcelerate.browser`) | bề mặt trình duyệt — `open`, `click`, `fill`, `text`, `snapshot`, … | `browser` |
+| [`plugins/app`](plugins/app) (`xcelerate.app`) | điều khiển cửa sổ gốc — `launch`, `tree`, `click`, `set_value`, … | `app` |
+
+Cả hai đều không nói trực tiếp CDP, BiDi hay hệ điều hành: chúng gọi một **cầu nối host
+được giới hạn bởi capability** (`host.browser` / `host.app`). Plugin yêu cầu host thực
+hiện một động từ ngữ nghĩa, và host thực hiện nó. Nhờ vậy việc điều khiển trình duyệt
+và ứng dụng được tách khỏi interpreter, còn lõi vẫn nhỏ gọn.
+
+Hãy build một lần rồi dùng chung. Một *tên* plugin trần được phân giải từ thư mục
+người dùng toàn cục (`$XCELERATE_HOME/plugins`, nếu không thì `~/.xcl/plugins`), rồi
+`./plugins`, rồi `.` — nên một bản build có thể được nạp từ mọi dự án:
+
+```bash
+cd plugins/browser && ./build.sh           # Windows:  .\build.ps1
+mkdir -p ~/.xcl/plugins && cp -r . ~/.xcl/plugins/browser
+
+# từ bất kỳ đâu; capability `browser` là nguy hiểm nên phải cấp rõ ràng
+XCELERATE_PLUGIN_ALLOW=browser \
+  xcelerate --plugins browser run --allow-plugin browser job.xcl
+```
+
+```xcl
+# job.xcl
+run browser open {"url":"https://example.com"}
+run browser find {"text":"Example"}
+```
+
 ### Kiểm tra và gọi plugin
 
 Mọi binding đều cung cấp cùng một cầu nối nhỏ gọn, cố định, nên một plugin mới không
@@ -348,12 +382,12 @@ let info = handle.invoke("info".into(), "{}".into()).await?;
 
 Các capability được phân loại trước khi chúng có thể được cấp. `LaunchControl`,
 `BinaryPatch` và `DetachedSpawn` **chỉ dành cho plugin tích hợp**; `Evaluate`,
-`CdpProxy`, truy cập cookie, script khởi tạo, ảnh chụp màn hình và bắt lưu lượng
-mạng là **nguy hiểm** và yêu cầu sự đồng ý tường minh. Một plugin tải từ đĩa là một
-component WebAssembly chạy trong sandbox với **không có quyền hạn xung quanh (ambient
-authority)**: các import từ host là lối thoát duy nhất, chúng bị giới hạn bởi
-capability, và mọi lời gọi đều được kiểm toán - nên một plugin không thể tự truy cập
-hệ thống tệp hay mạng. Các callback nguy hiểm **bị từ chối theo mặc định** và phải
+`CdpProxy`, `Browser`, `App`, truy cập cookie, script khởi tạo, ảnh chụp màn hình và
+bắt lưu lượng mạng là **nguy hiểm** và yêu cầu sự đồng ý tường minh. Một plugin tải
+từ đĩa là một component WebAssembly chạy trong sandbox với **không có quyền hạn xung
+quanh (ambient authority)**: các import từ host là lối thoát duy nhất, chúng bị giới
+hạn bởi capability, và mọi lời gọi đều được kiểm toán - nên một plugin không thể tự
+truy cập hệ thống tệp, mạng hay desktop. Các callback nguy hiểm **bị từ chối theo mặc định** và phải
 được chọn tham gia theo từng host thông qua `XCELERATE_PLUGIN_ALLOW` (theo từng
 plugin, hoặc phạm vi rộng), trong hạn mức thời gian và kích thước phản hồi cho mỗi
 lần gọi. Xem [`docs/plugins/`](docs/plugins/README.md).
@@ -385,7 +419,8 @@ cd hello && ./build.sh               # Windows:  .\build.ps1
 
 Bạn viết các op handler bằng Rust thuần; xcelerate lo phần kết nối WebAssembly.
 Nạp thành phần đã build bằng `Browser::load_plugin(path)` (một thư mục hoặc
-`plugin.json`). Xem [hướng dẫn viết plugin](docs/plugins/README.md),
+`plugin.json`), hoặc đặt nó trong `~/.xcl/plugins/` và nạp theo tên. Xem
+[hướng dẫn viết plugin](docs/plugins/README.md),
 [tham chiếu WASM](docs/plugins/WASM.md), JSON
 [schema](docs/plugins/plugin.schema.json), và
 [ví dụ](docs/plugins/examples).
@@ -712,13 +747,16 @@ xcelerate/
     xcelerate-plugin/       # plugin trait, manifest, capabilities, audit, host interface
     xcelerate/              # high-level facade: Browser, Page, Element, adapters
     xcelerate-bindgen/      # uniffi bindgen helper binary
-    xcelerate-cli/          # CLI (binary `xcelerate`), incl. the XCL runner + interpreter
+    xcelerate-interpreter/  # the XCL language: lexer, parser, engine, security, executor
+    xcelerate-cli/          # CLI (binary `xcelerate`), incl. the XCL runner
     xcelerate-mcp/          # `xcelerate-mcp` Model Context Protocol server
     xcelerate-codegen/      # script + typed-binding code generation (11 languages)
+    xcelerate-desktop/      # Windows UI Automation backend (native windows)
   adapters/                 # adapter profiles, runtime, and generator inputs
   bindings/                 # generated Python/JS/C#/Kotlin/Java/Swift/Ruby/Dart/Go packages (+ PowerShell)
   docs/plugins/             # plugin authoring guide, JSON schema, examples
   docs/xcl.md               # the XCL scripting language reference
+  plugins/                  # browser + app plugins (browser and native-app APIs as .wasm)
   scripts/                  # code generation, harvesting, and release tooling
 ```
 

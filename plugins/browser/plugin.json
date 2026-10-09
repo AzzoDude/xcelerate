@@ -1,0 +1,27 @@
+{
+  "name": "xcelerate.browser",
+  "version": "0.1.0",
+  "host_api": ">=1.0 <2.0",
+  "entrypoint": "browser.wasm",
+  "abi": "wasm32-wasip2/1",
+  "ops": [
+    "open",
+    "title",
+    "url",
+    "text",
+    "html",
+    "markdown",
+    "snapshot",
+    "click",
+    "hover",
+    "fill",
+    "press",
+    "scroll",
+    "wait",
+    "find",
+    "evaluate",
+    "screenshot"
+  ],
+  "capabilities": ["browser"],
+  "limits": { "max_invoke_millis": 30000, "max_response_bytes": 1048576 }
+}

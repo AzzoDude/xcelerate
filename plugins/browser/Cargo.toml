@@ -1,0 +1,22 @@
+[package]
+name = "xcelerate-plugin-browser"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: do not join the xcelerate workspace, so the mod builds the same
+# anywhere and is dropped into `~/.xcl/plugins` (or `./plugins`).
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = "0.62"
+serde = { version = "1", features = ["derive"] }
+rmp-serde = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true

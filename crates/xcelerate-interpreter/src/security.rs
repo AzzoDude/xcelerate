@@ -10,17 +10,49 @@ use std::collections::HashSet;
 /// Hard cap on total executed steps in a single run (defeats unbounded loops).
 pub const MAX_STEPS: u32 = 10_000;
 
-/// Hard cap on a single `repeat`/`retry` iteration count.
-pub const MAX_ITERATIONS: u32 = 1_000;
+/// Default cap on a single `repeat`/`retry` iteration count.
+pub const MAX_ITERATIONS: u32 = 10_000;
 
-/// Maximum parameters a `func` may declare.
-pub const MAX_FUNC_PARAMS: u32 = 8;
+/// Default maximum parameters a `func` may declare.
+pub const MAX_FUNC_PARAMS: u32 = 64;
 
-/// Maximum `func` definitions per program.
-pub const MAX_FUNCS: usize = 256;
+/// Default maximum `func` definitions / imports per program.
+pub const MAX_FUNCS: usize = 4_096;
 
 /// Maximum characters accepted from a single command's output (truncated after).
 pub const MAX_OUTPUT_CHARS: usize = 64 * 1024;
+
+/// The full set of runtime/parse limits.
+///
+/// These are a **safety floor for untrusted input, not a fixed ceiling**: every
+/// one can be raised by the invoking human through the matching `--max-*` flag.
+/// A compiled-in default is what keeps a downloaded `.xcl` bounded; a trusted
+/// author who genuinely needs more raises the number explicitly.
+#[derive(Debug, Clone, Copy)]
+pub struct Limits {
+    /// Total executed steps before the run halts.
+    pub max_steps: u32,
+    /// Largest allowed `repeat`/`retry` count.
+    pub max_iterations: u32,
+    /// Largest allowed `func` parameter list.
+    pub max_func_params: u32,
+    /// Largest allowed number of `func`s / `import`s.
+    pub max_funcs: usize,
+    /// Characters kept from a single command's output.
+    pub max_output_chars: usize,
+}
+
+impl Default for Limits {
+    fn default() -> Self {
+        Self {
+            max_steps: MAX_STEPS,
+            max_iterations: MAX_ITERATIONS,
+            max_func_params: MAX_FUNC_PARAMS,
+            max_funcs: MAX_FUNCS,
+            max_output_chars: MAX_OUTPUT_CHARS,
+        }
+    }
+}
 
 /// Provenance tag recorded on every audit event so the source of an executed
 /// step is always attributable (indicator-removal resistance).
@@ -60,6 +92,12 @@ pub struct Permissions {
     /// Whether private/loopback/link-local/metadata hosts are reachable in
     /// browserless mode. Default `false` (deny).
     pub allow_private: bool,
+    /// Native windows an AI/`.xcl` run may *drive* (click, type, keys), matched
+    /// by window-title or process-name glob. Empty = deny all native actions;
+    /// read-only discovery (the plugin's `windows` op) stays allowed. Driving a
+    /// native app is the most powerful capability a script can hold, so it is
+    /// opt-in per target exactly like `--allow-domain` is for navigation.
+    pub allow_apps: Vec<String>,
 }
 
 impl Permissions {
@@ -68,6 +106,13 @@ impl Permissions {
         self.allow_plugins
             .iter()
             .any(|entry| glob_allows(entry, name))
+    }
+
+    /// Whether a native window (`title` and/or process name) may be driven.
+    pub fn app_allowed(&self, window: &str) -> bool {
+        self.allow_apps
+            .iter()
+            .any(|entry| glob_allows(entry, window))
     }
 
     /// Compute the *narrower* permission set of this and `other`: a `.xcl` file
@@ -86,8 +131,46 @@ impl Permissions {
                     .collect()
             },
             allow_private: self.allow_private && other.allow_private,
+            // English: keep only entries both sides permit (mutual glob match).
+            // An empty list on either side denies everything, so a file cannot
+            // widen native access it was not granted.
+            allow_apps: {
+                let mut out: Vec<String> = Vec::new();
+                for entry in &self.allow_apps {
+                    if other.app_allowed(entry) && !out.contains(entry) {
+                        out.push(entry.clone());
+                    }
+                }
+                for entry in &other.allow_apps {
+                    if self.app_allowed(entry) && !out.contains(entry) {
+                        out.push(entry.clone());
+                    }
+                }
+                out
+            },
         }
     }
+}
+
+/// Key chords whose effect escapes the app into the desktop/session (open a
+/// shell, lock the screen, force-quit). Native `key` is refused for these unless
+/// the invoking human opts in.
+pub fn is_dangerous_key(name: &str) -> bool {
+    let normalized: String = name.to_ascii_lowercase().replace(' ', "");
+    matches!(
+        normalized.as_str(),
+        "win+r"
+            | "meta+r"
+            | "win+x"
+            | "meta+x"
+            | "win+l"
+            | "meta+l"
+            | "win+e"
+            | "meta+e"
+            | "alt+f4"
+            | "ctrl+shift+esc"
+            | "ctrl+alt+delete"
+    )
 }
 
 /// A simple `*`/`?` glob matcher for plugin allow entries.
@@ -124,34 +207,109 @@ fn glob_allows(pattern: &str, name: &str) -> bool {
     pi == p.len()
 }
 
+/// Normalizes a URL authority host so equivalent hosts compare equal and the
+/// numeric IP notations HTTP clients accept are canonicalized.
+///
+/// Defeats the string-only SSRF/policy bypass family: a surrounding `[` `]`
+/// (IPv6 literal), one or more trailing dots (FQDN root), and the inet_aton IPv4
+/// notations (dotted, bare integer, `0x` hex, leading-zero octal) that a client
+/// silently folds to `127.0.0.1`. Returns `None` for an empty host.
+pub fn normalize_host(host: &str) -> Option<String> {
+    let host = host.trim().trim_end_matches('.');
+    if host.is_empty() {
+        return None;
+    }
+    // `[::1]` -> `::1`
+    if let Some(inner) = host.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
+        return Some(inner.to_ascii_lowercase());
+    }
+    if let Some(ip) = parse_ipv4_loose(host) {
+        return Some(ip.to_string());
+    }
+    Some(host.to_ascii_lowercase())
+}
+
+/// Parses the inet_aton IPv4 notations (used by `curl`, `ping`, `getaddrinfo`):
+/// `127.0.0.1`, `127.1`, `2130706433`, `0x7f000001`, `0177.0.0.1`. Any other shape
+/// (including a real hostname) returns `None`.
+fn parse_ipv4_loose(host: &str) -> Option<std::net::Ipv4Addr> {
+    if host.contains(|c: char| !c.is_ascii_alphanumeric() && c != '.' && c != 'x' && c != 'X') {
+        return None;
+    }
+    let parts: Vec<&str> = host.split('.').collect();
+    if parts.is_empty() || parts.len() > 4 {
+        return None;
+    }
+    let mut nums: Vec<u32> = Vec::with_capacity(parts.len());
+    for part in &parts {
+        let value = if let Some(hex) = part.strip_prefix("0x").or_else(|| part.strip_prefix("0X")) {
+            u32::from_str_radix(hex, 16).ok()?
+        } else if part.len() > 1 && part.starts_with('0') {
+            u32::from_str_radix(&part[1..], 8).ok()?
+        } else {
+            part.parse::<u32>().ok()?
+        };
+        nums.push(value);
+    }
+    // Each part's permitted range shrinks as the notation gets shorter.
+    let max: Vec<u64> = match nums.len() {
+        1 => vec![u32::MAX as u64],
+        2 => vec![0xff, 0xff_ffff],
+        3 => vec![0xff, 0xff, 0xffff],
+        _ => vec![0xff, 0xff, 0xff, 0xff],
+    };
+    for (index, value) in nums.iter().enumerate() {
+        if *value as u64 > max[index] {
+            return None;
+        }
+    }
+    let value = match nums.len() {
+        1 => nums[0],
+        2 => (nums[0] << 24) | nums[1],
+        3 => (nums[0] << 24) | (nums[1] << 16) | nums[2],
+        _ => (nums[0] << 24) | (nums[1] << 16) | (nums[2] << 8) | nums[3],
+    };
+    Some(std::net::Ipv4Addr::from(value))
+}
+
+/// Whether an IP is loopback/private/link-local/unique-local/unspecified — the
+/// ranges the SSRF guard denies by default.
+pub fn is_private_ip(ip: std::net::IpAddr) -> bool {
+    match ip {
+        std::net::IpAddr::V4(v4) => {
+            v4.is_private()
+                || v4.is_loopback()
+                || v4.is_link_local()
+                || v4.is_unspecified()
+                || v4.octets()[0] == 169 && v4.octets()[1] == 254
+        }
+        std::net::IpAddr::V6(v6) => {
+            v6.is_loopback() || v6.is_unique_local() || v6.is_unicast_link_local()
+        }
+    }
+}
+
 /// The private/loopback/link-local/metadata ranges that browserless HTTP denies
-/// by default (the SSRF guard). Returns `true` when `host` is such
-/// a range and should be blocked unless `allow_private`.
+/// by default (the SSRF guard). Returns `true` when `host` is such a range and
+/// should be blocked unless `allow_private`.
+///
+/// The host is *normalized* first, so the alternate IPv4 notations and trailing-
+/// dot/bracketed forms cannot slip a loopback request past a string-only check.
 pub fn is_private_host(host: &str) -> bool {
-    let host = host.to_ascii_lowercase();
+    let Some(host) = normalize_host(host) else {
+        return false;
+    };
     if host == "localhost" || host.ends_with(".localhost") || host == "localhost.localdomain" {
         return true;
     }
-    if host == "::1" || host == "0.0.0.0" {
+    if host == "0.0.0.0" {
         return true;
     }
     if host.ends_with(".local") || host.ends_with(".internal") || host.ends_with(".lan") {
         return true;
     }
-    // RFC1918 / link-local / metadata resolvable literals.
     if let Ok(ip) = host.parse::<std::net::IpAddr>() {
-        return match ip {
-            std::net::IpAddr::V4(v4) => {
-                v4.is_private()
-                    || v4.is_loopback()
-                    || v4.is_link_local()
-                    || v4.is_unspecified()
-                    || v4.octets()[0] == 169 && v4.octets()[1] == 254
-            }
-            std::net::IpAddr::V6(v6) => {
-                v6.is_loopback() || v6.is_unique_local() || v6.is_unicast_link_local()
-            }
-        };
+        return is_private_ip(ip);
     }
     // Cloud metadata hostnames commonly targeted by SSRF.
     matches!(
@@ -201,22 +359,81 @@ mod tests {
     }
 
     #[test]
+    fn ssrf_notation_bypasses_are_normalized() {
+        // Every one of these reaches 127.0.0.1 but evaded the old string check.
+        for host in [
+            "127.0.0.1",
+            "127.1",
+            "2130706433",
+            "0x7f000001",
+            "0177.0.0.1",
+            "localhost.",
+            "[::1]",
+            "0.0.0.0",
+        ] {
+            assert!(is_private_host(host), "{host} should be private");
+        }
+        assert!(!is_private_host("example.com"));
+        assert!(!is_private_host("8.8.8.8"));
+    }
+
+    #[test]
+    fn normalize_host_canonicalizes() {
+        assert_eq!(
+            normalize_host("Example.COM.").as_deref(),
+            Some("example.com")
+        );
+        assert_eq!(normalize_host("[::1]").as_deref(), Some("::1"));
+        assert_eq!(normalize_host("2130706433").as_deref(), Some("127.0.0.1"));
+        assert_eq!(
+            normalize_host("example.com").as_deref(),
+            Some("example.com")
+        );
+    }
+
+    #[test]
     fn permissions_intersect_narrows() {
         let a = Permissions {
             allow_eval: true,
             allow_http: true,
             allow_plugins: vec!["acme.*".into()],
             allow_private: false,
+            allow_apps: vec!["Steam*".into()],
         };
         let b = Permissions {
             allow_eval: false,
             allow_http: true,
             allow_plugins: vec!["acme.kv".into()],
             allow_private: false,
+            allow_apps: Vec::new(),
         };
         let n = a.intersect(&b);
         assert!(!n.allow_eval);
         assert!(n.allow_http);
         assert!(n.allow_plugins.is_empty());
+        // An empty side denies all native apps, so the file cannot widen access.
+        assert!(n.allow_apps.is_empty());
+        assert!(!n.app_allowed("Steam"));
+    }
+
+    #[test]
+    fn native_app_allowlist_is_default_deny() {
+        let none = Permissions::default();
+        assert!(!none.app_allowed("Steam"));
+        let some = Permissions {
+            allow_apps: vec!["Steam*".into()],
+            ..Permissions::default()
+        };
+        assert!(some.app_allowed("Steam"));
+        assert!(!some.app_allowed("Calculator"));
+    }
+
+    #[test]
+    fn dangerous_keys_are_recognized() {
+        assert!(is_dangerous_key("Win+R"));
+        assert!(is_dangerous_key("ctrl+shift+esc"));
+        assert!(is_dangerous_key("Alt+F4"));
+        assert!(!is_dangerous_key("ctrl+a"));
+        assert!(!is_dangerous_key("next"));
     }
 }

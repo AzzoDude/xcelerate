@@ -41,5 +41,10 @@ rmp-serde = { workspace = true, optional = true }
 [target.'cfg(unix)'.dependencies]
 libc = { workspace = true }
 
+[target.'cfg(windows)'.dependencies]
+# Backs the `host.app` bridge: a sandboxed plugin drives native windows through
+# UI Automation by asking the host for a verb, never by touching the OS itself.
+xcelerate-desktop = { workspace = true }
+
 [lints]
 workspace = true

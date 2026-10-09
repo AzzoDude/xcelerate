@@ -21,12 +21,16 @@ pub fn parse_duration_ms(arg: &str) -> Option<u64> {
 /// Sleeps for `count * unit_ms` milliseconds, where `count` is a bare number.
 /// Used by the unit-suffixed verbs (`wait-sec 2`, `wait-min 1`, ...), so durations
 /// never need a `2s`-style literal.
+/// Hard cap on a single `wait-*` sleep (one hour), so a script cannot park the
+/// runner indefinitely on a nonsense duration like `wait-hr 999999999`.
+const MAX_WAIT_MS: u64 = 60 * 60 * 1000;
+
 pub async fn wait_scaled(arg: &str, unit_ms: u64) -> Result<String, String> {
     let count: u64 = arg
         .trim()
         .parse()
         .map_err(|_| format!("expected a number, got {arg:?}"))?;
-    let ms = count.saturating_mul(unit_ms);
+    let ms = count.saturating_mul(unit_ms).min(MAX_WAIT_MS);
     tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
     Ok(format!("waited {ms}ms"))
 }
@@ -328,7 +332,26 @@ pub fn resolve_in_root(root: &Path, raw: &str) -> Result<PathBuf, String> {
     let mut normalized = PathBuf::new();
     for component in Path::new(raw).components() {
         match component {
-            Component::Normal(part) => normalized.push(part),
+            Component::Normal(part) => {
+                // Windows-only footguns that route I/O away from a real file in
+                // the root: trailing dot/space aliasing (`".. "` collapses to
+                // `..`), alternate data streams (`name:stream`), and the reserved
+                // device names (`NUL`, `CON`, `COM1`, …).
+                #[cfg(windows)]
+                {
+                    let name = part.to_string_lossy();
+                    if name.trim_end_matches([' ', '.']) == ".." {
+                        return Err(format!("path escapes the workspace root: {raw:?}"));
+                    }
+                    if name.contains(':') {
+                        return Err(format!("alternate data streams are not allowed: {raw:?}"));
+                    }
+                    if is_reserved_windows_name(&name) {
+                        return Err(format!("reserved device names are not allowed: {raw:?}"));
+                    }
+                }
+                normalized.push(part);
+            }
             Component::CurDir => {}
             Component::ParentDir => {
                 if !normalized.pop() {
@@ -356,6 +379,28 @@ pub fn resolve_in_root(root: &Path, raw: &str) -> Result<PathBuf, String> {
         return Err(format!("path escapes the workspace root: {raw:?}"));
     }
     Ok(full)
+}
+
+/// Whether `name` is a Windows reserved device name (`CON`, `NUL`, `COM1`, …),
+/// which routes I/O away from a real file in the workspace root.
+#[cfg(windows)]
+fn is_reserved_windows_name(name: &str) -> bool {
+    let stem = name
+        .split('.')
+        .next()
+        .unwrap_or(name)
+        .trim_end_matches([' ', '.'])
+        .to_ascii_uppercase();
+    if matches!(
+        stem.as_str(),
+        "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$"
+    ) {
+        return true;
+    }
+    let bytes = stem.as_bytes();
+    bytes.len() == 4
+        && (stem.starts_with("COM") || stem.starts_with("LPT"))
+        && bytes[3].is_ascii_digit()
 }
 
 /// Canonicalizes the nearest ancestor of `path` that exists on disk (the parent

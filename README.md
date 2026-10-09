@@ -357,6 +357,40 @@ plugin.
 Each op runs under the invocation budget and is written to the audit log; a
 plugin only ever acts on pages it has been handed.
 
+### Browser and app plugins (the shared plugin home)
+
+The [`plugins/`](plugins) directory holds two ready-made WebAssembly plugins that
+show the whole model end to end:
+
+| Plugin | Exposes | Capability |
+| --- | --- | --- |
+| [`plugins/browser`](plugins/browser) (`xcelerate.browser`) | the browser surface - `open`, `click`, `fill`, `text`, `snapshot`, … | `browser` |
+| [`plugins/app`](plugins/app) (`xcelerate.app`) | native-window control - `launch`, `tree`, `click`, `set_value`, … | `app` |
+
+Both call a **capability-gated host bridge** (`host.browser` / `host.app`)
+instead of speaking CDP, BiDi, or the OS directly: a plugin asks the host for a
+semantic verb and the host performs it. That is how browser and app control stay
+decoupled from the interpreter while the core stays small.
+
+Build one once and share it. A bare plugin *name* is resolved from the
+user-global home (`$XCELERATE_HOME/plugins`, else `~/.xcl/plugins`), then
+`./plugins`, then `.` - so one build is importable from every project:
+
+```bash
+cd plugins/browser && ./build.sh           # Windows:  .\build.ps1
+mkdir -p ~/.xcl/plugins && cp -r . ~/.xcl/plugins/browser
+
+# from anywhere; the `browser` capability is dangerous, so grant it explicitly
+XCELERATE_PLUGIN_ALLOW=browser \
+  xcelerate --plugins browser run --allow-plugin browser job.xcl
+```
+
+```xcl
+# job.xcl
+run browser open {"url":"https://example.com"}
+run browser find {"text":"Example"}
+```
+
 ### Inspecting and invoking plugins
 
 Every binding exposes the same tiny, fixed bridge, so a new plugin never requires
@@ -388,14 +422,15 @@ let info = handle.invoke("info".into(), "{}".into()).await?;
 
 Capabilities are classified before they can ever be granted. `LaunchControl`,
 `BinaryPatch`, and `DetachedSpawn` are **built-in only**; `Evaluate`,
-`CdpProxy`, cookie access, init scripts, screenshots, and network capture are
-**dangerous** and require explicit consent. A plugin loaded from disk is a
-WebAssembly component that runs sandboxed with **no ambient authority**: the
-host imports are the only way out, they are capability-gated, and every call is
-audited - so a plugin cannot reach the filesystem or the network on its own.
-Dangerous callbacks are **denied by default** and must be opted into per host via
-`XCELERATE_PLUGIN_ALLOW` (per plugin, or broadly), under per-invocation time and
-response-size budgets. See [`docs/plugins/`](docs/plugins/README.md).
+`CdpProxy`, `Browser`, `App`, cookie access, init scripts, screenshots, and
+network capture are **dangerous** and require explicit consent. A plugin loaded
+from disk is a WebAssembly component that runs sandboxed with **no ambient
+authority**: the host imports are the only way out, they are capability-gated,
+and every call is audited - so a plugin cannot reach the filesystem, the
+network, or the desktop on its own. Dangerous callbacks are **denied by
+default** and must be opted into per host via `XCELERATE_PLUGIN_ALLOW` (per
+plugin, or broadly), under per-invocation time and response-size budgets. See
+[`docs/plugins/`](docs/plugins/README.md).
 
 ### Audit log
 
@@ -423,7 +458,8 @@ cd hello && ./build.sh               # Windows:  .\build.ps1
 
 You write plain Rust op handlers; xcelerate handles the WebAssembly plumbing.
 Load the built component with `Browser::load_plugin(path)` (a directory or a
-`plugin.json`). See the [plugin authoring guide](docs/plugins/README.md), the
+`plugin.json`), or drop it in `~/.xcl/plugins/` and load it by name. See the
+[plugin authoring guide](docs/plugins/README.md), the
 [WASM reference](docs/plugins/WASM.md), the JSON
 [schema](docs/plugins/plugin.schema.json), and the
 [examples](docs/plugins/examples).
@@ -789,13 +825,16 @@ xcelerate/
     xcelerate-plugin/       # plugin trait, manifest, capabilities, audit, host interface
     xcelerate/              # high-level facade: Browser, Page, Element, adapters
     xcelerate-bindgen/      # uniffi bindgen helper binary
-    xcelerate-cli/          # CLI (binary `xcelerate`), incl. the XCL runner + interpreter
+    xcelerate-interpreter/  # the XCL language: lexer, parser, engine, security, executor
+    xcelerate-cli/          # CLI (binary `xcelerate`), incl. the XCL runner
     xcelerate-mcp/          # `xcelerate-mcp` Model Context Protocol server
     xcelerate-codegen/      # script + typed-binding code generation (11 languages)
+    xcelerate-desktop/      # Windows UI Automation backend (native windows)
   adapters/                 # adapter profiles, runtime, and generator inputs
   bindings/                 # generated Python/JS/C#/Kotlin/Java/Swift/Ruby/Dart/Go packages (+ PowerShell)
   docs/plugins/             # plugin authoring guide, JSON schema, examples
   docs/xcl.md               # the XCL scripting language reference
+  plugins/                  # browser + app plugins (browser and native-app APIs as .wasm)
   scripts/                  # code generation, harvesting, and release tooling
 ```
 
@@ -806,7 +845,7 @@ via `load_plugin`, or in-process crates an embedder installs. The facade owns th
 `PluginManager` and bridges `Page` to the plugin host interface, so plugins never
 touch a raw page or the transport.
 
-The XCL scripting language lives in `crates/xcelerate-cli/src/xcl/` (lexer,
+The XCL scripting language lives in `crates/xcelerate-interpreter/` (lexer,
 parser, engine, runtime, security, and the browser/plugin/HTTP executor). See
 [`docs/xcl.md`](docs/xcl.md).
 

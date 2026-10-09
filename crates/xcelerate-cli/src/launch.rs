@@ -7,13 +7,11 @@ use xcelerate::{Browser, BrowserConfig, Page, XcelerateError, XcelerateResult};
 
 use crate::cli::BrowserArgs;
 
-/// The build command to suggest after scaffolding, per platform.
+/// The command to suggest after scaffolding. The CLI owns the build (it writes
+/// `wit/plugin.wit` and stages the `.wasm`), so point the author at it rather
+/// than a hand-rolled script.
 pub fn build_hint() -> &'static str {
-    if cfg!(windows) {
-        ".\\build.ps1"
-    } else {
-        "./build.sh"
-    }
+    "xcelerate build --wasm-only"
 }
 
 /// Whether `requested` names (or points at) a Firefox-family browser. The
@@ -93,10 +91,16 @@ pub async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Brows
             .browser
             .clone()
             .or_else(|| args.executable_path.clone()),
-        plugins: if args.plugins.is_empty() {
-            None
-        } else {
-            Some(args.plugins.clone())
+        plugins: {
+            // `--plugins` takes paths, but a bare *name* (`random-app`) is resolved
+            // against the plugin directories so a plugin can be dropped in and
+            // loaded by name.
+            let resolved = resolve_plugin_names(&args.plugins);
+            if resolved.is_empty() {
+                None
+            } else {
+                Some(resolved)
+            }
         },
     };
     let browser = match args.connect.clone() {
@@ -147,4 +151,79 @@ pub async fn launch(args: &BrowserArgs, url: &str) -> XcelerateResult<(Arc<Brows
     }
 
     Ok((browser, page))
+}
+
+/// Resolves each `--plugins` entry to a concrete path (see [`resolve_plugin_name`]).
+pub(crate) fn resolve_plugin_names(names: &[String]) -> Vec<String> {
+    names.iter().map(|name| resolve_plugin_name(name)).collect()
+}
+
+/// Resolves one `--plugins` entry.
+///
+/// An entry that already exists on disk is used unchanged. Otherwise it is
+/// treated as a bare *name* and searched in `$XCELERATE_PLUGIN_DIR`, then the
+/// user-global plugin home (`$XCELERATE_HOME`, else `~/.xcl`, `/plugins`),
+/// then `./plugins`, then `.`, accepting:
+///
+/// * `<dir>/<name>/`  — a plugin directory (its `plugin.json` is loaded);
+/// * `<dir>/<name>.json` — a manifest (with the `.wasm` beside it).
+///
+/// So `~/.xcl/plugins/browser/plugin.json` + `browser.wasm` is reachable from
+/// anywhere as `--plugins browser` - one build, imported by every project. An
+/// unresolved name is returned unchanged, so the loader reports the miss with
+/// the name the user typed.
+fn resolve_plugin_name(name: &str) -> String {
+    if std::path::Path::new(name).exists() {
+        return name.to_string();
+    }
+    let mut dirs: Vec<std::path::PathBuf> = Vec::new();
+    if let Ok(dir) = std::env::var("XCELERATE_PLUGIN_DIR")
+        && !dir.is_empty()
+    {
+        dirs.push(dir.into());
+    }
+    if let Some(home) = plugin_home() {
+        dirs.push(home);
+    }
+    dirs.push("plugins".into());
+    dirs.push(".".into());
+    for dir in dirs {
+        for candidate in [dir.join(name), dir.join(format!("{name}.json"))] {
+            if candidate.exists() {
+                return candidate.to_string_lossy().into_owned();
+            }
+        }
+    }
+    name.to_string()
+}
+
+/// The user-global plugin directory: `$XCELERATE_HOME/plugins` when set,
+/// otherwise `~/.xcl/plugins`. One shared home means a plugin built once is
+/// importable by name from any project or script.
+fn plugin_home() -> Option<std::path::PathBuf> {
+    if let Ok(dir) = std::env::var("XCELERATE_HOME")
+        && !dir.is_empty()
+    {
+        return Some(std::path::PathBuf::from(dir).join("plugins"));
+    }
+    let base = std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(std::path::PathBuf::from)?;
+    Some(base.join(".xcl").join("plugins"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::resolve_plugin_name;
+
+    #[test]
+    fn existing_paths_and_unknown_names_pass_through() {
+        // A real path is returned unchanged.
+        assert_eq!(resolve_plugin_name("Cargo.toml"), "Cargo.toml");
+        // An unknown name is returned unchanged so the loader can name it.
+        assert_eq!(
+            resolve_plugin_name("no-such-plugin-xyz"),
+            "no-such-plugin-xyz"
+        );
+    }
 }

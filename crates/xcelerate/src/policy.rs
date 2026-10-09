@@ -79,12 +79,29 @@ pub(crate) fn host_of(url: &str) -> Option<String> {
         None => authority,
     };
 
-    let host = match host_port.rsplit_once(':') {
-        Some((host, _port)) => host,
-        None => host_port,
+    let host = if let Some(rest) = host_port.strip_prefix('[') {
+        // A bracketed IPv6 literal must not be split at its inner colons; keep
+        // the brackets so the normalizer can strip them.
+        match rest.find(']') {
+            Some(end) => &host_port[..end + 2],
+            None => host_port,
+        }
+    } else {
+        match host_port.rsplit_once(':') {
+            Some((host, _port)) => host,
+            None => host_port,
+        }
     };
 
     let host = host.trim();
+    // Normalize before matching: a trailing dot (`example.com.`) or a bracketed
+    // IPv6 literal (`[::1]`) is the same host, and must not slip past a deny
+    // entry by a one-character difference.
+    let host = host.trim_end_matches('.');
+    let host = host
+        .strip_prefix('[')
+        .and_then(|inner| inner.strip_suffix(']'))
+        .unwrap_or(host);
     if host.is_empty() {
         None
     } else {
@@ -211,6 +228,15 @@ mod tests {
         assert_eq!(host_of("https://"), None);
         assert_eq!(host_of("relative/path"), None);
         assert_eq!(host_of("data:text/plain,hello"), None);
+    }
+
+    #[test]
+    fn host_of_normalizes_trailing_dot_and_brackets() {
+        assert_eq!(
+            host_of("https://example.com./x").as_deref(),
+            Some("example.com")
+        );
+        assert_eq!(host_of("https://[::1]:8080/").as_deref(), Some("::1"));
     }
 
     #[test]

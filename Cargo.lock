@@ -3248,6 +3248,7 @@ dependencies = [
  "wasmtime",
  "wasmtime-wasi",
  "xcelerate-core",
+ "xcelerate-desktop",
  "xcelerate-plugin",
 ]
 
@@ -3270,7 +3271,6 @@ dependencies = [
  "xcelerate-codegen",
  "xcelerate-interpreter",
  "xcelerate-mcp",
- "xcelerate-uia",
 ]
 
 [[package]]
@@ -3294,6 +3294,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "xcelerate-desktop"
+version = "1.0.14"
+dependencies = [
+ "windows",
+]
+
+[[package]]
 name = "xcelerate-interpreter"
 version = "1.0.14"
 dependencies = [
@@ -3313,7 +3320,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "xcelerate",
- "xcelerate-uia",
+ "xcelerate-desktop",
 ]
 
 [[package]]
@@ -3323,13 +3330,6 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
-]
-
-[[package]]
-name = "xcelerate-uia"
-version = "1.0.14"
-dependencies = [
- "windows",
 ]
 
 [[package]]

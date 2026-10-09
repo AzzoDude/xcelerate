@@ -57,6 +57,8 @@ enum Op {
     LoopEnd { target: usize },
     /// Jump to `target` only if the previous action succeeded (`ok == true`).
     JumpIfOk { target: usize },
+    /// Jump to `target` only if the previous action *failed* (`ok == false`).
+    JumpIfNotOk { target: usize },
 }
 
 impl Engine {
@@ -137,6 +139,10 @@ impl Engine {
                         self.pc = self.ops.len();
                         return Next::Halt("unresolved `goto` label".into());
                     }
+                    // Count the jump itself: a `label`/`goto` cycle touches no
+                    // command, so without this the step budget would never trip
+                    // and the run would spin forever.
+                    ctx.steps_executed += 1;
                     self.pc = *target;
                 }
                 Op::LoopStart { n } => {
@@ -144,6 +150,7 @@ impl Engine {
                     self.pc += 1;
                 }
                 Op::LoopEnd { target } => {
+                    ctx.steps_executed += 1;
                     let remaining = self.loops[*target].saturating_sub(1);
                     if remaining > 0 {
                         self.loops[*target] = remaining;
@@ -154,10 +161,19 @@ impl Engine {
                     }
                 }
                 Op::JumpIfOk { target } => {
+                    ctx.steps_executed += 1;
                     if self.last_ok {
                         self.pc = *target;
                     } else {
                         self.pc += 1;
+                    }
+                }
+                Op::JumpIfNotOk { target } => {
+                    ctx.steps_executed += 1;
+                    if self.last_ok {
+                        self.pc += 1;
+                    } else {
+                        self.pc = *target;
                     }
                 }
             }
@@ -221,6 +237,15 @@ impl Engine {
                 } else {
                     self.pc += 1;
                     Outcome::ok("if-ok skipped".to_string())
+                }
+            }
+            Op::JumpIfNotOk { target } => {
+                if self.last_ok {
+                    self.pc += 1;
+                    Outcome::ok("if-not-ok skipped".to_string())
+                } else {
+                    self.pc = *target;
+                    Outcome::ok("if-not-ok taken".to_string())
                 }
             }
             Op::LoopStart { n } => {
@@ -333,20 +358,18 @@ fn lower_step(step: &Step, ops: &mut Vec<Op>, funcs: &HashMap<(String, usize), C
             });
         }
         Command::IfOk(inner) => {
+            // Skip the body when the previous step did not succeed. Guards a
+            // *single* statement (`if-ok <verb> ...`), so the target is the op
+            // right after it.
+            let target = ops.len() + 2;
+            ops.push(Op::JumpIfNotOk { target });
             ops.push(Op::Command(inner.command.clone()));
-            // Skip pattern: after the guarded command, a JumpIfOk is used by the
-            // *caller-side* lowering; here the guard is "run inner only if last ok",
-            // so we prepend a conditional-skip is not possible without a counter.
-            // Simplest correct semantics: emit the inner command; the *engine*
-            // treats IfOk as "only execute if last_ok" via the command itself.
-            // To keep engines simple, we instead lower to a guarded jump *over* the
-            // body, which requires knowing the next op index (not available yet).
-            // Therefore `if-ok`/`if-fail` are executed inline and the engine checks
-            // `last_ok` when dispatching them — handled below in `dispatch`.
-            ops.push(Op::Command(Command::IfOk(inner.clone())));
         }
         Command::IfFail(inner) => {
-            ops.push(Op::Command(Command::IfFail(inner.clone())));
+            // Skip the body when the previous step succeeded.
+            let target = ops.len() + 2;
+            ops.push(Op::JumpIfOk { target });
+            ops.push(Op::Command(inner.command.clone()));
         }
         other => ops.push(Op::Command(other.clone())),
     }
@@ -417,6 +440,44 @@ fn substitute(command: &mut Command, map: &HashMap<String, Arg>) {
 mod tests {
     use super::super::parse::parse_program;
     use super::*;
+
+    /// `if-ok` / `if-fail` must branch on the *previous step's* outcome, not run
+    /// their body unconditionally (the bug this guarded against).
+    #[test]
+    fn conditionals_branch_on_the_previous_outcome() {
+        fn run_with(src: &str, fail_assert: bool) -> Vec<String> {
+            let program = parse_program(src).unwrap();
+            let mut engine = Engine::new(program, RuntimeLimits::default());
+            let mut ctx = Context::new(
+                super::super::security::Permissions::default(),
+                super::super::security::Source::Repl,
+                "https://x",
+            );
+            let mut printed = Vec::new();
+            while let Some(outcome) = engine.step(&mut ctx, &mut |_ctx, cmd| match cmd {
+                Command::Assert { .. } if fail_assert => Outcome::fail("no"),
+                Command::Print { args } => {
+                    printed.push(
+                        args.iter()
+                            .map(|a| a.source())
+                            .collect::<Vec<_>>()
+                            .join(" "),
+                    );
+                    Outcome::ok("print")
+                }
+                Command::Done => Outcome::done("done"),
+                _ => Outcome::ok("ok"),
+            }) {
+                if outcome.should_quit {
+                    break;
+                }
+            }
+            printed
+        }
+        let src = "assert x == y\nif-ok print yes\nif-fail print no\ndone\n";
+        assert_eq!(run_with(src, false), vec!["yes".to_string()]);
+        assert_eq!(run_with(src, true), vec!["no".to_string()]);
+    }
 
     fn run(src: &str) -> Vec<Outcome> {
         let program = parse_program(src).unwrap();

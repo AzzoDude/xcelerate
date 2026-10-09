@@ -52,6 +52,8 @@ impl Session {
             // Interaction.
             "click" => self.click(rest).await?,
             "tap" => self.tap(rest).await?,
+            "drag" => self.drag(rest).await?,
+            "dialog" => self.dialog(rest).await?,
             "fill" => self.fill(tokens).await?,
             "select" => self.select(tokens).await?,
             "type" => self.type_text(rest).await?,
@@ -69,6 +71,16 @@ impl Session {
 
             // Cookies.
             "cookie" | "cookies" => self.cookie(tokens).await?,
+
+            // Network interception, auth, permissions and environment.
+            "route" => self.route(tokens).await?,
+            "unroute" => self.unroute(rest).await?,
+            "auth" => self.auth(tokens).await?,
+            "permissions" => self.permissions(tokens).await?,
+            "geolocation" => self.geolocation(tokens).await?,
+
+            // Storage.
+            "storage" => self.storage(tokens).await?,
 
             // Tabs.
             "new-tab" | "newtab" | "tab-new" => self.new_tab(rest).await?,

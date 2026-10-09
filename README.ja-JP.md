@@ -320,6 +320,40 @@ handle.invoke("ping".into(), "{}".into()).await?;
 各操作は呼び出し予算の下で実行され、監査ログに記録されます。プラグインは、渡された
 ページに対してのみ動作します。
 
+### ブラウザとアプリのプラグイン（共有プラグインホーム）
+
+[`plugins/`](plugins) ディレクトリには、モデル全体を端から端まで示す 2 つの
+既製 WebAssembly プラグインがあります:
+
+| プラグイン | 公開するもの | ケイパビリティ |
+| --- | --- | --- |
+| [`plugins/browser`](plugins/browser)（`xcelerate.browser`） | ブラウザ操作面 — `open`, `click`, `fill`, `text`, `snapshot` など | `browser` |
+| [`plugins/app`](plugins/app)（`xcelerate.app`） | ネイティブウィンドウ操作 — `launch`, `tree`, `click`, `set_value` など | `app` |
+
+どちらも CDP・BiDi・OS を直接扱わず、**ケイパビリティで制限されたホストブリッジ**
+（`host.browser` / `host.app`）を呼び出します。プラグインは意味のある動詞をホストに
+要求し、ホストがそれを実行します。こうしてブラウザとアプリの操作はインタプリタから
+切り離され、コアは小さく保たれます。
+
+一度ビルドして共有しましょう。素のプラグイン *名* は、ユーザーグローバルの
+`$XCELERATE_HOME/plugins`（未設定なら `~/.xcl/plugins`）、次に `./plugins`、次に
+`.` の順に解決されるため、1 回のビルドをどのプロジェクトからでも読み込めます:
+
+```bash
+cd plugins/browser && ./build.sh           # Windows:  .\build.ps1
+mkdir -p ~/.xcl/plugins && cp -r . ~/.xcl/plugins/browser
+
+# どこからでも。`browser` ケイパビリティは危険なので明示的に付与します
+XCELERATE_PLUGIN_ALLOW=browser \
+  xcelerate --plugins browser run --allow-plugin browser job.xcl
+```
+
+```xcl
+# job.xcl
+run browser open {"url":"https://example.com"}
+run browser find {"text":"Example"}
+```
+
 ### プラグインの検査と呼び出し
 
 すべてのバインディングが同一の小さく固定されたブリッジを公開するため、新しい
@@ -350,12 +384,13 @@ let info = handle.invoke("info".into(), "{}".into()).await?;
 | ディスクからロード | WebAssembly、サンドボックス化、ケイパビリティで制限 | デフォルト拒否のサブセット、監査対象 |
 
 ケイパビリティは付与される前に分類されます。`LaunchControl`、`BinaryPatch`、
-`DetachedSpawn` は**組み込み専用**です。`Evaluate`、`CdpProxy`、Cookie アクセス、
-init スクリプト、スクリーンショット、ネットワークキャプチャは**危険**であり、明示的な
-同意が必要です。ディスクからロードされたプラグインは、**周囲の権限を持たず**
-サンドボックスで動作する WebAssembly コンポーネントです。ホストインポートだけが
-唯一の出口であり、それらはケイパビリティで制限され、すべての呼び出しが監査されます。
-したがって、プラグインが単独でファイルシステムやネットワークに到達することはできません。
+`DetachedSpawn` は**組み込み専用**です。`Evaluate`、`CdpProxy`、`Browser`、`App`、
+Cookie アクセス、init スクリプト、スクリーンショット、ネットワークキャプチャは
+**危険**であり、明示的な同意が必要です。ディスクからロードされたプラグインは、
+**周囲の権限を持たず**サンドボックスで動作する WebAssembly コンポーネントです。
+ホストインポートだけが唯一の出口であり、それらはケイパビリティで制限され、すべての
+呼び出しが監査されます。したがって、プラグインが単独でファイルシステム、ネットワーク、
+デスクトップに到達することはできません。
 危険なコールバックは**既定で拒否**され、ホストごとに `XCELERATE_PLUGIN_ALLOW`
 （プラグイン単位または広範に）を介して、呼び出しごとの時間と応答サイズの予算の下で
 オプトインする必要があります。詳細は
@@ -388,7 +423,8 @@ cd hello && ./build.sh               # Windows:  .\build.ps1
 
 プレーンな Rust の操作ハンドラーを書くだけで、xcelerate が WebAssembly の配線を
 処理します。ビルドしたコンポーネントは `Browser::load_plugin(path)`（ディレクトリ
-または `plugin.json`）でロードします。詳細は
+または `plugin.json`）でロードするか、`~/.xcl/plugins/` に置いて名前でロードします。
+詳細は
 [プラグイン作成ガイド](docs/plugins/README.md)、
 [WASM リファレンス](docs/plugins/WASM.md)、JSON
 [schema](docs/plugins/plugin.schema.json)、
@@ -713,13 +749,16 @@ xcelerate/
     xcelerate-plugin/       # plugin trait, manifest, capabilities, audit, host interface
     xcelerate/              # high-level facade: Browser, Page, Element, adapters
     xcelerate-bindgen/      # uniffi bindgen helper binary
-    xcelerate-cli/          # CLI (binary `xcelerate`), incl. the XCL runner + interpreter
+    xcelerate-interpreter/  # the XCL language: lexer, parser, engine, security, executor
+    xcelerate-cli/          # CLI (binary `xcelerate`), incl. the XCL runner
     xcelerate-mcp/          # `xcelerate-mcp` Model Context Protocol server
     xcelerate-codegen/      # script + typed-binding code generation (11 languages)
+    xcelerate-desktop/      # Windows UI Automation backend (native windows)
   adapters/                 # adapter profiles, runtime, and generator inputs
   bindings/                 # generated Python/JS/C#/Kotlin/Java/Swift/Ruby/Dart/Go packages (+ PowerShell)
   docs/plugins/             # plugin authoring guide, JSON schema, examples
   docs/xcl.md               # the XCL scripting language reference
+  plugins/                  # browser + app plugins (browser and native-app APIs as .wasm)
   scripts/                  # code generation, harvesting, and release tooling
 ```
 

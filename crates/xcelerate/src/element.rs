@@ -90,6 +90,50 @@ const JS_XPATH_NATIVE: &str = r#"function(xp){
 /// which [`crate::page::collect_elements`] reads like any other node list.
 const JS_XPATH_ALL_NATIVE: &str = r#"function(xp){ const r = document.evaluate(xp, this, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null); const out = []; for (let i = 0; i < r.snapshotLength; i++) out.push(r.snapshotItem(i)); return out; }"#;
 
+/// Computes an action point for [`Element::click_mouse`]/[`Element::hover_mouse`]
+/// and drags, in top-level viewport coordinates.
+///
+/// `random` selects a jittered point inside the element (clicks) or the centre
+/// (drags). The point is translated out of any same-origin frames so a real
+/// pointer event lands on the element, and the element is hit-tested at that
+/// point (descending shadow roots and same-origin frames) to report whether it is
+/// actually on top. Failures of the hit test never report occlusion.
+const JS_ACTION_POINT: &str = r#"function(random){
+this.scrollIntoView({block:'center',inline:'center'});
+var rect=this.getBoundingClientRect();
+var style=getComputedStyle(this);
+var visible=rect.width>0&&rect.height>0&&style.display!=='none'&&style.visibility!=='hidden'&&style.opacity!=='0';
+var fx=random?(0.15+Math.random()*0.7):0.5;
+var fy=random?(0.15+Math.random()*0.7):0.5;
+var x=rect.left+rect.width*fx;var y=rect.top+rect.height*fy;
+var win=window;var guard=0;
+try{while(win!==win.top&&guard++<20){var fe=win.frameElement;if(!fe)break;var fr=fe.getBoundingClientRect();x+=fr.left+fe.clientLeft;y+=fr.top+fe.clientTop;win=fe.ownerDocument.defaultView;}}catch(e){}
+var topX=x,topY=y;
+var composedParent=function(n){if(!n)return null;if(n.parentNode)return n.parentNode;var r=n.getRootNode?n.getRootNode():null;return (r&&r.host)?r.host:null;};
+var within=function(a,b){var n=b,g=0;while(n&&g++<100){if(n===a)return true;n=composedParent(n);}return false;};
+var onTop=true;
+try{if(win===window&&this.getRootNode()===document){var doc=win.document;var cur=doc.elementFromPoint(x,y);var cx=x,cy=y,g2=0;
+while(cur&&g2++<50){if(cur.shadowRoot){var inner=cur.shadowRoot.elementFromPoint(cx,cy);if(inner&&inner!==cur){cur=inner;continue;}}
+if(cur.tagName==='IFRAME'){var d=null;try{d=cur.contentDocument;}catch(e2){d=null;}if(d){var r2=cur.getBoundingClientRect();var ix=cx-(r2.left+cur.clientLeft);var iy=cy-(r2.top+cur.clientTop);var inner2=d.elementFromPoint(ix,iy);if(inner2){cur=inner2;cx=ix;cy=iy;continue;}}}
+break;}
+if(cur)onTop=within(this,cur)||within(cur,this);}}catch(e3){onTop=true;}
+return {x:topX,y:topY,width:rect.width,height:rect.height,visible:visible,onTop:onTop};
+}"#;
+
+/// Deserialized result of [`JS_ACTION_POINT`].
+#[derive(serde::Deserialize)]
+struct ActionPoint {
+    x: f64,
+    y: f64,
+    #[allow(dead_code)]
+    width: f64,
+    #[allow(dead_code)]
+    height: f64,
+    visible: bool,
+    #[serde(rename = "onTop")]
+    on_top: bool,
+}
+
 /// Represents an HTML element in the DOM.
 #[derive(uniffi::Object)]
 pub struct Element {
@@ -162,51 +206,22 @@ impl Element {
     /// (zero-size, `display:none`, `visibility:hidden` or fully transparent),
     /// rather than dispatching a click at coordinates that nothing occupies.
     pub async fn click_mouse(self: Arc<Self>) -> XcelerateResult<Arc<Self>> {
-        let js = "function() {
-            this.scrollIntoView({ block: 'center', inline: 'center' });
-            const rect = this.getBoundingClientRect();
-            const style = getComputedStyle(this);
-            const visible = rect.width > 0 && rect.height > 0
-                && style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
-            return JSON.stringify({
-                x: rect.left,
-                y: rect.top,
-                width: rect.width,
-                height: rect.height,
-                visible: visible
-            });
-        }"
-        .to_string();
+        // The shared probe gives a jittered point inside the element, translated
+        // out of any same-origin frames, and hit-tests it so an occluding overlay
+        // is reported instead of a click that silently does nothing.
+        let (target_x, target_y, visible, on_top) = self.probe_action_point(true).await?;
 
-        let res = self.call_js(js).await?;
-        let val_str = res
-            .result
-            .value
-            .and_then(|v| v.as_str().map(|s| s.to_string()))
-            .ok_or(crate::error::XcelerateError::InternalError)?;
-
-        #[derive(serde::Deserialize)]
-        struct Rect {
-            x: f64,
-            y: f64,
-            width: f64,
-            height: f64,
-            visible: bool,
-        }
-
-        let rect: Rect = serde_json::from_str(&val_str)
-            .map_err(|e| crate::error::XcelerateError::SerdeError(e.to_string()))?;
-
-        if !rect.visible {
+        if !visible {
             return Err(crate::error::XcelerateError::NotFound(
                 "element is not actionable (zero size, display:none, visibility:hidden or opacity:0)"
                     .to_string(),
             ));
         }
-
-        let mut rng = Lcg::new();
-        let target_x = rect.x + rect.width * 0.15 + rng.range(0.0, rect.width * 0.7);
-        let target_y = rect.y + rect.height * 0.15 + rng.range(0.0, rect.height * 0.7);
+        if !on_top {
+            return Err(crate::error::XcelerateError::NotFound(
+                "element is covered by another element at its click point".to_string(),
+            ));
+        }
 
         self.page.clone().click_mouse(target_x, target_y).await?;
 
@@ -332,45 +347,56 @@ impl Element {
         Ok(res.result.value.and_then(|v| v.as_bool()).unwrap_or(false))
     }
 
-    /// Focuses the element and presses a key.
+    /// Focuses the element and presses a key or a chord.
+    ///
+    /// `key` is a single key (`Enter`, `a`) or a chord joined with `+`
+    /// (`ctrl+a`, `ctrl+shift+k`). Modifiers are `ctrl`, `shift`, `alt`, `meta`.
     pub async fn press(self: Arc<Self>, key: String) -> XcelerateResult<()> {
         self.clone().focus().await?;
-        let (virtual_key, code, name) = key_info(&key);
-        let text = if key.chars().count() == 1 {
-            Some(key.clone())
+        let parts: Vec<&str> = key
+            .split('+')
+            .map(str::trim)
+            .filter(|part| !part.is_empty())
+            .collect();
+        let Some((main, modifier_names)) = parts.split_last() else {
+            return Err(XcelerateError::Unsupported("empty key".to_string()));
+        };
+        let main = *main;
+
+        // Resolve the modifiers and their combined CDP bitmask.
+        let mut bits = 0i64;
+        let mut modifiers = Vec::new();
+        for name in modifier_names {
+            let (vk, code, label, bit) = modifier_info(name).ok_or_else(|| {
+                XcelerateError::Unsupported(format!("unknown modifier `{name}` in `{key}`"))
+            })?;
+            bits |= bit;
+            modifiers.push((vk, code, label, bit));
+        }
+
+        // Modifier keydowns (accumulating the bitmask), the key itself, then the
+        // matching keyups in reverse.
+        let mut active = 0i64;
+        for (vk, code, label, bit) in &modifiers {
+            active |= bit;
+            self.dispatch_key("keyDown", active, *vk, code, label, None)
+                .await?;
+        }
+        let (virtual_key, code, name) = key_info(main);
+        let text = if main.chars().count() == 1 {
+            Some(main.to_string())
         } else {
             None
         };
-
-        let mut down = DispatchKeyEventParams {
-            type_: "keyDown".into(),
-            ..Default::default()
-        };
-        down.key = Some(name.clone().into());
-        down.code = Some(code.clone().into());
-        down.windows_virtual_key_code = Some(virtual_key);
-        down.native_virtual_key_code = Some(virtual_key);
-        if let Some(text) = &text {
-            down.text = Some(text.clone().into());
-            down.unmodified_text = Some(text.clone().into());
+        self.dispatch_key("keyDown", bits, virtual_key, &code, &name, text.as_deref())
+            .await?;
+        self.dispatch_key("keyUp", bits, virtual_key, &code, &name, None)
+            .await?;
+        for (vk, code, label, bit) in modifiers.iter().rev() {
+            active &= !bit;
+            self.dispatch_key("keyUp", active, *vk, code, label, None)
+                .await?;
         }
-        self.page
-            .client
-            .execute_with_session(Some(&self.page.session_id), down)
-            .await?;
-
-        let mut up = DispatchKeyEventParams {
-            type_: "keyUp".into(),
-            ..Default::default()
-        };
-        up.key = Some(name.into());
-        up.code = Some(code.into());
-        up.windows_virtual_key_code = Some(virtual_key);
-        up.native_virtual_key_code = Some(virtual_key);
-        self.page
-            .client
-            .execute_with_session(Some(&self.page.session_id), up)
-            .await?;
         Ok(())
     }
 
@@ -801,6 +827,72 @@ impl Element {
 }
 
 impl Element {
+    /// Runs the action-point probe. `random` jitters the point inside the element
+    /// (clicks) rather than using the centre (drags). Returns the viewport point
+    /// plus whether the element is visible and actually on top there.
+    async fn probe_action_point(&self, random: bool) -> XcelerateResult<(f64, f64, bool, bool)> {
+        let json = self
+            .call_json(
+                JS_ACTION_POINT.to_string(),
+                if random { "[true]" } else { "[false]" }.to_string(),
+            )
+            .await?;
+        let point: ActionPoint =
+            serde_json::from_str(&json).map_err(|e| XcelerateError::SerdeError(e.to_string()))?;
+        Ok((point.x, point.y, point.visible, point.on_top))
+    }
+
+    /// The viewport point a real pointer action (click/drag) should use for this
+    /// element: its centre, translated out of any same-origin frames.
+    ///
+    /// Errors when the element is not visible or is covered by another element at
+    /// that point, so a caller never reports a click that would hit nothing.
+    /// Kept out of the `#[uniffi::export]` block so binding checksums stay stable.
+    pub async fn action_point(&self) -> XcelerateResult<(f64, f64)> {
+        let (x, y, visible, on_top) = self.probe_action_point(false).await?;
+        if !visible {
+            return Err(XcelerateError::NotFound(
+                "element is not visible (zero-size, hidden or transparent)".to_string(),
+            ));
+        }
+        if !on_top {
+            return Err(XcelerateError::NotFound(
+                "element is covered by another element at its action point".to_string(),
+            ));
+        }
+        Ok((x, y))
+    }
+
+    /// Dispatches one CDP key event with an explicit modifier bitmask.
+    async fn dispatch_key(
+        &self,
+        type_: &str,
+        modifiers: i64,
+        virtual_key: i64,
+        code: &str,
+        key: &str,
+        text: Option<&str>,
+    ) -> XcelerateResult<()> {
+        let mut params = DispatchKeyEventParams {
+            type_: type_.into(),
+            ..Default::default()
+        };
+        params.modifiers = Some(modifiers);
+        params.key = Some(key.to_string().into());
+        params.code = Some(code.to_string().into());
+        params.windows_virtual_key_code = Some(virtual_key);
+        params.native_virtual_key_code = Some(virtual_key);
+        if let Some(text) = text {
+            params.text = Some(text.to_string().into());
+            params.unmodified_text = Some(text.to_string().into());
+        }
+        self.page
+            .client
+            .execute_with_session(Some(&self.page.session_id), params)
+            .await?;
+        Ok(())
+    }
+
     /// Helper to call JS on this element.
     async fn call_js(
         &self,
@@ -960,6 +1052,19 @@ fn key_info(key: &str) -> (i64, String, String) {
             (0, code, other.to_string())
         }
     }
+}
+
+/// Maps a modifier name to `(virtual key, code, key, CDP modifier bit)`.
+///
+/// The CDP bits are Alt = 1, Ctrl = 2, Meta = 4, Shift = 8.
+fn modifier_info(name: &str) -> Option<(i64, String, String, i64)> {
+    Some(match name.to_ascii_lowercase().as_str() {
+        "ctrl" | "control" => (17, "ControlLeft".to_string(), "Control".to_string(), 2),
+        "shift" => (16, "ShiftLeft".to_string(), "Shift".to_string(), 8),
+        "alt" => (18, "AltLeft".to_string(), "Alt".to_string(), 1),
+        "meta" | "cmd" | "super" | "win" => (91, "MetaLeft".to_string(), "Meta".to_string(), 4),
+        _ => return None,
+    })
 }
 
 /// Extracts a human-readable message from CDP `exceptionDetails`.

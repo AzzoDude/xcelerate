@@ -62,6 +62,43 @@ impl Session {
         Ok(())
     }
 
+    /// `dialog <dismiss|accept>`: how JS dialogs are answered automatically.
+    ///
+    /// Every page dismisses dialogs by default, so a stray `alert`/`confirm` can
+    /// never wedge a run; `accept` accepts them instead (for `beforeunload`).
+    pub(crate) async fn dialog(&mut self, rest: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let policy = match rest.trim().to_ascii_lowercase().as_str() {
+            "" | "dismiss" => xcelerate::page::DialogPolicy::Dismiss,
+            "accept" => xcelerate::page::DialogPolicy::Accept,
+            other => {
+                println!("usage: dialog <dismiss|accept>   (got {other:?})");
+                return Ok(());
+            }
+        };
+        self.page.set_dialog_policy(policy).await?;
+        println!(
+            "dialogs: {}",
+            if rest.trim().is_empty() {
+                "dismiss"
+            } else {
+                rest.trim()
+            }
+        );
+        Ok(())
+    }
+
+    /// `drag <from> <to>`: a native pointer drag between two elements.
+    pub(crate) async fn drag(&mut self, rest: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let mut parts = rest.split_whitespace();
+        let (Some(from), Some(to)) = (parts.next(), parts.next()) else {
+            println!("usage: drag <from-selector|text> <to-selector|text>");
+            return Ok(());
+        };
+        Arc::clone(&self.page).drag(from, to).await?;
+        println!("dragged {from} -> {to}");
+        Ok(())
+    }
+
     /// `tap <selector|text>`: a DOM click that never moves the mouse.
     pub(crate) async fn tap(&mut self, rest: &str) -> Result<(), Box<dyn std::error::Error>> {
         if rest.is_empty() {
@@ -116,6 +153,20 @@ impl Session {
                         .await?
                 };
                 let count = text.chars().count();
+                // A disabled or read-only field silently drops typed text; report
+                // it as a miss instead of claiming `typed N chars`.
+                if element
+                    .evaluate_bool(
+                        "function(){ return this.disabled === true || this.readOnly === true; }"
+                            .to_string(),
+                    )
+                    .await
+                    .unwrap_or(false)
+                {
+                    println!("{selector} is disabled or read-only; nothing typed");
+                    self.step_no_op = true;
+                    return Ok(());
+                }
                 element.type_text(text).await?;
                 println!("typed {count} chars into {selector}");
                 Ok(())

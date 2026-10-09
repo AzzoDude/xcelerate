@@ -1,0 +1,21 @@
+{
+  "name": "xcelerate.app",
+  "version": "0.1.0",
+  "host_api": ">=1.0 <2.0",
+  "entrypoint": "app.wasm",
+  "abi": "wasm32-wasip2/1",
+  "ops": [
+    "windows",
+    "launch",
+    "tree",
+    "find",
+    "wait",
+    "click",
+    "set_value",
+    "key",
+    "wheel",
+    "scroll"
+  ],
+  "capabilities": ["app"],
+  "limits": { "max_invoke_millis": 30000, "max_response_bytes": 1048576 }
+}

@@ -94,6 +94,8 @@ per-plugin form so a grant cannot leak to another plugin:
 XCELERATE_PLUGIN_ALLOW=example.wasm-echo:read_cookies <host command>
 # a bare capability name applies to every loaded plugin (use with care)
 XCELERATE_PLUGIN_ALLOW=read_cookies <host command>
+# the browser/app plugins grant their bridge the same way
+XCELERATE_PLUGIN_ALLOW=browser <host command>
 ```
 
 Granting a callback is audited; refusing one is audited too.
@@ -279,7 +281,7 @@ Capabilities are grouped by risk. The host grants only what the user consents to
 | Group | Capabilities |
 | --- | --- |
 | Safe (allow-list per origin/context) | `navigate`, `query`, `click`, `fill`, `type_keys`, `wait_for`, `wait_for_navigation`, `get_text`, `get_attribute` |
-| Dangerous (explicit consent + audit) | `evaluate`, `cdp_proxy`, `read_cookies`, `write_cookies`, `init_script`, `screenshot`, `network_capture`, `invoke_plugin` |
+| Dangerous (explicit consent + audit) | `evaluate`, `cdp_proxy`, `read_cookies`, `write_cookies`, `init_script`, `screenshot`, `network_capture`, `browser`, `app`, `invoke_plugin` |
 | Built-in only (never grantable) | `launch_control`, `binary_patch`, `detached_spawn` |
 
 `evaluate` and `cdp_proxy` give a plugin the same power as running arbitrary
@@ -305,7 +307,17 @@ granted capability first):
 | `log(message)` | always (redacted, never logs secrets) |
 | `get-cookies()` | `read_cookies` (dangerous) |
 | `set-cookie(cookie)` | `write_cookies` (dangerous) |
+| `browser(op, args)` | `browser` (dangerous): a semantic browser action on the run's active page |
+| `app(op, args)` | `app` (dangerous, Windows only): a native-window action |
 | `invoke-plugin(plugin, op, args)` | `invoke_plugin` (dangerous) |
+
+`browser` and `app` are the **host action bridge**: a plugin names a *verb*
+(`goto`, `click`, `fill`, `snapshot`, `tree`, …) and the host maps it onto the
+engine and the desktop backend. It is deliberately not raw CDP/BiDi or a raw OS
+handle, so the host keeps control of what a sandboxed guest may do. The host
+binds a page to the invocation first - `PluginHandle::invoke_on(op, args, page)`
+from Rust, or the `run` verb in XCL - and refuses `browser` when no page is
+bound.
 
 `invoke-plugin` is how a plugin declares a *dependency* on another plugin's
 behaviour: instead of importing the dependency's wasm interface directly, it
@@ -356,8 +368,9 @@ the Rust toolchain.
 - [ ] The plugin requests the **smallest** capability set it needs; no
       host-only capability is requested.
 - [ ] The op set is documented and each op is covered by the `limits` budget.
-- [ ] The `entrypoint` is a wasm component built from the shared WIT and its
-      `abi` is `wasm32-wasip2/1`.
+- [ ] The `entrypoint` is a wasm component built from the shared WIT
+      (`xcelerate build` writes `wit/plugin.wit` for you) and its `abi` is
+      `wasm32-wasip2/1`.
 - [ ] The plugin never assumes it can read files or reach the network directly -
       all access goes through granted host callbacks.
 
@@ -365,6 +378,9 @@ the Rust toolchain.
 
 - [Built-in plugins](../../README.md#plugins) - the audit log and the
   cross-language bridge.
+- [`plugins/browser`](../../plugins/browser/README.md) and
+  [`plugins/app`](../../plugins/app/README.md) - the ready-made browser and
+  native-app plugins built on the host action bridge.
 - [`plugin.schema.json`](plugin.schema.json) - manifest JSON Schema.
 - [`examples/wasm-echo`](examples/wasm-echo/README.md) - a minimal end-to-end
   example (Rust guest).

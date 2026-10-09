@@ -10,6 +10,7 @@ use std::collections::HashMap;
 
 use super::ast::{Arg, Callable, Command, FuncDef, ParamDef, Step};
 use super::lex::{Line, lex_line};
+use super::security::Limits;
 
 /// A parse error with the 1-based line it occurred on.
 #[derive(Debug, Clone)]
@@ -49,11 +50,31 @@ pub struct Program {
     pub funcs: HashMap<(String, usize), Callable>,
 }
 
-/// Parses an entire `.xcl` source into a [`Program`].
+/// Parses an entire `.xcl` source into a [`Program`] with the default limits.
 pub fn parse_program(source: &str) -> Result<Program, ParseError> {
-    let parser = Parser::default();
-    parser.run(source)
+    Parser::default().run(source)
 }
+
+/// Parses an entire `.xcl` source with caller-supplied [`Limits`].
+pub fn parse_program_with_limits(source: &str, limits: Limits) -> Result<Program, ParseError> {
+    Parser::default().with_limits(limits).run(source)
+}
+
+/// Parses an `.xcl` file, resolving `import "*.xcl"` relatives against
+/// `base_dir` (the directory of the file being parsed).
+pub fn parse_program_file(
+    source: &str,
+    limits: Limits,
+    base_dir: Option<std::path::PathBuf>,
+) -> Result<Program, ParseError> {
+    Parser::default()
+        .with_limits(limits)
+        .with_base_dir(base_dir)
+        .run(source)
+}
+
+/// Maximum `import "*.xcl"` nesting depth.
+const MAX_IMPORT_DEPTH: usize = 16;
 
 #[derive(Default)]
 struct Parser {
@@ -61,6 +82,12 @@ struct Parser {
     funcs: HashMap<(String, usize), Callable>,
     /// When inside a `func ... end`, the function under construction.
     active_func: Option<ActiveFunc>,
+    /// Boundedness caps; defaults keep untrusted input safe, a human may raise.
+    limits: Limits,
+    /// Directory that relative `import "*.xcl"` paths resolve against.
+    base_dir: Option<std::path::PathBuf>,
+    /// Files currently being imported, for cycle detection.
+    imported: Vec<std::path::PathBuf>,
 }
 
 struct ActiveFunc {
@@ -69,6 +96,84 @@ struct ActiveFunc {
 }
 
 impl Parser {
+    fn with_limits(mut self, limits: Limits) -> Self {
+        self.limits = limits;
+        self
+    }
+
+    fn with_base_dir(mut self, base_dir: Option<std::path::PathBuf>) -> Self {
+        self.base_dir = base_dir;
+        self
+    }
+
+    /// `import "path.xcl"`: parse another script and merge its `func`s, so a
+    /// script can share helpers. The import is resolved relative to this file.
+    fn import_xcl(&mut self, raw: &str, line: usize) -> Result<(), ParseError> {
+        let path = self.resolve_import(raw);
+        if self.imported.contains(&path) {
+            return Err(ParseError::new(
+                line,
+                format!("circular import: {}", path.display()),
+            ));
+        }
+        if self.imported.len() >= MAX_IMPORT_DEPTH {
+            return Err(ParseError::new(
+                line,
+                format!("import nesting too deep (max {MAX_IMPORT_DEPTH})"),
+            ));
+        }
+        let source = std::fs::read_to_string(&path).map_err(|error| {
+            ParseError::new(
+                line,
+                format!("cannot read import {}: {error}", path.display()),
+            )
+        })?;
+        let mut imported = self.imported.clone();
+        imported.push(path.clone());
+        let module = Parser {
+            steps: Vec::new(),
+            funcs: HashMap::new(),
+            active_func: None,
+            limits: self.limits,
+            base_dir: path.parent().map(|parent| parent.to_path_buf()),
+            imported,
+        }
+        .run(&source)?;
+        for (key, callable) in module.funcs {
+            if self.funcs.contains_key(&key) {
+                return Err(ParseError::new(
+                    line,
+                    format!(
+                        "`{}` is already defined; an imported function name must be unique",
+                        key.0
+                    ),
+                ));
+            }
+            if self.funcs.len() >= self.limits.max_funcs {
+                return Err(ParseError::new(
+                    line,
+                    format!("too many functions/imports (max {})", self.limits.max_funcs),
+                ));
+            }
+            self.funcs.insert(key, callable);
+        }
+        Ok(())
+    }
+
+    /// Resolves an import path: absolute stays as-is, relative joins `base_dir`
+    /// (or the current directory when the script had no known parent).
+    fn resolve_import(&self, raw: &str) -> std::path::PathBuf {
+        let path = std::path::PathBuf::from(raw);
+        if path.is_absolute() {
+            return path;
+        }
+        let base = self
+            .base_dir
+            .clone()
+            .unwrap_or_else(|| std::path::PathBuf::from("."));
+        base.join(path)
+    }
+
     fn run(mut self, source: &str) -> Result<Program, ParseError> {
         for (idx, raw) in source.lines().enumerate() {
             let line_no = idx + 1;
@@ -156,9 +261,15 @@ impl Parser {
                 }
             }
             "import" => {
-                let plugin = rest
-                    .first()
-                    .ok_or_else(|| ParseError::new(line, "usage: import <plugin-id> [op...]"))?;
+                let target = rest.first().ok_or_else(|| {
+                    ParseError::new(line, "usage: import <plugin-id|path.xcl> [op...]")
+                })?;
+                // `import "path.xcl"` includes another script's functions.
+                if target.ends_with(".xcl") {
+                    self.import_xcl(target, line)?;
+                    return Ok(());
+                }
+                let plugin = target;
                 // `import <plugin> <op>...` binds each named op as a bare callable, so
                 // it can be invoked as `<op> [json]` instead of `run <plugin> <op>
                 // [json]`. An op is callable with 0 args (no payload) or 1 (a JSON
@@ -174,12 +285,12 @@ impl Parser {
                                 ),
                             ));
                         }
-                        if self.funcs.len() >= crate::security::MAX_FUNCS {
+                        if self.funcs.len() >= self.limits.max_funcs {
                             return Err(ParseError::new(
                                 line,
                                 format!(
                                     "too many functions/imports (max {})",
-                                    crate::security::MAX_FUNCS
+                                    self.limits.max_funcs
                                 ),
                             ));
                         }
@@ -237,7 +348,7 @@ impl Parser {
                 }
             }
             "repeat" | "retry" => {
-                let n = count_arg(rest, line)?;
+                let n = count_arg(rest, line, self.limits.max_iterations)?;
                 let inner_tokens = &rest[1..];
                 if inner_tokens.is_empty() {
                     return Err(ParseError::new(line, "usage: repeat <n> <verb> <args...>"));
@@ -358,7 +469,7 @@ impl Parser {
         if header.is_empty() {
             return Err(ParseError::new(line, "usage: func <name>(<params...>)"));
         }
-        let (name, params) = parse_signature(&header, line)?;
+        let (name, params) = parse_signature(&header, line, self.limits.max_func_params)?;
         // Overloading is by arity: a second `human(a, b, c, d)` is fine beside
         // `human(a, b)`, but an exact duplicate (same name, same count) is not.
         if self.funcs.contains_key(&(name.clone(), params.len())) {
@@ -370,13 +481,10 @@ impl Parser {
                 ),
             ));
         }
-        if self.funcs.len() >= crate::security::MAX_FUNCS {
+        if self.funcs.len() >= self.limits.max_funcs {
             return Err(ParseError::new(
                 line,
-                format!(
-                    "too many functions/imports (max {})",
-                    crate::security::MAX_FUNCS
-                ),
+                format!("too many functions/imports (max {})", self.limits.max_funcs),
             ));
         }
         self.active_func = Some(ActiveFunc {
@@ -437,7 +545,11 @@ impl Parser {
 }
 
 /// Parses a `func` signature `name(a, b, c)`.
-fn parse_signature(header: &str, line: usize) -> Result<(String, Vec<ParamDef>), ParseError> {
+fn parse_signature(
+    header: &str,
+    line: usize,
+    max_params: u32,
+) -> Result<(String, Vec<ParamDef>), ParseError> {
     let open = header
         .find('(')
         .ok_or_else(|| ParseError::new(line, "usage: func <name>(<params...>)"))?;
@@ -464,14 +576,10 @@ fn parse_signature(header: &str, line: usize) -> Result<(String, Vec<ParamDef>),
             });
         }
     }
-    if params.len() > crate::security::MAX_FUNC_PARAMS as usize {
+    if params.len() > max_params as usize {
         return Err(ParseError::new(
             line,
-            format!(
-                "function has {} params; max is {}",
-                params.len(),
-                crate::security::MAX_FUNC_PARAMS
-            ),
+            format!("function has {} params; max is {max_params}", params.len()),
         ));
     }
     Ok((name, params))
@@ -614,7 +722,7 @@ fn assignment<'a>(
 }
 
 /// Parses and bounds a loop count: a positive integer ≤ the security cap.
-fn count_arg(rest: &[String], line: usize) -> Result<u32, ParseError> {
+fn count_arg(rest: &[String], line: usize, max_iterations: u32) -> Result<u32, ParseError> {
     let raw = rest
         .first()
         .ok_or_else(|| ParseError::new(line, "usage: repeat <n> <verb> <args...>"))?;
@@ -624,7 +732,7 @@ fn count_arg(rest: &[String], line: usize) -> Result<u32, ParseError> {
     if n == 0 {
         return Err(ParseError::new(line, "repeat count must be positive"));
     }
-    let cap = crate::security::MAX_ITERATIONS;
+    let cap = max_iterations;
     if n > cap {
         return Err(ParseError::new(
             line,
@@ -637,6 +745,25 @@ fn count_arg(rest: &[String], line: usize) -> Result<u32, ParseError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn imports_another_xcl_file() {
+        let dir = std::env::temp_dir().join(format!("xcl-import-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("lib.xcl"),
+            "func greet(name)\nprint hello $name\nend\n",
+        )
+        .unwrap();
+        let program = parse_program_file(
+            "import \"./lib.xcl\"\ngreet world\n",
+            Limits::default(),
+            Some(dir.clone()),
+        )
+        .unwrap();
+        assert!(program.funcs.contains_key(&("greet".to_string(), 1)));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn parses_let_and_interpolation() {

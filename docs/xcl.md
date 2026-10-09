@@ -41,6 +41,9 @@ done
 | `open` / `goto` / `back` / `reload` | Navigate. |
 | `title` `url` `text` `markdown` `content` | Read the page. |
 | `click` `mouse` `tap` `fill` `select` `type` `press` `submit` `hover` `scroll` | Interact. |
+| `launch` `window` `tree` `key` `wheel` | Desktop driver (Windows): spawn/select an app; `click`/`fill`/`find`/`wait`/`scroll` then act on it. |
+| `import browser` / `import desktop` | Load/select a driver: CDP browser or UI Automation desktop. Same verbs, no `app-` prefix. |
+| `drivers` | List the drivers this run exposes and mark the active one. |
 | `media` `download <url> <path>` `upload <sel> <path>` | Media: discover, fetch, or send files. |
 | `wait` `wait-idle` `wait-stable` | Wait for a selector, or sleep a number (`wait` = ms; `wait-sec`/`wait-min`/`wait-hr` for other units). |
 | `wait-random` | Sleep a random number of milliseconds between two bounds (`wait-random <min> <max>`, inclusive). |
@@ -248,6 +251,118 @@ the same text match reaches dropdown options.
 
 The interactive session adds a few verbs a script does not need: `click-xy`,
 `await-human`, and `guard`.
+
+## Drivers — browser and desktop
+
+XCL drives everything through **drivers**. The browser is not special: it is an
+application too, driven through **CDP**. Any native Windows window is an
+application driven through **UI Automation** (the *desktop* driver). Both are
+native processes; a driver is only the interface.
+
+A script brings a driver in with `import`:
+
+```text
+import browser     # load the CDP-driven browser driver (launched on demand)
+import desktop     # select the UI Automation driver
+```
+
+`import browser` launches the browser **lazily**, so a script that never touches
+the browser never pays for one. The browser is the default driver, so a plain
+browser script needs no explicit import; the first browser verb imports it
+implicitly. `run --native` / `run --app "<title>"` start browserless, where the
+browser driver is unavailable.
+
+`drivers` prints which drivers this run exposes (available/loaded) and marks the
+active one - the driver counterpart of `plugins`:
+
+```text
+drivers
+# * browser  available
+#   desktop  available
+```
+
+### One verb set, two drivers
+
+The verb names are the same on both drivers - there is no `app-` prefix. What the
+**shared** verbs act on is decided by the *active driver*:
+
+| Kind | Verbs |
+| --- | --- |
+| Shared (follow the active driver) | `click` `fill` `find` `wait` `scroll` |
+| Desktop only (always a window) | `launch` `window` `tree` `key` `wheel` |
+| Browser only (always the page) | `open` `goto` `title` `url` `text` `press` … |
+| Switch driver | `import browser` / `import desktop`; `window`/`launch` select desktop, `open`/`goto` select browser |
+
+So `click "Sign in"` clicks the page when the browser driver is active, and
+`click "Seven"` clicks the Calculator button when the desktop driver is active -
+one word, routed by context.
+
+### Desktop verbs
+
+Desktop verbs run in the **`xcelerate.app` plugin**, so a run must load it and
+grant its capability: `--plugins app` and `XCELERATE_PLUGIN_ALLOW=app`. The
+plugin's `windows` op lists the windows that are *currently open* (UIA can only
+enumerate live
+windows — an app that is not running has no window, so use `launch` first).
+
+| Verb | Meaning |
+| --- | --- |
+| `launch "<target>" [title] [ms]` | Spawn-or-attach: launch an exe/URI if its window is not already open, then wait for it. |
+| `window "<title>"` | Select the target window (and make desktop active). |
+| `tree` | Print the indexed element tree of the target window. |
+| `find "<text>"` | Print elements whose name contains `text`. |
+| `wait "<text>" [ms]` | Wait until an element whose name contains `text` appears. |
+| `click <index>` / `click "<text>"` | Click an element by `tree` index, or by name (pattern-first; stable across animated frames). |
+| `fill <index> "<text>"` | Set an element's value (no cursor, no keystrokes). |
+| `key <key>` | Send a key: `next` `prior` `down` `up` `space` `enter`. |
+| `wheel <notches>` / `scroll <notches>` | Scroll (negative scrolls down). |
+
+`launch` takes an executable, a document, or a registered URI, e.g.
+`launch "ms-windows-store:" "Microsoft Store" 20000`. If a window matching the
+title is already open it attaches instead of spawning a second copy; with no
+title it waits for a *new* pid to appear.
+
+### Mixed browser + desktop, one file
+
+```text
+# A task that spans both: sign in on the web, then read a value off a native app.
+import browser
+open "https://www.practicesoftwaretesting.com/auth/login"
+fill "#email" "ada@example.com"
+fill "#password" "correct-horse-battery"
+click "Login"
+assert url contains "/account"
+
+import desktop
+launch "calc" "Calculator" 20000
+click "Seven"
+click "Plus"
+click "Eight"
+click "Equals"
+find "Display is"                            # -> [13] <text> "Display is 15"
+
+import browser
+find "Example"
+done
+```
+
+### Gating
+
+Every verb that *acts* (`click`/`fill`/`key`/`wheel`/`scroll`) and `launch`
+requires the invoking human to grant the window with `--allow-app <glob>`;
+read-only verbs (`tree`/`find`/`wait`) and `window` selection run once the window
+is granted. A chord that escapes the app (`win+r`, `alt+f4`, …) is refused
+outright. `launch` is permitted when the **target** or the **title** it will
+appear under matches an `--allow-app` entry.
+
+```sh
+xcelerate-cli run job.xcl --allow-app "Calculator*"
+```
+
+A plain `run` exposes both drivers - the browser launches lazily, on the first
+`import browser` or browser verb - so a native-only script never starts one.
+`run --native` or `run --app "<title>"` start browserless, with the desktop
+driver already active.
 
 ## Media and files
 

@@ -307,6 +307,38 @@ handle.invoke("ping".into(), "{}".into()).await?;
 每个操作都在调用预算（invocation budget）下运行，并写入审计日志；插件只会
 作用于交给它的页面。
 
+### 浏览器与应用插件（共享插件主目录）
+
+[`plugins/`](plugins) 目录包含两个现成的 WebAssembly 插件，完整展示了整个模型：
+
+| 插件 | 暴露的能力 | Capability |
+| --- | --- | --- |
+| [`plugins/browser`](plugins/browser)（`xcelerate.browser`） | 浏览器操作面—— `open`、`click`、`fill`、`text`、`snapshot` 等 | `browser` |
+| [`plugins/app`](plugins/app)（`xcelerate.app`） | 原生窗口控制—— `launch`、`tree`、`click`、`set_value` 等 | `app` |
+
+两者都不直接使用 CDP、BiDi 或操作系统，而是调用**受能力门控的宿主桥接**
+（`host.browser` / `host.app`）：插件向宿主请求一个语义动词，由宿主执行。如此，
+浏览器与应用控制便与解释器解耦，核心保持精简。
+
+一次构建，处处共享。裸插件 *名* 会依次在用户全局目录
+（`$XCELERATE_HOME/plugins`，否则 `~/.xcl/plugins`）、`./plugins`、`.` 中解析——
+因此一次构建可被任何项目导入：
+
+```bash
+cd plugins/browser && ./build.sh           # Windows:  .\build.ps1
+mkdir -p ~/.xcl/plugins && cp -r . ~/.xcl/plugins/browser
+
+# 可在任何位置；`browser` 能力是危险的，需显式授予
+XCELERATE_PLUGIN_ALLOW=browser \
+  xcelerate --plugins browser run --allow-plugin browser job.xcl
+```
+
+```xcl
+# job.xcl
+run browser open {"url":"https://example.com"}
+run browser find {"text":"Example"}
+```
+
 ### 检查与调用插件
 
 每个绑定都暴露同样小巧而固定的桥接接口，因此新增插件永远不需要新的绑定代码：
@@ -336,11 +368,11 @@ let info = handle.invoke("info".into(), "{}".into()).await?;
 | 从磁盘加载 | WebAssembly，沙箱化，按能力（capability）授权 | 默认拒绝的子集，经过审计 |
 
 能力在被授予之前会先经过分类。`LaunchControl`、`BinaryPatch` 和
-`DetachedSpawn` **仅限内置**；`Evaluate`、`CdpProxy`、cookie 访问、初始化脚本、
-截图和网络捕获属于**危险**能力，需要明确同意。从磁盘加载的插件是一个
+`DetachedSpawn` **仅限内置**；`Evaluate`、`CdpProxy`、`Browser`、`App`、cookie 访问、
+初始化脚本、截图和网络捕获属于**危险**能力，需要明确同意。从磁盘加载的插件是一个
 WebAssembly 组件，在沙箱中运行，**没有任何环境权限（ambient authority）**：
 宿主（host）导入是唯一的出路，它们按能力授权，且每次调用都会被审计——因此
-插件无法自行访问文件系统或网络。危险回调**默认被拒绝**，必须在每次调用时间
+插件无法自行访问文件系统、网络或桌面。危险回调**默认被拒绝**，必须在每次调用时间
 与响应大小预算之内，通过 `XCELERATE_PLUGIN_ALLOW` 按宿主（针对单个插件或
 广泛地）选择启用。参见 [`docs/plugins/`](docs/plugins/README.md)。
 
@@ -368,7 +400,8 @@ cd hello && ./build.sh               # Windows:  .\build.ps1
 ```
 
 你只需编写普通的 Rust 操作处理器；xcelerate 负责处理 WebAssembly 的底层管道。
-用 `Browser::load_plugin(path)`（一个目录或 `plugin.json`）加载构建好的组件。
+用 `Browser::load_plugin(path)`（一个目录或 `plugin.json`）加载构建好的组件，
+或将其放入 `~/.xcl/plugins/` 并按名称加载。
 参见[插件编写指南](docs/plugins/README.md)、[WASM 参考](docs/plugins/WASM.md)、
 JSON [schema](docs/plugins/plugin.schema.json) 以及
 [示例](docs/plugins/examples)。
@@ -680,13 +713,16 @@ xcelerate/
     xcelerate-plugin/       # plugin trait, manifest, capabilities, audit, host interface
     xcelerate/              # high-level facade: Browser, Page, Element, adapters
     xcelerate-bindgen/      # uniffi bindgen helper binary
-    xcelerate-cli/          # CLI (binary `xcelerate`), incl. the XCL runner + interpreter
+    xcelerate-interpreter/  # the XCL language: lexer, parser, engine, security, executor
+    xcelerate-cli/          # CLI (binary `xcelerate`), incl. the XCL runner
     xcelerate-mcp/          # `xcelerate-mcp` Model Context Protocol server
     xcelerate-codegen/      # script + typed-binding code generation (11 languages)
+    xcelerate-desktop/      # Windows UI Automation backend (native windows)
   adapters/                 # adapter profiles, runtime, and generator inputs
   bindings/                 # generated Python/JS/C#/Kotlin/Java/Swift/Ruby/Dart/Go packages (+ PowerShell)
   docs/plugins/             # plugin authoring guide, JSON schema, examples
   docs/xcl.md               # the XCL scripting language reference
+  plugins/                  # browser + app plugins (browser and native-app APIs as .wasm)
   scripts/                  # code generation, harvesting, and release tooling
 ```
 

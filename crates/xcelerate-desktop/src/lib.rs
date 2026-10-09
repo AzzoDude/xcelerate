@@ -1,4 +1,5 @@
-//! Windows **UI Automation** backend for xcelerate.
+//! The **desktop** backend for xcelerate: drive native windows on Windows via
+//! UI Automation.
 //!
 //! Gives native windows the same shape the CDP browser already has: an indexed
 //! `snapshot` of the element tree and `click <index>` on any of it. This is what
@@ -33,6 +34,10 @@ pub enum UiaError {
     Win(windows::core::Error),
     NotFound(String),
     NoElement(usize),
+    /// A launched app did not open a window in time.
+    Timeout(String),
+    /// The process could not be spawned.
+    Io(String),
 }
 
 impl fmt::Display for UiaError {
@@ -43,6 +48,7 @@ impl fmt::Display for UiaError {
             UiaError::NoElement(index) => {
                 write!(f, "no element at index {index}; run `tree` first")
             }
+            UiaError::Timeout(message) | UiaError::Io(message) => write!(f, "{message}"),
         }
     }
 }
@@ -186,11 +192,19 @@ impl Uia {
         let rect = unsafe { el.CurrentBoundingRectangle().unwrap_or_default() };
         let cx = (rect.left + rect.right) / 2;
         let cy = (rect.top + rect.bottom) / 2;
+        let mut previous = POINT::default();
         unsafe {
+            // Park the cursor on the target only for the click, then put it back:
+            // a coordinate click must not leave the user's pointer somewhere else
+            // (all the more so when the window was parked off-screen).
+            let had_previous = GetCursorPos(&mut previous).is_ok();
             let _ = SetCursorPos(cx, cy);
             std::thread::sleep(Duration::from_millis(80));
             mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
             mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+            if had_previous {
+                let _ = SetCursorPos(previous.x, previous.y);
+            }
         }
         Ok("mouse")
     }
@@ -406,4 +420,76 @@ fn key_input(key: VIRTUAL_KEY, flags: KEYBD_EVENT_FLAGS) -> INPUT {
 /// A `BSTR` property, or `""` when the property is absent.
 fn text(value: windows::core::Result<BSTR>) -> String {
     value.map(|b| b.to_string()).unwrap_or_default()
+}
+
+/// The result of a spawn-or-attach: which window was reached and how.
+#[derive(Debug, Clone)]
+pub struct LaunchOutcome {
+    /// The window that was attached to, or the new one that appeared.
+    pub window: Window,
+    /// `true` when an existing window matched (nothing was spawned).
+    pub attached: bool,
+}
+
+/// Spawn-or-attach a native app and wait for its window.
+///
+/// If a window whose title contains `title` is already open it is returned;
+/// otherwise `target` - an executable, a document, or a registered URI such as
+/// `ms-windows-store:` - is launched via `cmd /C start` and the first matching
+/// (or, with no `title`, first *new-pid*) window is returned. Shared by the CLI
+/// and XCL so the two surfaces never drift.
+///
+/// There is deliberately no "hide"/"headless" mode here: headless is a *browser*
+/// concept (`--headless`). A native app has a real window that cannot be hidden
+/// and still driven - DWM cloaking is denied cross-process and `SW_HIDE` removes
+/// the window from UI Automation - so the caller just gets the window.
+pub fn launch(target: &str, title: Option<&str>, wait_ms: u64) -> Result<LaunchOutcome> {
+    let uia = Uia::new()?;
+    let windows = uia.windows()?;
+    let by_title = |windows: &[Window]| -> Option<Window> {
+        let needle = title?.to_ascii_lowercase();
+        windows
+            .iter()
+            .find(|w| w.name.to_ascii_lowercase().contains(&needle))
+            .cloned()
+    };
+
+    // Attach instead of spawning a second copy.
+    if let Some(existing) = by_title(&windows) {
+        return Ok(LaunchOutcome {
+            window: existing,
+            attached: true,
+        });
+    }
+
+    // Remember the pids already open so, with no title, a *new* window can be
+    // told apart from one that was already there.
+    let before: std::collections::HashSet<i32> = windows.iter().map(|w| w.pid).collect();
+
+    // `start` handles executables and registered URIs / app names alike.
+    std::process::Command::new("cmd")
+        .args(["/C", "start", "", target])
+        .spawn()
+        .map_err(|e| UiaError::Io(format!("cannot launch {target}: {e}")))?;
+
+    let deadline = Instant::now() + Duration::from_millis(wait_ms);
+    loop {
+        let now = uia.windows()?;
+        let found = match title {
+            Some(_) => by_title(&now),
+            None => now.iter().find(|w| !before.contains(&w.pid)).cloned(),
+        };
+        if let Some(window) = found {
+            return Ok(LaunchOutcome {
+                window,
+                attached: false,
+            });
+        }
+        if Instant::now() >= deadline {
+            return Err(UiaError::Timeout(format!(
+                "{target} did not open a window within {wait_ms} ms"
+            )));
+        }
+        std::thread::sleep(Duration::from_millis(300));
+    }
 }

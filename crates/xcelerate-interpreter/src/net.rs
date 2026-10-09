@@ -16,6 +16,19 @@ fn client() -> Result<reqwest::Client, reqwest::Error> {
         .build()
 }
 
+/// The client used by `request` / browserless HTTP: it never follows redirects.
+///
+/// This is an SSRF control: the caller validates the target host once, before
+/// the request, so an auto-followed `302` to `http://127.0.0.1/` would otherwise
+/// reach loopback behind the guard's back. A script that wants a redirect chain
+/// must issue each hop explicitly.
+fn request_client() -> Result<reqwest::Client, reqwest::Error> {
+    reqwest::Client::builder()
+        .user_agent(concat!("xcelerate/", env!("CARGO_PKG_VERSION")))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+}
+
 /// Fetches `url` and returns the body. JSON is pretty-printed so an API call is
 /// readable; anything else is returned verbatim.
 pub async fn fetch(url: &str) -> Result<String, Box<dyn std::error::Error>> {
@@ -79,7 +92,7 @@ pub async fn request(
     headers: Vec<(String, String)>,
     body: String,
 ) -> Result<(u16, String), Box<dyn std::error::Error>> {
-    let client = client()?;
+    let client = request_client()?;
     let method = reqwest::Method::from_bytes(method.as_bytes())?;
     let mut builder = client.request(method, url);
     for (name, value) in headers {

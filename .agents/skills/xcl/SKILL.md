@@ -75,6 +75,39 @@ plugin-config acme.mod      # dump an op's schema + defaults
 function namespace, so a name collision with a `func` (or between two plugins)
 is a duplicate. Requires `--allow-plugin <id>` (`*` glob allowed).
 
+### Loading a plugin by name
+
+A plugin is a **directory** — `plugin.json` (declaring `ops`, `capabilities`,
+`entrypoint`) plus its `.wasm`. Build one, drop it in `./plugins/`, and load it
+by name (no path):
+
+```bash
+xcelerate plugin new random-app      # scaffold
+cd random-app && xcelerate build --wasm-only && cd ..
+mv random-app plugins/               # plugins/random-app/{plugin.json,random-app.wasm}
+
+# load by name (searched in $XCELERATE_PLUGIN_DIR, then ./plugins, then .)
+xcelerate --plugins random-app run --allow-plugin random-app job.xcl
+```
+```xcl
+import random-app                    # gate it
+random-app do-thing "arg"            # call an op (or: run random-app do-thing)
+```
+
+A bare `random-app.wasm` cannot be imported by itself: `ops`/`capabilities`
+live in the manifest, so the `.wasm` needs `plugin.json` beside it (a
+`plugins/random-app/` directory, or a sibling `random-app.json`).
+
+### Importing another XCL file
+
+`import "path.xcl"` includes another script and merges its `func`s (resolved
+relative to the importing file). Circular imports and name clashes are errors.
+
+```xcl
+import "./lib.xcl"     # brings lib.xcl's funcs into scope
+greet world            # call one
+```
+
 ## Control flow
 
 `repeat <n> <verb> <args…>`, `retry <n> <verb> <args…>`, `if-ok <verb> …`,
@@ -111,6 +144,59 @@ A failed `assert` fails the **step** (feeds `if-fail`/`retry`) and prints
 snapshot index. Input is human-like by default; `--linear` makes it
 straight-line/fast.
 
+## Drivers — browser and desktop (Windows)
+
+XCL drives everything through **drivers**. The browser is an application too,
+driven through **CDP**; any native window is an application driven through **UI
+Automation** (the *desktop* driver). Bring a driver in with `import`, and the
+**same verbs** act on it — there is no `app-` prefix:
+
+```text
+import browser                               # load the browser driver (launch is lazy)
+open "https://example.com"
+
+import desktop                               # switch to UI Automation
+launch "calc" "Calculator" 20000            # spawn-or-attach
+window "Notepad"                             # ...or select a running window
+tree                                         # indexed element tree
+click "Seven"                                # click by name (pattern-first, cursor-free)
+click 43                                     # ...or by tree index
+fill 5 "hello"                               # set a value (no cursor)
+find "Display is"                            # matching elements
+wait "Equals" 5000                           # wait for an element
+key next                                     # next/prior/down/up/space/enter
+wheel -3                                     # scroll (negative = down)
+
+import browser                               # switch back to the page
+```
+
+- **Shared verbs** (follow the active driver): `click` `fill` `find` `wait` `scroll`.
+- **Desktop-only** (always a window): `launch` `window` `tree` `key` `wheel`.
+- **Browser-only** (always the page): `open` `goto` `title` `url` `text` `press` … .
+  `window`/`launch` select the desktop driver; `open`/`goto`/`import browser` select
+  the browser.
+
+So `click "Sign in"` hits the page when the browser driver is active, and
+`click "Seven"` hits the Calculator button when the desktop driver is active — one
+verb, routed by context. One file can do both. The browser is the default driver
+and is launched **lazily**, so a native-only script never starts a browser.
+`drivers` lists what this run exposes and marks the active one (like `plugins`).
+
+`launch "<exe|uri>" [title] [ms]` is the only way to start an app from a script
+(the plugin's `windows` op lists only windows already open). A launched app shows
+its window; there is
+no hide/headless mode (headless is a *browser* concept, `--headless`). Desktop
+**acting** verbs and `launch` need `--allow-app "<glob>"` (default-deny); read-only
+`tree`/`find`/`wait` and `window` selection run once granted. `run --native` starts
+browserless with the desktop driver active; `run --app "<title>"` attaches to one
+window.
+
+Desktop verbs are backed by the **`xcelerate.app` plugin**, so load it and grant
+its capability: `--plugins app` and `XCELERATE_PLUGIN_ALLOW=app`. Browser verbs
+bind the run's active page so the `xcelerate.browser` plugin can drive the page.
+
+For pure computation with no window at all, use a plugin, `request`, or `eval`.
+
 ## Cookies
 
 ```text
@@ -132,6 +218,7 @@ before relying on it.
 - `--allow-unsafe` — enables `eval`.
 - `--allow-http` — enables browserless `request <METHOD> <url> [headers] [body]`.
 - `--allow-plugin <id>` — enables a plugin (`*` glob); repeatable.
+- `--allow-app <glob>` — enables driving/launching a native window (default-deny); repeatable.
 - `--allow-private` — permits private/loopback hosts for `request` (SSRF guard
   blocks them by default).
 
@@ -143,7 +230,8 @@ the **workspace root** (the cwd, or `--output-dir <dir>`); absolute paths and
 
 `--param k=v` (override a `param`) · `--user-data-dir <path>` (persist logins /
 cookies between runs) · `--output-dir <dir>` (workspace root) · `--proxy <url>`
-(repeatable) · `--verbose`.
+(repeatable) · `--native` / `--app "<title>"` (Windows: browserless native run) ·
+`--verbose`.
 
 ## Authoring checklist
 

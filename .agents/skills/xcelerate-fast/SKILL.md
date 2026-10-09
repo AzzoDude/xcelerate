@@ -10,28 +10,30 @@ thinking between actions.
 
 ## Rules
 
-1. **Session-first, batched — never one action per call.**
-   Write a command file and pipe it in; the session keeps the process, the UIA
-   tree, and the app attach alive, so *N* actions cost **one** setup.
-   - native: `xcelerate-uia session "<window>" < cmds.txt`
+1. **Batched — never one action per call.**
+   - native (Windows): `xcelerate --plugins app run --native job.xcl` — the `xcelerate.app` plugin
    - browser / Electron / CEF / WebView2: `xcelerate --connect <ws> --attach <id> session < cmds.txt`
    - scripts: `xcelerate run job.xcl` (one invocation runs the whole flow)
-2. **Discover once.** `xcelerate apps` (native windows) or `... targets` (CDP) —
+   - no subcommand: `xcelerate` alone drops into the interactive session (REPL)
+2. **Discover once.** `run xcelerate.app windows` (native windows) or `... targets` (CDP) —
    a single call. Do not re-list.
-3. **Act by name, not index.** `click-name` skips the
+3. **Act by name, not index.** `click "<text>"` (or `run xcelerate.app click
+   {"window":…,"name":"<text>"}`) skips the
    read-tree → pick-index round-trip. Run `tree` **only** when you must see
    structure, and only once.
-4. **Prefer cursor-free actions.** `invoke` / `click` / `set-value` use UIA
+4. **Prefer cursor-free actions.** `click` / `fill` (and the plugin's `click` /
+   `set_value` ops) use UIA
    patterns (no cursor). `wheel` is the last resort, only for a Chromium surface.
-5. **Wait inside the tool.** Put repeats/waits in the script; never poll with
-   separate calls.
+5. **Native actions are gated.** Load the plugin and grant its capability
+   (`--plugins app`, `XCELERATE_PLUGIN_ALLOW=app`) and allow the window
+   (`--allow-app <glob>` matching its title); dangerous chords (`win+r`, `alt+f4`, …) are refused.
 6. **Decide the whole sequence up front**, run it, check once, done. Do not
    think between actions.
 
 ## Always clean up
 
 - **Close what you opened.** If you launched an app (Store, Explorer, etc.),
-  close it when done — `click-name "<title>" "Close"`, or don't open it at all.
+  close it when done — `click "Close"` (or the plugin's `click` op), or don't open it at all.
 - **Temp files go in `target/`** (gitignored), never the repo root, and are
   **deleted** when the step finishes. Never leave scripts or artifacts behind.
 - If a task needs no app UI, don't open one (e.g. `winget`/`git` beats clicking).
@@ -45,16 +47,66 @@ thinking between actions.
 
 ## Cheatsheet
 
-Native (`xcelerate-uia`):
+Native (Windows) — the `xcelerate.app` plugin. Load it and grant its capability:
 ```text
-xcelerate-uia apps                          # list windows: name [class] pid
-xcelerate-uia tree "<title>"                # indexed tree (only if needed)
-xcelerate-uia click-name "<title>" "<text>" # pattern-first, cursor-free
-xcelerate-uia set-value "<title>" <index> "<text>"
-xcelerate-uia key "<title>" next            # page down / prior / down / up
-xcelerate-uia wheel "<title>" -10           # Chromium surfaces only
-xcelerate-uia session "<title>" < cmds.txt
+XCELERATE_PLUGIN_ALLOW=app xcelerate --plugins app run --native --allow-app "<glob>" job.xcl
 ```
+```text
+# job.xcl — native verbs route through the plugin (no browser needed)
+launch "<exe|uri>" [title] [ms]    # start it if not open, then wait
+window "<title>"                   # ...or select a running window
+tree                               # indexed tree (only if needed)
+find "<text>"                      # matching elements only
+click "<text>"                     # pattern-first, cursor-free
+click <index>
+fill <index> "<text>"              # set a value (no cursor)
+key next                           # next / prior / down / up / enter
+wheel -10                          # Chromium surfaces only
+wait "<text>" [ms]                 # wait for an element
+```
+Or call the plugin's ops directly (JSON args):
+```text
+run xcelerate.app launch {"target":"calc","title":"Calculator"}
+run xcelerate.app windows
+run xcelerate.app tree {"window":"Calculator"}
+run xcelerate.app click {"window":"Calculator","name":"Equals"}
+```
+
+Native and browser **in one XCL script** — same verbs, no `app-` prefix. Drivers:
+`import browser` (CDP) and `import desktop` (UIA). `window`/`launch` select the
+desktop driver; `open`/`goto`/`import browser` select the browser; shared verbs
+(`click` `fill` `find` `wait` `scroll`) follow the active driver. The browser
+launches lazily, so a native-only script never starts one.
+
+Native verbs now run the `xcelerate.app` plugin, so load it and grant `app`
+(`--plugins app`, `XCELERATE_PLUGIN_ALLOW=app`); browser verbs bind the run's
+active page so the `xcelerate.browser` plugin can drive it.
+```text
+import browser               # load the browser driver (lazy)
+open "https://example.com"
+
+import desktop               # switch to UI Automation
+launch "<exe|uri>" [title] [ms]   # spawn-or-attach
+window "<title>"             # ...or select a running window
+tree                         # indexed element tree
+find "<text>"                # matching elements
+wait "<text>" [ms]           # wait for an element
+click <index>                # click by tree index
+click "<text>"               # click by name (pattern-first, cursor-free)
+fill <index> "<text>"        # set a value (no cursor, no keystrokes)
+key next                     # next / prior / down / up / space / enter
+wheel <notches>              # scroll
+scroll <notches>
+
+import browser               # switch back to the page
+```
+`launch` is the only way to start an app from a script — the plugin's `windows`
+op can only list
+windows that are already open. A launched app shows its window (there is no
+hide/headless mode for a native app — headless is a *browser* concept). It is gated
+too: allow the target or its title (`--allow-app "Calculator*"`). `window
+"<title>"` may select a *different* window, but only one that is granted
+(`--allow-app`); a script can never widen its own access.
 
 Browser / CDP apps:
 ```text

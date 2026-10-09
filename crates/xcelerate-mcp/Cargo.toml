@@ -27,7 +27,7 @@ mimalloc = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 # Native-app tools (UIA). Windows only.
-xcelerate-uia = { path = "../xcelerate-uia", version = "1.0.14" }
+xcelerate-desktop.workspace = true
 
 [lints]
 workspace = true
