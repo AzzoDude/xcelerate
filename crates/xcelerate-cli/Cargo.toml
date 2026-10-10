@@ -10,7 +10,7 @@ description = "Command-line interface for the xcelerate engine."
 publish = false
 
 [[bin]]
-name = "xcelerate"
+name = "xcl"
 path = "src/main.rs"
 
 [dependencies]
